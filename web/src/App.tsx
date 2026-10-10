@@ -96,8 +96,10 @@ function Shell() {
   const [guideOpen, setGuideOpen] = useState(false)
   // 迭代 92（#150 F-02）：设计器注册的离开守卫——设计器 tab 在编辑且有未保存更改时，
   // 导航切 tab 交由守卫挂起（弹三选 Modal：保存并离开 / 放弃更改 / 继续编辑），确认后再切换。
-  const designerLeaveRef = useRef<((leave: () => void) => void) | null>(null)
-  const registerDesignerLeave = useCallback((fn: ((leave: () => void) => void) | null) => {
+  // 迭代 127 修复（#312 取证）：守卫返回 boolean（false=挂起 / true=已直接放行）——switchTab 原样透传，
+  // 路由仅在真正挂起时 pre-revert；非 dirty 设计器放行后退不再被错误拉回（浏览器后退失效缺陷）。
+  const designerLeaveRef = useRef<((leave: () => void) => boolean) | null>(null)
+  const registerDesignerLeave = useCallback((fn: ((leave: () => void) => boolean) | null) => {
     designerLeaveRef.current = fn
   }, [])
   const app = useApp()
@@ -151,8 +153,8 @@ function Shell() {
   const switchTab = (id: TabId): boolean => {
     if (id === tab) return true
     if (tab === 'designer' && designerReq && designerLeaveRef.current) {
-      designerLeaveRef.current(() => setTab(id))
-      return false
+      // 透传守卫结论：false=挂起（路由 pre-revert）；true=守卫已直接放行（setTab 已执行，不得回退）
+      return designerLeaveRef.current(() => setTab(id))
     }
     setTab(id)
     return true

@@ -35,8 +35,10 @@ const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 interface DesignerProps {
   request: DesignerRequest
   onClose: () => void
-  /** 迭代 92（#150 F-02）：向 Shell 注册离开守卫（导航 tab 切换拦截：dirty 时弹三选 Modal 挂起本次切换）；卸载自动注销。 */
-  registerLeaveGuard?: (fn: ((leave: () => void) => void) | null) => void
+  /** 迭代 92（#150 F-02）：向 Shell 注册离开守卫（导航 tab 切换拦截：dirty 时弹三选 Modal 挂起本次切换）；卸载自动注销。
+   *  迭代 127 修复（#312 取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行，
+   *  供路由 hashchange 分支判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
+  registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
   /** 帮助文章深链信号（Shell 已轮询确认锚点在 DOM）——经 PropsPanel 自动弹出对应文档点气泡。 */
   helpAnchor?: string | null
   onHelpAnchorDone?: () => void
@@ -536,14 +538,16 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onH
   }, [app, biz, doSave, name, request.kind, t])
 
   // ---------- 离开保护（迭代 92 · #150 F-02，决议 a：dirty = 历史栈有任一已提交更改） ----------
-  /** 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗（AC-02）；有则弹三选 Modal 挂起本次离开动作（AC-01）。 */
-  const requestLeave = useCallback((leave: () => void) => {
+  /** 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗（AC-02）；有则弹三选 Modal 挂起本次离开动作（AC-01）。
+   *  返回 false=已挂起（三选待确认）、true=已直接放行——Shell switchTab 以此决定路由是否 pre-revert（#312 取证修复）。 */
+  const requestLeave = useCallback((leave: () => void): boolean => {
     if ((historyRef.current?.undoCount ?? 0) > 0) {
       pendingLeaveRef.current = leave
       setLeaveGuardOpen(true)
-    } else {
-      leave()
+      return false
     }
+    leave()
+    return true
   }, [])
 
   /** 三选之「继续编辑」（含 Esc / 点遮罩 / 右上角关闭）：作废挂起的离开动作，留在设计器。 */

@@ -202,6 +202,24 @@ describe('client 构建 · AC-02：历史栈导航与设计器离开守卫', () 
     expect(screen.getByDisplayValue('80')).toBeTruthy()
   }
 
+  it('非 dirty 设计器按后退：守卫直接放行——不弹三选，页面与 hash 前进到上一页（#312 取证缺陷回归：switchTab 不得无条件按挂起处理）', async () => {
+    render(<App />)
+    await screen.findByText(PAGE_MARKER.workbench)
+    // 进入设计器并新建草稿，但不做任何提交更改（undoCount = 0）
+    fireEvent.click(screen.getByRole('button', { name: '设计器' }))
+    expect(await screen.findByText(PAGE_MARKER.designer)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '新建模板' }))
+    await screen.findByDisplayValue('100')
+    await waitFor(() => expect(window.location.hash).toBe('#/designer'))
+
+    // back：无未保存更改应直接放行切回 workbench——页面立即切走，不弹三选；
+    // 落点为挂载初始条目（hash 空——空 hash 不动是既定语义），tab→hash 同步不写 hash
+    window.history.back()
+    expect(await screen.findByText(PAGE_MARKER.workbench)).toBeTruthy()
+    expect(screen.queryByText('未保存的更改')).toBeNull()
+    expect([ '', '#/workbench' ]).toContain(window.location.hash)
+  })
+
   it('dirty 设计器按后退：守卫挂起 → pre-revert 回 #/designer，页面与栈均不动；「继续编辑」停留', async () => {
     render(<App />)
     await screen.findByText(PAGE_MARKER.workbench)
