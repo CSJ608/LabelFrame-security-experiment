@@ -1,6 +1,7 @@
 // 下载中心页（迭代 118 改版 · #272，升级迭代 59 决策 #119 设立的下载中心）：页内三 tab——
-// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态写入 URL hash（#dc=quick|windows|android，
-// 不动主导航既有机制），刷新 / 直链打开均还原当前 tab；视觉沿用仓库页内 tab 先例（btn + active 分段风格）。
+// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态由路由 sub 段承载（迭代 127 · #312，
+// 决策 #177——升级 #169 的 #dc= 形态为 #/packages/<sub>，旧 #dc= 分享链接经 parseHash 兼容映射直达），
+// 刷新 / 直链打开均还原当前 tab；视觉沿用仓库页内 tab 先例（btn + active 分段风格）。
 // 快速访问 = 消费视图（拿包 + 连服务器），整区限宽居中：上区块标题「客户端」——Windows / Android 各一张
 // 「最新上传」卡（货架语义按上架时间/修改时间倒序取第一条，删除后自动回退剩余最新一条，不做版本号解析 / 推荐标记）；
 // 下区块「服务端信息」卡（与上排同款卡片视觉）：大二维码居中（内容 = 选中的裸地址 URL，无包装协议）+ 地址 + 复制。
@@ -42,19 +43,16 @@ interface PackageRow {
   downloadHref: string
 }
 
-// ── 页内 tab（迭代 118 · #272）：hash 承载（#dc=<tab>），刷新 / 直链还原 ──
+// ── 页内 tab（迭代 118 · #272 立；迭代 127 · #312 改路由 sub 段承载）：#/packages/<sub>，刷新 / 直链还原 ──
 
 /** 页内 tab 标识：quick = 快速访问（默认消费视图）；windows / android = 平台包管理。 */
 type DcTab = 'quick' | 'windows' | 'android'
 
 const DC_TABS: readonly DcTab[] = ['quick', 'windows', 'android']
 
-/** 从当前 URL hash 解析 tab（非法 / 缺省回退 quick）。 */
-function tabFromLocation(): DcTab {
-  if (typeof window === 'undefined') return 'quick'
-  const m = window.location.hash.match(/^#dc=(\w+)/)
-  const v = m?.[1]
-  return DC_TABS.includes(v as DcTab) ? (v as DcTab) : 'quick'
+/** 路由 sub 段 → 页内 tab（缺省 / 未知 sub 回退 quick——quick 为缺省值不写 sub 段）。 */
+function tabFromSub(sub: string): DcTab {
+  return sub === 'windows' || sub === 'android' ? sub : 'quick'
 }
 
 /** 二维码图片（qrcode-generator 生成 GIF data URL，无需 canvas；生成失败不渲染，不阻塞页面）。 */
@@ -382,9 +380,11 @@ function ConnectionCard() {
   )
 }
 
-export function DownloadCenter() {
+export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubChange?: (next: string) => void }) {
   const { t } = useTranslation('downloadCenter')
-  const [tab, setTab] = useState<DcTab>(tabFromLocation)
+  // 迭代 127（#312，决策 #177）：页内 tab 状态源 = 路由 sub 段（App 经 props 注入，缺省 '' → quick）；
+  // 切 tab 经 onSubChange 写 sub（replaceState 不入栈，由路由层执行），旧 #dc= 自有 hash 三件已删。
+  const tab = tabFromSub(sub)
   const [clientPackages, setClientPackages] = useState<ClientPackageInfo[] | null>(null)
   const [pdaPackages, setPdaPackages] = useState<PdaPackageInfo[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -395,17 +395,13 @@ export function DownloadCenter() {
   // 迭代 93（#151 F-04）：删除确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
   const [pendingRemove, setPendingRemove] = useState<{ kind: 'client' | 'pda'; row: PackageRow } | null>(null)
 
-  // tab 与 URL hash 双向同步：切 tab 写 hash（replaceState 不新增历史记录）；手动改 URL / 前进后退同步回 tab
-  useEffect(() => {
-    const onHashChange = () => setTab(tabFromLocation())
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
-
-  const switchTo = useCallback((next: DcTab) => {
-    setTab(next)
-    window.history.replaceState(null, '', `#dc=${next}`)
-  }, [])
+  // 切页内 tab = 写路由 sub 段（quick 为缺省值写空段，保持 URL 干净）；hash 写入与不入栈语义在路由层
+  const switchTo = useCallback(
+    (next: DcTab) => {
+      onSubChange?.(next === 'quick' ? '' : next)
+    },
+    [onSubChange],
+  )
 
   const load = useCallback(async () => {
     setError(null)

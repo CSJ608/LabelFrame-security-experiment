@@ -1,4 +1,4 @@
-// 应用框架：左侧主导航（state 切换，无路由库）+ 底部状态栏 + 日志抽屉
+// 应用框架：左侧主导航（tab 状态为渲染真源，hash 路由地基同步 URL——迭代 127 · #312，决策 #177）+ 底部状态栏 + 日志抽屉
 // 迭代 20：双构建（VITE_UI_MODE）——server 构建菜单移除设置与打印机相关内容，新增「在线设备」，
 // 状态栏 server 显示服务端地址（同源）与 UI 模式、client 显示本机 IP。
 // 迭代 80（#128 决议 2「三名义」）：client 状态栏改呈现「本机打印服务：运行中 / 未运行」——
@@ -16,6 +16,9 @@
 // 迭代 119（#276，决策 #170）：新用户首次使用引导（client 构建专属）——首见延迟 ~300ms 自动启动
 // （lib/guide.ts 首见标记），跳过 / Esc / 完成均写标记；状态栏「使用引导」重放入口无视标记再放完整一轮；
 // server 构建（dist-server）整特性不挂载（!isServerUi 条件渲染，V1 范围仅 client）。
+// 迭代 127（#312，决策 #177）：hash 路由地基——URL hash（#/<page>/<sub>）成为页面位置权威载体：
+// 初始解析（直达 / 刷新保持）、hashchange（后退 / 前进 / 手动改 URL 经 switchTab 统一切页入口）、
+// tab→hash 同步（守卫放行后 pushState 入栈）三路都经 lib/router.ts 的 useHashRoute。
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +31,7 @@ import { Modal } from './components/Modal'
 import type { DesignerRequest, TabId } from './state/types'
 import { isGuideSeen, markGuideSeen } from './lib/guide'
 import { HELP_ANCHOR_POLL_MAX_MS, HELP_ANCHOR_POLL_MS, helpAnchorSelector } from './lib/help'
+import { parseHash, useHashRoute } from './lib/router'
 import { isServerUi } from './lib/uiMode'
 import { Workbench } from './pages/Workbench'
 import { Designer } from './pages/Designer'
@@ -63,6 +67,10 @@ const CLIENT_TABS: { id: TabId; labelKey: string; icon: IconName }[] = [
   { id: 'help', labelKey: 'nav.help', icon: 'help' },
 ]
 
+// 迭代 127（#312，决策 #177）：路由 page 段白名单 = 本构建 tab 集（server 构建解析 #/help、#/settings
+// 即回退 workbench——受限页集不可经 hash 越权进入）；构建期常量，与 tab 元数据同源派生。
+const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
+
 /** 状态栏多 IP 过长省略显示（title 给全量）。 */
 function truncateIps(ips: string[], max = 28): string {
   const s = ips.join(', ')
@@ -73,7 +81,9 @@ function Shell() {
   // 迭代 108（#241）：壳层绑定 shell 域命名空间；common 词条（取消等）经 fallbackNS 免前缀兜底
   // 迭代 114（#260）：解构 i18n 实例取当前语言（useTranslation 订阅 languageChanged，切换即重渲染）
   const { t, i18n } = useTranslation('shell')
-  const [tab, setTab] = useState<TabId>('workbench')
+  // 迭代 127（#312，决策 #177）：tab 状态保持渲染真源，初始值读当前 hash（打开带 hash 的 URL
+  // 直达对应页、刷新停留在当前页）；hash 由 useHashRoute 同步（见下方接线）。
+  const [tab, setTab] = useState<TabId>(() => parseHash(window.location.hash, ROUTE_ALLOWED).page)
   const [designerReq, setDesignerReq] = useState<DesignerRequest | null>(null)
   // 迭代 126（#308）：帮助深链两段信号——pending = 轮询 [data-help] 锚点就位中（状态栏提示）；
   // ready = 锚点已在 DOM 确认，交给目标页自动弹出文档点气泡（页面开启后回调清信号）。
@@ -136,14 +146,21 @@ function Shell() {
 
   // 迭代 92（#150 F-02）：导航切 tab 统一经此入口——设计器在编辑（dirty）时由其注册的守卫拦截：
   // 无未保存更改守卫直接放行（AC-02），有则弹三选 Modal，用户选择后再执行本次切换（AC-01）。
-  const switchTab = (id: TabId) => {
-    if (id === tab) return
+  // 迭代 127（#312）：返回值扩展为 boolean（放行 true / 守卫挂起 false）供路由 hashchange 分支
+  // 判定 pre-revert（挂起时页面与 hash 均不前进）；既有调用方（Guide / openHelpInUi 等）忽略返回值零影响。
+  const switchTab = (id: TabId): boolean => {
+    if (id === tab) return true
     if (tab === 'designer' && designerReq && designerLeaveRef.current) {
       designerLeaveRef.current(() => setTab(id))
-      return
+      return false
     }
     setTab(id)
+    return true
   }
+
+  // 迭代 127（#312，决策 #177）：hash 路由接线——切页入历史栈、后退 / 前进经 switchTab（继承守卫）、
+  // 守卫取消 pre-revert；sub 段（下载中心页内 tab 首用）由 route 下传消费页。
+  const route = useHashRoute({ allowed: ROUTE_ALLOWED, page: tab, requestPage: switchTab })
 
   // 迭代 85（#133 C-4，决议 1）：工作台卡片「打印」直达——先把该模板写入打印草稿（与手动在下拉选择同一入口，
   // 字段值 / 调试开关等草稿行为一致），再切到「数据与打印」页；两步内可开始填数据打印。
@@ -266,7 +283,7 @@ function Shell() {
           {tab === 'data' && <DataPrint onOpenJobHistory={() => switchTab('jobs')} />}
           {tab === 'devices' && <Devices />}
           {tab === 'jobs' && <JobHistory />}
-          {tab === 'packages' && <DownloadCenter />}
+          {tab === 'packages' && <DownloadCenter sub={route.sub} onSubChange={route.setSub} />}
           {tab === 'plugin-packages' && <PluginPackages />}
           {tab === 'settings' && <Settings helpAnchor={helpAnchorReady} onHelpAnchorDone={handleHelpAnchorDone} />}
           {/* 迭代 126（#308）：帮助页（文档底座）——help tab 仅 CLIENT_TABS，server 构建不可达 */}

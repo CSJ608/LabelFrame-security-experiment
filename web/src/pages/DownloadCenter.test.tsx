@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 // 下载中心页（迭代 118 改版 · #272）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问，
-// tab 状态进 URL hash 刷新 / 直链还原）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
+// tab 状态经路由 sub 段进 URL——迭代 127 · #312 决策 #177 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原、
+// 旧 #dc= 链接经 parseHash 兼容映射直达）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
 // 第一条的货架语义：文件名 / 大小 / 上传时间 / 下载二维码（origin + 下载路径）/ 下载按钮 /「全部版本 →」跳
 // 管理卡、空态引导跳转上传）+ 下区块「服务端信息」卡（大二维码 = 选中裸地址 URL + 地址文本与复制 +
 // 多网卡候选切换 / localhost 回退）；管理 tab（client-packages / pda-packages）上传 / 下载 / 删除（确认
 // Modal）行为回归——数据与接口不动（AC-06）。
 
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useHashRoute } from '../lib/router'
+import type { TabId } from '../state/types'
 import { DownloadCenter } from './DownloadCenter'
 
 const mocks = vi.hoisted(() => ({
@@ -71,61 +75,113 @@ function gotoManageTab(label: string): void {
   fireEvent.click(screen.getByRole('button', { name: label }))
 }
 
-describe('下载中心页 · 三 tab 与 URL（AC-01，迭代 118 · #272）', () => {
-  it('默认快速访问：三 tab 按钮在位（快速访问 / Windows 包管理 / Android 包管理），默认选中快速访问', async () => {
-    render(<DownloadCenter />)
+/**
+ * 路由接线测试壳：等价 App 对 DownloadCenter 的接线（sub / onSubChange 经 useHashRoute 注入，
+ * #/<page>/<sub> 两级形，迭代 127 · #312）；「去别页」按钮模拟主导航切走（pushState 入栈），
+ * 供后退 / 前进还原 sub 用例使用。
+ */
+function DownloadCenterRouteHarness() {
+  const [page, setPage] = useState<TabId>('packages')
+  const route = useHashRoute({
+    allowed: ['packages', 'jobs'],
+    page,
+    requestPage: (id) => {
+      setPage(id)
+      return true
+    },
+  })
+  if (page !== 'packages') return <div data-testid="other-page" />
+  return (
+    <>
+      <button onClick={() => setPage('jobs')}>go-other-page</button>
+      <DownloadCenter sub={route.sub} onSubChange={route.setSub} />
+    </>
+  )
+}
+
+describe('下载中心页 · 三 tab 与路由 sub 段（迭代 118 · #272；迭代 127 · #312 迁 #/packages/<sub>）', () => {
+  it('默认快速访问：三 tab 按钮在位，默认 tab 不写 sub 段（quick 为缺省值，hash 止于 #/packages）', async () => {
+    render(<DownloadCenterRouteHarness />)
     expect(screen.getByRole('button', { name: '快速访问' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Windows 包管理' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Android 包管理' })).toBeTruthy()
     expect(await screen.findByText('客户端')).toBeTruthy()
-    // 默认 tab 不带 hash（quick 为缺省值，不写 URL）
-    expect(window.location.hash).not.toContain('#dc=')
+    // 默认 tab 不写 sub 段（quick 为缺省值）
+    await waitFor(() => expect(window.location.hash).toBe('#/packages'))
   })
 
-  it('切换 tab 写 URL hash：Windows / Android 管理切换后 #dc=windows / #dc=android', async () => {
-    render(<DownloadCenter />)
+  it('切换 tab 写 sub 段（replaceState 不入栈）：#/packages/windows / #/packages/android', async () => {
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
+    const len0 = window.history.length
 
     gotoManageTab('Windows 包管理')
-    expect(window.location.hash).toBe('#dc=windows')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
     // 管理视图：列表 + 上传按钮在位
     expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
 
     gotoManageTab('Android 包管理')
-    expect(window.location.hash).toBe('#dc=android')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
     expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 APK/ })).toBeTruthy()
+    // sub 变更 replaceState 不入栈（决策 #177）
+    expect(window.history.length).toBe(len0)
   })
 
-  it('直链还原：挂载前 hash 已是 #dc=android → 直接呈现 Android 管理视图', async () => {
-    window.location.hash = '#dc=android'
-    render(<DownloadCenter />)
+  it('直链还原：挂载前 hash 已是 #/packages/android → 直接呈现 Android 管理视图', async () => {
+    window.location.hash = '#/packages/android'
+    render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
     // 快速访问首屏不渲染
     expect(screen.queryByText('客户端')).toBeNull()
   })
 
-  it('非法 hash 回退默认快速访问', async () => {
-    window.location.hash = '#dc=whatever'
-    render(<DownloadCenter />)
-    expect(await screen.findByText('客户端')).toBeTruthy()
+  it('旧 #dc= 分享链接兼容映射：#dc=android 直达 Android 管理，挂载期规范化为 #/packages/android', async () => {
+    window.location.hash = '#dc=android'
+    render(<DownloadCenterRouteHarness />)
+    expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
   })
 
-  it('运行中 URL 变更（hashchange）同步 tab：手动改地址栏也能切到 Windows 管理', async () => {
-    render(<DownloadCenter />)
+  it('未知 sub 回退默认快速访问（挂载期规范化 URL）', async () => {
+    window.location.hash = '#/packages/whatever'
+    render(<DownloadCenterRouteHarness />)
+    expect(await screen.findByText('客户端')).toBeTruthy()
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/whatever'))
+  })
+
+  it('运行中 URL 变更（hashchange）同步 tab：手动改地址栏到 #/packages/windows 也能切到 Windows 管理', async () => {
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
     expect(screen.queryByText('LabelFrame.Client-linux.zip')).toBeNull()
 
-    window.location.hash = '#dc=windows'
+    window.location.hash = '#/packages/windows'
     window.dispatchEvent(new HashChangeEvent('hashchange'))
     expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
+  })
+
+  it('后退 / 前进回到含 sub 的历史条目还原页内 tab（#/packages/windows ← #/jobs 后退）', async () => {
+    render(<DownloadCenterRouteHarness />)
+    await screen.findByText('客户端')
+    expect(screen.queryByText('LabelFrame.Client-linux.zip')).toBeNull()
+    gotoManageTab('Windows 包管理')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
+
+    // 主导航切走（入栈）→ 后退回到含 sub 的历史条目
+    fireEvent.click(screen.getByRole('button', { name: 'go-other-page' }))
+    await waitFor(() => expect(window.location.hash).toBe('#/jobs'))
+    window.history.back()
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
+    // 页内 tab 还原为 Windows 管理（非默认快速访问）
+    expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
+    expect(screen.queryByText('客户端')).toBeNull()
   })
 })
 
 describe('下载中心页 · 快速访问首屏「最新上传」卡（AC-02 / AC-03）', () => {
   it('最新一条选取：两卡各展示修改时间倒序第一条（旧版本不出现在快速访问）', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     // 最新一条在位
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
@@ -138,14 +194,14 @@ describe('下载中心页 · 快速访问首屏「最新上传」卡（AC-02 / A
   it('乱序输入：按修改时间倒序取最新（服务端顺序不保证时页面自排）', async () => {
     mocks.server.listClientPackages.mockResolvedValue([...CLIENT_PKGS].reverse())
     mocks.server.listPdaPackages.mockResolvedValue([...PDA_PKGS].reverse())
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(screen.queryByText('LabelFrame.Client-linux.zip')).toBeNull()
   })
 
   it('卡内容：大小 / 上传时间 / 下载二维码（origin + 下载路径完整 URL）/ 下载按钮 / 「全部版本 →」', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
     const origin = window.location.origin
@@ -174,31 +230,31 @@ describe('下载中心页 · 快速访问首屏「最新上传」卡（AC-02 / A
   })
 
   it('「全部版本 →」跳转：Windows 卡跳 Windows 管理、Android 卡跳 Android 管理', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
     const allButtons = screen.getAllByRole('button', { name: '全部版本 →' })
     fireEvent.click(allButtons[0]) // Windows 卡
-    expect(window.location.hash).toBe('#dc=windows')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
     expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
 
     gotoManageTab('快速访问')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
     fireEvent.click(screen.getAllByRole('button', { name: '全部版本 →' })[1]) // Android 卡
-    expect(window.location.hash).toBe('#dc=android')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
     expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
   })
 
   it('空态（AC-03）：对应卡空态引导跳转管理 tab 上传，不报错', async () => {
     mocks.server.listClientPackages.mockResolvedValue([])
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText('暂无安装包')).toBeTruthy()
     // Windows 卡空态（Android 卡正常展示最新一条）
     expect(screen.getByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(screen.getAllByText('最新上传')).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: '去上传' }))
-    expect(window.location.hash).toBe('#dc=windows')
+    await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
     // 管理视图空态与上传入口
     expect(await screen.findByText('暂无 Windows 安装包')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
@@ -207,7 +263,7 @@ describe('下载中心页 · 快速访问首屏「最新上传」卡（AC-02 / A
 
 describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #272）', () => {
   it('localhost 打开自动回退：默认选中首个候选（不产生 localhost 废码），二维码内容 = 同一裸地址 URL', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('服务端信息')
 
     const expected = `http://10.20.30.40:${window.location.port}`
@@ -222,7 +278,7 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
   })
 
   it('复制行为（AC-04）：点击复制 → copyText 收到当前选中地址，按钮变「已复制」', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('服务端信息')
     const expected = `http://10.20.30.40:${window.location.port}`
     await waitFor(() => expect(screen.getByText(expected)).toBeTruthy())
@@ -233,7 +289,7 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
   })
 
   it('候选切换（AC-05）：多候选可切换，地址文本 / 二维码 / 复制内容同步更新', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('服务端信息')
     const first = `http://10.20.30.40:${window.location.port}`
     await waitFor(() => expect(screen.getByText(first)).toBeTruthy())
@@ -253,7 +309,7 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
     // jsdom origin 主机固定 localhost，无法直接构造「origin = 候选 IP」形态——
     // 该规则由 lib/connection pickDefaultAddress 单测覆盖（connection.test.ts），此处覆盖接口形态断言。
     mocks.server.listServerIpv4Candidates.mockResolvedValue({ candidates: [] })
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     await screen.findByText('服务端信息')
     // 无候选（旧版服务端 / 枚举失败）：origin 兜底展示，不报错、不渲染候选行
     await waitFor(() => expect(screen.getByText(window.location.origin)).toBeTruthy())
@@ -262,7 +318,7 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
 
   it('候选接口失败：静默回退 origin，不阻塞首屏', async () => {
     mocks.server.listServerIpv4Candidates.mockRejectedValue(new Error('old server'))
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(window.location.origin)).toBeTruthy())
   })
@@ -271,7 +327,7 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
 describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-packages 行为不动）', () => {
   it('Windows 管理列表：条目 / 大小 / 下载链接 / 二维码（时间倒序最新在上）', async () => {
     mocks.server.listClientPackages.mockResolvedValue([...CLIENT_PKGS].reverse())
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Windows 包管理')
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame.Client-linux.zip')).toBeTruthy()
@@ -287,7 +343,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
   })
 
   it('Android 管理：列表 + 「未知来源 / 安装未知应用」授权提示常驻', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Android 包管理')
     expect(await screen.findByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(indexOfText('LabelFrame-AndroidHost-0.26.0.apk')).toBeLessThan(indexOfText('LabelFrame-AndroidHost-0.25.0.apk'))
@@ -299,7 +355,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
   it('管理空态：两 tab 各自空态提示与上传按钮', async () => {
     mocks.server.listClientPackages.mockResolvedValue([])
     mocks.server.listPdaPackages.mockResolvedValue([])
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Windows 包管理')
     expect(await screen.findByText('暂无 Windows 安装包')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
@@ -311,12 +367,12 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
 
   it('加载失败：显示错误信息', async () => {
     mocks.server.listClientPackages.mockRejectedValue(new Error('network down'))
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText(/获取安装包列表失败/)).toBeTruthy()
   })
 
   it('上传：Windows 选 MSI → uploadClientPackage；Android 选 APK → uploadPdaPackage；均刷新列表', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Windows 包管理')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
@@ -337,7 +393,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
   })
 
   it('删除：Android 条目确认 Modal 后调 deletePdaPackage + 刷新；取消不调用', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Android 包管理')
     await screen.findByText('LabelFrame-AndroidHost-0.26.0.apk')
 
@@ -360,7 +416,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
   })
 
   it('删除：Windows 条目确认 Modal 后调 deleteClientPackage', async () => {
-    render(<DownloadCenter />)
+    render(<DownloadCenterRouteHarness />)
     gotoManageTab('Windows 包管理')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
