@@ -1,4 +1,4 @@
-// 设计器画布（react-konva）：毫米标尺 + 网格、智能参考线吸附、多选拖动、
+// 设计器画布（react-konva）：毫米标尺 + 网格、智能参考线吸附、多选整体刚性拖动、
 // 8 手柄缩放、中键平移、Ctrl+滚轮缩放、DPI 打印预览。
 // 拖动过程中的高频节点操作直接走 Konva 实例（不触发 React 渲染），
 // dragend / transformend 才提交状态（与原型一致）。
@@ -11,8 +11,9 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElementNode } from './ElementNode'
 import type { DesignElement } from '../../lib/design/types'
 import { containerRegionIdFor, elementById } from '../../lib/design/model'
-import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, multiDragCommitPatches, pointerToLogic, previewCanvasSize, previewScale, PX, RULER, viewportToLogic } from '../../lib/design/geometry'
-import { computeSnap, elementModelRect } from '../../lib/design/snapping'
+import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, multiDragRigidPatches, pointerToLogic, previewCanvasSize, previewScale, PX, pxv, RULER, viewportToLogic } from '../../lib/design/geometry'
+import { computeSnap, elementModelRect, othersModelRects, unionModelRect } from '../../lib/design/snapping'
+import type { SnapRect } from '../../lib/design/snapping'
 import { coreShortcuts } from './shortcuts'
 
 export interface DesignState {
@@ -42,6 +43,17 @@ interface CanvasViewportProps {
   onZoomChange: (z: number) => void
 }
 
+/** 多选整体刚性快照（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）：
+ *  dragStart 一次快照 + 每步独立重算，无步间状态（v1 的 lastX/lastY 逐步差分已废除）。 */
+interface MultiDragSnapshot {
+  /** 主导（被拖）元素 id。 */
+  targetId: string
+  /** 选中元素联合包围盒（dragStart 拖前模型换算）——多选吸附的被拖盒基形。 */
+  union: SnapRect
+  /** 各选中元素初始节点坐标（逻辑 px，拖前模型换算）——跟随刚性设置与同 Δ 提交的基准。 */
+  items: Array<{ id: string; x: number; y: number }>
+}
+
 export function CanvasViewport(props: CanvasViewportProps) {
   // 迭代 112（#246）：常驻提示条与打印预览提示随界面语言（订阅重渲染）
   const { t } = useTranslation('designer')
@@ -56,7 +68,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
   const boxRef = useRef<HTMLDivElement>(null)
   const guidesRef = useRef<Konva.Line[]>([])
   const panRef = useRef({ panning: false, startX: 0, startY: 0, stageX: 0, stageY: 0 })
-  const multiDragRef = useRef<{ targetId: string; lastX: number; lastY: number } | null>(null)
+  const multiDragRef = useRef<MultiDragSnapshot | null>(null)
 
   // 闭包镜像：高频回调里读取最新状态
   const stateRef = useRef(props)
@@ -144,20 +156,19 @@ export function CanvasViewport(props: CanvasViewportProps) {
     layer.add(n)
   }, [canvasSize])
 
-  /** 拖动吸附（原型 snapNode）：目标 = 画布/内容区/其它元素边缘中心，网格兜底。
+  /** 拖动吸附（原型 snapNode，纯单选路径）：目标 = 画布/内容区/其它元素边缘中心，网格兜底。
    *  迭代 130（#323）：被拖盒与候选统一切模型盒域——getClientRect 渲染盒默认含居中描边半线宽外扩
    *  （线 +0.25mm / 边框 +0.15mm / 图片占位描边 +0.125mm 每侧），旧口径把外扩传染给吸附落点与提交坐标。
-   *  被拖盒 = 节点原点（= 模型盒原点）+ 模型宽高；候选 = 其它元素模型盒（纯模型计算，去逐元素 findOne）。 */
+   *  被拖盒 = 节点原点（= 模型盒原点）+ 模型宽高；候选 = 其它元素模型盒（纯模型计算，去逐元素 findOne）。
+   *  迭代 131 返工（#324 方案 v2）：多选吸附改走联合盒路径（snapUnion），不经本函数——本函数不再耦合
+   *  multiDragRef（v1 的跟随元素候选排除在 v2 中不可达：多选路径不调用本函数），候选 = 仅排除被拖元素
+   *  自身（othersModelRects 构造，与 #323 口径逐行等价）。 */
   const snapNode = useCallback(
     (g: Konva.Node) => {
       const p = stateRef.current
       const e = elementById(p.state.elements, g.id())
       if (!e) return
-      // 多选拖动跟随元素排除出候选：跟随元素的模型坐标停留在拖前位置，纳入会把主导元素吸到「残影盒」
-      const followerIds = multiDragRef.current ? p.selected : []
-      const others = p.state.elements
-        .filter((o) => o.id !== e.id && !followerIds.includes(o.id))
-        .map((o) => elementModelRect(o, ox, oy))
+      const others = othersModelRects(p.state.elements, [e.id], ox, oy)
       const m = elementModelRect(e, ox, oy)
       const snap = computeSnap({ x: g.x(), y: g.y(), w: m.w, h: m.h }, canvasSize.w, canvasSize.h, ox, oy, paperW * PX, paperH * PX, others)
       clearGuides()
@@ -167,6 +178,32 @@ export function CanvasViewport(props: CanvasViewportProps) {
       }
       if (snap.dy !== 0 || snap.guideY !== null) {
         g.y(g.y() + snap.dy)
+        if (snap.guideY !== null) addGuide(false, snap.guideY)
+      }
+    },
+    [addGuide, canvasSize, clearGuides, ox, oy, paperH, paperW],
+  )
+
+  /** 多选联合盒吸附（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性」）：被拖盒 = dragStart 联合盒
+   *  + 主导总位移（Konva dragmove fire 时节点已为本步指针位置——DragAndDrop._drag 实读）；候选 = 未选中
+   *  元素（组内元素零参与——既不作被拖盒也不作候选，#180 ④「残影盒」防御的语义超集）；吸附量施加于
+   *  主导节点，跟随元素由「初始快照 + 主导总位移」另行刚性设置。与单选 snapNode 共用 computeSnap
+   *  （含按盒左上角贴 1mm 网格的兜底——此处即联合盒左上角）。 */
+  const snapUnion = useCallback(
+    (el: Konva.Node, md: MultiDragSnapshot) => {
+      const p = stateRef.current
+      const leader = md.items.find((i) => i.id === md.targetId)
+      if (!leader) return
+      const rect: SnapRect = { x: md.union.x + (el.x() - leader.x), y: md.union.y + (el.y() - leader.y), w: md.union.w, h: md.union.h }
+      const others = othersModelRects(p.state.elements, md.items.map((i) => i.id), ox, oy)
+      const snap = computeSnap(rect, canvasSize.w, canvasSize.h, ox, oy, paperW * PX, paperH * PX, others)
+      clearGuides()
+      if (snap.dx !== 0 || snap.guideX !== null) {
+        el.x(el.x() + snap.dx)
+        if (snap.guideX !== null) addGuide(true, snap.guideX)
+      }
+      if (snap.dy !== 0 || snap.guideY !== null) {
+        el.y(el.y() + snap.dy)
         if (snap.guideY !== null) addGuide(false, snap.guideY)
       }
     },
@@ -283,39 +320,53 @@ export function CanvasViewport(props: CanvasViewportProps) {
     p.onAddElement(type, pos.x, pos.y)
   }
 
-  // ---------- 拖动（多选跟随 + 吸附） ----------
+  // ---------- 拖动（单选吸附 + 多选整体刚性） ----------
   const handleDragStart = (ev: KonvaEventObject<DragEvent>) => {
     const p = stateRef.current
     const el = elementFromTarget(ev.target)
     if (el && p.selected.length > 1 && p.selected.includes(el.id())) {
-      multiDragRef.current = { targetId: el.id(), lastX: el.x(), lastY: el.y() }
+      // 整体刚性快照（迭代 131 返工 · #324 方案 v2，用户拍板）：联合盒与各元素初始坐标一律从拖前
+      // 模型换算（不依赖节点存在——拖动中途删除元素时快照按 elementById 过滤、findOne 未命中自然跳过）
+      const sel = p.selected.flatMap((id) => {
+        const m = elementById(p.state.elements, id)
+        return m ? [m] : []
+      })
+      multiDragRef.current = {
+        targetId: el.id(),
+        union: unionModelRect(sel, ox, oy),
+        items: sel.map((m) => ({ id: m.id, x: ox + pxv(m.x), y: oy + pxv(m.y) })),
+      }
     } else {
       multiDragRef.current = null
     }
   }
 
   const handleDragMove = (ev: KonvaEventObject<DragEvent>) => {
-    const p = stateRef.current
     const layer = layerRef.current
     const el = elementFromTarget(ev.target)
     if (!el || !layer) return
     const md = multiDragRef.current
-    // 迭代 131（#324）：吸附先行。Konva 每次 dragmove 以指针位置覆盖上一步吸附（dragEnd「松手再吸一次」
-    // 同据），故 md.lastX/lastY 推进到吸附后的主导位置，跟随元素每步获得含吸附修正的实际视觉位移——
-    // 吸附生效期间组合相对位置不散开。若还原为先记后吸的旧序，每步吸附量对跟随元素永久丢失
-    // （#324 缺陷 2：拖拽期间对齐点失效、元素偏移 ≤8px=2mm）。
-    snapNode(el)
-    if (md) {
-      const dx = el.x() - md.lastX
-      const dy = el.y() - md.lastY
-      md.lastX = el.x()
-      md.lastY = el.y()
-      p.selected.forEach((id) => {
-        if (id === md.targetId) return
-        const n = layer.findOne('#' + id)
+    // 单选路径（md null）：snapNode 吸附与 #323 口径逐行一致
+    if (!md) {
+      snapNode(el)
+      layer.batchDraw()
+      return
+    }
+    // 多选整体刚性（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性语义」）：吸附单位 = 整组联合盒，
+    // 每步独立重算（dragStart 快照 + 主导总位移），无步间状态——v1 的 lastX/lastY 逐步差分链
+    // （用户实测「分离更严重」的头号可疑结构）已废除，差分累积误差结构性不可能。
+    // 跟随节点每步直接设「初始快照 + 主导总位移（含吸附）」，组内相对位置刚性不变。
+    snapUnion(el, md)
+    const leader = md.items.find((i) => i.id === md.targetId)
+    if (leader) {
+      const dx = el.x() - leader.x
+      const dy = el.y() - leader.y
+      md.items.forEach((item) => {
+        if (item.id === md.targetId) return
+        const n = layer.findOne('#' + item.id)
         if (n) {
-          n.x(n.x() + dx)
-          n.y(n.y() + dy)
+          n.x(item.x + dx)
+          n.y(item.y + dy)
         }
       })
     }
@@ -332,15 +383,13 @@ export function CanvasViewport(props: CanvasViewportProps) {
       clearGuides()
       return
     }
-    // Konva 拖拽会用指针位置覆盖 dragmove 里的吸附，松手再吸一次保证落点精确
-    // （multiDragRef 在吸附后才清零：末次吸附同样把多选跟随元素排除出候选）
-    snapNode(el)
-    // 迭代 131（#324）：先读 multiDragRef 再清零——末次吸附量 snapDx/Dy 经 multiDragCommitPatches
-    // 同步施加于跟随元素（覆盖 dragEnd 再吸附与 dragmove 末步吸附不一致的残差）。
     const md = multiDragRef.current
     multiDragRef.current = null
     // 单选路径（md 为 null）零变化：仅主导元素提交，regionId 与提交链与 #323 口径逐行等价
     if (!md) {
+      // Konva 拖拽松手时节点保持末次 dragmove 位置（DragAndDrop._endDragBefore 实读：只置状态不更新
+      // 位置），松手再吸一次幂等（已贴线 dx=0），保证落点精确
+      snapNode(el)
       // 迭代 130（#323）：从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致，
       // 残差仅剩两位舍入（≤0.005mm）；旧口径取渲染盒左上角，被描边外扩带偏 −0.15/−0.25mm。
       const pos = commitDragPosition(el.x(), el.y(), false)
@@ -358,19 +407,22 @@ export function CanvasViewport(props: CanvasViewportProps) {
       p.onCommit()
       return
     }
-    // 多选路径（迭代 131 · #324）：跟随元素与主导同位移落库——先收集跟随节点坐标（findOne 未命中
-    // 跳过该元素：拖动中途被删除等边缘路径不提交不崩溃），补丁一次应用全部选中元素、单一 onCommit
-    // （一次多选拖动 = 一步撤销，Ctrl+Z 整组回退）。
-    const followerNodes = p.selected
-      .filter((id) => id !== md.targetId)
-      .map((id) => ({ id, node: layer ? layer.findOne('#' + id) : null }))
-      .filter((f): f is { id: string; node: Konva.Node } => f.node !== null && f.node !== undefined)
-    const followers = followerNodes.map(({ id, node }) => ({ id, x: node.x(), y: node.y() }))
-    const { snapDx, snapDy, patches } = multiDragCommitPatches({ leaderId: e.id, leaderX: el.x(), leaderY: el.y(), lastX: md.lastX, lastY: md.lastY, followers, preview: false })
-    // 先按末次吸附量命令式修跟随节点（视觉 = 模型），再一次提交
-    followerNodes.forEach(({ node }) => {
-      node.x(node.x() + snapDx)
-      node.y(node.y() + snapDy)
+    // 多选路径（迭代 131 返工 · #324 方案 v2）：松手段再跑一次联合盒吸附（已贴线时幂等 dx≈0，防末步
+    // 漏网），随后 multiDragRigidPatches 以「主导终态 − dragStart 快照」的总位移口径产出同 Δ 刚性补丁
+    // ——对 dragend「保持末次位置」与「被指针覆盖」两种时序均自洽（较 v1 末次吸附量口径更稳）。
+    // 一次 onUpdateElements + 一次 onCommit = 一步撤销（Ctrl+Z 整组回退）。
+    snapUnion(el, md)
+    const { patches } = multiDragRigidPatches({ leaderId: md.targetId, items: md.items, leaderX: el.x(), leaderY: el.y(), preview: false })
+    // 跟随节点直接按补丁设视觉（ElementNode 算式 x = ox + pxv(e.x)，视觉 = 模型）；findOne 未命中 /
+    // 补丁缺失跳过（拖动中途被删除等边缘路径不提交不崩溃）
+    md.items.forEach((item) => {
+      if (item.id === md.targetId) return
+      const patch = patches.get(item.id)
+      const n = layer ? layer.findOne('#' + item.id) : null
+      if (n && patch) {
+        n.x(ox + pxv(patch.x))
+        n.y(oy + pxv(patch.y))
+      }
     })
     clearGuides()
     p.onUpdateElements((els) =>

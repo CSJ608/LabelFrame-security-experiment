@@ -57,45 +57,44 @@ export function commitDragPosition(nodeX: number, nodeY: number, preview: boolea
   return { x: r2(pos.x), y: r2(pos.y) }
 }
 
-/** 多选拖动松手提交入参（迭代 131 · #324）。 */
-export interface MultiDragCommitArgs {
-  /** 主导元素 id。 */
+/** 多选拖动松手提交入参（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）。 */
+export interface MultiDragRigidArgs {
+  /** 主导（被拖）元素 id（须在 items 中，缺失时 Δ 按 0 处理＝不动提交）。 */
   leaderId: string
-  /** 主导节点末次吸附后坐标（逻辑 px）。 */
+  /** dragStart 快照：各选中元素初始节点坐标（逻辑 px，拖前模型换算）。 */
+  items: ReadonlyArray<{ id: string; x: number; y: number }>
+  /** 主导节点终态坐标（末次联合盒吸附后，逻辑 px）。 */
   leaderX: number
   leaderY: number
-  /** 跟随元素上次跟随时主导节点坐标（multiDragRef.lastX/lastY，逻辑 px）。 */
-  lastX: number
-  lastY: number
-  /** 跟随节点当前坐标（逻辑 px，未含松手段末次吸附量）。 */
-  followers: ReadonlyArray<{ id: string; x: number; y: number }>
   /** 是否预览态坐标（与 commitDragPosition 同参）。 */
   preview: boolean
 }
 
-/** 多选拖动松手提交结果：末次吸附量 + 全选中元素落点补丁。 */
-export interface MultiDragCommitResult {
-  /** 末次吸附量（逻辑 px）＝主导末次吸附后坐标 − lastX/lastY，须同步施加于跟随节点与补丁。 */
-  snapDx: number
-  snapDy: number
-  /** 全选中元素（主导 + 跟随）的模型坐标补丁（mm 两位舍入）。 */
+/** 多选拖动松手提交结果：刚体总位移 + 全选中元素落点补丁。 */
+export interface MultiDragRigidResult {
+  /** 刚体总位移（逻辑 px）＝主导终态 − 主导初始。 */
+  dx: number
+  dy: number
+  /** 全选中元素的模型坐标补丁（mm 两位舍入）——各元素 = commitDragPosition(初始 + Δ)，同 Δ 刚性。 */
   patches: Map<string, { x: number; y: number }>
 }
 
 /**
- * 多选拖动松手提交（迭代 131 · #324，复用 #323 commitDragPosition 口径）：
- * 主导补丁 = 末次吸附后节点原点直提；跟随补丁 = 跟随节点坐标 + 末次吸附量（吸附只施加于主导节点，
- * 跟随元素的模型与视觉都还差这一段）；CanvasViewport.handleDragEnd 与单测共用本算式，保证测试执行真实代码路径。
+ * 多选拖动松手提交（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性」，复用 #323 commitDragPosition 口径）：
+ * Δ = 主导终态 − 主导初始（dragStart 快照基准的总位移口径，对 dragend「保持末次 dragmove 位置」与
+ * 「被指针覆盖」两种时序均自洽）；补丁 = 各元素 commitDragPosition(初始节点坐标 + Δ)——组内任意两
+ * 元素模型坐标差与拖前逐对相等（同 Δ 刚性，两位舍入残差 ≤0.01mm）。CanvasViewport.handleDragEnd
+ * 与单测共用本算式，保证测试执行真实代码路径。
  */
-export function multiDragCommitPatches(args: MultiDragCommitArgs): MultiDragCommitResult {
-  const snapDx = args.leaderX - args.lastX
-  const snapDy = args.leaderY - args.lastY
+export function multiDragRigidPatches(args: MultiDragRigidArgs): MultiDragRigidResult {
+  const leader = args.items.find((i) => i.id === args.leaderId)
+  const dx = leader ? args.leaderX - leader.x : 0
+  const dy = leader ? args.leaderY - leader.y : 0
   const patches = new Map<string, { x: number; y: number }>()
-  patches.set(args.leaderId, commitDragPosition(args.leaderX, args.leaderY, args.preview))
-  for (const f of args.followers) {
-    patches.set(f.id, commitDragPosition(f.x + snapDx, f.y + snapDy, args.preview))
+  for (const item of args.items) {
+    patches.set(item.id, commitDragPosition(item.x + dx, item.y + dy, args.preview))
   }
-  return { snapDx, snapDy, patches }
+  return { dx, dy, patches }
 }
 
 /** 适应窗口缩放：画布略小于视口。 */

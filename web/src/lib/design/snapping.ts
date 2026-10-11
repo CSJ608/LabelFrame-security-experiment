@@ -41,6 +41,35 @@ export function elementModelRect(e: DesignElement, ox: number, oy: number): Snap
 }
 
 /**
+ * 选中元素联合包围盒（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）：多选拖动的吸附单位。
+ * 各元素 elementModelRect 的 min/max 包络；空集返回 {0,0,0,0}（调用方保证非空，防御性退化）。
+ */
+export function unionModelRect(els: readonly DesignElement[], ox: number, oy: number): SnapRect {
+  let x = Infinity
+  let y = Infinity
+  let r = -Infinity
+  let b = -Infinity
+  for (const e of els) {
+    const m = elementModelRect(e, ox, oy)
+    x = Math.min(x, m.x)
+    y = Math.min(y, m.y)
+    r = Math.max(r, m.x + m.w)
+    b = Math.max(b, m.y + m.h)
+  }
+  if (!Number.isFinite(x)) return { x: 0, y: 0, w: 0, h: 0 }
+  return { x, y, w: r - x, h: b - y }
+}
+
+/**
+ * 参考线候选盒构造（迭代 131 返工 · #324 方案 v2）：排除 excludeIds 后的元素模型盒列表。
+ * 单选 = 仅排除被拖元素自身；多选 = 排除全部选中元素（组内零参与——不作被拖盒也不作候选）。
+ * 单选 snapNode 与多选联合盒吸附共用本算式，组件与单测共用真实代码路径。
+ */
+export function othersModelRects(elements: readonly DesignElement[], excludeIds: readonly string[], ox: number, oy: number): SnapRect[] {
+  return elements.filter((o) => !excludeIds.includes(o.id)).map((o) => elementModelRect(o, ox, oy))
+}
+
+/**
  * 计算吸附结果。
  * @param rect 被拖动元素的包围盒（逻辑 px，相对 layer）
  * @param canvasW / canvasH 画布总尺寸（逻辑 px）
