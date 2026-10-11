@@ -103,7 +103,7 @@ afterEach(() => {
 })
 
 describe('server 构建：菜单裁剪（迭代 20 §2.2 / Y5）', () => {
-  it('含 在线设备 / 下载中心 / 插件管理 / 工作台 / 设计器 / 数据与打印 / 作业历史；不含 设置 / 设备日志 / PDA 日志（迭代 75 日志页下线）', async () => {
+  it('含 在线设备 / 下载中心 / 插件管理 / 工作台 / 设计器 / 数据与打印 / 作业历史 / 帮助（迭代 129 纳入）；不含 设置 / 设备日志 / PDA 日志（迭代 75 日志页下线）', async () => {
     render(<App />)
     expect(await screen.findByRole('button', { name: '在线设备' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '工作台' })).toBeTruthy()
@@ -114,6 +114,8 @@ describe('server 构建：菜单裁剪（迭代 20 §2.2 / Y5）', () => {
     expect(screen.getByRole('button', { name: '下载中心' })).toBeTruthy()
     // 迭代 23 §5.4：Server UI「插件管理」页入口（与「下载中心」并列）
     expect(screen.getByRole('button', { name: '插件管理' })).toBeTruthy()
+    // 迭代 129（#320，决策 #179）：「帮助」页纳入 server 主导航（末位，与 client 对齐）
+    expect(screen.getByRole('button', { name: '帮助' })).toBeTruthy()
     // 设置页不存在；「设备日志 / PDA 日志」页已下线（迭代 75，#112——/api/logs 端点与 logs.db 后端保留）
     expect(screen.queryByRole('button', { name: '设置' })).toBeNull()
     expect(screen.queryByRole('button', { name: '设备日志' })).toBeNull()

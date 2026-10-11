@@ -28,9 +28,11 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   // 迭代 108（#241）：「语言」项绑定 settings 域——选项名固定各自语言原文（「中文」/「English」不随当前语言翻译）；
   // 迭代 112（#246）：其余卡片全部迁入 settings 域
   const { t, i18n } = useTranslation('settings')
-  // 迭代 126（#308）：7 张卡片标题挂「?」文档点（拍板③：server 可达路径不渲染——同加 !isServerUi，
-  // 断言面与 PropsPanel 一致）。迭代 128（#316 决策 #178）：深链信号改路由 sub 段（helpAnchor
-  // props）——页内轮询（useHelpDeepLink）锚点常在即刻命中自动弹卡片气泡；超时通用降级提示。
+  // 迭代 126（#308）：7 张卡片标题挂「?」文档点。迭代 129（#320，决策 #179）：设计器挂点撤门后
+  // 本页保留 !isServerUi——语义改为 client-only 页防御门（settings tab 不在 SERVER_TABS，server
+  // 构建本不可达，门仅防手造 URL 等边缘；断言面与 PropsPanel 分离）。迭代 128（#316 决策 #178）：
+  // 深链信号改路由 sub 段（helpAnchor props）——页内轮询（useHelpDeepLink）锚点常在即刻命中自动
+  // 弹卡片气泡；超时通用降级提示。
   const [openDot, setOpenDot] = useState<string | null>(null)
   useHelpDeepLink(helpAnchor, {
     onFound: () => {

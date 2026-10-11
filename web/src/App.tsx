@@ -25,13 +25,13 @@ import { useTranslation } from 'react-i18next'
 import { changeLocale, toAppLocale } from './i18n'
 import { AppProvider, useApp } from './state/AppContext'
 import { Icon, LabelLogo } from './components/Icon'
-import type { IconName } from './components/Icon'
 import { Guide } from './components/Guide'
 import { Modal } from './components/Modal'
 import type { DesignerRequest, TabId } from './state/types'
 import { isGuideSeen, markGuideSeen } from './lib/guide'
 import { HELP_LINK_ELEMENTS } from './lib/help'
 import { formatHash, parseHash, useHashRoute } from './lib/router'
+import { CLIENT_TABS, SERVER_TABS } from './lib/tabs'
 import { isServerUi } from './lib/uiMode'
 import { Workbench } from './pages/Workbench'
 import { Designer } from './pages/Designer'
@@ -43,32 +43,12 @@ import { Help } from './pages/Help'
 import { DownloadCenter } from './pages/DownloadCenter'
 import { PluginPackages } from './pages/PluginPackages'
 
-// 导航元数据（label 经 shell 域 key 在渲染期求值——t() 绑定当前语言，切换即时生效）
-const SERVER_TABS: { id: TabId; labelKey: string; icon: IconName }[] = [
-  { id: 'workbench', labelKey: 'nav.workbench', icon: 'workbench' },
-  { id: 'designer', labelKey: 'nav.designer', icon: 'designer' },
-  { id: 'data', labelKey: 'nav.data', icon: 'data' },
-  { id: 'devices', labelKey: 'nav.devices', icon: 'grid' },
-  { id: 'jobs', labelKey: 'nav.jobs', icon: 'history' },
-  // 迭代 59（决策 #119）：Server UI「客户端下载」页升级为统一「下载中心」——客户端安装包 + PDA APK 同页分区、扫码下载
-  { id: 'packages', labelKey: 'nav.packages', icon: 'download' },
-  // 迭代 23 §5.4：Server UI「插件管理」页（插件包列表 / 上传 / 下载 / 删除，与「客户端下载」并列）
-  { id: 'plugin-packages', labelKey: 'nav.pluginPackages', icon: 'puzzle' },
-  // 迭代 75（#112）：「设备日志」页下线——/api/logs 端点与 logs.db 保留（未来回传地基）
-]
+// 导航元数据（label 经 shell 域 key 在渲染期求值——t() 绑定当前语言，切换即时生效）已迁 lib/tabs.ts
+// 单源维护（迭代 129 · #320，决策 #179）——SERVER_TABS 末位含「帮助」，与 CLIENT_TABS 同位。
 
-const CLIENT_TABS: { id: TabId; labelKey: string; icon: IconName }[] = [
-  { id: 'workbench', labelKey: 'nav.workbench', icon: 'workbench' },
-  { id: 'designer', labelKey: 'nav.designer', icon: 'designer' },
-  { id: 'data', labelKey: 'nav.data', icon: 'data' },
-  { id: 'jobs', labelKey: 'nav.jobs', icon: 'history' },
-  { id: 'settings', labelKey: 'nav.settings', icon: 'settings' },
-  // 迭代 126（#308）：主导航第 6 项「帮助」（帮助页文档底座，client-only——server 纳入须后续迭代单独裁剪）
-  { id: 'help', labelKey: 'nav.help', icon: 'help' },
-]
-
-// 迭代 127（#312，决策 #177）：路由 page 段白名单 = 本构建 tab 集（server 构建解析 #/help、#/settings
-// 即回退 workbench——受限页集不可经 hash 越权进入）；构建期常量，与 tab 元数据同源派生。
+// 迭代 127（#312，决策 #177）：路由 page 段白名单 = 本构建 tab 集（server 构建解析 #/settings
+// 即回退 workbench——受限页集不可经 hash 越权进入；#/help 随迭代 129 server tab 集纳入 help 反转为可达）；
+// 构建期常量，与 tab 元数据同源派生。
 const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
 
 /** 状态栏多 IP 过长省略显示（title 给全量）。 */
@@ -174,13 +154,12 @@ function Shell() {
     window.location.hash = formatHash(target, anchor)
   }
 
-  // 迭代 128（#316，决策 #178 拍板 A）：深链自动开草稿——client 构建设计器空态且路由 sub 为已
-  // 登记的深链示例元素锚点时，经既有 openDesigner({kind:'new'}) 自动新建草稿（不落库零写请求；
-  // 示例元素由 Designer 随 init 并入初始基线并选中）。已打开模板（designerReq 存在）不触发，走
-  // 既有锚点路径；server 构建 !isServerUi 门不触发（Designer 不挂载则无人轮询——静默空态，可接
-  // 受性交陪验，不为补提示把 hook 挂到空态壳层）。
+  // 迭代 128（#316，决策 #178 拍板 A）：深链自动开草稿——设计器空态且路由 sub 为已登记的深链示例
+  // 元素锚点时，经既有 openDesigner({kind:'new'}) 自动新建草稿（不落库零写请求；示例元素由
+  // Designer 随 init 并入初始基线并选中）。已打开模板（designerReq 存在）不触发，走既有锚点
+  // 路径。迭代 129（#320，决策 #179）：撤 !isServerUi 门——server 构建与 client 同语义（设计器
+  // 在 server 构建功能完整、深链可达，#178⑤「静默空态」口径随之反转），双构建共用本 effect。
   useEffect(() => {
-    if (isServerUi) return
     if (tab !== 'designer' || designerReq) return
     // Object.hasOwn 防 'toString' 等原型链属性名经 sub 段合法进入后 in 判定为真、取值非数组致渲染崩溃（评审实证）
     if (!route.sub || !Object.hasOwn(HELP_LINK_ELEMENTS, route.sub)) return
@@ -268,7 +247,8 @@ function Shell() {
           {tab === 'packages' && <DownloadCenter sub={route.sub} onSubChange={route.setSub} />}
           {tab === 'plugin-packages' && <PluginPackages />}
           {tab === 'settings' && <Settings helpAnchor={route.sub} />}
-          {/* 迭代 126（#308）：帮助页（文档底座）——help tab 仅 CLIENT_TABS，server 构建不可达 */}
+          {/* 迭代 126（#308）：帮助页（文档底座）——迭代 129（#320）起双构建均挂载（help tab 在
+              SERVER_TABS / CLIENT_TABS 均居末位；内容按构建页集适配见 lib/help.ts BUILD_HELP_PAGES） */}
           {tab === 'help' && <Help onOpenInUi={openHelpInUi} />}
         </main>
       </div>

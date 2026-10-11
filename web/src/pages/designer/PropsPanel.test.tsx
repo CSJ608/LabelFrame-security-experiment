@@ -13,7 +13,8 @@ import { PropsPanel } from './PropsPanel'
 import { SidePanel } from './SidePanel'
 
 // 迭代 126（#308）：「?」文档点用例为 client 构建语义断言（[data-help] 在场），显式注入 client 分支
-// （VITE_UI_MODE=server 整仓测试时保持稳定）；server 分支 dot() 为 null 由 HelpDot.server.test.tsx 专项守门
+// （VITE_UI_MODE=server 整仓测试时保持稳定）；迭代 129（#320）撤门后双构建同渲染，server 分支
+// 断言面由 HelpDot.server.test.tsx 专项覆盖
 vi.mock('../../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
 // ---------- 测试夹具（defaultElement 与控件栏新增元素的默认值一致） ----------

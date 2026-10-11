@@ -11,8 +11,10 @@
 // 迭代 128（#316 AC-01，观感返工拍板①）：气泡不再渲染可见标题节点——点「?」时分组 / 卡片
 // 标题就在按钮旁，重复显示即冗余（#308 AC-08 陪验否决项）；正文直出，dialog 无障碍名仍取
 // title 词条（读屏不丢名，title 词条仍被帮助文章 h3 与 aria-label 消费——单源不破）。
-// server 构建守门（AC-07，拍板③口径）：调用方必须以 !isServerUi 条件渲染（PropsPanel /
-// Settings 挂点处），本组件不做内部分支——「server 可达路径不渲染」红线在调用点显式可见。
+// server 构建口径（迭代 129 · #320，决策 #179）：设计器挂点（PropsPanel 10 组）已撤门——server
+// 构建可达路径照常渲染「?」（词条同源，help 域已进双产物）；Settings 挂点维持 !isServerUi 条件
+// 渲染（client-only 页防御门——server 构建本不可达该页，门防手造 URL 等边缘），本组件仍不做
+// 内部分支，两口径均在调用点显式可见。
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'

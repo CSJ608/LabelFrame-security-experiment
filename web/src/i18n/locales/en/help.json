@@ -1,7 +1,8 @@
 {
   "page": {
     "title": "Help",
-    "subtitle": "Usage articles for the five pages, plus “?” notes in the UI"
+    "subtitle": "Usage articles for the five pages, plus “?” notes in the UI",
+    "subtitleServer": "Usage articles for the seven pages, plus “?” notes in the UI"
   },
   "index": {
     "workbench": {
@@ -23,6 +24,18 @@
     "settings": {
       "title": "Settings",
       "desc": "Language, server address, printer and plugin settings on this machine"
+    },
+    "devices": {
+      "title": "Online Devices",
+      "desc": "Browse online devices and set the default print target"
+    },
+    "packages": {
+      "title": "Download Center",
+      "desc": "Download installers by scanning a QR code and manage versions for each platform"
+    },
+    "pluginPackages": {
+      "title": "Plugin Management",
+      "desc": "Distribute plugin packages for clients to install"
     }
   },
   "article": {
@@ -40,6 +53,15 @@
     },
     "settings": {
       "intro": "Settings gathers this machine's configuration: interface language, server address, connection, print batching, printer, updates & packages, and plugin management; the “?” beside each card title explains that item."
+    },
+    "devices": {
+      "intro": "Online Devices shows the devices joined to the server: a device appears here after LabelFrame Client is installed and joined to the server. Click an online device to set it as the default target for Data & Print; the list fields and how online status is determined are covered below."
+    },
+    "packages": {
+      "intro": "The Download Center distributes installers: Quick Access is for end users — one latest-upload card each for Windows and Android, scan the QR code to download — plus a Server Info card with a QR code of the server address. The Windows Packages and Android Packages tabs handle upload, download and deletion, covered below."
+    },
+    "pluginPackages": {
+      "intro": "Plugin Management handles the server's plugin distribution: upload packages here, and install or uninstall them on each client under Settings → Plugin Management. The list fields, download and deletion are covered below."
     }
   },
   "topic": {
@@ -171,6 +193,36 @@
       "plugins": {
         "title": "Plugin Management",
         "body": "“Server plugins” lists what can be installed; “Installed Plugins” lists what is on this machine. Install from the list above, or uninstall what is no longer needed — either way, restart the client for changes to take effect. Nothing is listed in standalone mode."
+      }
+    },
+    "devices": {
+      "listStatus": {
+        "title": "List Columns & Online Status",
+        "body": "The list shows Device ID, Name, Last IP, Status and Last Seen, and refreshes automatically every 5 seconds; auto refresh can be paused, and the list can be refreshed on demand. \nStatus follows the most recent connection: a device shows as offline after 30 seconds without a connection, and the change can lag a few seconds. Offline only means the device has not connected recently — it stays in the list and shows as online again once it reconnects."
+      },
+      "defaultTarget": {
+        "title": "Set as Default Target",
+        "body": "Click an online device row (or its “Set Default” button) to make it the default target for Data & Print; the current default carries a “Default” badge, and clicking another device switches the default. \nOnly online devices can be set — clicking an offline device shows a notice and changes nothing. The choice applies immediately to “Target device” on the Data & Print page."
+      }
+    },
+    "packages": {
+      "quick": {
+        "title": "Quick Access & QR Downloads",
+        "body": "The two latest-upload cards each take the newest package by upload time; scan the QR code on a card to download, or use “All versions →” to jump to the matching manage tab. \nThe Server Info card below shows the selected server address as a QR code; if the machine has more than one network interface there are several addresses to choose from, and switching updates the QR code, address and copy button together."
+      },
+      "manage": {
+        "title": "Package Upload & Deletion",
+        "body": "Upload installers on the two manage tabs: Windows packages are also the download source for Settings → Updates & Packages on the clients, while the Android tab manages the PDA APKs. Each row offers download and delete; deleting asks for confirmation, and QR-code and link downloads stop working afterwards. \nWhen the latest package is deleted, the Quick Access card falls back to the next newest one."
+      }
+    },
+    "pluginPackages": {
+      "distribute": {
+        "title": "Package List & Validity",
+        "body": "The list shows Name, Version, Plugin ID, Size, Modified and Status, with the file name in smaller type under Name. Valid packages carry a green “Valid” badge; invalid ones show a red “Invalid” badge with the reason it failed to parse. \nUse “Upload Plugin Package” in the top-right corner to add a package."
+      },
+      "manage": {
+        "title": "Download, Delete & Client Install",
+        "body": "Download plugin packages from the rows here — the same source clients install from under Settings → Plugin Management. Deleting asks for confirmation, and afterwards clients can no longer download that package from the server. \nInstalling and uninstalling happen on each client's Settings page, not here; either way, restart the client for changes to take effect."
       }
     }
   },

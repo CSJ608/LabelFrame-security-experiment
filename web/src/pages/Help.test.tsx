@@ -7,11 +7,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Help } from './Help'
-import { HELP_LINK_ELEMENTS, HELP_PAGES } from '../lib/help'
+import { HELP_LINK_ELEMENTS, HELP_PAGES, helpPagesFor } from '../lib/help'
 import { formatHash } from '../lib/router'
 import type { TabId } from '../state/types'
 // 组件级单测不经 App 引用链，显式 import 初始化 i18next 单例（语言包资源就位，词条断言可用）
 import '../i18n'
+
+// 迭代 129（#320）：本文件为 client 构建语义用例（五页集 / client 副标题 / settings 卡片），
+// 显式注入 client 分支——VITE_UI_MODE=server 整仓批次下 BUILD_HELP_PAGES 与副标题词条保持
+// client 折叠（循 Guide.test.tsx / JobHistory.test.tsx 先例）；server 页集纯函数面由本文件
+// 「构建页集过滤」用例覆盖，server 构建挂点守门见 HelpDot.server.test.tsx。
+vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
 afterEach(() => {
   cleanup()
@@ -37,6 +43,14 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     for (const title of ['工作台', '设计器', '数据与打印', '作业历史', '设置']) {
       expect(screen.getAllByText(title).length).toBeGreaterThanOrEqual(2) // 目录页节点＋索引卡
     }
+  })
+
+  it('client 构建负断言（迭代 129 · #320）：server 独有三页索引卡与 server 副标题不出现', () => {
+    renderHelp()
+    for (const serverOnly of ['在线设备', '下载中心', '插件管理']) {
+      expect(screen.queryByText(serverOnly)).toBeNull()
+    }
+    expect(screen.queryByText('七个页面的使用文章；界面内「?」就近说明')).toBeNull()
   })
 
   it('点击索引卡进入对应文章（工作台篇：导览段＋三个纯文章小节、无「去界面查看」）', () => {
@@ -99,6 +113,18 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     // align 双元素（对齐组多选分支渲染）；fill 复用演示预设示例值（#178 两处联动口径）
     expect(HELP_LINK_ELEMENTS['designer.align'].length).toBe(2)
     expect(HELP_LINK_ELEMENTS['designer.fill'][0].patch).toHaveProperty('key', 'location')
+  })
+
+  it('构建页集过滤（迭代 129 · #320，决策 #179）：client=五页含 settings、server=七页不含 settings，双集均不含对方独有页', () => {
+    const client = helpPagesFor(false).map((p) => p.page)
+    const server = helpPagesFor(true).map((p) => p.page)
+    expect(client).toEqual(['workbench', 'designer', 'data', 'jobs', 'settings'])
+    expect(server).toEqual(['workbench', 'designer', 'data', 'jobs', 'devices', 'packages', 'pluginPackages'])
+    // server 独有三页不进 client 页集；settings 文章不进 server 页集（按主导航 tab 集单源过滤）
+    for (const serverOnly of ['devices', 'packages', 'pluginPackages'] as const) {
+      expect(client).not.toContain(serverOnly)
+    }
+    expect(server).not.toContain('settings')
   })
 })
 

@@ -2,11 +2,12 @@
 // 迭代 112（#246）：文案 key 化（designer 域 props.*）；字体下拉显示名随界面语言
 // （字体内部名 / 模板存储值不变——白名单 6 项维持现状不动）。
 // 迭代 126（#308）：全部分组标题挂「?」就地文档点（data-help 锚点，HelpDot 气泡与帮助文章
-// 同源词条）；「!isServerUi」条件渲染——设计器 tab 在 SERVER_TABS 可达，漏条件即 server 管理界面
-// 渲染出「?」（AC-07 红线）。演示（填充组「看实时效果」）期间输入与操作禁用（拍板 4 方案 A：
-// 禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态 openDot 由本组件持有，
-// 帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位由 Designer 页内轮询确认，
-// 迭代 128 · #316 机制迁移后信号源 = 路由 sub 段）。
+// 同源词条）。迭代 129（#320，决策 #179）：撤 !isServerUi 门——设计器 tab 在 SERVER_TABS 可达
+// 且功能完整，「?」在 server 构建同样渲染（词条同源、已随 help 域进双产物）；设置页挂点维持
+// 门（client-only 页防御门，见 Settings.tsx）。演示（填充组「看实时效果」）期间输入与操作禁用
+// （拍板 4 方案 A：禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态
+// openDot 由本组件持有，帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位
+// 由 Designer 页内轮询确认，迭代 128 · #316 机制迁移后信号源 = 路由 sub 段）。
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,7 +16,6 @@ import { typeLabel } from '../../lib/design/types'
 import { elementsByIds } from '../../lib/design/model'
 import { Icon } from '../../components/Icon'
 import { HelpDot } from '../../components/HelpDot'
-import { isServerUi } from '../../lib/uiMode'
 
 export interface PropsPanelProps {
   elements: DesignElement[]
@@ -52,21 +52,20 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
   }
   const toggleDot = (anchor: string) => changeDot(openDot === anchor ? null : anchor)
 
-  /** 分组标题「?」文档点（server 构建不渲染——AC-07 守门在调用点显式）。 */
-  const dot = (anchor: string) =>
-    isServerUi ? null : (
-      <HelpDot
-        anchor={anchor}
-        topicKey={`topic.${anchor}`}
-        open={openDot === anchor}
-        onToggle={() => toggleDot(anchor)}
-        onClose={() => changeDot(null)}
-        hasDemo={anchor === 'designer.fill'}
-        demoActive={demoActive}
-        onDemoStart={anchor === 'designer.fill' ? () => onDemoStart?.(anchor) : undefined}
-        onDemoExit={anchor === 'designer.fill' ? () => onDemoExit?.() : undefined}
-      />
-    )
+  /** 分组标题「?」文档点（迭代 129 · #320 撤 server 门：双构建直渲染——设计器 server 构建功能完整）。 */
+  const dot = (anchor: string) => (
+    <HelpDot
+      anchor={anchor}
+      topicKey={`topic.${anchor}`}
+      open={openDot === anchor}
+      onToggle={() => toggleDot(anchor)}
+      onClose={() => changeDot(null)}
+      hasDemo={anchor === 'designer.fill'}
+      demoActive={demoActive}
+      onDemoStart={anchor === 'designer.fill' ? () => onDemoStart?.(anchor) : undefined}
+      onDemoExit={anchor === 'designer.fill' ? () => onDemoExit?.() : undefined}
+    />
+  )
 
   if (viewMode === 'preview') {
     return <div className="props-empty">{t('props.previewLocked')}</div>
@@ -154,7 +153,6 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
             onDemoStart={() => onDemoStart?.('designer.fill')}
             onDemoExit={() => onDemoExit?.()}
             demoActive={demoActive}
-            serverHidden={isServerUi}
           />
           <div className="group">
             <div className="group-title">
@@ -321,7 +319,8 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
   )
 }
 
-/** 填充：固定值 / 字段填充（字段名 + 显示名 + 预览值）；标题挂「?」文档点（首波唯一内嵌实时演示）。 */
+/** 填充：固定值 / 字段填充（字段名 + 显示名 + 预览值）；标题挂「?」文档点（首波唯一内嵌实时演示，
+ *  迭代 129 · #320 起随 dot() 撤门双构建渲染）。 */
 function ContentGroup({
   e,
   onChange,
@@ -332,7 +331,6 @@ function ContentGroup({
   onDemoStart,
   onDemoExit,
   demoActive,
-  serverHidden,
 }: {
   e: DesignElement
   onChange: (id: string, patch: Partial<DesignElement>) => void
@@ -343,8 +341,6 @@ function ContentGroup({
   onDemoStart: () => void
   onDemoExit: () => void
   demoActive?: boolean
-  /** server 构建守门（与 dot() 同口径）：不渲染「?」。 */
-  serverHidden: boolean
 }) {
   const { t } = useTranslation('designer')
   if (e.type !== 'Text' && e.type !== 'Barcode' && e.type !== 'QrCode') return null
@@ -353,19 +349,17 @@ function ContentGroup({
     <div className="group">
       <div className="group-title">
         {t('props.fillTitle')}
-        {!serverHidden && (
-          <HelpDot
-            anchor="designer.fill"
-            topicKey="topic.designer.fill"
-            open={helpOpen}
-            onToggle={onHelpToggle}
-            onClose={onHelpClose}
-            hasDemo
-            demoActive={demoActive}
-            onDemoStart={onDemoStart}
-            onDemoExit={onDemoExit}
-          />
-        )}
+        <HelpDot
+          anchor="designer.fill"
+          topicKey="topic.designer.fill"
+          open={helpOpen}
+          onToggle={onHelpToggle}
+          onClose={onHelpClose}
+          hasDemo
+          demoActive={demoActive}
+          onDemoStart={onDemoStart}
+          onDemoExit={onDemoExit}
+        />
       </div>
       <SelectField
         label={t('props.source')}

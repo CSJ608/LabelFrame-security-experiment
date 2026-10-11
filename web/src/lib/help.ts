@@ -11,13 +11,21 @@
 // 还原）——HELP_LINK_ELEMENTS 为深链自动开草稿的示例元素预设（拍板 A：随草稿 init 并入初始
 // 基线，机制与演示预设的显示层注入不同，见 Designer.tsx 落点）；页内锚点轮询 hook 在
 // lib/helpLink.ts（本文件保持纯数据，不引 react）。
+// 迭代 129（#320，决策 #179）：server 管理界面纳入帮助体系——HELP_PAGES 收录双构建全部页面
+// （i18n key 段 camelCase：pluginPackages 对齐 pluginPackages.json 域名先例，tab 字段仍用
+// 'plugin-packages' 原 TabId），构建适配经 helpPagesFor 按当前构建主导航页集单源过滤（判据
+// 「帮助文章页集 = 当前构建主导航页集」从结构上防漂移，无需逐条目标注模式）。
 
 import i18next from 'i18next'
 import type { TabId } from '../state/types'
 import type { DesignElement } from './design/types'
+import type { TabMeta } from './tabs'
+import { CLIENT_TABS, SERVER_TABS } from './tabs'
+import { isServerUi } from './uiMode'
 
-/** 帮助文章覆盖的页面（与主导航 client 侧五页一一对应；help 域词条按此分组）。 */
-export type HelpPageId = 'workbench' | 'designer' | 'data' | 'jobs' | 'settings'
+/** 帮助文章覆盖的页面（双构建并集——client 五页 + server 独有三页；help 域词条按此分组，
+ *  某构建实际渲染哪些页由 helpPagesFor 按构建 tab 集过滤）。 */
+export type HelpPageId = 'workbench' | 'designer' | 'data' | 'jobs' | 'settings' | 'devices' | 'packages' | 'pluginPackages'
 
 /** 主题小节定义（文章视图渲染单元；有 anchor 即文档点主题）。 */
 export interface HelpTopic {
@@ -100,7 +108,45 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
       { id: 'plugins', anchor: 'settings.plugins', target: 'settings' },
     ],
   },
+  // 迭代 129（#320）：server 独有三页（devices / packages / pluginPackages）——各 intro＋2 纯文章
+  // 小节、无 anchor（设备 / 插件页为单表平页无锚点结构，下载中心 sub 段已被页内 tab 占用；
+  // 与 workbench / data / jobs 纯文章先例一致，拍板 2-A）
+  {
+    page: 'devices',
+    tab: 'devices',
+    topics: [{ id: 'listStatus' }, { id: 'defaultTarget' }],
+  },
+  {
+    page: 'packages',
+    tab: 'packages',
+    topics: [{ id: 'quick' }, { id: 'manage' }],
+  },
+  {
+    page: 'pluginPackages',
+    tab: 'plugin-packages',
+    topics: [{ id: 'distribute' }, { id: 'manage' }],
+  },
 ]
+
+/** 页集过滤谓词（单源）：帮助文章页集 = 所给主导航 tab 集——settings 文章因 settings tab 不在
+ *  SERVER_TABS 而 server 不出现，server 独有三页因 tab 不在 CLIENT_TABS 而 client 不出现；
+ *  页集增减自动跟随，无需重复标注模式。 */
+function pagesInTabs(tabs: readonly TabMeta[]): readonly HelpPageDoc[] {
+  const tabIds = new Set(tabs.map((t) => t.id))
+  return HELP_PAGES.filter((doc) => tabIds.has(doc.tab))
+}
+
+/** 按构建模式的帮助页集（迭代 129 · #320，决策 #179）：双参形态供建页集直测（Help.test.tsx
+ *  数据自洽用例）与未来双集消费方；生产消费点用 BUILD_HELP_PAGES——形参分支使双 tab 集在两种
+ *  产物中都被引用（摇树不可折叠，server 特征串 nav.devices 会渗入 client 产物），生产 bundle
+ *  本函数无引用即被裁除。 */
+export function helpPagesFor(isServer: boolean): readonly HelpPageDoc[] {
+  return pagesInTabs(isServer ? SERVER_TABS : CLIENT_TABS)
+}
+
+/** 当前构建的帮助页集（构建期折叠出口）：模块级 isServerUi 三元与 App ROUTE_ALLOWED 同款折叠
+ *  先例——client 产物摇树裁除 SERVER_TABS（AC-04 特征串四指标之 client nav.devices=0）。 */
+export const BUILD_HELP_PAGES: readonly HelpPageDoc[] = pagesInTabs(isServerUi ? SERVER_TABS : CLIENT_TABS)
 
 /** 字段显示名示例值（随界面语言：zh「库位」/ en "Bin"——#308 结项 wrapup 定夺；本文件唯一
  *  随语言取值的示例字段，消费点＝演示注入与深链示例构建（两处经同一预设联动，防漂移记录见 #178）。 */
