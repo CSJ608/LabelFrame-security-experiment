@@ -10,7 +10,8 @@
     "build:server": "tsc -b && cross-env VITE_UI_MODE=server vite build --outDir dist-server",
     "lint": "oxlint",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "repro:324": "node scripts/repro-324.mjs regress"
   },
   "dependencies": {
     "i18next": "^26.4.2",
@@ -34,6 +35,7 @@
     "cross-env": "^10.1.0",
     "jsdom": "^30.0.1",
     "oxlint": "^1.75.0",
+    "playwright-core": "^1.64.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"

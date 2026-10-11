@@ -43,8 +43,9 @@ interface CanvasViewportProps {
   onZoomChange: (z: number) => void
 }
 
-/** 多选整体刚性快照（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）：
- *  dragStart 一次快照 + 每步独立重算，无步间状态（v1 的 lastX/lastY 逐步差分已废除）。 */
+/** 多选整体刚性快照（迭代 131 返工 · #324 方案 v2/v3——用户拍板「整体刚性」）：
+ *  dragStart 一次快照 + 每步独立重算（v1 的 lastX/lastY 逐步差分已废除，差分链不复存在）；
+ *  v3 增 lastApplied 末步终态备忘（仅作 dragend 提交来源，不参与逐步推导——非步间差分状态）。 */
 interface MultiDragSnapshot {
   /** 主导（被拖）元素 id。 */
   targetId: string
@@ -52,6 +53,9 @@ interface MultiDragSnapshot {
   union: SnapRect
   /** 各选中元素初始节点坐标（逻辑 px，拖前模型换算）——跟随刚性设置与同 Δ 提交的基准。 */
   items: Array<{ id: string; x: number; y: number }>
+  /** dragmove 末步写入的吸附后主导位置（#324 方案 v3）——dragend 提交的唯一终态来源，
+   *  对松手瞬间任何节点扰动免疫（react-konva 事件后同步 flush、Transformer 重绑等组件层时序）。 */
+  lastApplied: { x: number; y: number } | null
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
@@ -69,6 +73,10 @@ export function CanvasViewport(props: CanvasViewportProps) {
   const guidesRef = useRef<Konva.Line[]>([])
   const panRef = useRef({ panning: false, startX: 0, startY: 0, stageX: 0, stageY: 0 })
   const multiDragRef = useRef<MultiDragSnapshot | null>(null)
+  /** Transformer._proxyDrag 触发的「假拖动」节点 id 集（#324 方案 v3）——这些节点的
+   *  dragstart / dragmove / dragend 一律忽略：位置由主导侧每步刚性设置，dragend 吞掉
+   *  防走单选提交（否则同一次多选拖动产生第二步历史，破坏撤销单步）。 */
+  const fakeDragRef = useRef<Set<string>>(new Set())
 
   // 闭包镜像：高频回调里读取最新状态
   const stateRef = useRef(props)
@@ -325,6 +333,17 @@ export function CanvasViewport(props: CanvasViewportProps) {
     const p = stateRef.current
     const el = elementFromTarget(ev.target)
     if (el && p.selected.length > 1 && p.selected.includes(el.id())) {
+      // 主导权防御（#324 方案 v3，真实浏览器插桩定位）：Konva Transformer 的 _proxyDrag 会在主导元素
+      // 首次 dragmove 时把其余绑定节点 setAbsolutePosition(+dx) 后强制 startDrag——跟随元素由此产生
+      // 「假 dragstart」，若不拦截会覆盖本快照（v2 松手瞬移根因：单例 multiDragRef 被跟随元素的快照
+      // 顶替，dragend 以「主导节点位置 × 跟随快照」错配算补丁）。桌面单指针下一个手势只有一个主导；
+      // md 已在场且来者非主导 → 登记进假拖动集并忽略（不覆盖快照）。不能调 stopDrag()——它会终止
+      // 整个手势的全部拖动元素（DragAndDrop._endDragBefore 全局循环，主导一并置 stopped 即刻提交）。
+      if (multiDragRef.current && el.id() !== multiDragRef.current.targetId) {
+        fakeDragRef.current.add(el.id())
+        return
+      }
+      fakeDragRef.current.clear()
       // 整体刚性快照（迭代 131 返工 · #324 方案 v2，用户拍板）：联合盒与各元素初始坐标一律从拖前
       // 模型换算（不依赖节点存在——拖动中途删除元素时快照按 elementById 过滤、findOne 未命中自然跳过）
       const sel = p.selected.flatMap((id) => {
@@ -335,9 +354,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
         targetId: el.id(),
         union: unionModelRect(sel, ox, oy),
         items: sel.map((m) => ({ id: m.id, x: ox + pxv(m.x), y: oy + pxv(m.y) })),
+        lastApplied: null,
       }
     } else {
       multiDragRef.current = null
+      fakeDragRef.current.clear()
     }
   }
 
@@ -356,6 +377,9 @@ export function CanvasViewport(props: CanvasViewportProps) {
     // 每步独立重算（dragStart 快照 + 主导总位移），无步间状态——v1 的 lastX/lastY 逐步差分链
     // （用户实测「分离更严重」的头号可疑结构）已废除，差分累积误差结构性不可能。
     // 跟随节点每步直接设「初始快照 + 主导总位移（含吸附）」，组内相对位置刚性不变。
+    // v3（#324）：非主导节点（Transformer._proxyDrag 假拖动）的 dragmove 一律忽略——其节点位置
+    // 由 Konva _setDragPosition 拉到指针位，但主导侧的 dragmove 随后每步刚性覆盖（fire 序主导在先）。
+    if (el.id() !== md.targetId) return
     snapUnion(el, md)
     const leader = md.items.find((i) => i.id === md.targetId)
     if (leader) {
@@ -370,6 +394,9 @@ export function CanvasViewport(props: CanvasViewportProps) {
         }
       })
     }
+    // v3（#324）：末步吸附后主导位置写入快照——dragend 提交的唯一终态来源（松手段纯提交，
+    // 不再读节点现值，对松手瞬间任何组件层时序扰动免疫）。
+    md.lastApplied = { x: el.x(), y: el.y() }
     layer.batchDraw()
   }
 
@@ -380,10 +407,18 @@ export function CanvasViewport(props: CanvasViewportProps) {
     const e = el ? elementById(p.state.elements, el.id()) : undefined
     if (!el || !e) {
       multiDragRef.current = null
+      fakeDragRef.current.clear()
       clearGuides()
       return
     }
     const md = multiDragRef.current
+    // v3（#324）：Transformer._proxyDrag 假拖动节点的 dragend 一律吞掉——不提交（防走单选提交
+    // 产生第二步历史破坏撤销单步）、不清快照；多选提交权唯一归属主导元素。
+    if (fakeDragRef.current.has(el.id())) {
+      fakeDragRef.current.delete(el.id())
+      return
+    }
+    if (md && el.id() !== md.targetId) return
     multiDragRef.current = null
     // 单选路径（md 为 null）零变化：仅主导元素提交，regionId 与提交链与 #323 口径逐行等价
     if (!md) {
@@ -407,12 +442,18 @@ export function CanvasViewport(props: CanvasViewportProps) {
       p.onCommit()
       return
     }
-    // 多选路径（迭代 131 返工 · #324 方案 v2）：松手段再跑一次联合盒吸附（已贴线时幂等 dx≈0，防末步
-    // 漏网），随后 multiDragRigidPatches 以「主导终态 − dragStart 快照」的总位移口径产出同 Δ 刚性补丁
-    // ——对 dragend「保持末次位置」与「被指针覆盖」两种时序均自洽（较 v1 末次吸附量口径更稳）。
+    // 多选路径（迭代 131 返工 · #324 方案 v3）：松手段纯提交——不再跑二次联合盒吸附，终态也不读节点
+    // 现值，二者统一取 dragmove 末步写入快照的 lastApplied（吸附后主导位置）。依据（Konva 源码实读
+    // ＋浏览器插桩定位）：DragAndDrop._endDragBefore 松手只置 dragStatus 不更新节点位置，末次 dragmove
+    // 的吸附就是终态，「松手再吸一次防指针覆盖」的存在前提在多选路径不成立（指针覆盖只发生在 dragmove
+    // 序列内）；lastApplied 口径则对松手瞬间任何节点扰动（react-konva 事件处理器返回点同步 flush、
+    // Transformer 重绑等组件层时序）免疫——修复的承重件在此，删二次吸附只是去掉扰动值的另一个消费点。
+    // 主导权防御（假 dragstart/dragmove/dragend 忽略）见 handleDragStart / handleDragMove。
     // 一次 onUpdateElements + 一次 onCommit = 一步撤销（Ctrl+Z 整组回退）。
-    snapUnion(el, md)
-    const { patches } = multiDragRigidPatches({ leaderId: md.targetId, items: md.items, leaderX: el.x(), leaderY: el.y(), preview: false })
+    // lastApplied 兜底（dragstart 后从未 dragmove 即 dragend）：Konva _drag 实读 startDrag 必伴随至少
+    // 一次 dragmove，该分支不可达——防御性回退节点现值防 undefined 入算式。
+    const leaderTerminal = md.lastApplied ?? { x: el.x(), y: el.y() }
+    const { patches } = multiDragRigidPatches({ leaderId: md.targetId, items: md.items, leaderX: leaderTerminal.x, leaderY: leaderTerminal.y, preview: false })
     // 跟随节点直接按补丁设视觉（ElementNode 算式 x = ox + pxv(e.x)，视觉 = 模型）；findOne 未命中 /
     // 补丁缺失跳过（拖动中途被删除等边缘路径不提交不崩溃）
     md.items.forEach((item) => {
