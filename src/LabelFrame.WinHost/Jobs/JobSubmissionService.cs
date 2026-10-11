@@ -193,6 +193,11 @@ public sealed class JobSubmissionService
             {
                 return new RenderResult(null, JobErrorCodes.EncodeFailed, ex.Message, null);
             }
+            catch (MissingImageResourceException ex)
+            {
+                // 决策 #184（迭代 132）：缺资源＝打印链显式失败（消息含键名），不静默灰占位照打
+                return new RenderResult(null, JobErrorCodes.InvalidRequest, ex.Message, null);
+            }
         }
 
         return new RenderResult(items, null, null, null);

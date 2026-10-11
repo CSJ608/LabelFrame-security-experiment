@@ -64,22 +64,16 @@ public class SkiaRendererElementTests
     }
 
     [Fact]
-    public void Image_element_without_resource_should_render_nothing_but_optional_border()
+    public void Image_element_without_resource_should_throw_with_key_name()
     {
-        var noBorder = Render(new LabelLayout
+        // 迭代 132（#329，决策 #184 拍板 4-A）改写：缺资源由「灰占位照打（无墨仅边框）」变为
+        // 显式报错（预览 / 出图 / 打印链失败并透出键名）——灰占位呈现归设计器画布与属性面板。
+        var ex = Assert.Throws<MissingImageResourceException>(() => Render(new LabelLayout
         {
             Name = "img-missing", ContractName = "c", ContractVersion = "1.0", WidthMm = 40, HeightMm = 20,
             Elements = [new LabelImageElement { SourceKey = "missing", XMm = 2, YMm = 2, WidthMm = 10, HeightMm = 10 }],
-        });
-        Assert.Equal(0, CountBlack(noBorder, 2, 2, 10, 10));
-
-        // 带边框时仍画出边框矩形（缺图不缺框）
-        var bordered = Render(new LabelLayout
-        {
-            Name = "img-bordered", ContractName = "c", ContractVersion = "1.0", WidthMm = 40, HeightMm = 20,
-            Elements = [new LabelImageElement { SourceKey = "missing", XMm = 2, YMm = 2, WidthMm = 10, HeightMm = 10, BorderMm = 0.5 }],
-        });
-        Assert.True(CountBlack(bordered, 2, 2, 10, 10) > 50, "边框应画出矩形墨迹");
+        }));
+        Assert.Contains("missing", ex.Message);
     }
 
     [Fact]

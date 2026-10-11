@@ -544,10 +544,13 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
 
         if (templateImages is not null && templateImages.TryGetValue(image.SourceKey, out var bytes))
         {
-            using var source = SKBitmap.Decode(bytes);
+            using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                canvas.DrawBitmap(source, new SKRect(x, y, x + width, y + height));
+                // 线性采样：大幅缩小（原图 >> 元素盒）时防混叠失真（决策 #184）；
+                // SkiaSharp 3.x 采样选项走 DrawImage(SKImage, rect, SKSamplingOptions)——SKPaint.FilterQuality 已废弃
+                using var monochrome = SKImage.FromBitmap(source);
+                canvas.DrawImage(monochrome, new SKRect(x, y, x + width, y + height), MonochromeSampling);
                 return;
             }
         }
@@ -559,12 +562,49 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             return;
         }
 
-        // 占位框
-        using var pen = new SKPaint { Style = SKPaintStyle.Stroke, StrokeWidth = 1, Color = SKColors.Gray };
-        canvas.DrawRect(new SKRect(x, y, x + width, y + height), pen);
-        using var textFont = new SKFont(SKTypeface.Default, 8);
-        using var textPaint = new SKPaint { Color = SKColors.Gray };
-        canvas.DrawText(image.SourceKey, x + 2, y + 10, SKTextAlign.Left, textFont, textPaint);
+        // 决策 #184：缺资源＝渲染侧显式报错（预览 / 出图 / 打印链失败并透出键名中文消息），
+        // 不再画灰占位框照打；设计器画布的占位框由前端自行呈现（属性面板提示可重新上传修复）
+        throw new MissingImageResourceException(image.SourceKey);
+    }
+
+    /// <summary>单色图片缩放采样（Linear）：黑 / 白硬边缩小仍保边缘锐度。</summary>
+    private static readonly SKSamplingOptions MonochromeSampling = new(SKFilterMode.Linear);
+
+    /// <summary>
+    /// 解码图片并按 luma 阈值 128 单色化（黑白 BGRA，不透明）：与整版 1bpp 转换（ToLabelBitmap）同阈值同源，
+    /// 使预览 PNG 与打印输出一致（决策 #184——此前预览编码彩色画布、打印 1bpp 阈值，本就不一致）；
+    /// 透明区按白处理（出纸无墨）。解码失败返回 null（由调用方按缺资源口径处理）。
+    /// </summary>
+    private static SKBitmap? DecodeMonochrome(byte[] bytes)
+    {
+        using var source = SKBitmap.Decode(bytes);
+        if (source is null)
+        {
+            return null;
+        }
+
+        var dest = new SKBitmap(new SKImageInfo(source.Width, source.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+        using (var canvas = new SKCanvas(dest))
+        {
+            canvas.Clear(SKColors.White);
+            canvas.DrawBitmap(source, 0, 0);
+        }
+
+        var staging = new byte[dest.RowBytes * dest.Height];
+        Marshal.Copy(dest.GetPixels(), staging, 0, staging.Length);
+        for (var offset = 0; offset < staging.Length; offset += 4)
+        {
+            // BGRA 布局：B=0 G=1 R=2（与 ToLabelBitmap 同读取序）
+            var luma = (staging[offset + 2] * 299 + staging[offset + 1] * 587 + staging[offset] * 114) / 1000;
+            var value = luma < 128 ? (byte)0 : byte.MaxValue;
+            staging[offset] = value;
+            staging[offset + 1] = value;
+            staging[offset + 2] = value;
+            staging[offset + 3] = byte.MaxValue;
+        }
+
+        Marshal.Copy(staging, 0, dest.GetPixels(), staging.Length);
+        return dest;
     }
 
     private static void DrawLine(SKCanvas canvas, LabelLineElement line, int dpi)

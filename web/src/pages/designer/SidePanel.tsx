@@ -1,5 +1,7 @@
 // 设计器左侧栏：控件栏（点击放置 / 拖入画布）+ 打印字段（只读推导）+ 图层
 // 迭代 112（#246）：文案 key 化（designer 域 side.*）；控件栏标签随界面语言。
+// 迭代 132（#329）：控件栏增第五入口「图片」——点击走文件上传（onPickImage）而非武装 pendingType
+// （图片元素必须先有资源 key 才有意义，无资源的空占位不提供入口）；不支持拖入画布。
 
 import { useTranslation } from 'react-i18next'
 import type { DesignElement } from '../../lib/design/types'
@@ -8,12 +10,15 @@ import { elementsByIds } from '../../lib/design/model'
 import type { FieldInfo } from '../../lib/design/fields'
 import { Icon } from '../../components/Icon'
 
-const PALETTE: { type: string; labelKey: string; icon: 'text' | 'barcode' | 'qrcode' | 'rect' }[] = [
+const PALETTE: { type: string; labelKey: string; icon: PaletteIconName; upload?: boolean }[] = [
   { type: 'Text', labelKey: 'type.text', icon: 'text' },
   { type: 'Barcode', labelKey: 'type.barcode', icon: 'barcode' },
   { type: 'QrCode', labelKey: 'type.qrcode', icon: 'qrcode' },
   { type: 'Rect', labelKey: 'type.rect', icon: 'rect' },
+  { type: 'Image', labelKey: 'type.image', icon: 'image', upload: true },
 ]
+
+type PaletteIconName = 'text' | 'barcode' | 'qrcode' | 'rect' | 'image'
 
 export interface SidePanelProps {
   elements: DesignElement[]
@@ -22,6 +27,8 @@ export interface SidePanelProps {
   pendingType: string | null
   fields: FieldInfo[]
   onPickType: (type: string) => void
+  /** 控件栏「图片」入口点击：打开文件选择上传（迭代 132 · #329）。 */
+  onPickImage: () => void
   onSelect: (id: string, toggle?: boolean) => void
   onMoveLayer: (delta: number) => void
   onLayerTop: () => void
@@ -46,9 +53,13 @@ export function SidePanel(p: SidePanelProps) {
             <button
               key={it.type}
               className={'palette-btn' + (p.pendingType === it.type ? ' armed' : '')}
-              draggable={!locked}
+              draggable={!locked && !it.upload}
               onClick={() => {
                 if (locked) {
+                  return
+                }
+                if (it.upload) {
+                  p.onPickImage()
                   return
                 }
                 p.onPickType(p.pendingType === it.type ? '' : it.type)
@@ -132,7 +143,7 @@ export function SidePanel(p: SidePanelProps) {
   )
 }
 
-function PaletteIcon({ name }: { name: 'text' | 'barcode' | 'qrcode' | 'rect' }) {
+function PaletteIcon({ name }: { name: PaletteIconName }) {
   switch (name) {
     case 'text':
       return (
@@ -154,5 +165,14 @@ function PaletteIcon({ name }: { name: 'text' | 'barcode' | 'qrcode' | 'rect' })
       )
     case 'rect':
       return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="7" width="16" height="10" rx="1" /></svg>
+    case 'image':
+      // 山日图标（与原型图片占位形态呼应）
+      return (
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3.5" y="5" width="17" height="14" rx="1.5" />
+          <circle cx="9" cy="10" r="1.6" />
+          <path d="M4.5 17.5l4.8-4.8 3.2 3.2 3-3 4 4" />
+        </svg>
+      )
   }
 }

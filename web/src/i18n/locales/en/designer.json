@@ -61,7 +61,9 @@
     "previewEntered": "Print preview: {{dpi}} dpi (1mm ≈ {{dots}} dots); grid / rulers hidden, canvas locked; middle-drag pan / Ctrl+wheel zoom.",
     "saved": "Template \"{{name}}\" saved.",
     "saveFailed": "Save failed.",
-    "nameRequired": "Enter a template name first."
+    "nameRequired": "Enter a template name first.",
+    "imageRejected": "Failed to add image: {{reason}}",
+    "imageLoaded": "Added \"Image\"."
   },
   "toolbar": {
     "backTitle": "Back to workbench",
@@ -171,7 +173,6 @@
     "lengthX": "Length X",
     "lengthY": "Length Y",
     "thickness": "Thickness",
-    "compatTitle": "{{type}}",
     "regionId": "Id: {{id}} (read-only)",
     "fillTitle": "Fill",
     "source": "Source",
@@ -200,7 +201,12 @@
     "fontYaHei": "Microsoft YaHei",
     "fontSimSun": "SimSun",
     "fontSimHei": "SimHei",
-    "fontKaiTi": "KaiTi"
+    "fontKaiTi": "KaiTi",
+    "imageTitle": "Image",
+    "imageMeta": "Image resource: {{key}} · {{w}}×{{h}} px",
+    "imageMissing": "Image missing. Re-upload with \"Replace Image\".",
+    "imageReplace": "Replace Image",
+    "imageRemove": "Remove Image"
   },
   "shortcuts": {
     "core": "Ctrl+Z undo · Ctrl+C/V copy & paste · Delete remove · middle-drag pan · Ctrl+wheel zoom",
@@ -222,5 +228,11 @@
     "keyShiftCtrlClick": "Shift / Ctrl+click",
     "keyDrag": "Drag",
     "keyDragHandle": "Drag handle"
+  },
+  "imageReject": {
+    "format": "unsupported image format (PNG / JPG / BMP only)",
+    "tooLarge": "image exceeds the 2MB limit",
+    "tooMany": "more than 10 images per template",
+    "totalTooLarge": "template images exceed the 10MB limit"
   }
 }

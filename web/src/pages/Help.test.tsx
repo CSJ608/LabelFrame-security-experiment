@@ -70,9 +70,9 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     // 词条与文档点气泡同源（单源双视图）：正文与 help.topic.designer.fill 一致
     expect(screen.getByText(/「来源」决定打印内容：固定值立即按所填内容渲染/)).toBeTruthy()
-    // 纯文章 4 节无深链；文档点 10 节有深链
+    // 纯文章 4 节无深链；文档点 11 节有深链（迭代 132 · #329 增 designer.image）
     const openButtons = screen.getAllByRole('button', { name: /去界面查看/ })
-    expect(openButtons.length).toBe(10)
+    expect(openButtons.length).toBe(11)
     fireEvent.click(openButtons[0])
     // 机制迁移（#316）：深链 = hash 赋值 #/<page>/<anchor>（Shell openHelpInUi 现实现同法）
     expect(window.location.hash).toBe('#/designer/designer.position')
@@ -140,10 +140,10 @@ describe('帮助页左目录树（AC-02 新版式）', () => {
     // 索引视图：任何页的小节都不展开
     expect(toc.querySelector('.help-toc-sections')).toBeNull()
 
-    // 进设计器文章：仅设计器页展开 14 个小节（词条与正文 /「?」气泡同源）
+    // 进设计器文章：仅设计器页展开 15 个小节（词条与正文 /「?」气泡同源；#329 增图片小节）
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     const sections = toc.querySelectorAll('.help-toc-item.section')
-    expect(sections.length).toBe(14)
+    expect(sections.length).toBe(15)
     expect(within(toc).getAllByText('填充：固定值或字段填充').length).toBe(1)
   })
 
@@ -172,7 +172,7 @@ describe('帮助页左目录树（AC-02 新版式）', () => {
 
     // 同文章内小节点击同样滚动（不切换文章）
     scrollIntoView.mockClear()
-    fireEvent.click(within(toc).getByText('图片 / 容器')) // designer.compat 小节
+    fireEvent.click(within(toc).getByText('容器')) // designer.compat 小节（#329 收敛为仅容器）
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
   })
 

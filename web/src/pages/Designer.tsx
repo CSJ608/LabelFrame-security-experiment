@@ -20,8 +20,8 @@ import { SidePanel } from './designer/SidePanel'
 import { PropsPanel } from './designer/PropsPanel'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
-import type { DesignElement } from '../lib/design/types'
-import { cloneElement, defaultElement } from '../lib/design/types'
+import type { DesignElement, ImageAsset, ImageElement } from '../lib/design/types'
+import { cloneElement, defaultElement, imageElement } from '../lib/design/types'
 import { deriveFieldInfos } from '../lib/design/fields'
 import { createHistory } from '../lib/design/history'
 import { r2 } from '../lib/design/geometry'
@@ -35,6 +35,69 @@ import { shortcutGroups } from './designer/shortcuts'
 
 const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.paperH, elements: s.elements })
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
+
+// ---------- 图片资源（迭代 132 · #329，决策 #184）：限制上限与前端预检常量 ----------
+/** 支持格式（accept + 预检白名单，与服务端格式探嗅对齐）。 */
+const IMAGE_ACCEPT = 'image/png,image/jpeg,image/bmp'
+/** 单图原始字节上限（2MB）。 */
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024
+/** 单模板张数上限。 */
+const IMAGE_MAX_COUNT = 10
+/** 单模板总量上限（10MB，原始字节）。 */
+const IMAGE_MAX_TOTAL_BYTES = 10 * 1024 * 1024
+
+/** 文件名净化为资源 key（对齐后端 zip SanitizeKey 口径：字母数字与 . - _ 之外替换 _，空名兜底 image）。 */
+function sanitizeImageKey(fileName: string): string {
+  const safe = fileName.replace(/[^A-Za-z0-9._-]/g, '_')
+  return safe.trim() === '' ? 'image' : safe
+}
+
+/** key 去重（同名重复上传 / 与既有元素引用撞名时追加序号，扩展名保留参与区分 a.png 与 a.jpeg）。 */
+function uniqueImageKey(base: string, existing: ReadonlySet<string>): string {
+  if (!existing.has(base)) return base
+  const dot = base.lastIndexOf('.')
+  const stem = dot > 0 ? base.slice(0, dot) : base
+  const ext = dot > 0 ? base.slice(dot) : ''
+  for (let i = 2; ; i++) {
+    const candidate = `${stem}-${i}${ext}`
+    if (!existing.has(candidate)) return candidate
+  }
+}
+
+/** base64 → dataURL（按魔数 base64 前缀特征判 mime；PNG / JPEG / BMP 之外兜底 png——服务端校验只放行这三种）。 */
+function base64ToDataUrl(base64: string): string {
+  if (base64.startsWith('iVBORw0')) return 'data:image/png;base64,' + base64
+  if (base64.startsWith('/9j/')) return 'data:image/jpeg;base64,' + base64
+  if (base64.startsWith('Qk')) return 'data:image/bmp;base64,' + base64
+  return 'data:image/png;base64,' + base64
+}
+
+/** 解码图片像素尺寸（异步；加载失败或环境不支持时回退 0×0——初始尺寸按正方形兜底），3s 超时防挂起。 */
+function decodeImageSize(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const done = (w: number, h: number) => {
+      img.onload = null
+      img.onerror = null
+      clearTimeout(timer)
+      resolve({ width: w, height: h })
+    }
+    const timer = setTimeout(() => done(0, 0), 3000)
+    img.onload = () => done(img.naturalWidth || 0, img.naturalHeight || 0)
+    img.onerror = () => done(0, 0)
+    img.src = dataUrl
+  })
+}
+
+/** 读文件为 dataURL。 */
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'))
+    reader.readAsDataURL(file)
+  })
+}
 
 /** 深链示例元素构造（#316 决策 #178 拍板 A）：预设 spec → defaultElement + patch 合并——每次调用
  *  生成新 id（跨草稿不串号）、默认文案随当前语言；元素随草稿 init 并入初始基线（见 init 落点）。
@@ -107,6 +170,13 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const contractNameRef = useRef('')
   const contractVersionRef = useRef('1')
   const selectedRef = useRef<string[]>([])
+  // 图片资源表（迭代 132 · #329，决策 #184）：key → 资源，由本组件持有——不进 DesignState / 历史快照
+  //（snap 仅 paperW/paperH/elements，防 base64 撑爆撤销栈）；撤销「添加图片元素」后资源成孤儿由保存时 GC。
+  const [imageAssets, setImageAssets] = useState<Record<string, ImageAsset>>({})
+  const imageAssetsRef = useRef<Record<string, ImageAsset>>({})
+  /** 隐藏文件选择（上传 / 更换共用同一 input；replaceTargetRef 记录更换目标元素 id）。 */
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const replaceTargetRef = useRef<string | null>(null)
   // 迭代 92（#150 F-02，决议 a）：离开保护挂起的离开动作——「放弃更改」与「保存并离开」成功后执行；
   // 各终止路径（继续编辑 / 保存失败 / 覆盖取消 / 名称缺失）就地作废，防陈旧离开动作误触发后续普通保存。
   const pendingLeaveRef = useRef<(() => void) | null>(null)
@@ -226,6 +296,30 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         initialNameRef.current = pkg.name
         contractNameRef.current = pkg.contract?.name ?? pkg.name
         contractVersionRef.current = pkg.contract?.version ?? '1'
+        // 图片资源回填（迭代 132 · #329）：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染，
+        // 像素尺寸异步解码补齐（属性面板信息行用；失败保持 0，仅影响展示不影响渲染）。
+        if (pkg.images && Object.keys(pkg.images).length > 0) {
+          const assets: Record<string, ImageAsset> = {}
+          for (const [key, base64] of Object.entries(pkg.images)) {
+            assets[key] = {
+              dataUrl: base64ToDataUrl(base64),
+              width: 0,
+              height: 0,
+              sizeBytes: Math.floor((base64.length * 3) / 4),
+            }
+          }
+          imageAssetsRef.current = assets
+          setImageAssets(assets)
+          void Promise.all(
+            Object.entries(assets).map(async ([key, a]) => [key, { ...a, ...(await decodeImageSize(a.dataUrl)) }] as const),
+          ).then((entries) => {
+            if (!mountedRef.current) return
+            const next = { ...imageAssetsRef.current }
+            for (const [key, value] of entries) next[key] = value
+            imageAssetsRef.current = next
+            setImageAssets(next)
+          })
+        }
       }
     }
 
@@ -303,6 +397,93 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       commit({ ...s, elements: s.elements.map((e) => (e.id === id ? ({ ...e, ...patch } as DesignElement) : e)) })
     },
     [commit],
+  )
+
+  // ---------- 图片上传（迭代 132 · #329，决策 #184）----------
+  /** 文件落地：校验（格式 / 单图 / 张数 / 总量，前端预检与服务端硬校验双闸）→ dataURL → 解码尺寸 →
+   *  key 净化去重 → 建图片元素（初始尺寸按宽高比最长边夹 30mm）或更换目标元素 key（换新 key 防共享旧 key
+   *  的多元素同变；旧 key 孤儿随保存 GC）。资源表不进历史快照——撤销「添加图片元素」即成孤儿，保存时回收。 */
+  const addImageFile = useCallback(
+    (file: File, replaceId?: string) => {
+      const reject = (reasonKey: string) => app.setStatus(t('status.imageRejected', { reason: t(reasonKey) }))
+      if (file.type && !['image/png', 'image/jpeg', 'image/bmp'].includes(file.type)) {
+        reject('imageReject.format')
+        return
+      }
+      if (file.size > IMAGE_MAX_BYTES) {
+        reject('imageReject.tooLarge')
+        return
+      }
+      const assets = imageAssetsRef.current
+      if (!replaceId && Object.keys(assets).length >= IMAGE_MAX_COUNT) {
+        reject('imageReject.tooMany')
+        return
+      }
+      const totalBytes = Object.values(assets).reduce((sum, a) => sum + a.sizeBytes, 0)
+      if (totalBytes + file.size > IMAGE_MAX_TOTAL_BYTES) {
+        reject('imageReject.totalTooLarge')
+        return
+      }
+
+      void (async () => {
+        const s = stateRef.current
+        if (!s) return
+        const dataUrl = await readFileAsDataUrl(file)
+        const size = await decodeImageSize(dataUrl)
+        const existing = new Set<string>([
+          ...Object.keys(imageAssetsRef.current),
+          ...s.elements.filter((e) => e.type === 'Image' && e.key).map((e) => (e as ImageElement).key),
+        ])
+        const key = uniqueImageKey(sanitizeImageKey(file.name), existing)
+        const nextAssets: Record<string, ImageAsset> = {
+          ...imageAssetsRef.current,
+          [key]: { dataUrl, width: size.width, height: size.height, sizeBytes: file.size },
+        }
+        imageAssetsRef.current = nextAssets
+        setImageAssets(nextAssets)
+
+        if (replaceId) {
+          changeElement(replaceId, { key })
+          return
+        }
+        const e = imageElement(key, size.width > 0 && size.height > 0 ? size.width / size.height : 1)
+        e.x = Math.max(0, Math.min(s.paperW - e.w - 1, e.x))
+        e.y = Math.max(0, Math.min(s.paperH - e.h - 1, e.y))
+        commit({ ...s, elements: [...s.elements, e] })
+        setSelected([e.id])
+        selectedRef.current = [e.id]
+        app.setStatus(t('status.imageLoaded'))
+      })()
+    },
+    [app, changeElement, commit, t],
+  )
+
+  /** 控件栏「图片」入口：打开文件选择。 */
+  const pickImage = useCallback(() => {
+    if (viewMode === 'preview') return
+    replaceTargetRef.current = null
+    fileInputRef.current?.click()
+  }, [viewMode])
+
+  /** 属性面板「更换图片」：重选文件换新 key。 */
+  const replaceImage = useCallback(
+    (id: string) => {
+      if (viewMode === 'preview') return
+      replaceTargetRef.current = id
+      fileInputRef.current?.click()
+    },
+    [viewMode],
+  )
+
+  const onImageInputChange = useCallback(
+    (ev: React.ChangeEvent<HTMLInputElement>) => {
+      const file = ev.target.files?.[0]
+      const replaceId = replaceTargetRef.current
+      replaceTargetRef.current = null
+      ev.target.value = '' // 同名文件可再次选择
+      if (file) addImageFile(file, replaceId ?? undefined)
+    },
+    [addImageFile],
   )
 
   const deleteElements = useCallback(
@@ -587,12 +768,23 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         const fields = deriveFieldInfos(s.elements)
         const version = request.kind === 'new' ? '1' : contractVersionRef.current
         const contractName = request.kind === 'new' ? finalName : contractNameRef.current
+        // 图片资源（迭代 132 · #329，决策 #184）：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64；
+        // 恒发显式字典（有图非空 / 无图空字典），不依赖契约缺省态（缺省 / null＝保留仅为旧调用方兜底）
+        const usedKeys = new Set(s.elements.filter((e) => e.type === 'Image' && e.key).map((e) => (e as ImageElement).key))
+        const images: Record<string, string> = {}
+        for (const [key, asset] of Object.entries(imageAssetsRef.current)) {
+          if (usedKeys.has(key)) {
+            const comma = asset.dataUrl.indexOf(',')
+            images[key] = comma >= 0 ? asset.dataUrl.slice(comma + 1) : asset.dataUrl
+          }
+        }
         const pkg: TemplatePackage = {
           name: finalName,
           group: group.trim() || i18next.t('designer:defaultGroup'),
           contract: toContract(contractName, version, fields),
           // 迭代 12：不传 testData——由后端从元素 previewValue 自动派生（读-改-写，旧值不丢）
           layout: toLayout(finalName, contractName, version, s.paperW, s.paperH, s.elements),
+          images,
         }
         await biz.saveTemplate(pkg)
         app.setStatus(t('status.saved', { name: finalName }))
@@ -723,6 +915,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   // ---------- 渲染 ----------
   return (
     <div className="page designer-page">
+      {/* 图片文件选择（迭代 132 · #329）：上传 / 更换共用，隐藏不占位 */}
+      <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} style={{ display: 'none' }} onChange={onImageInputChange} data-testid="image-file-input" />
       <div className="designer-toolbar">
         <button className="btn ghost" onClick={requestClose} title={t('toolbar.backTitle')}>
           <Icon name="back" size={14} />
@@ -820,6 +1014,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
             pendingType={pendingType}
             fields={fields}
             onPickType={demoActive ? () => {} : (t) => setPendingType(t)}
+            onPickImage={demoActive ? () => {} : pickImage}
             onSelect={demoActive ? () => {} : (id, toggle) => handleSelect([id], toggle)}
             onMoveLayer={demoActive ? () => {} : moveLayer}
             onLayerTop={demoActive ? () => {} : layerToTop}
@@ -835,6 +1030,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
             gridOn={gridOn}
             pendingType={pendingType}
             locked={demoActive}
+            imageAssets={imageAssets}
             onSelect={demoActive ? () => {} : handleSelect}
             onAddElement={demoActive ? () => {} : addElementAt}
             onUpdateElements={demoActive ? () => {} : applyElements}
@@ -859,6 +1055,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
                   onChange={demoActive ? () => {} : changeElement}
                   onAlign={demoActive ? () => {} : alignSelected}
                   onDelete={demoActive ? () => {} : deleteElements}
+                  imageAssets={imageAssets}
+                  onReplaceImage={demoActive ? () => {} : replaceImage}
                   demoActive={demoActive}
                   onDemoStart={setDemoAnchor}
                   onDemoExit={() => setDemoAnchor(null)}
@@ -979,6 +1177,7 @@ function elementTypeName(type: string): string {
     case 'Barcode': return i18next.t('designer:type.barcode')
     case 'QrCode': return i18next.t('designer:type.qrcode')
     case 'Rect': return i18next.t('designer:type.rect')
+    case 'Image': return i18next.t('designer:type.image')
     default: return i18next.t('designer:type.text')
   }
 }

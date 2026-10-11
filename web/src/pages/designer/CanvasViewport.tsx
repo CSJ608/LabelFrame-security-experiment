@@ -9,7 +9,7 @@ import { Layer, Rect as KRect, Line as KLine, Stage, Text as KText, Transformer 
 import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElementNode } from './ElementNode'
-import type { DesignElement } from '../../lib/design/types'
+import type { DesignElement, ImageAsset } from '../../lib/design/types'
 import { containerRegionIdFor, elementById } from '../../lib/design/model'
 import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, multiDragRigidPatches, pointerToLogic, previewCanvasSize, previewScale, PX, pxv, RULER, viewportToLogic } from '../../lib/design/geometry'
 import { computeSnap, elementModelRect, othersModelRects, unionModelRect } from '../../lib/design/snapping'
@@ -35,6 +35,8 @@ interface CanvasViewportProps {
   /** 画布只读锁（迭代 126 · #308 AC-05）：「看实时效果」演示期间 true——容器 pointer-events:none，
    *  选中 / 拖拽 / 缩放 / 滚轮 / 拖入全不响应，画布仍可见；不拦 Konva 事件本身，规避拖拽状态清理被破坏。 */
   locked?: boolean
+  /** 图片资源表（key → 资源，迭代 132 · #329）：透传给各元素节点（图片元素按 key 解码渲染）。 */
+  imageAssets?: Record<string, ImageAsset>
   onSelect: (ids: string[], toggle?: boolean) => void
   onAddElement: (type: string, xMm: number, yMm: number) => void
   /** dragend / transformend 提交（元素坐标 / 尺寸 / 锚定）。 */
@@ -61,7 +63,7 @@ interface MultiDragSnapshot {
 export function CanvasViewport(props: CanvasViewportProps) {
   // 迭代 112（#246）：常驻提示条与打印预览提示随界面语言（订阅重渲染）
   const { t } = useTranslation('designer')
-  const { state, selected, viewMode, dpi, zoom, gridOn, locked } = props
+  const { state, selected, viewMode, dpi, zoom, gridOn, locked, imageAssets } = props
   const { paperW, paperH, elements } = state
   const preview = viewMode === 'preview'
 
@@ -615,6 +617,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
                 editable={!preview}
                 ox={ox}
                 oy={oy}
+                imageAssets={imageAssets}
                 onDragStart={handleDragStart}
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}

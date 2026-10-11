@@ -73,6 +73,7 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
       { id: 'qrcode', anchor: 'designer.qrcode', target: 'designer' },
       { id: 'rect', anchor: 'designer.rect', target: 'designer' },
       { id: 'line', anchor: 'designer.line', target: 'designer' },
+      { id: 'image', anchor: 'designer.image', target: 'designer' },
       { id: 'compat', anchor: 'designer.compat', target: 'designer' },
       { id: 'align', anchor: 'designer.align', target: 'designer' },
     ],
@@ -180,6 +181,9 @@ export const HELP_LINK_ELEMENTS: Record<string, readonly HelpLinkElementSpec[]> 
   'designer.qrcode': [{ type: 'QrCode' }],
   'designer.rect': [{ type: 'Rect' }],
   'designer.line': [{ type: 'Line' }],
+  // 图片（迭代 132 · #329）：示例给 key 不给资源——深链草稿呈现「缺资源占位」形态，
+  // 与属性面板「图片资源缺失」提示配套（真实图片经控件栏上传获得）
+  'designer.image': [{ type: 'Image', patch: { key: 'sample.png' } }],
   'designer.compat': [{ type: 'Region' }],
   'designer.align': [{ type: 'Rect' }, { type: 'Rect', patch: { x: 30, y: 25 } }],
 }

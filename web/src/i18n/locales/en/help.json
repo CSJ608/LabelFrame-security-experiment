@@ -128,9 +128,13 @@
         "title": "Line",
         "body": "Lines cannot be created from the widget bar; they usually come in with imported designs and still display and print correctly. \nLength X / Length Y set horizontal, vertical or slanted lines; thickness is in millimeters (minimum 0.1). Rectangle borders also work for table grid lines."
       },
+      "image": {
+        "title": "Image",
+        "body": "Click “Image” on the widget bar and pick a file; the element lands on the canvas at the image's aspect ratio. Images are stored as resources with the template and are carried along on template import/export. PNG / JPG / BMP are supported, up to 2 MB per image, 10 images and 10 MB per template.\nSelect an image element and use “Replace Image” or “Remove Image” in the properties panel — the latter deletes the element. The image stretches to fill the element; drag the handles on the selection frame to resize it.\nThe canvas shows the original colors, while preview, simulated output and actual printing are all monochrome: color images are converted based on brightness, so photos with rich gradients lose their shading — logos and icons work best.\nIf a template brought in via “Import Design” lacks its image data, the properties panel shows “Image missing”; the element is still there — use “Replace Image” to upload it again."
+      },
       "compat": {
-        "title": "Image / Container",
-        "body": "Images and containers likewise cannot be created from the widget bar — they arrive with imported designs and travel with template package import/export. A container frames a group of elements and only shows its Id here (read-only); images cannot be edited on this page; both can adjust their border."
+        "title": "Container",
+        "body": "Containers likewise cannot be created from the widget bar — they arrive with imported designs and travel with template package import/export. A container frames a group of elements and only shows its Id here (read-only); its border can be adjusted."
       },
       "align": {
         "title": "Align",

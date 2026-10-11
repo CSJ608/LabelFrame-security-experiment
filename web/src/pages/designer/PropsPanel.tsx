@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { DesignElement } from '../../lib/design/types'
+import type { DesignElement, ImageAsset } from '../../lib/design/types'
 import { typeLabel } from '../../lib/design/types'
 import { elementsByIds } from '../../lib/design/model'
 import { Icon } from '../../components/Icon'
@@ -24,6 +24,10 @@ export interface PropsPanelProps {
   onChange: (id: string, patch: Partial<DesignElement>) => void
   onAlign: (align: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
   onDelete: (ids: string[]) => void
+  /** 图片资源表（key → 资源，迭代 132 · #329）：图片组信息行与缺资源判定用。 */
+  imageAssets?: Record<string, ImageAsset>
+  /** 「更换图片」按钮：重选文件替换当前图片（换新 key，旧 key 孤儿随保存 GC——决策 #184）。 */
+  onReplaceImage?: (id: string) => void
   /** 演示进行中（填充组「看实时效果」）：输入与操作禁用（AC-05，拍板 4 方案 A）。 */
   demoActive?: boolean
   onDemoStart?: (anchor: string) => void
@@ -33,7 +37,7 @@ export interface PropsPanelProps {
   onAutoOpenHandled?: () => void
 }
 
-export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, onDelete, demoActive, onDemoStart, onDemoExit, autoOpenAnchor, onAutoOpenHandled }: PropsPanelProps) {
+export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, onDelete, imageAssets, onReplaceImage, demoActive, onDemoStart, onDemoExit, autoOpenAnchor, onAutoOpenHandled }: PropsPanelProps) {
   const { t } = useTranslation('designer')
   // 开启的文档点锚点（单开；hook 必须先于下方条件返回声明）
   const [openDot, setOpenDot] = useState<string | null>(null)
@@ -300,13 +304,39 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
         </div>
       )}
 
-      {(e.type === 'Image' || e.type === 'Region') && (
+      {e.type === 'Region' && (
         <div className="group">
           <div className="group-title">
-            {t('props.compatTitle', { type: e.type === 'Region' ? t('type.region') : t('type.image') })}
+            {/* 迭代 132（#329）：兼容组收敛为仅容器——图片元素有专属「图片」组（其深链锚点 designer.image） */}
+            {t('type.region')}
             {dot('designer.compat')}
           </div>
-          {e.type === 'Region' && <div className="hint">{t('props.regionId', { id: e.containerId })}</div>}
+          <div className="hint">{t('props.regionId', { id: e.containerId })}</div>
+          <NumField label={t('props.border')} value={e.border ?? 0} disabled={demoActive} onSet={(v) => onChange(e.id, { border: Math.max(0, v) })} />
+        </div>
+      )}
+
+      {e.type === 'Image' && (
+        <div className="group">
+          <div className="group-title">
+            {t('props.imageTitle')}
+            {dot('designer.image')}
+          </div>
+          {e.key && imageAssets?.[e.key] ? (
+            <div className="hint mono">{t('props.imageMeta', { key: e.key, w: imageAssets[e.key].width, h: imageAssets[e.key].height })}</div>
+          ) : (
+            <div className="hint">{t('props.imageMissing')}</div>
+          )}
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            <button className="btn sm" disabled={demoActive} onClick={() => onReplaceImage?.(e.id)}>
+              <Icon name="upload" size={12} />
+              {t('props.imageReplace')}
+            </button>
+            <button className="btn sm" disabled={demoActive} onClick={() => onDelete([e.id])}>
+              <Icon name="trash" size={12} />
+              {t('props.imageRemove')}
+            </button>
+          </div>
           <NumField label={t('props.border')} value={e.border ?? 0} disabled={demoActive} onSet={(v) => onChange(e.id, { border: Math.max(0, v) })} />
         </div>
       )}

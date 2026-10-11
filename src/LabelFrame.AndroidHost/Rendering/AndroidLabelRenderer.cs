@@ -307,10 +307,12 @@ public static class AndroidLabelRenderer
 
         if (templateImages is not null && templateImages.TryGetValue(image.SourceKey, out var bytes))
         {
-            using var source = BitmapFactory.DecodeByteArray(bytes, 0, bytes.Length);
+            using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                canvas.DrawBitmap(source, null, new Rect(x, y, x + width, y + height), null);
+                // 拉伸填满元素盒（与 PC Skia 同口径，决策 #184 填充拍板 A）；Paint 传 true 开双线性滤波防缩小混叠
+                using var paint = new Paint { AntiAlias = true, FilterBitmap = true };
+                canvas.DrawBitmap(source, null, new Rect(x, y, x + width, y + height), paint);
                 return;
             }
         }
@@ -322,10 +324,40 @@ public static class AndroidLabelRenderer
             return;
         }
 
-        // 占位框
-        using var pen = new Paint { StrokeWidth = 1, Color = Color.Gray };
-        pen.SetStyle(Android.Graphics.Paint.Style.Stroke);
-        canvas.DrawRect(new Rect(x, y, x + width, y + height), pen);
+        // 决策 #184：缺资源＝打印侧显式报错（与 PC Skia 同口径），不再画灰占位框照打
+        throw new MissingImageResourceException(image.SourceKey);
+    }
+
+    /// <summary>
+    /// 解码图片并按 luma 阈值 128 预单色化（黑 / 白 ARGB，不透明）：与 PC Skia DrawImage 同阈值同源
+    /// （决策 #184——口径一致＝阈值同源，两端缩放插值实现不同、逐像素一致不作承诺）；
+    /// 透明区按白处理。解码失败返回 null（由调用方按缺资源口径处理）。
+    /// </summary>
+    private static Bitmap? DecodeMonochrome(byte[] bytes)
+    {
+        using var source = BitmapFactory.DecodeByteArray(bytes, 0, bytes.Length);
+        if (source is null)
+        {
+            return null;
+        }
+
+        var width = source.Width;
+        var height = source.Height;
+        var pixels = new int[width * height];
+        source.GetPixels(pixels, 0, width, 0, 0, width, height);
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var argb = pixels[i];
+            var red = (argb >> 16) & 0xFF;
+            var green = (argb >> 8) & 0xFF;
+            var blue = argb & 0xFF;
+            var luma = (red * 299 + green * 587 + blue * 114) / 1000;
+            pixels[i] = luma < 128 ? unchecked((int)0xFF000000) : unchecked((int)0xFFFFFFFF);
+        }
+
+        var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!)!;
+        bitmap.SetPixels(pixels, 0, width, 0, 0, width, height);
+        return bitmap;
     }
 
     private static void DrawLine(Canvas canvas, LabelLineElement line, int dpi)

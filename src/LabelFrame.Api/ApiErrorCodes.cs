@@ -12,6 +12,9 @@ public static class ApiErrorCodes
     /// <summary>模板不存在（宿主侧模板库查询失败；服务端沿用 LF_SRV_006）。</summary>
     public const string TemplateNotFound = "LF_TPL_001";
 
+    /// <summary>模板图片无效（迭代 132，决策 #184）：保存请求 images 的 base64 / 格式（仅 PNG / JPG / BMP）/ 单图 2MB / 单模板 10 张共 10MB 上限校验失败，或渲染引用的图片资源缺失。</summary>
+    public const string TemplateImageInvalid = "LF_TPL_002";
+
     /// <summary>连接配置无效（pluginId / 参数校验失败）。</summary>
     public const string TransportInvalid = "LF_TRANSPORT_INVALID";
 

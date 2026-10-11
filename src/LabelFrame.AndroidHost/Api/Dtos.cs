@@ -12,8 +12,13 @@ public sealed record SubmitJobRequest(
     TemplateDto? Template,
     IReadOnlyList<LabelDto>? Labels);
 
-/// <summary>自包含模板。</summary>
-public sealed record TemplateDto(LabelContract? Contract, LabelLayout? Layout);
+/// <summary>自包含模板。Images（键 → base64，可选）为模板图片资源——迭代 132（决策 #184）补入：
+/// 路由模式 Server 投递链本就附带图片 base64，此前 PDA DTO 丢弃致嵌入图无法渲染（契约把 PDA 锁死）；
+/// PDA 选图 UI 仍不在该迭代范围。</summary>
+public sealed record TemplateDto(
+    LabelContract? Contract,
+    LabelLayout? Layout,
+    IReadOnlyDictionary<string, string>? Images = null);
 
 /// <summary>单张标签数据。</summary>
 public sealed record LabelDto(IReadOnlyDictionary<string, string>? Data);

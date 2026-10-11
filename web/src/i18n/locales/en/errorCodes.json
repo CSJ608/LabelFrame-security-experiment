@@ -10,6 +10,7 @@
   "LF_ENC_002": "Print command compilation failed. Try switching the print mode and retry.",
   "LF_ENC_003": "Print mode misconfigured: the connected plugin does not support native printing.",
   "LF_TPL_001": "Template not found: {{templateName}}.",
+  "LF_TPL_002": "Template image invalid: base64, format (PNG / JPG / BMP only), 2 MB per image, 10 images / 10 MB per template, or a referenced image resource is missing.",
   "LF_TRANSPORT_INVALID": "Invalid connection configuration (missing or unsupported parameters).",
   "LF_TRANSPORT_TEST_FAILED": "Test page failed to send: cannot connect to printer \"{{target}}\" — {{reason}}. Check the printer address / network / driver and retry.",
   "LF_PLUGIN_INVALID": "Invalid plugin package: {{detail}}",

@@ -90,7 +90,17 @@ export interface RectElement extends ElementBase {
 
 export interface ImageElement extends ElementBase {
   type: 'Image'
+  /** 图片资源键（模板包 images 键，画布按资源表渲染）。 */
   key: string
+}
+
+/** 图片资源（设计器内存态，迭代 132 · #329）：dataUrl 供画布解码；width / height 为原图像素尺寸（属性面板信息行）；
+ *  sizeBytes 为原始字节量（上传预检总量上限用；模板回填按 base64 长度折算）。 */
+export interface ImageAsset {
+  dataUrl: string
+  width: number
+  height: number
+  sizeBytes: number
 }
 
 export interface LineElement extends ElementBase {
@@ -129,8 +139,8 @@ export function defaultElement(type: 'Rect', id?: string): RectElement
 export function defaultElement(type: 'Image', id?: string): ImageElement
 export function defaultElement(type: 'Line', id?: string): LineElement
 export function defaultElement(type: 'Region', id?: string): RegionElement
-/** 控件栏入口（文本 / 条码 / 二维码 / 矩形）。 */
-export function defaultElement(type: 'Text' | 'Barcode' | 'QrCode' | 'Rect', id?: string): TextElement | BarcodeElement | QrCodeElement | RectElement
+/** 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片——迭代 132 · #329 起图片入控件栏）。 */
+export function defaultElement(type: 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image', id?: string): TextElement | BarcodeElement | QrCodeElement | RectElement | ImageElement
 export function defaultElement(type: ElementType, id = uid()): DesignElement {
   const base = { id, x: 5, y: 5, w: 40, h: 10, border: 0 }
   switch (type) {
@@ -149,6 +159,19 @@ export function defaultElement(type: ElementType, id = uid()): DesignElement {
     case 'Region':
       return { ...base, y: 5, w: 60, h: 30, type, border: 0.3, containerId: 'c' + Math.random().toString(36).slice(2, 8) }
   }
+}
+
+/** 图片元素构造辅助（迭代 132 · #329，拍板 7）：初始尺寸按原图宽高比、最长边夹取 30mm（可拖拽调整）。 */
+export function imageElement(key: string, aspect: number, id = uid()): ImageElement {
+  const r2 = (v: number) => Math.round(v * 100) / 100
+  const maxMm = 30
+  let w = maxMm
+  let h = maxMm
+  if (aspect > 0 && Number.isFinite(aspect)) {
+    if (aspect >= 1) h = maxMm / aspect
+    else w = maxMm * aspect
+  }
+  return { id, x: 5, y: 20, w: Math.max(1, r2(w)), h: Math.max(1, r2(h)), border: 0, type: 'Image', key }
 }
 
 /** 元素类型显示名（随界面语言）。 */

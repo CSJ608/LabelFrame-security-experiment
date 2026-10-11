@@ -80,6 +80,21 @@ interface CopyDraft {
   styleNotes: string[];
 }
 
+/**
+ * 形状防御（#329 管线修复登记）：文案员返回值三字段（rows / candidateSets / styleNotes）齐全才采信，
+ * 缺省回退旧值 prev（prev 为 null 时返回 null）——修订轮模型偶发只回传局部字段（如仅 rows 缺
+ * candidateSets / styleNotes），未防御时驱动层 `draft.styleNotes.map` / `checkContract(rows.map)`
+ * 直接崩（dwfrun-c185e182 崩溃实证）。初稿与修订轮统一过防御；调用方以引用相等（coerceDraft
+ * 返回 === prev）判别「形状不合格已回退」，修订轮据此按完整 schema 重问一次。
+ */
+function coerceDraft(v: unknown, prev: CopyDraft | null): CopyDraft | null {
+  if (v === null || typeof v !== "object") return prev;
+  const o = v as Partial<CopyDraft>;
+  if (!Array.isArray(o.rows) || !Array.isArray(o.candidateSets) || !Array.isArray(o.styleNotes)) return prev;
+  if (o.styleNotes.some((s) => typeof s !== "string")) return prev;
+  return { rows: o.rows, candidateSets: o.candidateSets, styleNotes: o.styleNotes };
+}
+
 interface Comment { body: string }
 interface IssueJson { number: number; state: string; labels: { name: string }[]; comments?: Comment[] }
 
@@ -300,7 +315,8 @@ const copywriter = agent("文案员", {
     "你是 LabelFrame 的界面文案撰写者。你的产出是给人看的 UI 文案：简洁、动作导向、不重复、与产品既有文案风格一致。" +
     "只读文件不修改。宁可留白也不要编造产品没有的功能。",
 });
-let draft = await copywriter.ask<CopyDraft>(
+// 初稿 prompt 单独成变量（勿改字节）：修订轮形状回退时的「按完整 schema 重问」复用同一全文 + 追加说明
+const draftPrompt =
   `任务：为本迭代（Issue #${issueNum}）按「界面文案清单」契约撰写全部界面文案（zh + en）。产出 CopyDraft：rows 文案表 + candidateSets 候选组 + styleNotes 风格勘察笔记。\n\n` +
   `【已定稿方案（Issue 评论原文）】\n${planBody}\n\n` +
   `【文案清单契约——唯一任务面，行集与 items 键集须恰好一致，不得增删】\n${JSON.stringify(contract, null, 2)}\n\n` +
@@ -311,14 +327,44 @@ let draft = await copywriter.ask<CopyDraft>(
     : ``) +
   `【风格要求】先用你的文件工具读 web/src/i18n/ 下的现有资源（zh 与 en 各至少三个文件），观察并模仿其语气、称谓、标点、按钮动词习惯（观察写进 styleNotes，每条一句）；` +
   `文案必须与既有界面文案是同一个「口音」。正文动作导向（「点这里做 X」而非「本页提供 X 功能」）；相邻行不重复说同一件事。\n\n` +
-  `【硬限】每槽位字数以契约 capZh / capEn 为准（0 = 不限）；行集与清单 items 键集恰好一致。`);
+  `【硬限】每槽位字数以契约 capZh / capEn 为准（0 = 不限）；行集与清单 items 键集恰好一致。`;
+let draft = coerceDraft(await copywriter.ask<CopyDraft>(draftPrompt), null);
+if (draft === null) {
+  // 初稿形状不齐（三字段缺一）：按完整 schema 重问一次（追加说明段避免命中上一问缓存）
+  log("初稿返回缺 rows / candidateSets / styleNotes 之一，按完整 schema 重问一次");
+  draft = coerceDraft(
+    await copywriter.ask<CopyDraft>(
+      draftPrompt + `\n\n【重问】上一轮返回缺少 rows / candidateSets / styleNotes 之一，请按完整 CopyDraft schema 重新给出全部三个字段。`,
+    ),
+    null,
+  );
+  if (draft === null) throw new Error("文案草稿初稿两问后仍缺 rows / candidateSets / styleNotes 字段（形状防御）");
+}
 
 phase("定量自查并退回重写违约文案");
 for (let round = 1; round <= MAX_REWRITE; round++) {
   const violations = checkContract(draft.rows, draft.candidateSets, contract);
   if (violations.length === 0) break;
   log("第 " + round + " 轮定量自查发现 " + violations.length + " 处违约，退回重写");
-  draft = await copywriter.ask(`以下清单契约定量断言未通过，请修订并重新给出完整草稿（只改有问题的行/组，其余保持）：\n${JSON.stringify(violations)}`);
+  const revised = coerceDraft(
+    await copywriter.ask(`以下清单契约定量断言未通过，请修订并重新给出完整草稿（只改有问题的行/组，其余保持）：\n${JSON.stringify(violations)}`),
+    draft,
+  );
+  if (revised === null || revised === draft) {
+    // 引用相等判别（#329 管线修复）：修订轮返回缺字段（形状回退到 prev）——按完整 schema 重问一次
+    log("修订轮返回缺 rows / candidateSets / styleNotes 之一，按完整 schema 重问一次");
+    const again = coerceDraft(
+      await copywriter.ask<CopyDraft>(
+        draftPrompt +
+          `\n\n【重问】上一轮修订返回缺少 rows / candidateSets / styleNotes 之一；以下定量断言未通过，请按完整 CopyDraft schema 给出全部三个字段：\n${JSON.stringify(violations)}`,
+      ),
+      draft,
+    );
+    if (again === null || again === draft) throw new Error("文案草稿修订轮重问后仍缺 rows / candidateSets / styleNotes 字段（形状防御）");
+    draft = again;
+  } else {
+    draft = revised;
+  }
   if (round === MAX_REWRITE) {
     const still = checkContract(draft.rows, draft.candidateSets, contract);
     if (still.length > 0) throw new Error("文案草稿 " + MAX_REWRITE + " 轮后仍有清单契约违规：" + JSON.stringify(still));

@@ -10,6 +10,7 @@
   "LF_ENC_002": "打印指令编译失败，请尝试切换打印方式后重试。",
   "LF_ENC_003": "打印方式配置异常：当前连接的插件不支持原生打印。",
   "LF_TPL_001": "模板不存在:{{templateName}}。",
+  "LF_TPL_002": "模板图片无效：base64、格式（仅 PNG / JPG / BMP）、单张 2MB、每模板 10 张共 10MB 上限，或渲染引用的图片资源缺失。",
   "LF_TRANSPORT_INVALID": "连接配置无效（参数缺失或不受支持）。",
   "LF_TRANSPORT_TEST_FAILED": "测试页发送失败：无法连接打印机「{{target}}」——{{reason}}。请检查打印机地址 / 网络 / 驱动后重试。",
   "LF_PLUGIN_INVALID": "插件包无效：{{detail}}",

@@ -1,5 +1,7 @@
 // 设计器元素渲染（react-konva 声明式）：Group = 边框 + 内容
 // 迭代 112（#246）：画布节点文案（图片 / 容器占位）key 化（designer 域）。
+// 迭代 132（#329）：图片元素由占位框升级为实际图片内容（资源表 dataURL 异步解码为
+// HTMLImageElement 喂 Konva Image）；缺资源 / 加载失败保持占位框（决策 #184 拍板 4-A）。
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +9,7 @@ import { Group, Image as KImage, Line as KLine, Rect as KRect, Text as KText } f
 import type Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { pxv } from '../../lib/design/geometry'
-import type { BarcodeElement, DesignElement, QrCodeElement, TextElement } from '../../lib/design/types'
+import type { BarcodeElement, DesignElement, ImageAsset, QrCodeElement, TextElement } from '../../lib/design/types'
 import { elementContent } from '../../lib/design/types'
 import { fitImageRect, makeBarcodeCanvas, makeQrCanvas } from '../../lib/design/barcode'
 
@@ -16,6 +18,8 @@ interface ElementNodeProps {
   editable: boolean
   ox: number
   oy: number
+  /** 图片资源表（key → 资源，迭代 132 · #329；Designer 持有，不进历史快照）。 */
+  imageAssets?: Record<string, ImageAsset>
   onDragStart?: (ev: KonvaEventObject<DragEvent>) => void
   onDragMove?: (ev: KonvaEventObject<DragEvent>) => void
   onDragEnd?: (ev: KonvaEventObject<DragEvent>) => void
@@ -25,7 +29,7 @@ interface ElementNodeProps {
 // 含 CJK 时用 'char'（逐字换行），与 Skia 打印语义（按框宽换行）一致；纯 ASCII 保持 'word'（单词不拆断）。
 const hasCjk = (s: string) => /[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]/.test(s)
 
-export function ElementNode({ e, editable, ox, oy, onDragStart, onDragMove, onDragEnd }: ElementNodeProps) {
+export function ElementNode({ e, editable, ox, oy, imageAssets, onDragStart, onDragMove, onDragEnd }: ElementNodeProps) {
   const { t } = useTranslation('designer')
   const x = ox + pxv(e.x)
   const y = oy + pxv(e.y)
@@ -75,8 +79,7 @@ export function ElementNode({ e, editable, ox, oy, onDragStart, onDragMove, onDr
     case 'Image':
       return (
         <Group {...common}>
-          <KRect x={0} y={0} width={w} height={h} fill="#f5f6f8" stroke={e.border > 0 ? '#000' : '#aab4c0'} strokeWidth={borderW} dash={[4, 3]} strokeScaleEnabled={false} />
-          <KText x={4} y={4} text={t('canvas.imageNode', { key: e.key || '' })} fontSize={11} fontFamily="Microsoft YaHei" fill="#6b7684" listening={false} />
+          <ElementImageContent e={e} wPx={w} hPx={h} borderW={borderW} asset={e.key ? imageAssets?.[e.key] : undefined} />
         </Group>
       )
     case 'Line':
@@ -174,4 +177,50 @@ function ImageContent({ e, wPx, hPx, qr }: { e: BarcodeElement | QrCodeElement; 
   )
   const fit = useMemo(() => fitImageRect(canvas, innerW, innerH), [canvas, innerW, innerH])
   return <KImage image={canvas} x={fit.x + padH} y={fit.y + padV} width={fit.w} height={fit.h} listening={false} />
+}
+
+/** 图片元素内容（迭代 132 · #329）：资源表 dataURL 异步解码为 HTMLImageElement 喂 Konva Image，
+ *  拉伸填满元素盒（决策 #184 填充拍板 A，与后端渲染同口径）；缺资源 / 加载失败回退占位框（拍板 4-A：
+ *  编辑器内可辨认、可重新上传修复；预览 / 打印侧才显式报错）。 */
+function ElementImageContent({ e, wPx, hPx, borderW, asset }: { e: DesignElement; wPx: number; hPx: number; borderW: number; asset?: ImageAsset }) {
+  const { t } = useTranslation('designer')
+  const [img, setImg] = useState<HTMLImageElement | null>(null)
+  const dataUrl = asset?.dataUrl
+  useEffect(() => {
+    if (!dataUrl) {
+      setImg(null)
+      return
+    }
+    let cancelled = false
+    const image = new window.Image()
+    image.onload = () => {
+      if (!cancelled) setImg(image)
+    }
+    image.onerror = () => {
+      if (!cancelled) setImg(null)
+    }
+    image.src = dataUrl
+    return () => {
+      cancelled = true
+      image.onload = null
+      image.onerror = null
+    }
+  }, [dataUrl])
+
+  if (img) {
+    return (
+      <>
+        <KImage image={img} x={0} y={0} width={wPx} height={hPx} listening={false} />
+        {e.border > 0 && <KRect x={0} y={0} width={wPx} height={hPx} stroke="#000" strokeWidth={borderW} strokeScaleEnabled={false} />}
+      </>
+    )
+  }
+
+  // 占位框（缺资源 / 解码中 / 加载失败；与既有形态一致）
+  return (
+    <>
+      <KRect x={0} y={0} width={wPx} height={hPx} fill="#f5f6f8" stroke={e.border > 0 ? '#000' : '#aab4c0'} strokeWidth={borderW} dash={[4, 3]} strokeScaleEnabled={false} />
+      <KText x={4} y={4} text={t('canvas.imageNode', { key: (e as { key?: string }).key || '' })} fontSize={11} fontFamily="Microsoft YaHei" fill="#6b7684" listening={false} />
+    </>
+  )
 }

@@ -401,3 +401,130 @@ describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
     expect(dialog.getAttribute('aria-label')).toBe('对齐')
   })
 })
+
+// ---------- 迭代 132（#329，决策 #184）：图片控件上传链路（控件栏入口 → 建元素 → 保存请求体 → 重开回填） ----------
+
+/** 最小 PNG 字节（魔数 + 最小结构，前端不做图片解码校验——尺寸解码经下方 Image 桩）。 */
+const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52])
+
+/** jsdom 不解码图片位（onload 不触发）：以桩替换全局 Image，src 赋值即异步 onload 并给出固定像素尺寸
+ *  （8×4 → 宽高比 2 → 初始尺寸 w=30 h=15，决策 #184 拍板 7「最长边夹 30mm」）。 */
+function stubImageElement(naturalWidth = 8, naturalHeight = 4) {
+  class FakeImage {
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    naturalWidth = naturalWidth
+    naturalHeight = naturalHeight
+    private _src = ''
+    get src() {
+      return this._src
+    }
+    set src(value: string) {
+      this._src = value
+      queueMicrotask(() => this.onload?.())
+    }
+  }
+  vi.stubGlobal('Image', FakeImage as unknown as typeof Image)
+}
+
+/** 上传一个 PNG 文件（经隐藏 input 的 change 事件）。 */
+function uploadImage(fileName = 'logo.png') {
+  const input = screen.getByTestId('image-file-input') as HTMLInputElement
+  const file = new File([PNG_BYTES], fileName, { type: 'image/png' })
+  fireEvent.change(input, { target: { files: [file] } })
+}
+
+describe('图片控件上传链路（迭代 132 · #329）', () => {
+  useStandaloneStubs()
+
+  beforeEach(() => {
+    stubImageElement()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('AC-02：控件栏入口可见，上传后建图片元素（key / 宽高比 30mm 夹取），保存请求体 images 含被引用 key', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    // 控件栏第五入口「图片」在场
+    expect(screen.getByRole('button', { name: '图片' })).toBeTruthy()
+
+    uploadImage()
+    // 元素建立（属性面板图片组出现＝元素选中且类型 Image）＋添加成功状态（保存前断言——保存成功消息会覆盖）
+    await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
+    expect(screen.getByTestId('status-msg').textContent).toContain('已添加「图片」')
+
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    // 建图片元素：sourceKey 指向资源 key，初始尺寸按宽高比 8:4 → 30×15mm
+    const imageElement = pkg.layout?.elements.find((e) => e.type === 'image')
+    expect(imageElement).toBeTruthy()
+    expect(imageElement?.sourceKey).toBe('logo.png')
+    expect(imageElement?.widthMm).toBe(30)
+    expect(imageElement?.heightMm).toBe(15)
+    // 保存请求体附带被引用资源（纯 base64，剥 dataURL 前缀）
+    expect(Object.keys(pkg.images ?? {})).toEqual(['logo.png'])
+    expect(pkg.images?.['logo.png']).toBe(btoa(String.fromCharCode(...PNG_BYTES)))
+  })
+
+  it('AC-02：移除图片（删除元素）后保存，images 为空字典（恒发显式字典不依赖缺省态）', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    uploadImage()
+    await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
+
+    fireEvent.click(screen.getByRole('button', { name: '移除图片' }))
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    expect(pkg.images).toEqual({})
+    expect(pkg.layout?.elements.some((e) => e.type === 'image')).toBe(false)
+  })
+
+  it('AC-02：重开回填——GET 响应 images 回填资源表，未改动直接保存时被引用 key 随请求带回', async () => {
+    mocks.local.getTemplate.mockResolvedValue({
+      ...PKG,
+      layout: {
+        ...PKG.layout,
+        elements: [{ type: 'image', sourceKey: 'old.png', xMm: 2, yMm: 2, widthMm: 20, heightMm: 10 }],
+      },
+      images: { 'old.png': btoa('old-image-bytes') },
+    })
+    renderDesigner('库位标签')
+    await waitForEditLoaded()
+
+    // 未选中不展开属性面板——资源表回填直接以「保存请求体带回被引用 key」验证（回填失败则 GC 后为空字典）
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    expect(pkg.images).toEqual({ 'old.png': btoa('old-image-bytes') })
+    expect(pkg.layout?.elements[0]?.type).toBe('image')
+  })
+
+  it('超体积拒收：状态栏提示「添加图片失败」（前端预检）', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    const input = screen.getByTestId('image-file-input') as HTMLInputElement
+    const big = new File([new Uint8Array(3 * 1024 * 1024)], 'big.png', { type: 'image/png' })
+    fireEvent.change(input, { target: { files: [big] } })
+
+    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('添加图片失败'), { timeout: 3000 })
+    expect(screen.getByTestId('status-msg').textContent).toContain('2MB')
+  })
+
+  it('格式拒收：非 PNG / JPG / BMP 提示不支持', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    const input = screen.getByTestId('image-file-input') as HTMLInputElement
+    const gif = new File([new Uint8Array(8)], 'anim.gif', { type: 'image/gif' })
+    fireEvent.change(input, { target: { files: [gif] } })
+
+    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('不支持的图片格式'), { timeout: 3000 })
+  })
+})

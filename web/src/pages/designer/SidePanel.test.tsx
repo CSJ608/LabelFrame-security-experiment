@@ -31,6 +31,7 @@ function renderSide(overrides: Partial<SidePanelProps> = {}) {
     pendingType: null,
     fields: FIELDS,
     onPickType: vi.fn<(type: string) => void>(),
+    onPickImage: vi.fn<() => void>(),
     onSelect: vi.fn<(id: string, toggle?: boolean) => void>(),
     onMoveLayer: vi.fn<(delta: number) => void>(),
     onLayerTop: vi.fn<() => void>(),

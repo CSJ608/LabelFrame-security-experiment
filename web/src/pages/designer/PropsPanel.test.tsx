@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import type { BarcodeElement, DesignElement, QrCodeElement, TextElement } from '../../lib/design/types'
+import type { BarcodeElement, DesignElement, ImageAsset, QrCodeElement, TextElement } from '../../lib/design/types'
 import { defaultElement } from '../../lib/design/types'
 import { deriveFieldInfos } from '../../lib/design/fields'
 import { PropsPanel } from './PropsPanel'
@@ -235,8 +235,9 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     renderProps([{ ...defaultElement('Line', 'l1') }], ['l1'])
     expect(document.querySelector('[data-help="designer.line"]')).toBeTruthy()
     cleanup()
+    // 迭代 132（#329）：图片元素改挂专属 designer.image 锚点（compat 组收敛为仅容器）
     renderProps([{ ...defaultElement('Image', 'i1') }], ['i1'])
-    expect(document.querySelector('[data-help="designer.compat"]')).toBeTruthy()
+    expect(document.querySelector('[data-help="designer.image"]')).toBeTruthy()
   })
 
   it('多选：对齐组挂「?」；点「?」弹出就地文档气泡（词条与帮助文章同源）', () => {
@@ -277,6 +278,60 @@ describe('多选对齐与删除', () => {
   })
 })
 
+// ---------- 迭代 132（#329，决策 #184）：图片元素属性组（查看 / 更换 / 移除 / 缺资源提示） ----------
+
+const imageEl = { ...defaultElement('Image', 'i1'), key: 'logo.png' } as DesignElement
+const IMAGE_ASSETS: Record<string, ImageAsset> = {
+  'logo.png': { dataUrl: 'data:image/png;base64,iVBORw0', width: 320, height: 200, sizeBytes: 1024 },
+}
+
+function renderImageProps(elements: DesignElement[], selected: string[], imageAssets?: Record<string, ImageAsset>) {
+  const onChange = vi.fn<(id: string, patch: Partial<DesignElement>) => void>()
+  const onAlign = vi.fn<(align: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void>()
+  const onDelete = vi.fn<(ids: string[]) => void>()
+  const onReplaceImage = vi.fn<(id: string) => void>()
+  render(
+    <PropsPanel
+      elements={elements}
+      selected={selected}
+      viewMode="fit"
+      onChange={onChange}
+      onAlign={onAlign}
+      onDelete={onDelete}
+      imageAssets={imageAssets}
+      onReplaceImage={onReplaceImage}
+    />,
+  )
+  return { onChange, onDelete, onReplaceImage }
+}
+
+describe('图片元素属性组（迭代 132 · #329）', () => {
+  it('有资源：显示图片组（信息行含键名与原图尺寸）＋更换 / 移除按钮；不再出现容器兼容组', () => {
+    renderImageProps([imageEl], ['i1'], IMAGE_ASSETS)
+    expect(screen.getByText('图片资源：logo.png · 320×200 px')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '更换图片' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '移除图片' })).toBeTruthy()
+    // compat 组收敛为仅容器（#329）：图片元素不挂 designer.compat 锚点，改挂 designer.image
+    expect(document.querySelector('[data-help="designer.image"]')).toBeTruthy()
+    expect(document.querySelector('[data-help="designer.compat"]')).toBeNull()
+  })
+
+  it('缺资源：提示图片资源缺失，「更换图片」仍在（重新上传修复通道）；「移除图片」删除该元素', () => {
+    const { onReplaceImage, onDelete } = renderImageProps([imageEl], ['i1'], {})
+    expect(screen.getByText('图片资源缺失，请点「更换图片」重新上传。')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '更换图片' }))
+    expect(onReplaceImage).toHaveBeenCalledWith('i1')
+    fireEvent.click(screen.getByRole('button', { name: '移除图片' }))
+    expect(onDelete).toHaveBeenCalledWith(['i1'])
+  })
+
+  it('容器元素仍挂 compat 组（收敛为仅容器）；边框字段保留', () => {
+    renderImageProps([{ ...defaultElement('Region', 'r1') }], ['r1'])
+    expect(document.querySelector('[data-help="designer.compat"]')).toBeTruthy()
+    expect(screen.getByLabelText('边框')).toBeTruthy()
+  })
+})
+
 describe('设计器主链：图层选择 → 属性面板字段（SidePanel + PropsPanel 联动）', () => {
   /** 模拟 Designer 的选中 / 属性编辑状态流（不引入 Konva 画布），验证两面板经回调协作的主链。 */
   function Panels() {
@@ -294,6 +349,7 @@ describe('设计器主链：图层选择 → 属性面板字段（SidePanel + Pr
           pendingType={null}
           fields={deriveFieldInfos(elements)}
           onPickType={() => {}}
+          onPickImage={() => {}}
           onSelect={(id, toggle) => setSelected((prev) => (toggle ? prev.filter((x) => x !== id).concat(prev.includes(id) ? [] : [id]) : [id]))}
           onMoveLayer={() => {}}
           onLayerTop={() => {}}

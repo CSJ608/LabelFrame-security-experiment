@@ -28,6 +28,9 @@ export interface TemplatePackage {
   contract: BackendContract
   layout: BackendLayout
   testData?: Record<string, string>
+  /** 图片资源（键 → base64，迭代 132 · #329）：保存请求三态语义（缺省 / null＝保留、空字典＝清空、非空＝覆盖）——
+   *  设计器恒发显式字典（被引用 key 全集）；GET 详情响应本就携带。 */
+  images?: Record<string, string>
 }
 
 export type ElementJson = BackendElement

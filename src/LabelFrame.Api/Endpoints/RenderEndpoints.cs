@@ -47,7 +47,17 @@ public static class RenderEndpoints
                 return Results.BadRequest(new ErrorView(options.InvalidRequestCode, "模板图片 base64 无效。"));
             }
 
-            var png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi, images);
+            byte[] png;
+            try
+            {
+                png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi, images);
+            }
+            catch (MissingImageResourceException ex)
+            {
+                // 决策 #184：缺资源＝出图侧显式报错（不静默灰占位照打）
+                return Results.BadRequest(new ErrorView(options.InvalidRequestCode, ex.Message));
+            }
+
             var fileName = $"{(string.IsNullOrWhiteSpace(request.Template.Name) ? "label" : request.Template.Name)}-print.png";
             return Results.File(png, "image/png", fileName);
         });
@@ -84,10 +94,21 @@ public static class RenderEndpoints
                         Layout = request.Template.Layout,
                         Data = request.Labels[i].Data ?? new Dictionary<string, string>(),
                     };
-                    var bitmap = options.Renderer.RenderLabelBitmap(document, options.Dpi, images);
+                    byte[] bitmapBytes;
+                    try
+                    {
+                        // 决策 #184：缺资源＝批量出图同样显式报错（与 render-image / preview 同口径）
+                        var bitmap = options.Renderer.RenderLabelBitmap(document, options.Dpi, images);
+                        bitmapBytes = LabelBitmapPng.ToPng(bitmap);
+                    }
+                    catch (MissingImageResourceException ex)
+                    {
+                        return Results.BadRequest(new ErrorView(options.InvalidRequestCode, ex.Message));
+                    }
+
                     var entry = archive.CreateEntry($"label-{i + 1}.png");
                     using var entryStream = entry.Open();
-                    entryStream.Write(LabelBitmapPng.ToPng(bitmap));
+                    entryStream.Write(bitmapBytes);
                 }
             }
 
