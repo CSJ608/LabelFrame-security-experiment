@@ -47,6 +47,16 @@ export function logicToContentMm(x: number, y: number, preview: boolean): { x: n
   return { x: mm(x - off.x), y: mm(y - off.y) }
 }
 
+/**
+ * 拖动落点提交（迭代 130 · #323 模型盒域）：Konva 节点原点（= 元素模型盒原点，逻辑 px）
+ * → 内容 mm（两位舍入）。CanvasViewport.handleDragEnd 与单测共用本算式，保证测试执行真实代码路径；
+ * 旧口径取渲染包围盒左上角，被居中描边半线宽外扩带偏（线 −0.25mm / 边框 −0.15mm）。
+ */
+export function commitDragPosition(nodeX: number, nodeY: number, preview: boolean): { x: number; y: number } {
+  const pos = logicToContentMm(nodeX, nodeY, preview)
+  return { x: r2(pos.x), y: r2(pos.y) }
+}
+
 /** 适应窗口缩放：画布略小于视口。 */
 export function fitScale(viewportW: number, viewportH: number, canvasW: number, canvasH: number): number {
   return Math.max(0.05, Math.min((viewportW - 32) / canvasW, (viewportH - 32) / canvasH))

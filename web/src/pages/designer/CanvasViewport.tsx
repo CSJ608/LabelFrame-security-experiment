@@ -11,8 +11,8 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElementNode } from './ElementNode'
 import type { DesignElement } from '../../lib/design/types'
 import { elementById } from '../../lib/design/model'
-import { designCanvasSize, fitScale, logicToContentMm, pointerToLogic, previewCanvasSize, previewScale, PX, RULER, viewportToLogic } from '../../lib/design/geometry'
-import { computeSnap } from '../../lib/design/snapping'
+import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, pointerToLogic, previewCanvasSize, previewScale, PX, RULER, viewportToLogic } from '../../lib/design/geometry'
+import { computeSnap, elementModelRect } from '../../lib/design/snapping'
 import { coreShortcuts } from './shortcuts'
 
 export interface DesignState {
@@ -144,24 +144,22 @@ export function CanvasViewport(props: CanvasViewportProps) {
     layer.add(n)
   }, [canvasSize])
 
-  /** 拖动吸附（原型 snapNode）：目标 = 画布/内容区/其它元素边缘中心，网格兜底。 */
+  /** 拖动吸附（原型 snapNode）：目标 = 画布/内容区/其它元素边缘中心，网格兜底。
+   *  迭代 130（#323）：被拖盒与候选统一切模型盒域——getClientRect 渲染盒默认含居中描边半线宽外扩
+   *  （线 +0.25mm / 边框 +0.15mm / 图片占位描边 +0.125mm 每侧），旧口径把外扩传染给吸附落点与提交坐标。
+   *  被拖盒 = 节点原点（= 模型盒原点）+ 模型宽高；候选 = 其它元素模型盒（纯模型计算，去逐元素 findOne）。 */
   const snapNode = useCallback(
     (g: Konva.Node) => {
-      const layer = layerRef.current
-      if (!layer) return
-      const e = elementById(stateRef.current.state.elements, g.id())
+      const p = stateRef.current
+      const e = elementById(p.state.elements, g.id())
       if (!e) return
-      const r = g.getClientRect({ relativeTo: layer })
-      const others = stateRef.current.state.elements
-        .filter((o) => o.id !== e.id)
-        .map((o) => {
-          const n = layer.findOne('#' + o.id)
-          if (!n) return null
-          const or = n.getClientRect({ relativeTo: layer })
-          return { x: or.x, y: or.y, w: or.width, h: or.height }
-        })
-        .filter((x): x is { x: number; y: number; w: number; h: number } => x !== null)
-      const snap = computeSnap({ x: r.x, y: r.y, w: r.width, h: r.height }, canvasSize.w, canvasSize.h, ox, oy, paperW * PX, paperH * PX, others)
+      // 多选拖动跟随元素排除出候选：跟随元素的模型坐标停留在拖前位置，纳入会把主导元素吸到「残影盒」
+      const followerIds = multiDragRef.current ? p.selected : []
+      const others = p.state.elements
+        .filter((o) => o.id !== e.id && !followerIds.includes(o.id))
+        .map((o) => elementModelRect(o, ox, oy))
+      const m = elementModelRect(e, ox, oy)
+      const snap = computeSnap({ x: g.x(), y: g.y(), w: m.w, h: m.h }, canvasSize.w, canvasSize.h, ox, oy, paperW * PX, paperH * PX, others)
       clearGuides()
       if (snap.dx !== 0 || snap.guideX !== null) {
         g.x(g.x() + snap.dx)
@@ -334,28 +332,26 @@ export function CanvasViewport(props: CanvasViewportProps) {
 
   const handleDragEnd = (ev: KonvaEventObject<DragEvent>) => {
     const p = stateRef.current
-    const layer = layerRef.current
-    multiDragRef.current = null
     const el = elementFromTarget(ev.target)
-    if (!el || !layer) {
-      clearGuides()
-      return
-    }
-    const e = elementById(p.state.elements, el.id())
-    if (!e) {
+    const e = el ? elementById(p.state.elements, el.id()) : undefined
+    if (!el || !e) {
+      multiDragRef.current = null
       clearGuides()
       return
     }
     // Konva 拖拽会用指针位置覆盖 dragmove 里的吸附，松手再吸一次保证落点精确
+    // （multiDragRef 在吸附后才清零：末次吸附同样把多选跟随元素排除出候选）
     snapNode(el)
-    const r = el.getClientRect({ relativeTo: layer })
-    const pos = logicToContentMm(r.x, r.y, false)
+    multiDragRef.current = null
+    // 迭代 130（#323）：从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致，
+    // 残差仅剩两位舍入（≤0.005mm）；旧口径取渲染盒左上角，被描边外扩带偏 −0.15/−0.25mm。
+    const pos = commitDragPosition(el.x(), el.y(), false)
     const regionId = p.viewMode === 'preview' ? e.regionId : containerHit({ ...e, x: pos.x, y: pos.y })
     clearGuides()
     p.onUpdateElements((els) =>
       els.map((o) => {
         if (o.id !== e.id) return o
-        const next = { ...o, x: Math.round(pos.x * 100) / 100, y: Math.round(pos.y * 100) / 100 }
+        const next = { ...o, x: pos.x, y: pos.y }
         if (regionId) next.regionId = regionId
         else delete next.regionId
         return next
@@ -374,7 +370,9 @@ export function CanvasViewport(props: CanvasViewportProps) {
     tr.nodes().forEach((g) => {
       const e = elementById(p.state.elements, g.id())
       if (!e) return
-      const r = g.getClientRect({ relativeTo: layer })
+      // 迭代 130（#323）：skipStroke 剔除居中描边外扩（盒 = 模型盒），保留 Konva 变换 / 翻折归一化数学——
+      // 旧口径每轮提交 x/y 各偏 −半线宽、w/h 各虚增 +线宽，反复缩放逐次累计漂移（线 −0.25/+0.5、边框 −0.15/+0.3 每轮）。
+      const r = g.getClientRect({ relativeTo: layer, skipStroke: true })
       let w = r.width / PX
       let h = r.height / PX
       if (e.type === 'QrCode') w = h = Math.max(w, h)

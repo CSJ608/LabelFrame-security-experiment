@@ -346,7 +346,6 @@ describe('convert 设计器模型 ↔ 后端模板契约', () => {
       expect(b2.h).toBe(18)
       expect(b2.mode).toBe('literal')
       expect(b2.text).toBe('SKU-001')
-
       const q = defaultElement('QrCode')
       q.w = 16
       q.h = 16
@@ -361,6 +360,27 @@ describe('convert 设计器模型 ↔ 后端模板契约', () => {
       const rg2 = first<RectElement>(fromBackendElements([toBackendElement(rg)]))
       expect(rg2.type).toBe('Rect') // 无锚定 → 读回为矩形
       expect(rg2.w).toBe(55)
+    })
+
+    it('小数 mm 坐标往返不漂移（迭代 130 · #323：吸附落点两位小数口径，保存 → 重载一致）', () => {
+      // 选无契约损耗的字段钉住（避坑：Barcode 的 w 读回固定 50、QrCode 尺寸取 max(w,h) 非全保持）
+      const l = defaultElement('Line')
+      l.x = 4.75
+      l.y = 9.13
+      const l2 = first<LineElement>(fromBackendElements([toBackendElement(l)]))
+      expect(l2.x).toBe(4.75)
+      expect(l2.y).toBe(9.13)
+
+      const t = defaultElement('Text')
+      t.x = 11.25
+      t.y = 3.05
+      t.w = 40.5
+      t.h = 10.25
+      const t2 = first<TextElement>(fromBackendElements([toBackendElement(t)]))
+      expect(t2.x).toBe(11.25)
+      expect(t2.y).toBe(3.05)
+      expect(t2.w).toBe(40.5)
+      expect(t2.h).toBe(10.25)
     })
   })
 
