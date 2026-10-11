@@ -57,7 +57,7 @@ const PKG: TemplatePackage = {
 
 function renderDesigner(
   name?: string,
-  opts: { onClose?: () => void; registerLeaveGuard?: (fn: ((leave: () => void) => void) | null) => void } = {},
+  opts: { onClose?: () => void; registerLeaveGuard?: (fn: ((leave: () => void) => void) | null) => void; helpAnchor?: string | null } = {},
 ) {
   return render(
     <AppProvider>
@@ -67,6 +67,7 @@ function renderDesigner(
         request={name ? { kind: 'edit', name } : { kind: 'new' }}
         onClose={opts.onClose ?? (() => {})}
         registerLeaveGuard={opts.registerLeaveGuard}
+        helpAnchor={opts.helpAnchor}
       />
     </AppProvider>,
   )
@@ -349,5 +350,54 @@ describe('未保存离开保护三选（迭代 92 F-02，决议 a：dirty = 历�
     expect(screen.getByDisplayValue('80')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+})
+
+// ---------- 迭代 128（#316，决策 #178 拍板 A）：深链自动开示例草稿——元素入初始基线并选中 ----------
+
+describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
+  useStandaloneStubs()
+
+  it('示例元素入基线并选中：填充组锚点自动弹气泡（无可见标题正文直出）、draftOpened 终态、undoCount=0 退出静默弃不弹三选', async () => {
+    // 本机配置读取挂起（新建不依赖模式解析）：防 AppContext 启动链的「已读取本机配置」晚到覆盖 draftOpened
+    mocks.local.getHostConfig.mockImplementation(() => new Promise(() => {}))
+    const onClose = vi.fn()
+    renderDesigner(undefined, { onClose, helpAnchor: 'designer.fill' })
+    await waitForNewReady()
+
+    // 示例元素已选中（fill 预设 = 演示同款示例值：字段名 location）
+    expect(screen.getByText('location')).toBeTruthy()
+    // 页内轮询命中 → 自动弹填充组文档点气泡；AC-01 联动——dialog 无障碍名保留、可见标题不渲染
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
+    expect(screen.queryByText('填充：固定值或字段填充')).toBeNull()
+    // draftOpened 终态提示（pending 一闪被覆盖——#178 状态消息链口径）
+    expect(screen.getByTestId('status-msg').textContent).toContain('帮助打开的是临时示例草稿')
+    // 基线不 dirty：未编辑直接退出不弹三选（静默即弃）
+    fireEvent.click(screen.getByTitle('返回工作台'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('未保存的更改')).toBeNull()
+  })
+
+  it('深链草稿可正常编辑：人为提交一处编辑后 dirty，退出弹三选、放弃更改后离开（守卫与普通草稿一致）', async () => {
+    const onClose = vi.fn()
+    renderDesigner(undefined, { onClose, helpAnchor: 'designer.fill' })
+    await waitForNewReady()
+    fireEvent.change(screen.getByDisplayValue('100'), { target: { value: '80' } })
+
+    fireEvent.click(screen.getByTitle('返回工作台'))
+    expect(await screen.findByText('未保存的更改', undefined, { timeout: 3000 })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '放弃更改' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+
+  it('align 锚点：两个示例 Rect 同时选中（多选分支才渲染对齐组）并自动弹对齐气泡', async () => {
+    renderDesigner(undefined, { helpAnchor: 'designer.align' })
+    await waitForNewReady()
+    // 多选分支渲染：对齐组文档点锚点在 DOM（预设缺一即锚点不现——双元素选中是前置）
+    expect(document.querySelector('[data-help="designer.align"]')).toBeTruthy()
+    expect(screen.getByText('已选 2 个元素')).toBeTruthy()
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.getAttribute('aria-label')).toBe('对齐')
   })
 })

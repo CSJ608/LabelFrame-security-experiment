@@ -5,7 +5,8 @@
 // 同源词条）；「!isServerUi」条件渲染——设计器 tab 在 SERVER_TABS 可达，漏条件即 server 管理界面
 // 渲染出「?」（AC-07 红线）。演示（填充组「看实时效果」）期间输入与操作禁用（拍板 4 方案 A：
 // 禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态 openDot 由本组件持有，
-// 帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位由 Shell 轮询先行确认）。
+// 帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位由 Designer 页内轮询确认，
+// 迭代 128 · #316 机制迁移后信号源 = 路由 sub 段）。
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'

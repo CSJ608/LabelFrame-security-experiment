@@ -182,10 +182,14 @@
   "ui": {
     "dotTitle": "Learn more",
     "openInUi": "Open in the App",
-    "backToIndex": "Back to Index"
+    "backToIndex": "Back to Index",
+    "tocRoot": "Feature Index",
+    "tocToggle": "Contents",
+    "tocRegion": "Contents"
   },
   "deepLink": {
     "pending": "Opening the linked help topic…",
-    "timeout": "Page switched; if no topic appears, open a template and select an element, then click “?”."
+    "timeout": "Page switched; if no topic appears, open a template and select an element, then click “?”.",
+    "draftOpened": "The sample draft opened from Help is temporary: it is discarded when you leave and nothing is saved automatically."
   }
 }

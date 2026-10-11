@@ -245,7 +245,9 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     fireEvent.click(alignDot)
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeTruthy()
-    expect(within(dialog).getByText('对齐')).toBeTruthy()
+    // #316 AC-01：气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
+    expect(dialog.getAttribute('aria-label')).toBe('对齐')
+    expect(within(dialog).queryByText('对齐')).toBeNull()
     expect(within(dialog).getByText(/多选至少 2 个元素时出现/)).toBeTruthy()
     // Esc 关闭（与 Popover 同法）
     fireEvent.keyDown(document, { key: 'Escape' })

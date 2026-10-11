@@ -459,17 +459,47 @@ label.field > .input, label.field > select.input { width: 100%; }
   animation: popIn 150ms ease-out;
   z-index: 90;
 }
-.help-bubble-title { font-size: 14px; font-weight: 600; }
-.help-bubble-body { margin-top: 6px; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
+.help-bubble-body { margin-top: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
 .help-bubble-foot { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
 .help-bubble-hint { font-size: 12px; line-height: 1.5; color: var(--ink-3); }
 /* 演示期间画布只读（拍板 4 方案 A）：pointer-events 收敛——选中 / 拖拽 / 缩放 / 滚轮 / 拖入全不响应，
    画布与气泡仍可见；不拦 Konva 事件本身，规避拖拽状态清理被破坏（#308 方案风险条目） */
 .canvas-locked { pointer-events: none; }
-/* 帮助页（拍板 1：顶部功能索引卡＋文章单栏 ~760px） */
-.help-index {
-  flex: 1;
+/* 帮助页 V3.1（迭代 128 · #316，决策 #178，观感返工拍板②）：左目录树（两级手风琴）＋受限宽正文的
+   文档站版式（Stripe / GitHub 口径）——滚动收敛到主区容器 .help-main（滚动高亮的基准也在此），
+   .help-article 仅限宽 760px 不再自滚（防双滚动条）；窄窗（≤960px，对齐 .grid-2 断点先例）左栏
+   收起、page-head 目录按钮展开为浮层覆盖。 */
+.help-layout { flex: 1; display: flex; min-height: 0; position: relative; }
+.help-toc {
+  width: 216px;
+  flex: none;
   overflow-y: auto;
+  border-right: 1px solid var(--line);
+  padding: 10px 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.help-toc-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.help-toc-item:hover { color: var(--ink); background: var(--bg); }
+.help-toc-item.active { color: var(--accent); background: var(--bg); font-weight: 600; }
+.help-toc-item.section { padding: 5px 10px 5px 24px; font-size: 12px; }
+.help-toc-sections { display: flex; flex-direction: column; gap: 1px; margin: 1px 0 5px; }
+.help-main { flex: 1; min-width: 0; overflow-y: auto; }
+.help-toc-toggle { display: none; }
+.help-index {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
@@ -490,8 +520,6 @@ label.field > .input, label.field > select.input { width: 100%; }
 .help-card-title { font-size: 14px; font-weight: 600; }
 .help-card-desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
 .help-article {
-  flex: 1;
-  overflow-y: auto;
   max-width: 760px;
   width: 100%;
   margin: 0 auto;
@@ -503,6 +531,22 @@ label.field > .input, label.field > select.input { width: 100%; }
 .help-article-intro { font-size: 13px; line-height: 1.8; color: var(--ink-2); }
 .help-topic h3 { margin: 0 0 6px; font-size: 13.5px; font-weight: 600; }
 .help-topic p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.8; color: var(--ink-2); }
+/* 窄窗（≤960px，#316 拍板③对齐 .grid-2 断点）：左栏收起不占位，目录按钮出现（宽窗 CSS 常驻左栏
+   ＋隐藏按钮）；展开态浮层覆盖正文（z-index 60——低于气泡 90 / 弹窗 100，浮层上仍可弹确认类 UI） */
+@media (max-width: 960px) {
+  .help-toc-toggle { display: inline-flex; }
+  .help-toc { display: none; }
+  .help-toc.open {
+    display: flex;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    background: var(--panel);
+    box-shadow: 12px 0 32px rgba(23, 31, 41, 0.16);
+  }
+}
 
 /* ---------- 工作台模板预览（迭代 46，修订：预览列内嵌缩略图 + 点击放大） ---------- */
 /* 缩略图（单元格内）：等比缩到 40px 高，点击放大 */

@@ -7,6 +7,10 @@
 // 纯文章小节无 anchor——帮助页不渲染「去界面查看」深链按钮。
 // 演示预设是显示层注入的示例值（mode/key/displayName/text），由 Designer 合并进
 // viewElements，不写 stateRef / historyRef（零落库的结构性前提，AC-05）。
+// 迭代 128（#316，决策 #178）：深链经路由 sub 段承载（#/designer/<anchor> 形，可分享 / 刷新
+// 还原）——HELP_LINK_ELEMENTS 为深链自动开草稿的示例元素预设（拍板 A：随草稿 init 并入初始
+// 基线，机制与演示预设的显示层注入不同，见 Designer.tsx 落点）；页内锚点轮询 hook 在
+// lib/helpLink.ts（本文件保持纯数据，不引 react）。
 
 import type { TabId } from '../state/types'
 import type { DesignElement } from './design/types'
@@ -100,6 +104,30 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
 /** 演示注入预设（键 = 文档点 anchor；当前仅填充组——字段填充三件套各给示例值）。 */
 export const HELP_DEMO_PRESETS: Record<string, Partial<DesignElement>> = {
   'designer.fill': { mode: 'field', key: 'location', displayName: '库位', text: 'A-01-02' },
+}
+
+/** 深链示例元素预设（迭代 128 · #316，决策 #178 拍板 A）：帮助深链自动开草稿时按锚点小节类型
+ *  放置的示例元素——以 spec（type + patch）登记而非现成元素，构造时经 defaultElement 生成新 id
+ *  （跨草稿不串号）且默认文案随当前语言。fill 复用 HELP_DEMO_PRESETS 同款示例值（「库位」en
+ *  示例值定夺属 #308 结项 wrapup——若改值两处须联动，#178 已记防漂移）；align 给两个 Rect 并
+ *  错开位置（对齐组仅多选分支渲染，双选中锚点才现）。键集登记校验（须为 HELP_PAGES 已登记
+ *  anchor、设计器侧全覆盖）在 Help.test.tsx 数据自洽用例断言。 */
+export interface HelpLinkElementSpec {
+  type: DesignElement['type']
+  patch?: Partial<DesignElement>
+}
+
+export const HELP_LINK_ELEMENTS: Record<string, readonly HelpLinkElementSpec[]> = {
+  'designer.position': [{ type: 'Text' }],
+  'designer.fill': [{ type: 'Text', patch: HELP_DEMO_PRESETS['designer.fill'] }],
+  'designer.box': [{ type: 'Text' }],
+  'designer.text': [{ type: 'Text' }],
+  'designer.barcode': [{ type: 'Barcode' }],
+  'designer.qrcode': [{ type: 'QrCode' }],
+  'designer.rect': [{ type: 'Rect' }],
+  'designer.line': [{ type: 'Line' }],
+  'designer.compat': [{ type: 'Region' }],
+  'designer.align': [{ type: 'Rect' }, { type: 'Rect', patch: { x: 30, y: 25 } }],
 }
 
 /** 文档点锚点的 DOM 查询选择器（data-help 语义属性，与 guideAnchorSelector 同法对称）。 */

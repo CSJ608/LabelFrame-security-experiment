@@ -8,7 +8,7 @@ export type IconName =
   | 'retry' | 'test' | 'link' | 'printer' | 'clear' | 'layers'
   | 'check' | 'x' | 'search' | 'file' | 'grid' | 'zoom' | 'save'
   | 'back' | 'preview' | 'copy' | 'clipboard' | 'alert' | 'keyboard'
-  | 'puzzle' | 'chevron' | 'more' | 'guide' | 'help'
+  | 'puzzle' | 'chevron' | 'more' | 'guide' | 'help' | 'toc'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   workbench: (
@@ -147,6 +147,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12.4 15.6h.01" strokeWidth={2.6} />
     </>
   ),
+  // 迭代 128（#316）：三横线（帮助页窄窗目录收起 / 展开切换——文档站目录通用形）
+  toc: <path d="M4 6h16M4 12h16M4 18h16" />,
 }
 
 interface IconProps extends SVGProps<SVGSVGElement> {

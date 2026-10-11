@@ -182,10 +182,14 @@
   "ui": {
     "dotTitle": "查看说明",
     "openInUi": "去界面查看",
-    "backToIndex": "返回索引"
+    "backToIndex": "返回索引",
+    "tocRoot": "功能索引",
+    "tocToggle": "目录",
+    "tocRegion": "目录"
   },
   "deepLink": {
     "pending": "正在打开对应说明…",
-    "timeout": "已切换页面；未出现说明时，打开模板、选中元素、退出预览，再点「?」。"
+    "timeout": "已切换页面；未出现说明时，打开模板、选中元素、退出预览，再点「?」。",
+    "draftOpened": "帮助打开的是临时示例草稿：退出即丢弃，不会自动保存。"
   }
 }

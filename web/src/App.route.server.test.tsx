@@ -3,6 +3,7 @@
 // server 七页同形态路由（#/devices / #/packages / #/plugin-packages 等）；受限 tab 集不可经 hash 越权
 // 进入（#/help、#/settings 解析即回退 workbench 并规范化 URL，页面不挂载）；#/packages/<sub> 直达下载中心
 // 页内 tab（含旧 #dc= 分享链接兼容映射）。vi.mock uiMode 注入 server 分支（Guide.server.test.tsx 双跑先例）。
+// 迭代 128（#316）：补带 sub 段的越权形态（#/settings/<sub>、#/help/<sub>）——深链 sub 段不构成旁路。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -166,5 +167,20 @@ describe('server 构建 · AC-03：路由对 server tab 集生效且形态一致
     render(<App />)
     expect(await screen.findByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
     await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
+  })
+
+  it('带 sub 段的越权 hash（#/settings/<sub> / #/help/<sub>，#316 深链形态）：同样回退 workbench 并规范化——sub 段不构成越权旁路', async () => {
+    window.location.hash = '#/settings/settings.language'
+    render(<App />)
+    expect(await screen.findByText(PAGE_MARKER.workbench)).toBeTruthy()
+    expect(screen.queryByText('服务端地址 / 本机连接与打印机')).toBeNull()
+    await waitFor(() => expect(window.location.hash).toBe('#/workbench'))
+    cleanup()
+
+    window.location.hash = '#/help/designer.fill'
+    render(<App />)
+    expect(await screen.findByText(PAGE_MARKER.workbench)).toBeTruthy()
+    expect(screen.queryByText('五个页面的使用文章；界面内「?」就近说明')).toBeNull()
+    await waitFor(() => expect(window.location.hash).toBe('#/workbench'))
   })
 })

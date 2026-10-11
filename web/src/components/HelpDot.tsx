@@ -8,6 +8,9 @@
 // Guide 同键并存时同帧双响应——既有先例边界（Guide.tsx #276 风险记录），不做监听互斥。
 // 演示插槽（AC-05）：hasDemo 时气泡 footer 渲染「看实时效果」/「退出演示」，注入 / 还原
 // 行为由调用方（Designer 显示层 override）实现——本组件只出回调，不持有演示状态。
+// 迭代 128（#316 AC-01，观感返工拍板①）：气泡不再渲染可见标题节点——点「?」时分组 / 卡片
+// 标题就在按钮旁，重复显示即冗余（#308 AC-08 陪验否决项）；正文直出，dialog 无障碍名仍取
+// title 词条（读屏不丢名，title 词条仍被帮助文章 h3 与 aria-label 消费——单源不破）。
 // server 构建守门（AC-07，拍板③口径）：调用方必须以 !isServerUi 条件渲染（PropsPanel /
 // Settings 挂点处），本组件不做内部分支——「server 可达路径不渲染」红线在调用点显式可见。
 
@@ -119,7 +122,6 @@ export function HelpDot({ anchor, topicKey, open, onToggle, onClose, hasDemo, de
       {open &&
         createPortal(
           <div ref={bubbleRef} className="help-bubble" role="dialog" aria-label={t(`${topicKey}.title`)} style={bubbleStyle}>
-            <div className="help-bubble-title">{t(`${topicKey}.title`)}</div>
             <p className="help-bubble-body">{t(`${topicKey}.body`)}</p>
             {hasDemo && (
               <div className="help-bubble-foot">

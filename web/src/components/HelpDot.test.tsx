@@ -47,11 +47,12 @@ describe('HelpDot 文档点', () => {
     expect(bubbled).toBe(false)
   })
 
-  it('open：portal 弹出 dialog 气泡，渲染 title / body 词条（与帮助文章同源）', () => {
+  it('open：portal 弹出 dialog 气泡，不再渲染可见标题、body 直出（#316 AC-01 去标题冗余）', () => {
     renderDot({ open: true })
     const dialog = screen.getByRole('dialog')
+    // 无障碍名保留 title 词条（读屏不丢名）；可见标题节点已删——分组标题就在「?」旁，不重复
     expect(dialog.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
-    expect(within(dialog).getByText('填充：固定值或字段填充')).toBeTruthy()
+    expect(within(dialog).queryByText('填充：固定值或字段填充')).toBeNull()
     expect(within(dialog).getByText(/「来源」决定打印内容：固定值立即按所填内容渲染/)).toBeTruthy()
   })
 

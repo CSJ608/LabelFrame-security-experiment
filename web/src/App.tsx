@@ -30,8 +30,8 @@ import { Guide } from './components/Guide'
 import { Modal } from './components/Modal'
 import type { DesignerRequest, TabId } from './state/types'
 import { isGuideSeen, markGuideSeen } from './lib/guide'
-import { HELP_ANCHOR_POLL_MAX_MS, HELP_ANCHOR_POLL_MS, helpAnchorSelector } from './lib/help'
-import { parseHash, useHashRoute } from './lib/router'
+import { HELP_LINK_ELEMENTS } from './lib/help'
+import { formatHash, parseHash, useHashRoute } from './lib/router'
 import { isServerUi } from './lib/uiMode'
 import { Workbench } from './pages/Workbench'
 import { Designer } from './pages/Designer'
@@ -85,11 +85,6 @@ function Shell() {
   // 直达对应页、刷新停留在当前页）；hash 由 useHashRoute 同步（见下方接线）。
   const [tab, setTab] = useState<TabId>(() => parseHash(window.location.hash, ROUTE_ALLOWED).page)
   const [designerReq, setDesignerReq] = useState<DesignerRequest | null>(null)
-  // 迭代 126（#308）：帮助深链两段信号——pending = 轮询 [data-help] 锚点就位中（状态栏提示）；
-  // ready = 锚点已在 DOM 确认，交给目标页自动弹出文档点气泡（页面开启后回调清信号）。
-  // 两段拆分防「信号先于锚点渲染到达」：page 拿到 ready 时锚点必已渲染，开启即见效。
-  const [helpAnchorPending, setHelpAnchorPending] = useState<string | null>(null)
-  const [helpAnchorReady, setHelpAnchorReady] = useState<string | null>(null)
   // 迭代 104（#225，决策 #161）：日志抽屉「清空」的确认弹窗开关——点击先确认，确认后才清空
   const [confirmingClearLogs, setConfirmingClearLogs] = useState(false)
   // 迭代 119（#276，决策 #170）：首次引导开关——首见延迟自动启动，完成 / 跳过写标记后关闭
@@ -105,8 +100,7 @@ function Shell() {
   const app = useApp()
   // 迭代 93（#151 F-06）：解构出三个成员再入依赖——exhaustive-deps 按 `app` 聚合对象报缺依赖，
   // 而三者均为 AppContext 的 useCallback 稳定引用（baseUrl 用于地址变更后重排周期探测），语义与原写法一致。
-  // 迭代 126（#308）：setStatus 同为稳定引用，深链轮询 effect 只认它不认 app 聚合对象（防每渲染重跑）。
-  const { checkConnection, checkLocalService, baseUrl, setStatus } = app
+  const { checkConnection, checkLocalService, baseUrl } = app
 
   useEffect(() => {
     void checkConnection()
@@ -171,42 +165,29 @@ function Shell() {
     switchTab('data')
   }
 
-  // 迭代 126（#308）：帮助文章「去界面查看」深链入口——切页（经 switchTab 统一入口，继承设计器
-  // 离开守卫）＋轮询等待锚点就位；帮助页入口仅 client 构建存在，server 构建无生产者（AC-07）。
+  // 迭代 128（#316，决策 #178 机制迁移）：帮助文章「去界面查看」深链＝hash 赋值导航——目标位置
+  // #/<page>/<anchor> 经 hashchange 既有通道落位（页不同经 requestPage=switchTab 统一切页入口，
+  // 继承设计器离开守卫与守卫挂起 pre-revert；router 零改动），落位后 setSubState 承载锚点、下传
+  // 目标页页内轮询（lib/helpLink.ts）。sub 段驻留 URL（拍板 2-A）：分享 / 刷新 / 后退到该条目
+  // 一致还原，主导航重进该页既有语义自动清 sub（入栈条目 sub 清空）不重触发。
   const openHelpInUi = (target: TabId, anchor: string) => {
-    setHelpAnchorPending(anchor)
-    setStatus(t('help:deepLink.pending'))
-    switchTab(target)
+    window.location.hash = formatHash(target, anchor)
   }
 
-  // 深链锚点轮询（Guide.tsx 同款 80ms/4s 口径）：锚点出现 → 转 ready 交目标页自动弹出；
-  // 超时 → 通用降级提示（不指认单一原因：未打开模板 / 未选中元素 / 类型不含目标分组 / 对齐组需
-  // 多选 / 预览锁定等一切条件渲染分支同此提示——help.deepLink.timeout 词条口径）。
+  // 迭代 128（#316，决策 #178 拍板 A）：深链自动开草稿——client 构建设计器空态且路由 sub 为已
+  // 登记的深链示例元素锚点时，经既有 openDesigner({kind:'new'}) 自动新建草稿（不落库零写请求；
+  // 示例元素由 Designer 随 init 并入初始基线并选中）。已打开模板（designerReq 存在）不触发，走
+  // 既有锚点路径；server 构建 !isServerUi 门不触发（Designer 不挂载则无人轮询——静默空态，可接
+  // 受性交陪验，不为补提示把 hook 挂到空态壳层）。
   useEffect(() => {
-    if (!helpAnchorPending) return
-    const anchor = helpAnchorPending
-    const selector = helpAnchorSelector(anchor)
-    const startedAt = Date.now()
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const poll = () => {
-      if (document.querySelector(selector)) {
-        setHelpAnchorPending(null)
-        setHelpAnchorReady(anchor)
-        setStatus('')
-        return
-      }
-      if (Date.now() - startedAt < HELP_ANCHOR_POLL_MAX_MS) timer = setTimeout(poll, HELP_ANCHOR_POLL_MS)
-      else {
-        setHelpAnchorPending(null)
-        setStatus(t('help:deepLink.timeout'))
-      }
-    }
-    poll()
-    return () => clearTimeout(timer)
-    // setStatus 为 AppContext 稳定 useCallback，不随渲染换引用；t 仅语言切换时变化（重启轮询无害）
-  }, [helpAnchorPending, setStatus, t])
-
-  const handleHelpAnchorDone = () => setHelpAnchorReady(null)
+    if (isServerUi) return
+    if (tab !== 'designer' || designerReq) return
+    // Object.hasOwn 防 'toString' 等原型链属性名经 sub 段合法进入后 in 判定为真、取值非数组致渲染崩溃（评审实证）
+    if (!route.sub || !Object.hasOwn(HELP_LINK_ELEMENTS, route.sub)) return
+    openDesigner({ kind: 'new' })
+    // openDesigner 为本组件内闭包（setDesignerReq + setTab 稳定引用）；触发后 designerReq 置位即自停
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, designerReq, route.sub])
 
   const tabs = (isServerUi ? SERVER_TABS : CLIENT_TABS).map(({ id, labelKey, icon }) => ({
     id,
@@ -276,8 +257,7 @@ function Shell() {
               request={designerReq}
               onClose={closeDesigner}
               registerLeaveGuard={registerDesignerLeave}
-              helpAnchor={helpAnchorReady}
-              onHelpAnchorDone={handleHelpAnchorDone}
+              helpAnchor={route.sub}
             />
           )}
           {tab === 'designer' && !designerReq && <DesignerEmpty onNew={() => openDesigner({ kind: 'new' })} />}
@@ -287,7 +267,7 @@ function Shell() {
           {tab === 'jobs' && <JobHistory />}
           {tab === 'packages' && <DownloadCenter sub={route.sub} onSubChange={route.setSub} />}
           {tab === 'plugin-packages' && <PluginPackages />}
-          {tab === 'settings' && <Settings helpAnchor={helpAnchorReady} onHelpAnchorDone={handleHelpAnchorDone} />}
+          {tab === 'settings' && <Settings helpAnchor={route.sub} />}
           {/* 迭代 126（#308）：帮助页（文档底座）——help tab 仅 CLIENT_TABS，server 构建不可达 */}
           {tab === 'help' && <Help onOpenInUi={openHelpInUi} />}
         </main>

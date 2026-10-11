@@ -3,6 +3,9 @@
 // 状态：stateRef 为同步真相（事件回调内先更新再 setState），历史为快照式。
 // 迭代 92（#150 F-02）：未保存离开保护——dirty（历史栈有已提交更改）时返回按钮与 Shell 导航切 tab
 // 均弹三选 Modal（保存并离开 / 放弃更改 / 继续编辑）；无编辑直接离开不弹窗。
+// 迭代 128（#316，决策 #178）：帮助深链锚点 = 路由 sub 段（helpAnchor props）——页内轮询
+//（useHelpDeepLink）等锚点入 DOM 自动弹文档点气泡；深链自动开草稿放示例元素入初始基线（拍板 A，
+// 见 init 落点），守卫链零改动（三选差异由示例元素落点自然产生）。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -23,7 +26,8 @@ import { deriveFieldInfos } from '../lib/design/fields'
 import { createHistory } from '../lib/design/history'
 import { r2 } from '../lib/design/geometry'
 import { exportDesign, parseDesign } from '../lib/design/format'
-import { HELP_DEMO_PRESETS } from '../lib/help'
+import { HELP_DEMO_PRESETS, HELP_LINK_ELEMENTS } from '../lib/help'
+import { useHelpDeepLink } from '../lib/helpLink'
 import i18next from '../i18n'
 import { capturePasteOnce, copyText, readClipboardText } from '../lib/clipboard'
 import { applyContractDisplayNames, fromBackendElements, toContract, toLayout } from '../lib/design/convert'
@@ -32,6 +36,17 @@ import { shortcutGroups } from './designer/shortcuts'
 const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.paperH, elements: s.elements })
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 
+/** 深链示例元素构造（#316 决策 #178 拍板 A）：预设 spec → defaultElement + patch 合并——每次调用
+ *  生成新 id（跨草稿不串号）、默认文案随当前语言；元素随草稿 init 并入初始基线（见 init 落点）。
+ *  spec 类型全集含控件栏外三型（Line / Region 等），defaultElement 重载面按控件栏入口收窄——
+ *  数据源为受控预设表，双转型到实现签名（全 7 型均有分支）。 */
+function buildHelpLinkElements(anchor: string): DesignElement[] {
+  return (HELP_LINK_ELEMENTS[anchor] ?? []).map(({ type, patch }) => {
+    const e = defaultElement(type as 'Text') as DesignElement
+    return { ...e, ...patch } as DesignElement
+  })
+}
+
 interface DesignerProps {
   request: DesignerRequest
   onClose: () => void
@@ -39,12 +54,13 @@ interface DesignerProps {
    *  迭代 127 修复（#312 取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行，
    *  供路由 hashchange 分支判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
   registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
-  /** 帮助文章深链信号（Shell 已轮询确认锚点在 DOM）——经 PropsPanel 自动弹出对应文档点气泡。 */
+  /** 帮助深链锚点（迭代 128 · #316 决策 #178：语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
+   *  经 useHelpDeepLink 页内轮询等锚点入 DOM 后自动弹出对应文档点气泡；锚点已登记示例元素预设
+   *  且草稿为新建时，示例元素随 init 并入初始基线（拍板 A）。 */
   helpAnchor?: string | null
-  onHelpAnchorDone?: () => void
 }
 
-export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onHelpAnchorDone }: DesignerProps) {
+export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: DesignerProps) {
   const app = useApp()
   // 迭代 112（#246）：设计器文案 key 化（designer 域）；数据性默认值（分组「默认」）随界面语言（待决议-1）
   const { t } = useTranslation('designer')
@@ -73,6 +89,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onH
   const [demoAnchor, setDemoAnchor] = useState<string | null>(null)
   const demoPatch = demoAnchor ? HELP_DEMO_PRESETS[demoAnchor] : undefined
   const demoActive = demoPatch !== undefined
+  // 迭代 128（#316，决策 #178）：深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
+  //（PropsPanel 既有 autoOpenAnchor 链，处理后清信号防重复触发）。
+  const [autoOpenAnchor, setAutoOpenAnchor] = useState<string | null>(null)
+  // 深链草稿一次性标记（拍板 A）：本挂载以深链自动开草稿时置位——首个 onFound 不清状态栏
+  //（draftOpened 为终态提示），消费后复位（后续锚点 found 恢复清等待提示的旧口径）。
+  const deepLinkDraftRef = useRef(false)
 
   const stateRef = useRef<DesignState | null>(null)
   const historyRef = useRef<ReturnType<typeof createHistory<DesignState>> | null>(null)
@@ -92,6 +114,20 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onH
       mountedRef.current = false
     }
   }, [])
+
+  // 迭代 128（#316，决策 #178 机制迁移）：深链锚点页内轮询（旧 Shell 两段信号收口删除，等待收敛
+  // 到目标页）——置于加载 effect 之前：自动草稿路径先写 pending、init 随即以 draftOpened 覆盖
+  //（方案风险节「pending 一闪后被 draftOpened 覆盖属预期」）；超时走通用降级词条（未开模板 /
+  // 未选中元素 / 类型不含目标分组 / 对齐组需多选 / 预览锁定等一切锚点不可见情形同此提示）。
+  useHelpDeepLink(helpAnchor, {
+    onFound: () => {
+      if (deepLinkDraftRef.current) deepLinkDraftRef.current = false
+      else app.setStatus('')
+      setAutoOpenAnchor(helpAnchor ?? null)
+    },
+    onTimeout: () => app.setStatus(t('help:deepLink.timeout')),
+    onPending: () => app.setStatus(t('help:deepLink.pending')),
+  })
 
   const commit = useCallback((next: DesignState) => {
     stateRef.current = next
@@ -146,8 +182,23 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onH
     }
 
     if (request.kind === 'new') {
-      init({ paperW: 100, paperH: 60, elements: [] })
-      status(t('status.newTemplate'))
+      // 迭代 128（#316，决策 #178 拍板 A·初始基线）：深链自动开草稿时按锚点小节类型放置示例
+      // 元素——随 init 并入 stateRef 且作 createHistory 基线（可正常编辑、undoCount=0 不 dirty、
+      // 未编辑退出静默弃、用户编辑后三选守卫照常）；「不落库零业务数据」重解释＝自动机制零写请求
+      // ＋用户显式命名保存属正常草稿行为（#178 记录，偏离 Issue 约束句「不写 stateRef 保存链」的
+      // 理由：纯显示层注入 ⇒ undoCount=0 ⇒ 「退出即弃带未保存守卫」永不触发的内在矛盾）。
+      const linkAnchor = helpAnchor && Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? helpAnchor : null
+      const samples = linkAnchor ? buildHelpLinkElements(linkAnchor) : []
+      init({ paperW: 100, paperH: 60, elements: samples })
+      if (linkAnchor) {
+        const ids = samples.map((e) => e.id)
+        setSelected(ids)
+        selectedRef.current = ids
+        deepLinkDraftRef.current = true
+        status(t('help:deepLink.draftOpened'))
+      } else {
+        status(t('status.newTemplate'))
+      }
       return
     }
     void biz
@@ -763,8 +814,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor, onH
                   demoActive={demoActive}
                   onDemoStart={setDemoAnchor}
                   onDemoExit={() => setDemoAnchor(null)}
-                  autoOpenAnchor={helpAnchor}
-                  onAutoOpenHandled={onHelpAnchorDone}
+                  autoOpenAnchor={autoOpenAnchor}
+                  onAutoOpenHandled={() => setAutoOpenAnchor(null)}
                 />
               </div>
             ) : (

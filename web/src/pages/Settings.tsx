@@ -20,21 +20,26 @@ import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
 import { HelpDot } from '../components/HelpDot'
 import { TransportPanel } from '../components/TransportPanel'
+import { useHelpDeepLink } from '../lib/helpLink'
 import { isServerUi } from '../lib/uiMode'
 
-export function Settings({ helpAnchor, onHelpAnchorDone }: { helpAnchor?: string | null; onHelpAnchorDone?: () => void }) {
+export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const app = useApp()
   // 迭代 108（#241）：「语言」项绑定 settings 域——选项名固定各自语言原文（「中文」/「English」不随当前语言翻译）；
   // 迭代 112（#246）：其余卡片全部迁入 settings 域
   const { t, i18n } = useTranslation('settings')
   // 迭代 126（#308）：7 张卡片标题挂「?」文档点（拍板③：server 可达路径不渲染——同加 !isServerUi，
-  // 断言面与 PropsPanel 一致）；帮助文章深链信号自动弹出对应卡片气泡（锚点常在，Shell 轮询即刻命中）。
+  // 断言面与 PropsPanel 一致）。迭代 128（#316 决策 #178）：深链信号改路由 sub 段（helpAnchor
+  // props）——页内轮询（useHelpDeepLink）锚点常在即刻命中自动弹卡片气泡；超时通用降级提示。
   const [openDot, setOpenDot] = useState<string | null>(null)
-  useEffect(() => {
-    if (!helpAnchor) return
-    setOpenDot(helpAnchor)
-    onHelpAnchorDone?.()
-  }, [helpAnchor, onHelpAnchorDone])
+  useHelpDeepLink(helpAnchor, {
+    onFound: () => {
+      setOpenDot(helpAnchor ?? null)
+      app.setStatus('')
+    },
+    onTimeout: () => app.setStatus(t('help:deepLink.timeout')),
+    onPending: () => app.setStatus(t('help:deepLink.pending')),
+  })
   const toggleDot = (anchor: string) => setOpenDot((prev) => (prev === anchor ? null : anchor))
   const dot = (anchor: string) =>
     isServerUi ? null : (

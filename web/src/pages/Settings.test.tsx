@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ApiError } from '../lib/api/types'
 import type { InstalledPluginInfo, PluginPackageInfo } from '../lib/api/types'
-import { AppProvider } from '../state/AppContext'
+import { AppProvider, useApp } from '../state/AppContext'
 import { Settings } from './Settings'
 
 // 迭代 96（#183）：挂载链（getHostConfig → getTransport / healthz → 各分组列表）为多段 promise +
@@ -56,6 +56,12 @@ function renderSettings() {
       <Settings />
     </AppProvider>,
   )
+}
+
+/** 状态栏消息探针（深链等待 / 超时提示经 app.setStatus 呈现，测试树内以探针捕获——Designer.test 同法）。 */
+function StatusProbe() {
+  const app = useApp()
+  return <div data-testid="status-msg">{app.statusMsg}</div>
 }
 
 /** 按分组限定查询（「测试连接」按钮在服务端地址与连接方式两组各有一个；「服务端地址」文本在 panel-head 与 label 各一处）。 */
@@ -785,10 +791,40 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     expect(transportDot).toBeTruthy()
     fireEvent.click(transportDot)
     const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByText('连接方式')).toBeTruthy()
+    // #316 AC-01：气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
+    expect(dialog.getAttribute('aria-label')).toBe('连接方式')
+    expect(within(dialog).queryByText('连接方式')).toBeNull()
+    expect(within(dialog).getByText(/卡片收起时显示当前连接/)).toBeTruthy()
     // 折叠面板未连带展开（面板头 onClick 被冒泡拦截）
     expect(screen.queryByRole('button', { name: /保存并应用/ })).toBeNull()
     fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+// ---------- 迭代 128（#316，决策 #178）：帮助深链 = 路由 sub 段承载，页内轮询自动弹卡片气泡 ----------
+
+describe('帮助深链（#316 决策 #178）', () => {
+  function renderSettingsWithLink(helpAnchor: string) {
+    return render(
+      <AppProvider>
+        <StatusProbe />
+        <Settings helpAnchor={helpAnchor} />
+      </AppProvider>,
+    )
+  }
+
+  it('深链锚点常在即刻命中：挂载即自动弹对应卡片气泡（settings.language → 「语言」）', async () => {
+    renderSettingsWithLink('settings.language')
+    await screen.findByLabelText('服务端地址')
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.getAttribute('aria-label')).toBe('语言')
+  })
+
+  it('深链轮询超时通用降级：锚点运行时不可见（未登记串无 [data-help]）→ 状态栏通用提示，不弹气泡', async () => {
+    renderSettingsWithLink('settings.nonexistent')
+    await screen.findByLabelText('服务端地址')
+    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('已切换页面'), { timeout: 6000 })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
