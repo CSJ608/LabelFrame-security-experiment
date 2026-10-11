@@ -12,6 +12,7 @@
 // 基线，机制与演示预设的显示层注入不同，见 Designer.tsx 落点）；页内锚点轮询 hook 在
 // lib/helpLink.ts（本文件保持纯数据，不引 react）。
 
+import i18next from 'i18next'
 import type { TabId } from '../state/types'
 import type { DesignElement } from './design/types'
 
@@ -101,9 +102,16 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
   },
 ]
 
-/** 演示注入预设（键 = 文档点 anchor；当前仅填充组——字段填充三件套各给示例值）。 */
+/** 字段显示名示例值（随界面语言：zh「库位」/ en "Bin"——#308 结项 wrapup 定夺；本文件唯一
+ *  随语言取值的示例字段，消费点＝演示注入与深链示例构建（两处经同一预设联动，防漂移记录见 #178）。 */
+export function helpSampleDisplayName(): string {
+  return i18next.language?.startsWith('zh') ? '库位' : 'Bin'
+}
+
+/** 演示注入预设（键 = 文档点 anchor；当前仅填充组——字段填充三件套各给示例值；displayName
+ *  随语言经 helpSampleDisplayName() 在消费点补入，不静态写死）。 */
 export const HELP_DEMO_PRESETS: Record<string, Partial<DesignElement>> = {
-  'designer.fill': { mode: 'field', key: 'location', displayName: '库位', text: 'A-01-02' },
+  'designer.fill': { mode: 'field', key: 'location', text: 'A-01-02' },
 }
 
 /** 深链示例元素预设（迭代 128 · #316，决策 #178 拍板 A）：帮助深链自动开草稿时按锚点小节类型

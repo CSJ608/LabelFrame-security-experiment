@@ -26,7 +26,7 @@ import { deriveFieldInfos } from '../lib/design/fields'
 import { createHistory } from '../lib/design/history'
 import { r2 } from '../lib/design/geometry'
 import { exportDesign, parseDesign } from '../lib/design/format'
-import { HELP_DEMO_PRESETS, HELP_LINK_ELEMENTS } from '../lib/help'
+import { HELP_DEMO_PRESETS, HELP_LINK_ELEMENTS, helpSampleDisplayName } from '../lib/help'
 import { useHelpDeepLink } from '../lib/helpLink'
 import i18next from '../i18n'
 import { capturePasteOnce, copyText, readClipboardText } from '../lib/clipboard'
@@ -43,7 +43,9 @@ const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 function buildHelpLinkElements(anchor: string): DesignElement[] {
   return (HELP_LINK_ELEMENTS[anchor] ?? []).map(({ type, patch }) => {
     const e = defaultElement(type as 'Text') as DesignElement
-    return { ...e, ...patch } as DesignElement
+    // fill 预设（字段填充三件套）补随语言的显示名示例值（其余锚点无 displayName 语义）
+    const extra = 'mode' in (patch ?? {}) ? { displayName: helpSampleDisplayName() } : {}
+    return { ...e, ...patch, ...extra } as DesignElement
   })
 }
 
@@ -87,7 +89,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   // 仅合并进 viewElements 喂画布与属性面板；不写 stateRef / historyRef → 不进历史栈、不置
   // dirty、doSave 读 stateRef 不含注入值（零落库零写请求的结构性保证）；退出 = 清锚点即还原。
   const [demoAnchor, setDemoAnchor] = useState<string | null>(null)
-  const demoPatch = demoAnchor ? HELP_DEMO_PRESETS[demoAnchor] : undefined
+  // displayName 示例值随语言补入（预设不静态写死，#308 wrapup 定夺 zh「库位」/ en "Bin"）
+  const demoPatch = demoAnchor
+    ? { ...HELP_DEMO_PRESETS[demoAnchor], displayName: helpSampleDisplayName() }
+    : undefined
   const demoActive = demoPatch !== undefined
   // 迭代 128（#316，决策 #178）：深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
   //（PropsPanel 既有 autoOpenAnchor 链，处理后清信号防重复触发）。
