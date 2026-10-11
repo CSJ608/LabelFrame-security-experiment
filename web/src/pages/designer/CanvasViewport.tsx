@@ -10,8 +10,8 @@ import Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElementNode } from './ElementNode'
 import type { DesignElement } from '../../lib/design/types'
-import { elementById } from '../../lib/design/model'
-import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, pointerToLogic, previewCanvasSize, previewScale, PX, RULER, viewportToLogic } from '../../lib/design/geometry'
+import { containerRegionIdFor, elementById } from '../../lib/design/model'
+import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, multiDragCommitPatches, pointerToLogic, previewCanvasSize, previewScale, PX, RULER, viewportToLogic } from '../../lib/design/geometry'
 import { computeSnap, elementModelRect } from '../../lib/design/snapping'
 import { coreShortcuts } from './shortcuts'
 
@@ -173,18 +173,6 @@ export function CanvasViewport(props: CanvasViewportProps) {
     [addGuide, canvasSize, clearGuides, ox, oy, paperH, paperW],
   )
 
-  /** 容器命中：中心点在容器内 → 锚定（原型 containerHit）。 */
-  const containerHit = useCallback(
-    (e: DesignElement): string | undefined => {
-      const hit = elements.find(
-        (c): c is import('../../lib/design/types').RegionElement =>
-          c.type === 'Region' && c.containerId !== e.id && e.x + e.w / 2 >= c.x && e.x + e.w / 2 <= c.x + c.w && e.y + e.h / 2 >= c.y && e.y + e.h / 2 <= c.y + c.h,
-      )
-      return hit?.containerId
-    },
-    [elements],
-  )
-
   const elementFromTarget = (target: Konva.Node | null): Konva.Node | null => {
     if (!target) return null
     if (target.hasName('element')) return target
@@ -312,6 +300,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
     const el = elementFromTarget(ev.target)
     if (!el || !layer) return
     const md = multiDragRef.current
+    // 迭代 131（#324）：吸附先行。Konva 每次 dragmove 以指针位置覆盖上一步吸附（dragEnd「松手再吸一次」
+    // 同据），故 md.lastX/lastY 推进到吸附后的主导位置，跟随元素每步获得含吸附修正的实际视觉位移——
+    // 吸附生效期间组合相对位置不散开。若还原为先记后吸的旧序，每步吸附量对跟随元素永久丢失
+    // （#324 缺陷 2：拖拽期间对齐点失效、元素偏移 ≤8px=2mm）。
+    snapNode(el)
     if (md) {
       const dx = el.x() - md.lastX
       const dy = el.y() - md.lastY
@@ -326,12 +319,12 @@ export function CanvasViewport(props: CanvasViewportProps) {
         }
       })
     }
-    snapNode(el)
     layer.batchDraw()
   }
 
   const handleDragEnd = (ev: KonvaEventObject<DragEvent>) => {
     const p = stateRef.current
+    const layer = layerRef.current
     const el = elementFromTarget(ev.target)
     const e = el ? elementById(p.state.elements, el.id()) : undefined
     if (!el || !e) {
@@ -342,16 +335,51 @@ export function CanvasViewport(props: CanvasViewportProps) {
     // Konva 拖拽会用指针位置覆盖 dragmove 里的吸附，松手再吸一次保证落点精确
     // （multiDragRef 在吸附后才清零：末次吸附同样把多选跟随元素排除出候选）
     snapNode(el)
+    // 迭代 131（#324）：先读 multiDragRef 再清零——末次吸附量 snapDx/Dy 经 multiDragCommitPatches
+    // 同步施加于跟随元素（覆盖 dragEnd 再吸附与 dragmove 末步吸附不一致的残差）。
+    const md = multiDragRef.current
     multiDragRef.current = null
-    // 迭代 130（#323）：从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致，
-    // 残差仅剩两位舍入（≤0.005mm）；旧口径取渲染盒左上角，被描边外扩带偏 −0.15/−0.25mm。
-    const pos = commitDragPosition(el.x(), el.y(), false)
-    const regionId = p.viewMode === 'preview' ? e.regionId : containerHit({ ...e, x: pos.x, y: pos.y })
+    // 单选路径（md 为 null）零变化：仅主导元素提交，regionId 与提交链与 #323 口径逐行等价
+    if (!md) {
+      // 迭代 130（#323）：从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致，
+      // 残差仅剩两位舍入（≤0.005mm）；旧口径取渲染盒左上角，被描边外扩带偏 −0.15/−0.25mm。
+      const pos = commitDragPosition(el.x(), el.y(), false)
+      const regionId = p.viewMode === 'preview' ? e.regionId : containerRegionIdFor({ ...e, x: pos.x, y: pos.y }, p.state.elements)
+      clearGuides()
+      p.onUpdateElements((els) =>
+        els.map((o) => {
+          if (o.id !== e.id) return o
+          const next = { ...o, x: pos.x, y: pos.y }
+          if (regionId) next.regionId = regionId
+          else delete next.regionId
+          return next
+        }),
+      )
+      p.onCommit()
+      return
+    }
+    // 多选路径（迭代 131 · #324）：跟随元素与主导同位移落库——先收集跟随节点坐标（findOne 未命中
+    // 跳过该元素：拖动中途被删除等边缘路径不提交不崩溃），补丁一次应用全部选中元素、单一 onCommit
+    // （一次多选拖动 = 一步撤销，Ctrl+Z 整组回退）。
+    const followerNodes = p.selected
+      .filter((id) => id !== md.targetId)
+      .map((id) => ({ id, node: layer ? layer.findOne('#' + id) : null }))
+      .filter((f): f is { id: string; node: Konva.Node } => f.node !== null && f.node !== undefined)
+    const followers = followerNodes.map(({ id, node }) => ({ id, x: node.x(), y: node.y() }))
+    const { snapDx, snapDy, patches } = multiDragCommitPatches({ leaderId: e.id, leaderX: el.x(), leaderY: el.y(), lastX: md.lastX, lastY: md.lastY, followers, preview: false })
+    // 先按末次吸附量命令式修跟随节点（视觉 = 模型），再一次提交
+    followerNodes.forEach(({ node }) => {
+      node.x(node.x() + snapDx)
+      node.y(node.y() + snapDy)
+    })
     clearGuides()
     p.onUpdateElements((els) =>
-      els.map((o) => {
-        if (o.id !== e.id) return o
-        const next = { ...o, x: pos.x, y: pos.y }
+      els.map((o): DesignElement => {
+        const patch = patches.get(o.id)
+        if (!patch) return o
+        const next = { ...o, x: patch.x, y: patch.y }
+        // 容器锚定与单选同语义重算（主导 + 跟随统一；预览态防御性保留原值——拖动只可能发生在设计态）
+        const regionId = p.viewMode === 'preview' ? o.regionId : containerRegionIdFor({ ...o, x: patch.x, y: patch.y }, els)
         if (regionId) next.regionId = regionId
         else delete next.regionId
         return next

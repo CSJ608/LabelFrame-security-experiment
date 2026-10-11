@@ -57,6 +57,47 @@ export function commitDragPosition(nodeX: number, nodeY: number, preview: boolea
   return { x: r2(pos.x), y: r2(pos.y) }
 }
 
+/** 多选拖动松手提交入参（迭代 131 · #324）。 */
+export interface MultiDragCommitArgs {
+  /** 主导元素 id。 */
+  leaderId: string
+  /** 主导节点末次吸附后坐标（逻辑 px）。 */
+  leaderX: number
+  leaderY: number
+  /** 跟随元素上次跟随时主导节点坐标（multiDragRef.lastX/lastY，逻辑 px）。 */
+  lastX: number
+  lastY: number
+  /** 跟随节点当前坐标（逻辑 px，未含松手段末次吸附量）。 */
+  followers: ReadonlyArray<{ id: string; x: number; y: number }>
+  /** 是否预览态坐标（与 commitDragPosition 同参）。 */
+  preview: boolean
+}
+
+/** 多选拖动松手提交结果：末次吸附量 + 全选中元素落点补丁。 */
+export interface MultiDragCommitResult {
+  /** 末次吸附量（逻辑 px）＝主导末次吸附后坐标 − lastX/lastY，须同步施加于跟随节点与补丁。 */
+  snapDx: number
+  snapDy: number
+  /** 全选中元素（主导 + 跟随）的模型坐标补丁（mm 两位舍入）。 */
+  patches: Map<string, { x: number; y: number }>
+}
+
+/**
+ * 多选拖动松手提交（迭代 131 · #324，复用 #323 commitDragPosition 口径）：
+ * 主导补丁 = 末次吸附后节点原点直提；跟随补丁 = 跟随节点坐标 + 末次吸附量（吸附只施加于主导节点，
+ * 跟随元素的模型与视觉都还差这一段）；CanvasViewport.handleDragEnd 与单测共用本算式，保证测试执行真实代码路径。
+ */
+export function multiDragCommitPatches(args: MultiDragCommitArgs): MultiDragCommitResult {
+  const snapDx = args.leaderX - args.lastX
+  const snapDy = args.leaderY - args.lastY
+  const patches = new Map<string, { x: number; y: number }>()
+  patches.set(args.leaderId, commitDragPosition(args.leaderX, args.leaderY, args.preview))
+  for (const f of args.followers) {
+    patches.set(f.id, commitDragPosition(f.x + snapDx, f.y + snapDy, args.preview))
+  }
+  return { snapDx, snapDy, patches }
+}
+
 /** 适应窗口缩放：画布略小于视口。 */
 export function fitScale(viewportW: number, viewportH: number, canvasW: number, canvasH: number): number {
   return Math.max(0.05, Math.min((viewportW - 32) / canvasW, (viewportH - 32) / canvasH))
