@@ -122,7 +122,10 @@ export function HelpDot({ anchor, topicKey, open, onToggle, onClose, hasDemo, de
       {open &&
         createPortal(
           <div ref={bubbleRef} className="help-bubble" role="dialog" aria-label={t(`${topicKey}.title`)} style={bubbleStyle}>
-            <p className="help-bubble-body">{t(`${topicKey}.body`)}</p>
+            {/* 正文按换行分段（#316 陪验反馈 2）：词条 body 以 \n 划分段落，逐段渲染——单段词条照旧一节 */}
+            {String(t(`${topicKey}.body`)).split('\n').map((para, i) => (
+              <p key={i} className="help-bubble-body">{para}</p>
+            ))}
             {hasDemo && (
               <div className="help-bubble-foot">
                 {demoActive ? (

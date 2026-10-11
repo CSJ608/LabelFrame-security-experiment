@@ -459,7 +459,9 @@ label.field > .input, label.field > select.input { width: 100%; }
   animation: popIn 150ms ease-out;
   z-index: 90;
 }
-.help-bubble-body { margin-top: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
+/* 多段正文（#316 陪验反馈 2）：\n 分段渲染后的段间距——首段贴标题、段间留白可分辨 */
+.help-bubble-body { margin: 0 0 6px; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
+.help-bubble-body:last-of-type { margin-bottom: 0; }
 .help-bubble-foot { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
 .help-bubble-hint { font-size: 12px; line-height: 1.5; color: var(--ink-3); }
 /* 演示期间画布只读（拍板 4 方案 A）：pointer-events 收敛——选中 / 拖拽 / 缩放 / 滚轮 / 拖入全不响应，
@@ -469,11 +471,14 @@ label.field > .input, label.field > select.input { width: 100%; }
    文档站版式（Stripe / GitHub 口径）——滚动收敛到主区容器 .help-main（滚动高亮的基准也在此），
    .help-article 仅限宽 760px 不再自滚（防双滚动条）；窄窗（≤960px，对齐 .grid-2 断点先例）左栏
    收起、page-head 目录按钮展开为浮层覆盖。 */
-.help-layout { flex: 1; display: flex; min-height: 0; position: relative; }
+/* 帮助页白底（#316 陪验反馈 3）：阅读区与目录常驻白（--panel），与窄窗浮层目录同色——
+   全局灰底（--bg）仅留在页面外框，长文阅读不再灰底衬字 */
+.help-layout { flex: 1; display: flex; min-height: 0; position: relative; background: var(--panel); }
 .help-toc {
   width: 216px;
   flex: none;
   overflow-y: auto;
+  background: var(--panel);
   border-right: 1px solid var(--line);
   padding: 10px 8px 16px;
   display: flex;

@@ -168,7 +168,10 @@ export function Help({ onOpenInUi }: HelpProps) {
               {page?.topics.map((topic) => (
                 <section key={topic.id} className="help-topic" data-topic-id={topic.id}>
                   <h3>{t(`topic.${article}.${topic.id}.title`)}</h3>
-                  <p>{t(`topic.${article}.${topic.id}.body`)}</p>
+                  {/* 正文按换行分段（#316 陪验反馈 2）：与文档点气泡同一 \n 段落口径 */}
+                  {String(t(`topic.${article}.${topic.id}.body`)).split('\n').map((para, i) => (
+                    <p key={i}>{para}</p>
+                  ))}
                   {topic.anchor && topic.target && (
                     <button type="button" className="btn sm" onClick={() => onOpenInUi(topic.target!, topic.anchor!)}>
                       <Icon name="link" size={13} />

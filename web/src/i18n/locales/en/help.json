@@ -50,7 +50,7 @@
       },
       "actions": {
         "title": "Card Actions",
-        "body": "Use “Edit” on the card, or “Print” to fill in data and print this template in Data & Print. The “⋯” menu holds export and delete: export produces a template file you can import again later; delete asks for confirmation and cannot be undone."
+        "body": "Use “Edit” on the card, or “Print” to fill in data and print this template in Data & Print. \nThe “⋯” menu holds export and delete: export produces a template file you can import again later; delete asks for confirmation and cannot be undone."
       },
       "filter": {
         "title": "Search & Group Filter",
@@ -60,11 +60,11 @@
     "designer": {
       "canvas": {
         "title": "Canvas & Widget Bar",
-        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. Shortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. “Preview Print” shows the label at true print scale for the selected “Print DPI” (dots per inch, set in the top toolbar); the canvas locks while previewing — exit to keep editing."
+        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. \nShortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. \n“Preview Print” shows the label at true print scale for the selected “Print DPI” (dots per inch, set in the top toolbar); the canvas locks while previewing — exit to keep editing."
       },
       "fieldsSide": {
         "title": "Print Fields & Layers",
-        "body": "Print fields are derived automatically: any element whose source is “Field fill” counts as a field — no manual registration needed. The layer list orders elements back to front; click to select, use To Top / Up / Down / To Bottom to restack, Delete to remove."
+        "body": "Print fields are derived automatically: any element whose source is “Field fill” counts as a field — no manual registration needed. \nThe layer list orders elements back to front; click to select, use To Top / Up / Down / To Bottom to restack, Delete to remove."
       },
       "testData": {
         "title": "Test Defaults",
@@ -72,7 +72,7 @@
       },
       "saveFlow": {
         "title": "Save & Leave Guard",
-        "body": "“Save Template” writes the current layout; saving a new or renamed template that already exists asks for overwrite confirmation. Leaving with unsaved changes offers save & leave, discard, or stay."
+        "body": "“Save Template” writes the current layout; saving a new or renamed template that already exists asks for overwrite confirmation. \nLeaving with unsaved changes offers save & leave, discard, or stay."
       },
       "position": {
         "title": "Position / Size",
@@ -80,7 +80,7 @@
       },
       "fill": {
         "title": "Fill: Fixed Value or Field",
-        "body": "“Source” decides what prints: “Fixed value” renders the text as entered, for content that never changes; “Field fill” swaps in external data at print time. The field name is what the data is matched by — name it location, and printing takes the location value from your data. “Display name” only affects the print page and falls back to the field name when empty; the preview value shows on the canvas only and is ignored at print time."
+        "body": "“Source” decides what prints: “Fixed value” renders the text as entered, for content that never changes; “Field fill” swaps in external data at print time. \nThe field name is what the data is matched by — name it location, and printing takes the location value from your data. “Display name” only affects the print page and falls back to the field name when empty; the preview value shows on the canvas only and is ignored at print time."
       },
       "box": {
         "title": "Border / Padding",
@@ -92,11 +92,11 @@
       },
       "barcode": {
         "title": "Barcode Parameters",
-        "body": "“Symbology” is the barcode type: Code128 handles letters and digits and fits most cases; EAN13 is the 13-digit retail code; UPC is the 12-digit North American retail code; CODE39 is common in industry and logistics. “Show text below” toggles the human-readable line under the bars. “Module width” is the width of the narrowest bar — smaller packs the bars tighter; if scanners struggle, increase it."
+        "body": "“Symbology” is the barcode type: Code128 handles letters and digits and fits most cases; EAN13 is the 13-digit retail code; UPC is the 12-digit North American retail code; CODE39 is common in industry and logistics. \n“Show text below” toggles the human-readable line under the bars. “Module width” is the width of the narrowest bar — smaller packs the bars tighter; if scanners struggle, increase it."
       },
       "qrcode": {
         "title": "QR Code Parameters",
-        "body": "Error correction L / M / Q / H recovers roughly 7% / 15% / 25% / 30%: higher survives more damage but carries less data; M fits most cases. Margin adds quiet space around the code (mm). Width and height are linked; change one and the other follows."
+        "body": "Error correction L / M / Q / H recovers roughly 7% / 15% / 25% / 30%: higher survives more damage but carries less data; M fits most cases. \nMargin adds quiet space around the code (mm). Width and height are linked; change one and the other follows."
       },
       "rect": {
         "title": "Rectangle",
@@ -104,7 +104,7 @@
       },
       "line": {
         "title": "Line",
-        "body": "Lines cannot be created from the widget bar; they usually come in with imported designs and still display and print correctly. Length X / Length Y set horizontal, vertical or slanted lines; thickness is in millimeters (minimum 0.1). Rectangle borders also work for table grid lines."
+        "body": "Lines cannot be created from the widget bar; they usually come in with imported designs and still display and print correctly. \nLength X / Length Y set horizontal, vertical or slanted lines; thickness is in millimeters (minimum 0.1). Rectangle borders also work for table grid lines."
       },
       "compat": {
         "title": "Image / Container",
@@ -122,11 +122,11 @@
       },
       "debug": {
         "title": "Image Preview & Simulated Print",
-        "body": "“Image Preview” shows the current label in an in-page overlay and can download it; “Simulate output” renders at the exact resolution of a real print, supports whole batches, prints nothing and creates no record — use it to verify the final result. Unlike “Simulated printing” in Settings (a printer connection mode that saves jobs as image files), it works right on this page."
+        "body": "“Image Preview” shows the current label in an in-page overlay and can download it; “Simulate output” renders at the exact resolution of a real print, supports whole batches, prints nothing and creates no record — use it to verify the final result. \nUnlike “Simulated printing” in Settings (a printer connection mode that saves jobs as image files), it works right on this page."
       },
       "excel": {
         "title": "Excel Batch Printing",
-        "body": "“Download Excel Template” builds a sheet from the current template's fields (sample row included), one row per label. “Import Excel” then asks you to confirm which column maps to which field (auto-matched by column name, adjustable); unmapped columns don't print. Then submit the batch job."
+        "body": "“Download Excel Template” builds a sheet from the current template's fields (sample row included), one row per label. \n“Import Excel” then asks you to confirm which column maps to which field (auto-matched by column name, adjustable); unmapped columns don't print. Then submit the batch job."
       },
       "progress": {
         "title": "Job Progress & Retry",
@@ -150,11 +150,11 @@
       },
       "serverAddress": {
         "title": "Server Address",
-        "body": "The server stores all templates and print records; the address is normally configured by the installer. Confirm with your administrator before changing it. Run “Test Connection”, then “Save and Apply”; the saved address persists across restarts. Without a server you can still print directly on this machine (standalone mode)."
+        "body": "The server stores all templates and print records; the address is normally configured by the installer. Confirm with your administrator before changing it. \nRun “Test Connection”, then “Save and Apply”; the saved address persists across restarts. Without a server you can still print directly on this machine (standalone mode)."
       },
       "transport": {
         "title": "Connection",
-        "body": "The card collapses to the current connection; expand it to test or switch the printer connection. Switching happens only after “Test Connection” passes; on failure the reason is shown and the current connection is kept. The saved connection is used after restart. “Simulated printing” needs no printer: labels are generated as images saved on this machine, handy for checking the result first."
+        "body": "The card collapses to the current connection; expand it to test or switch the printer connection. Switching happens only after “Test Connection” passes; on failure the reason is shown and the current connection is kept. The saved connection is used after restart. \n“Simulated printing” needs no printer: labels are generated as images saved on this machine, handy for checking the result first."
       },
       "batch": {
         "title": "Print Batching",
@@ -166,7 +166,7 @@
       },
       "updates": {
         "title": "Updates & Packages",
-        "body": "Packages are distributed by the server: the card compares the local version with the latest; download a package from the list and run it to upgrade (the client does not upgrade itself), or ask your administrator for help. In standalone mode no packages are listed; connect to a server under “Server Address” above first."
+        "body": "Packages are distributed by the server: the card compares the local version with the latest; download a package from the list and run it to upgrade (the client does not upgrade itself), or ask your administrator for help. \nIn standalone mode no packages are listed; connect to a server under “Server Address” above first."
       },
       "plugins": {
         "title": "Plugin Management",

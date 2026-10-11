@@ -129,6 +129,49 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     onPending: () => app.setStatus(t('help:deepLink.pending')),
   })
 
+  // 深链到达性保障（#316 陪验反馈 1）：锚点变更时若目标分组对当前选中不可见（未选中 / 类型不含
+  // 目标组 / 对齐组少于多选），主动把界面带到锚点可见状态——否则页内轮询只会超时降级、气泡内容
+  // 始终看不到。两档处置：深链原装示例草稿且未编辑（deepLinkDraftRef 在场 + undoCount=0）→ 按新
+  // 锚点重建示例元素集（等价「换一个小节看」，不丢任何用户内容）；其余（用户草稿已编辑 / 已开模板）
+  // → 自动选中既有匹配型元素（对齐组选任意两个），没有匹配元素则不动作（不往用户内容里加元素，
+  // 维持超时降级口径）。
+  useEffect(() => {
+    if (!helpAnchor) return
+    const specs = Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? HELP_LINK_ELEMENTS[helpAnchor] : null
+    if (!specs) return // 非设计器文档点锚（settings 卡片等）——锚点常在，走既有轮询
+    const s = stateRef.current
+    if (!s) return
+    const selEls = s.elements.filter((e) => selectedRef.current.includes(e.id))
+    const types = new Set(specs.map((sp) => sp.type))
+    const reachable = helpAnchor === 'designer.align' ? selEls.length >= 2 : selEls.some((e) => types.has(e.type))
+    if (reachable) return
+    if (request.kind === 'new' && (historyRef.current?.undoCount ?? 0) === 0) {
+      // 重建示例集：undoCount=0 = 无任何用户已提交更改（含手动新建未动过的草稿），重建不丢工作；
+      // 沿用当前纸张尺寸，元素与历史基线整体换为目标锚点预设（undoCount 归零不 dirty）
+      const samples = buildHelpLinkElements(helpAnchor)
+      const next = { ...s, elements: samples }
+      stateRef.current = next
+      historyRef.current = createHistory(next, snap, parse)
+      setState(next)
+      const ids = samples.map((e) => e.id)
+      setSelected(ids)
+      selectedRef.current = ids
+      // 与挂载路径同款一次性标记：本次 onFound 不清状态栏（draftOpened 为终态提示）
+      deepLinkDraftRef.current = true
+      app.setStatus(t('help:deepLink.draftOpened'))
+      return
+    }
+    // 用户内容：只改选中不改元素（对齐组取任意两个，其余取首个匹配型）
+    const pick =
+      helpAnchor === 'designer.align'
+        ? s.elements.filter((e) => e.type !== 'Region').slice(0, 2).map((e) => e.id)
+        : [s.elements.find((e) => types.has(e.type))?.id].filter((id): id is string => id !== undefined)
+    if (pick.length === 0) return
+    setSelected(pick)
+    selectedRef.current = pick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [helpAnchor])
+
   const commit = useCallback((next: DesignState) => {
     stateRef.current = next
     if (historyRef.current) historyRef.current = historyRef.current.commit(next)

@@ -335,6 +335,39 @@ async function deepLinkFromHelp(sectionTopicId: string) {
 }
 
 describe('client 构建 · 帮助深链 sub 段（#316 · 决策 #178）', () => {
+  it('深链到达性（陪验反馈 1）：示例草稿上看另一小节——选中类型不含目标组时重建示例集，气泡直达', async () => {
+    render(<App />)
+    await screen.findByText(PAGE_MARKER.workbench)
+    await deepLinkFromHelp('fill')
+    // 第一次深链：Text 示例选中、填充组气泡弹出
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(document.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
+
+    // 二次深链条码参数（同页 sub 变化）：选中仍是 Text（条码组不渲染）→ 到达性保障按新锚点重建
+    // 示例元素集（Barcode）并选中 → 锚点出现 → 气泡切到条码参数（openDot 单值——旧气泡自动关闭）
+    window.location.hash = '#/designer/designer.barcode'
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    await waitFor(() => expect(document.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('条码参数'), { timeout: 5000 })
+    // 重建后条码组字段在场（码制选择）
+    expect(screen.getByText('码制')).toBeTruthy()
+  })
+
+  it('深链到达性（陪验反馈 1）：已开模板未选中——自动选中既有匹配型元素，气泡直达不超时降级', async () => {
+    mocks.server.listTemplates.mockResolvedValue([{ name: '库位标签', group: '默认', updatedAt: '2026-10-01' }])
+    mocks.server.getTemplate.mockResolvedValue(PKG_TEXT)
+    render(<App />)
+    await screen.findByText(PAGE_MARKER.workbench)
+    await screen.findByText('库位标签')
+    fireEvent.click(screen.getByRole('button', { name: '编辑' }))
+    await screen.findByDisplayValue('库位标签')
+    // 打开后无选中（属性面板空态）——旧口径此态深链只会超时降级；现在自动选中 text 元素（fill 组对其可见）
+    window.location.hash = '#/designer/designer.fill'
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    const dlg = await screen.findByRole('dialog')
+    expect(dlg.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
+    expect(screen.queryByText(/若未看到/)).toBeNull()
+  })
+
   it('原型链属性名 sub 段不崩溃不误触发：#/designer/toString 挂载 → 设计器空态、不自动开草稿（Object.hasOwn 回归，评审实证缺陷）', async () => {
     window.location.hash = '#/designer/toString'
     render(<App />)
