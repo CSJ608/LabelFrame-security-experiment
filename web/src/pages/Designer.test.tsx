@@ -42,9 +42,32 @@ vi.mock('../lib/api/client', () => ({
 }))
 // 本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
 vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
-// 画布桩：本文件只验证加载链路（serverMode 守卫），konva 画布由专门交互测试与真机验收覆盖
+// 画布桩：本文件只验证加载链路（serverMode 守卫），konva 画布由专门交互测试与真机验收覆盖。
+// #329 方案 v2 两步式链路需经画布动作驱动——桩以探针按钮转接两类回调：canvas-place＝画布点击
+// 放置 pendingType（onAddElement）；canvas-upload-empty＝画布空占位单击（onRequestImageUpload，
+// 拍板 2-A 的画布侧入口）。真实 Konva 命中 / 点击归 ElementNode 结构级断言＋AC-05 复陪验。
 vi.mock('./designer/CanvasViewport', () => ({
-  CanvasViewport: () => null,
+  CanvasViewport: (props: {
+    state: { elements: Array<{ id: string; type: string; key?: string }> }
+    pendingType: string | null
+    onAddElement: (type: string, xMm: number, yMm: number) => void
+    onRequestImageUpload?: (id: string) => void
+  }) => (
+    <div data-testid="canvas-stub">
+      <button data-testid="canvas-place" onClick={() => props.onAddElement(props.pendingType ?? 'Text', 10, 10)}>
+        place
+      </button>
+      <button
+        data-testid="canvas-upload-empty"
+        onClick={() => {
+          const empty = props.state.elements.find((e) => e.type === 'Image' && !e.key)
+          if (empty && props.onRequestImageUpload) props.onRequestImageUpload(empty.id)
+        }}
+      >
+        upload-empty
+      </button>
+    </div>
+  ),
 }))
 
 const PKG: TemplatePackage = {
@@ -402,19 +425,18 @@ describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
   })
 })
 
-// ---------- 迭代 132（#329，决策 #184）：图片控件上传链路（控件栏入口 → 建元素 → 保存请求体 → 重开回填） ----------
+// ---------- 迭代 132 返修（#329 方案 v2）：图片控件两步式上传链路（控件栏武装 → 画布空占位 → 上传填充 → 保存 → 重开往返） ----------
 
 /** 最小 PNG 字节（魔数 + 最小结构，前端不做图片解码校验——尺寸解码经下方 Image 桩）。 */
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52])
 
-/** jsdom 不解码图片位（onload 不触发）：以桩替换全局 Image，src 赋值即异步 onload 并给出固定像素尺寸
- *  （8×4 → 宽高比 2 → 初始尺寸 w=30 h=15，决策 #184 拍板 7「最长边夹 30mm」）。 */
-function stubImageElement(naturalWidth = 8, naturalHeight = 4) {
+/** jsdom 不解码图片位（onload 不触发）：以桩替换全局 Image，src 赋值即异步 onload 并给出固定像素尺寸（8×4）。 */
+function stubImageElement() {
   class FakeImage {
     onload: (() => void) | null = null
     onerror: (() => void) | null = null
-    naturalWidth = naturalWidth
-    naturalHeight = naturalHeight
+    naturalWidth = 8
+    naturalHeight = 4
     private _src = ''
     get src() {
       return this._src
@@ -427,14 +449,33 @@ function stubImageElement(naturalWidth = 8, naturalHeight = 4) {
   vi.stubGlobal('Image', FakeImage as unknown as typeof Image)
 }
 
-/** 上传一个 PNG 文件（经隐藏 input 的 change 事件）。 */
-function uploadImage(fileName = 'logo.png') {
+/** 桩 canvas 编码通道（压缩成功路径用）：getContext 回假 2d 上下文、toBlob 回固定体积 Blob。 */
+function stubCanvasEncode(blobBytes = new Uint8Array(300 * 1024)) {
+  const ctx = { drawImage: vi.fn() }
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D)
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (this: HTMLCanvasElement, cb: BlobCallback, mime?: string) {
+    cb(new Blob([blobBytes], { type: mime ?? 'application/octet-stream' }))
+    return undefined
+  })
+}
+
+/** 上传一个文件（经隐藏 input 的 change 事件）。 */
+function uploadImage(fileName = 'logo.png', bytes: BlobPart = PNG_BYTES, type = 'image/png') {
   const input = screen.getByTestId('image-file-input') as HTMLInputElement
-  const file = new File([PNG_BYTES], fileName, { type: 'image/png' })
+  const file = new File([bytes], fileName, { type })
   fireEvent.change(input, { target: { files: [file] } })
 }
 
-describe('图片控件上传链路（迭代 132 · #329）', () => {
+/** 两步式第一步：控件栏点「图片」武装 → 画布点击落空占位并选中。 */
+async function placeEmptyImagePlaceholder() {
+  fireEvent.click(screen.getByRole('button', { name: '图片' }))
+  // 武装态（pendingType=Image）后再点画布（桩按 pendingType 放置）
+  fireEvent.click(screen.getByTestId('canvas-place'))
+  // 空占位元素建立并选中：属性面板出现「未指定」态提示
+  await screen.findByText('尚未指定图片；点占位元素或「上传图片」均可。', undefined, { timeout: 3000 })
+}
+
+describe('图片控件两步式上传链路（#329 方案 v2）', () => {
   useStandaloneStubs()
 
   beforeEach(() => {
@@ -442,17 +483,20 @@ describe('图片控件上传链路（迭代 132 · #329）', () => {
   })
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
-  it('AC-02：控件栏入口可见，上传后建图片元素（key / 宽高比 30mm 夹取），保存请求体 images 含被引用 key', async () => {
+  it('AC-02：两步式放置——控件栏点「图片」武装 pendingType，画布点击落空占位（key 空、20×20mm），保存 images 为空字典', async () => {
     renderDesigner()
     await waitForNewReady()
-    // 控件栏第五入口「图片」在场
-    expect(screen.getByRole('button', { name: '图片' })).toBeTruthy()
+    // 控件栏第五入口「图片」在场且点击进入武装态（与其他控件同模式）
+    const paletteBtn = screen.getByRole('button', { name: '图片' })
+    fireEvent.click(paletteBtn)
+    expect(paletteBtn.className).toContain('armed')
 
-    uploadImage()
-    // 元素建立（属性面板图片组出现＝元素选中且类型 Image）＋添加成功状态（保存前断言——保存成功消息会覆盖）
-    await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
+    fireEvent.click(screen.getByTestId('canvas-place'))
+    // 已放置并选中（状态栏提示 + 属性面板图片组「未指定」态）
+    await screen.findByText('尚未指定图片；点占位元素或「上传图片」均可。', undefined, { timeout: 3000 })
     expect(screen.getByTestId('status-msg').textContent).toContain('已添加「图片」')
 
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
@@ -460,20 +504,81 @@ describe('图片控件上传链路（迭代 132 · #329）', () => {
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
 
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
-    // 建图片元素：sourceKey 指向资源 key，初始尺寸按宽高比 8:4 → 30×15mm
-    const imageElement = pkg.layout?.elements.find((e) => e.type === 'image')
-    expect(imageElement).toBeTruthy()
-    expect(imageElement?.sourceKey).toBe('logo.png')
-    expect(imageElement?.widthMm).toBe(30)
-    expect(imageElement?.heightMm).toBe(15)
-    // 保存请求体附带被引用资源（纯 base64，剥 dataURL 前缀）
+    // 空占位元素持久化：sourceKey 空字符串（key 空＝未指定），盒尺寸保持默认 20×20mm
+    const imageEl = pkg.layout?.elements.find((e) => e.type === 'image')
+    expect(imageEl).toBeTruthy()
+    expect(imageEl?.sourceKey).toBe('')
+    expect(imageEl?.widthMm).toBe(20)
+    expect(imageEl?.heightMm).toBe(20)
+    // 空 key 真值过滤：未被引用的资源不进 images（恒发显式空字典）
+    expect(pkg.images).toEqual({})
+  })
+
+  it('AC-02：上传填充（属性面板「上传图片」入口）——填充 key、保持用户所画盒、保存 images 含被引用 key、状态栏「已更新图片。」', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    await placeEmptyImagePlaceholder()
+
+    // 属性面板「上传图片」按钮（key 空态入口，与「更换图片」同回调语义）
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
+    uploadImage()
+    // 填充成功：元信息行出现（key + 解码尺寸），状态栏成功提示
+    await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
+    expect(screen.getByTestId('status-msg').textContent).toContain('已更新图片')
+
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    const imageEl = pkg.layout?.elements.find((e) => e.type === 'image')
+    expect(imageEl?.sourceKey).toBe('logo.png')
+    // 拍板 3-A：填充后保持用户所画盒（20×20mm 默认值不被 30mm 宽高比夹取改写）
+    expect(imageEl?.widthMm).toBe(20)
+    expect(imageEl?.heightMm).toBe(20)
     expect(Object.keys(pkg.images ?? {})).toEqual(['logo.png'])
     expect(pkg.images?.['logo.png']).toBe(btoa(String.fromCharCode(...PNG_BYTES)))
+  })
+
+  it('AC-02：画布空占位单击入口（拍板 2-A 的画布侧通道）——onRequestImageUpload 直接填充', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    await placeEmptyImagePlaceholder()
+
+    // 画布桩转接：空占位元素的单击回调（真实 Konva 命中归 AC-05）
+    fireEvent.click(screen.getByTestId('canvas-upload-empty'))
+    uploadImage()
+    await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
+  })
+
+  it('AC-02：空 key 元素往返——保存后重开占位复原（key 空、图层标签「图片（未指定）」、再保存 images 仍空）', async () => {
+    mocks.local.getTemplate.mockResolvedValue({
+      ...PKG,
+      layout: {
+        ...PKG.layout,
+        elements: [{ type: 'image', sourceKey: '', xMm: 2, yMm: 2, widthMm: 20, heightMm: 20 }],
+      },
+    })
+    renderDesigner('库位标签')
+    await waitForEditLoaded()
+
+    // 图层标签提升辨识：key 空显示「图片（未指定）」；点击选中
+    fireEvent.click(screen.getByText('图片（未指定）'))
+    expect(await screen.findByText('尚未指定图片；点占位元素或「上传图片」均可。', undefined, { timeout: 3000 })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    expect(pkg.layout?.elements[0]?.type).toBe('image')
+    expect(pkg.layout?.elements[0]?.sourceKey).toBe('')
+    expect(pkg.images).toEqual({})
   })
 
   it('AC-02：移除图片（删除元素）后保存，images 为空字典（恒发显式字典不依赖缺省态）', async () => {
     renderDesigner()
     await waitForNewReady()
+    await placeEmptyImagePlaceholder()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
     uploadImage()
     await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
 
@@ -507,24 +612,53 @@ describe('图片控件上传链路（迭代 132 · #329）', () => {
     expect(pkg.layout?.elements[0]?.type).toBe('image')
   })
 
-  it('超体积拒收：状态栏提示「添加图片失败」（前端预检）', async () => {
+  it('AC-01②：上传失败提醒为页内 toast（标题＋原因体），不再只是状态栏单条文字', async () => {
     renderDesigner()
     await waitForNewReady()
-    const input = screen.getByTestId('image-file-input') as HTMLInputElement
-    const big = new File([new Uint8Array(3 * 1024 * 1024)], 'big.png', { type: 'image/png' })
-    fireEvent.change(input, { target: { files: [big] } })
+    await placeEmptyImagePlaceholder()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
 
-    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('添加图片失败'), { timeout: 3000 })
-    expect(screen.getByTestId('status-msg').textContent).toContain('2MB')
+    // jsdom 无 2d context：压缩管道回退原文件 → 3MB 原样超限拒收（拒收闸按最终 blob 字节）
+    uploadImage('big.png', new Uint8Array(3 * 1024 * 1024))
+
+    const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
+    expect(toast.textContent).toContain('图片上传失败')
+    expect(toast.textContent).toContain('已自动压缩，仍超过 2MB 上限')
+    expect(toast.textContent).toContain('请调整后重试')
+    // toast 自动消失（5s）
+    await waitFor(() => expect(screen.queryByTestId('image-toast')).toBeNull(), { timeout: 8000 })
   })
 
-  it('格式拒收：非 PNG / JPG / BMP 提示不支持', async () => {
+  it('AC-01④：>1MB 触发自动压缩——压缩后入库（状态栏压缩提示含前后体积），保存请求体 images 体积 <2MB', async () => {
+    stubCanvasEncode(new Uint8Array(300 * 1024)) // 压缩产物 300KB
     renderDesigner()
     await waitForNewReady()
-    const input = screen.getByTestId('image-file-input') as HTMLInputElement
-    const gif = new File([new Uint8Array(8)], 'anim.gif', { type: 'image/gif' })
-    fireEvent.change(input, { target: { files: [gif] } })
+    await placeEmptyImagePlaceholder()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
 
-    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('不支持的图片格式'), { timeout: 3000 })
+    // 1.5MB JPEG：>1MB 阈值触发压缩管道（桩 canvas），压后 300KB 过 2MB 闸
+    uploadImage('photo.jpg', new Uint8Array(Math.floor(1.5 * 1024 * 1024)), 'image/jpeg')
+    await screen.findByText('图片资源：photo.jpg · 8×4 px', undefined, { timeout: 3000 })
+    expect(screen.getByTestId('status-msg').textContent).toContain('已自动压缩 1.5MB → 0.29MB')
+
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    const base64 = pkg.images?.['photo.jpg'] ?? ''
+    expect(base64.length).toBeGreaterThan(0)
+    // 入库字节 = 压缩产物（300KB），非原文件 1.5MB
+    expect(Math.floor((base64.length * 3) / 4)).toBe(300 * 1024)
+  })
+
+  it('格式拒收：非 PNG / JPG / BMP 以 toast 提示不支持', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    await placeEmptyImagePlaceholder()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
+
+    uploadImage('anim.gif', new Uint8Array(8), 'image/gif')
+    const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
+    expect(toast.textContent).toContain('不支持的图片格式')
   })
 })

@@ -95,6 +95,43 @@ public class SkiaRendererImageTests
     }
 
     [Fact]
+    public void Empty_source_key_should_skip_element_entirely_without_ink_or_border()
+    {
+        // #329 方案 v2：key 空＝未指定图片——整元素跳过（含边框）：渲染成功、元素盒内无墨、边框不画
+        var document = new LabelDocument
+        {
+            Layout = new LabelLayout
+            {
+                Name = "img",
+                ContractName = "img",
+                ContractVersion = "1.0",
+                WidthMm = 40,
+                HeightMm = 20,
+                Elements =
+                [
+                    // 边框 >0 也一并跳过（拍板 6-A「未指定＝不存在于打印面」，含边框）
+                    new LabelImageElement { SourceKey = "", XMm = 2, YMm = 5, WidthMm = 20, HeightMm = 10, BorderMm = 0.3 },
+                ],
+            },
+            Data = new Dictionary<string, string>(),
+        };
+
+        var bitmap = new SkiaLabelRenderer().RenderLabelBitmap(document, dpi: 203);
+
+        // 全页无墨（唯一元素被跳过；边框若误画会在元素盒边缘出墨）
+        var black = 0;
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                if ((bitmap.Pixels[y * bitmap.RowBytes + (x >> 3)] & (0x80 >> (x & 7))) != 0) black++;
+            }
+        }
+
+        Assert.True(black == 0, $"空 key 图片元素应整元素跳过（无墨、边框不画）：black={black}");
+    }
+
+    [Fact]
     public void Document_images_channel_should_still_work()
     {
         // 既有行为回归：请求附带（document.Images 打印时数据图通道，决策 #75）命中时不报缺资源、正常出墨

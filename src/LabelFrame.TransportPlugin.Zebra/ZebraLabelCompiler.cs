@@ -17,7 +17,8 @@ namespace LabelFrame.TransportPlugin.Zebra;
 /// 超长文本不换行不缩放直接输出，溢出为预期常态；对齐类能力（区域锚定 / 块内 TextAlign / 垂直对齐）无指令
 /// 原生等价，按内置字体度量（<see cref="ZebraTextWidthMeasurer"/>）在编译期换算起始坐标作尽力近似，
 /// 换算路径复用宿主同一 <see cref="LabelLayoutResolver"/>（决策 #110）。条码 / 二维码按元素起始坐标直接输出
-/// （迭代 79，#121），人眼可读行排版不做换行模拟；图片 / 线元素原生指令编译显式失败（§5.4.4）维持裁剪。
+/// （迭代 79，#121），人眼可读行排版不做换行模拟；图片 / 线元素原生指令编译显式失败（§5.4.4）维持裁剪
+/// （例外：图片元素 SourceKey 空＝未指定的空占位静默跳过不出指令，#329 方案 v2）。
 /// 中英文口径：文本仅接受打印机内置字体可覆盖的字符（可打印 ASCII + Latin-1）——中文等未覆盖字符（无中文字库）
 /// 显式拒绝（LF_ENC_002，§5.4.4「首版不做元素级混合模式」）；Code 128 字符集仅可打印 ASCII，中文等值
 /// 按 LF_ENC_001 编码拒绝（DESIGN §7「Code128 中文值专门校验」既有语义，与文本元素的 LF_ENC_002 区分）；
@@ -91,6 +92,10 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
 
                     sb.Append(compiledQr.Command);
                     break;
+                case LabelImageElement image when string.IsNullOrEmpty(image.SourceKey):
+                    // #329 方案 v2：SourceKey 空＝未指定图片（两步式空占位）——静默跳过不出指令，
+                    // 「未指定＝不存在于打印面」（与两渲染器同口径）；key 非空的有图元素仍按下方口径显式失败
+                    continue;
                 case LabelImageElement:
                     return Task.FromResult(Fail("含图片元素：打印机内置指令无法原生表示位图元素，可将打印方式切回图片。", null));
                 case LabelLineElement:

@@ -39,6 +39,9 @@ interface CanvasViewportProps {
   imageAssets?: Record<string, ImageAsset>
   onSelect: (ids: string[], toggle?: boolean) => void
   onAddElement: (type: string, xMm: number, yMm: number) => void
+  /** 空占位图片元素（key 空）被无修饰键单击（#329 方案 v2 拍板 2-A）：选中后直接打开文件选择；
+   *  Shift / Ctrl 修饰点击仅多选不触发（修饰语义优先，防误弹）。 */
+  onRequestImageUpload?: (id: string) => void
   /** dragend / transformend 提交（元素坐标 / 尺寸 / 锚定）。 */
   onUpdateElements: (updater: (els: DesignElement[]) => DesignElement[]) => void
   onCommit: () => void
@@ -248,7 +251,14 @@ export function CanvasViewport(props: CanvasViewportProps) {
       p.onSelect([], false)
       return
     }
-    p.onSelect([el.id()], ev.evt.shiftKey || ev.evt.ctrlKey)
+    const modifier = ev.evt.shiftKey || ev.evt.ctrlKey
+    p.onSelect([el.id()], modifier)
+    // 空占位图片元素无修饰键单击（拍板 2-A）：选中后直接打开文件选择上传（Konva 抑制拖拽后的 click，
+    // 拖动空占位不会误弹）；修饰键点击只多选，不走上传
+    if (!modifier && p.onRequestImageUpload) {
+      const target = elementById(p.state.elements, el.id())
+      if (target?.type === 'Image' && !target.key) p.onRequestImageUpload(el.id())
+    }
   }
 
   const handleWheel = (ev: KonvaEventObject<WheelEvent>) => {

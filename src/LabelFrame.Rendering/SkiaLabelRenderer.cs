@@ -525,6 +525,13 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         IReadOnlyDictionary<string, LabelRegionElement> regions,
         int dpi)
     {
+        // #329 方案 v2：SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框），
+        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（决策 #184 拍板 4-A 不变）
+        if (string.IsNullOrEmpty(image.SourceKey))
+        {
+            return;
+        }
+
         var bounds = LabelLayoutResolver.ResolveBounds(image, regions);
         var x = ToDots(bounds.XMm, dpi);
         var y = ToDots(bounds.YMm, dpi);

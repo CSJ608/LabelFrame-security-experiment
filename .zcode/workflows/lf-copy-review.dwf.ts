@@ -1,6 +1,6 @@
 /* zcode-workflow
-description: LabelFrame 工作流管线·文案评审段（清单驱动）：提炼产品文案风格基准，主编按方案「界面文案清单」契约校对草稿（重复/啰嗦/术语/中英对齐，含候选组），再经独立「新用户视角」评审，产出定稿落 Issue 评论「✅ 文案定稿 v1」。高档位运行（GLM-5.3）。
-whenToUse: 工作流实验管线第 3 段（方案「界面文案清单」节含 json 契约的迭代使用）：「✍️ 文案草稿 v1」评论在场后起跑，产出文案定稿供用户过目与实施段使用；无界面文案迭代由主控手贴「✅ 文案定稿 v1」占位声明跳过本段（四段轻装固定仪式）。
+description: LabelFrame 工作流管线·文案评审段（清单驱动）：提炼产品文案风格基准，主编按方案「界面文案清单」契约校对草稿（重复/啰嗦/术语/中英对齐，含候选组），再经独立「新用户视角」评审，产出定稿落 Issue 评论「✅ 文案定稿 vN」（消费最新草稿、定稿晚于草稿才幂等——同 Issue 返工不阻断）。高档位运行（GLM-5.3）。
+whenToUse: 工作流实验管线第 3 段（方案「界面文案清单」节含 json 契约的迭代使用）：「✍️ 文案草稿 vN」评论在场后起跑，产出文案定稿供用户过目与实施段使用；无界面文案迭代由主控手贴「✅ 文案定稿 vN」占位声明跳过本段（四段轻装固定仪式）。
 args:
   issue:
     type: number
@@ -8,7 +8,7 @@ args:
     required: true
 */
 // LabelFrame 工作流实验 · 文案评审段（lf-copy-review）· v3（#298 泛化：契约与断言改方案「界面文案清单」驱动，不再写死导览形态与 15~45 行/候选恰 3 组）
-// 职责：解析方案契约 → 提炼风格基准 → 主编逐条校对草稿（含候选组） → 独立「新用户视角」评审 → 终稿契约断言 → 落「✅ 文案定稿 v1」。
+// 职责：解析方案契约 → 提炼风格基准 → 主编逐条校对草稿（含候选组） → 独立「新用户视角」评审 → 终稿契约断言 → 落「✅ 文案定稿 vN」（消费最新草稿、版本递增）。
 // 前置：草稿评论在场；幂等：定稿评论已存在则直接退出。
 
 interface CopySlotSpec {
@@ -298,8 +298,18 @@ async function postIssueCommentByFile(num: number, body: string): Promise<void> 
 
 const issueNum = Number(args.issue);
 if (!Number.isFinite(issueNum) || issueNum <= 0) throw new Error("参数 issue 缺失或非法");
-const DRAFT_PREFIX = "**✍️ 文案草稿 v1**";
-const FINAL_PREFIX = "**✅ 文案定稿 v1**";
+/** 版本宽匹配（迭代 132 返修实证盲区补丁）：消费最新版草稿/定稿，幂等条件改为「定稿晚于草稿」——
+ *  同 Issue 方案返工产新草稿（vN+1）时旧定稿不阻断，新定稿按 maxV+1 递增。 */
+const DRAFT_HEAD_RE = /^\*\*✍️ 文案草稿 v(\d+)\*\*/;
+const FINAL_HEAD_RE = /^\*\*✅ 文案定稿 v(\d+)\*\*/;
+function maxHeadVersion(re: RegExp, comments: Comment[]): number {
+  let max = 0;
+  for (const c of comments) {
+    const m = re.exec(((c?.body ?? "").split("\n")[0]) ?? "");
+    if (m !== null && m[1] !== undefined) max = Math.max(max, Number(m[1]));
+  }
+  return max;
+}
 const PLAN_HEAD_RE = /^\*\*📐 方案 v(\d+)\*\*/;
 
 phase("建场守卫：核对草稿在场与定稿缺席");
@@ -309,12 +319,16 @@ const issue = JSON.parse(viewRes.stdout) as IssueJson;
 if (issue.state !== "OPEN") throw new Error(`Issue #${issueNum} 不是 OPEN 状态`);
 if (!issue.labels.map((l) => l.name).includes("工作流接管")) throw new Error(`Issue #${issueNum} 未带「工作流接管」标签`);
 const comments = issue.comments ?? [];
-const draftBody = latestCommentBody(DRAFT_PREFIX, comments);
-if (draftBody === null) throw new Error(`Issue #${issueNum} 无「✍️ 文案草稿 v1」评论——先跑文案段 lf-copy`);
-if (latestCommentBody(FINAL_PREFIX, comments) !== null) {
-  log("定稿评论已存在，幂等退出");
-  return { conclusion: `Issue #${issueNum} 已有「✅ 文案定稿 v1」评论，本段幂等退出。`, findings: [], verified: ["建场守卫：定稿评论在场"], notCovered: [] };
+const draftIdx = (function () { for (let i = comments.length - 1; i >= 0; i--) { if (DRAFT_HEAD_RE.test(((comments[i]?.body ?? "").split("\n")[0]) ?? "")) return i; } return -1; })();
+const finalIdx = (function () { for (let i = comments.length - 1; i >= 0; i--) { if (FINAL_HEAD_RE.test(((comments[i]?.body ?? "").split("\n")[0]) ?? "")) return i; } return -1; })();
+if (draftIdx < 0) throw new Error(`Issue #${issueNum} 无「✍️ 文案草稿 vN」评论——先跑文案段 lf-copy`);
+if (finalIdx !== -1 && finalIdx > draftIdx) {
+  log("最新定稿评论晚于最新草稿评论，幂等退出");
+  return { conclusion: `Issue #${issueNum} 最新「✅ 文案定稿 vN」晚于最新「✍️ 文案草稿」，本段幂等退出；新草稿落地后重跑即产新定稿。`, findings: [], verified: ["建场守卫：定稿晚于草稿"], notCovered: [] };
 }
+const draftBody = comments[draftIdx]?.body ?? "";
+const nextFinalV = maxHeadVersion(FINAL_HEAD_RE, comments) + 1;
+const FINAL_PREFIX = "**✅ 文案定稿 v" + nextFinalV + "**";
 const planIdx = commentHeadLastIndex(PLAN_HEAD_RE, comments);
 if (planIdx < 0) throw new Error(`Issue #${issueNum} 无「📐 方案 vN」评论——契约来源缺失（fail-closed）`);
 const contract = parseCopyContract(comments[planIdx]?.body ?? "");
@@ -408,7 +422,7 @@ const finalMd = [
   "```",
 ].join("\n");
 await postIssueCommentByFile(issueNum, finalMd);
-await artifact.markdown("copy-final", finalMd, { title: "文案定稿 v1（Issue #" + issueNum + "）", description: "主编校对 + 新用户视角评审后的定稿（文案表＋候选组，契约断言通过），含修订记录。", primary: true });
+await artifact.markdown("copy-final", finalMd, { title: "文案定稿 v" + nextFinalV + "（Issue #" + issueNum + "）", description: "主编校对 + 新用户视角评审后的定稿（文案表＋候选组，契约断言通过），含修订记录。", primary: true });
 log("定稿已落 Issue #" + issueNum);
 return {
   conclusion: `Issue #${issueNum} 文案定稿完成：${finalRows.length} 行（契约 ${contract.items.length} 条全覆盖）＋候选组 ${finalSets.length} 组，主编修订 ${copyRevision.edits.length} 处，新用户视角反馈 ${readerIssueCount} 条已吸收，清单契约断言通过。下一步：主会话交用户过目（含候选组选择，可改可跳过）后起实施段 lf-implement。`,

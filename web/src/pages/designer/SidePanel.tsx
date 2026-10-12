@@ -1,7 +1,8 @@
 // 设计器左侧栏：控件栏（点击放置 / 拖入画布）+ 打印字段（只读推导）+ 图层
 // 迭代 112（#246）：文案 key 化（designer 域 side.*）；控件栏标签随界面语言。
-// 迭代 132（#329）：控件栏增第五入口「图片」——点击走文件上传（onPickImage）而非武装 pendingType
-// （图片元素必须先有资源 key 才有意义，无资源的空占位不提供入口）；不支持拖入画布。
+// 迭代 132（#329）：控件栏增第五入口「图片」。
+// 迭代 132 返修（#329 方案 v2）：图片改两步式——与其他控件同模式（点击武装 pendingType /
+// 可拖入画布），先落空占位元素再上传填充（key 空＝未指定），不再走一步式文件上传入口。
 
 import { useTranslation } from 'react-i18next'
 import type { DesignElement } from '../../lib/design/types'
@@ -10,12 +11,12 @@ import { elementsByIds } from '../../lib/design/model'
 import type { FieldInfo } from '../../lib/design/fields'
 import { Icon } from '../../components/Icon'
 
-const PALETTE: { type: string; labelKey: string; icon: PaletteIconName; upload?: boolean }[] = [
+const PALETTE: { type: string; labelKey: string; icon: PaletteIconName }[] = [
   { type: 'Text', labelKey: 'type.text', icon: 'text' },
   { type: 'Barcode', labelKey: 'type.barcode', icon: 'barcode' },
   { type: 'QrCode', labelKey: 'type.qrcode', icon: 'qrcode' },
   { type: 'Rect', labelKey: 'type.rect', icon: 'rect' },
-  { type: 'Image', labelKey: 'type.image', icon: 'image', upload: true },
+  { type: 'Image', labelKey: 'type.image', icon: 'image' },
 ]
 
 type PaletteIconName = 'text' | 'barcode' | 'qrcode' | 'rect' | 'image'
@@ -27,8 +28,6 @@ export interface SidePanelProps {
   pendingType: string | null
   fields: FieldInfo[]
   onPickType: (type: string) => void
-  /** 控件栏「图片」入口点击：打开文件选择上传（迭代 132 · #329）。 */
-  onPickImage: () => void
   onSelect: (id: string, toggle?: boolean) => void
   onMoveLayer: (delta: number) => void
   onLayerTop: () => void
@@ -53,13 +52,9 @@ export function SidePanel(p: SidePanelProps) {
             <button
               key={it.type}
               className={'palette-btn' + (p.pendingType === it.type ? ' armed' : '')}
-              draggable={!locked && !it.upload}
+              draggable={!locked}
               onClick={() => {
                 if (locked) {
-                  return
-                }
-                if (it.upload) {
-                  p.onPickImage()
                   return
                 }
                 p.onPickType(p.pendingType === it.type ? '' : it.type)

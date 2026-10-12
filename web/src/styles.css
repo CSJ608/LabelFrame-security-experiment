@@ -821,6 +821,32 @@ label.field > .input, label.field > select.input { width: 100%; }
 .banner.error { background: var(--danger-soft); color: var(--danger); }
 .banner.notice { background: var(--accent-soft); color: var(--accent); }
 
+/* ---------- 设计器图片上传失败 toast（迭代 132 返修 · #329 方案 v2 拍板 1-A） ----------
+   页内轻量浮层、5s 自动消失、单条最新覆盖（Designer 局部状态驱动）；定位在设计器画布上方居中。 */
+.image-toast {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: 70%;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.image-toast-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+.image-toast-body {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* ---------- 进度 ---------- */
 .progress {
   height: 6px;
@@ -840,7 +866,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 /* ============================================================
    设计器
    ============================================================ */
-.designer-page { background: var(--bg); }
+.designer-page { background: var(--bg); position: relative; }
 
 .designer-toolbar {
   display: flex;

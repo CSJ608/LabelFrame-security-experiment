@@ -31,7 +31,6 @@ function renderSide(overrides: Partial<SidePanelProps> = {}) {
     pendingType: null,
     fields: FIELDS,
     onPickType: vi.fn<(type: string) => void>(),
-    onPickImage: vi.fn<() => void>(),
     onSelect: vi.fn<(id: string, toggle?: boolean) => void>(),
     onMoveLayer: vi.fn<(delta: number) => void>(),
     onLayerTop: vi.fn<() => void>(),
@@ -134,22 +133,42 @@ describe('打印字段（自动推导）', () => {
 })
 
 describe('控件栏', () => {
-  it('四类控件按钮：点击进入放置模式（onPickType）', () => {
+  it('五类控件按钮：点击进入放置模式（onPickType）——图片与其他控件同模式（两步式，#329 方案 v2）', () => {
     const p = renderSide()
-    for (const label of ['文本', '条码', '二维码', '矩形']) {
+    for (const label of ['文本', '条码', '二维码', '矩形', '图片']) {
       expect(screen.getByRole('button', { name: label })).toBeTruthy()
     }
     fireEvent.click(screen.getByRole('button', { name: '条码' }))
     expect(p.onPickType).toHaveBeenCalledWith('Barcode')
+    fireEvent.click(screen.getByRole('button', { name: '图片' }))
+    expect(p.onPickType).toHaveBeenCalledWith('Image')
   })
 
-  it('pendingType 武装态：对应按钮高亮（armed）+ 放置提示；再次点击取消（onPickType("")）', () => {
+  it('图片入口与文本同模式：draggable 解禁（可拖入画布，非锁死上传特例）', () => {
+    renderSide()
+    const image = screen.getByRole('button', { name: '图片' }) as HTMLButtonElement
+    const text = screen.getByRole('button', { name: '文本' }) as HTMLButtonElement
+    expect(image.draggable).toBe(true)
+    expect(image.draggable).toBe(text.draggable)
+    // 预览锁定时统一禁拖
+    cleanup()
+    renderSide({ viewMode: 'preview' })
+    expect((screen.getByRole('button', { name: '图片' }) as HTMLButtonElement).draggable).toBe(false)
+  })
+
+  it('pendingType 武装态：对应按钮高亮（armed）+ 放置提示；再次点击取消（onPickType("")）——含图片', () => {
     const p = renderSide({ pendingType: 'Barcode' })
     const btn = screen.getByRole('button', { name: '条码' })
     expect(btn.className).toContain('armed')
     expect(screen.getByText(/点击画布放置「条码」/)).toBeTruthy()
     fireEvent.click(btn)
     expect(p.onPickType).toHaveBeenCalledWith('')
+
+    // 图片武装态同款（放置提示文案随类型）
+    cleanup()
+    renderSide({ pendingType: 'Image' })
+    expect(screen.getByRole('button', { name: '图片' }).className).toContain('armed')
+    expect(screen.getByText(/点击画布放置「图片」/)).toBeTruthy()
   })
 })
 

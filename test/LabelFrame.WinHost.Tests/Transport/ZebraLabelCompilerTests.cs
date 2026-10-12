@@ -562,6 +562,19 @@ public class ZebraLabelCompilerTests
     }
 
     [Fact]
+    public void Image_element_with_empty_source_key_should_compile_by_skipping()
+    {
+        // #329 方案 v2：SourceKey 空＝未指定的空占位——静默跳过不出指令（不再无条件 Fail），
+        // 其余元素照常编译；key 非空的有图元素仍显式失败（上一用例锚定）
+        var result = Compile(Document("A-01", extraElements: new LabelImageElement { SourceKey = "", YMm = 10, WidthMm = 8, HeightMm = 8 }));
+
+        Assert.Null(result.ErrorCode);
+        Assert.Null(result.ErrorMessage);
+        // 文本元素照常编译（空占位元素被跳过，不产生指令也不阻断整页）
+        Assert.Contains("^A0N,", result.Command);
+    }
+
+    [Fact]
     public void Line_element_should_fail_explicitly()
     {
         var result = Compile(Document(extraElements: new LabelLineElement { XMm = 1, YMm = 18, X2Mm = 39, Y2Mm = 18, ThicknessMm = 0.3 }));

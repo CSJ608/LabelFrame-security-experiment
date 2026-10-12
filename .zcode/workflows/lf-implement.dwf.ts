@@ -1,6 +1,6 @@
 /* zcode-workflow
 description: LabelFrame 工作流管线·实施段：按最新方案评论与 Issue AC 在独立 worktree 实施（编码/测试/本地门禁/提 PR）；重入即修复模式（读评审段阻断清单修复再推）；改动面断言按 web/src/test/.zcode 并集。低档位运行（GLM-5.3-Flash）。
-whenToUse: 工作流实验管线第 4 段：「✅ 文案定稿 v1」评论在场后起跑建 PR——含界面文案迭代为 json 定稿块；无界面文案迭代由主控手贴占位声明（四段轻装固定仪式）；评审段产出「🔍 评审待修」后重入修复。
+whenToUse: 工作流实验管线第 4 段：最新版「✅ 文案定稿 vN」评论在场后起跑建 PR——含界面文案迭代为 json 定稿块；无界面文案迭代由主控手贴占位声明（四段轻装固定仪式）；评审段产出「🔍 评审待修」后重入修复。
 args:
   issue:
     type: number
@@ -93,7 +93,6 @@ if (!Number.isFinite(issueNum) || issueNum <= 0) throw new Error("参数 issue �
 const rawSlug = typeof args.slug === "string" && args.slug !== "" ? args.slug : "iter";
 const slug = rawSlug.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 30);
 const PLAN_HEAD_RE = /^\*\*📐 方案 v(\d+)\*\*/;
-const FINAL_PREFIX = "**✅ 文案定稿 v1**";
 const PR_PREFIX = "**🔧 PR 已建**";
 const REVIEW_TODO_PREFIX = "**🔍 评审待修**";
 const FIX_PREFIX = "**🔨 修复轮";
@@ -105,8 +104,14 @@ const issue = JSON.parse(viewRes.stdout) as IssueJson;
 if (issue.state !== "OPEN") throw new Error(`Issue #${issueNum} 不是 OPEN 状态`);
 if (!issue.labels.map((l) => l.name).includes("工作流接管")) throw new Error(`Issue #${issueNum} 未带「工作流接管」标签`);
 const comments = issue.comments ?? [];
-const prComment = latestCommentBody(PR_PREFIX, comments);
-const fixMode = prComment !== null;
+// 返修模式判定（迭代 132 返修实证盲区补丁）：「🔧 PR 已建」在场≠修复——仅当它晚于最新「📐 方案 vN」评论才进修复模式
+// （PR 建于当前方案之上）；方案更新（同 Issue 返工 vN+1）晚于 PR 评论时走新建模式对新方案建新 PR。
+const PLAN_HEAD_RE_LOCAL = /^\*\*📐 方案 v\d+\*\*/;
+const prIdx = (function () { for (let i = comments.length - 1; i >= 0; i--) { if ((((comments[i]?.body ?? "").split("\n")[0]) ?? "").startsWith(PR_PREFIX)) return i; } return -1; })();
+const planIdxForMode = (function () { for (let i = comments.length - 1; i >= 0; i--) { if (PLAN_HEAD_RE_LOCAL.test(((comments[i]?.body ?? "").split("\n")[0]) ?? "")) return i; } return -1; })();
+const fixMode = prIdx !== -1 && prIdx > planIdxForMode;
+const prComment = fixMode ? (comments[prIdx]?.body ?? null) : null;
+if (prIdx !== -1 && !fixMode) log("检测到旧「🔧 PR 已建」评论但晚于最新方案——按方案返工走新建模式建新 PR");
 const protocol = await files.read(".zcode/automations/iteration-duty.md");
 const safety = extractSafety(protocol);
 let branch: string;
@@ -134,15 +139,22 @@ if (fixMode) {
   const listEnd = listHead < 0 ? -1 : planBodyText.indexOf("\n## ", listHead);
   const listSection = listHead < 0 ? "" : (listEnd < 0 ? planBodyText.slice(listHead) : planBodyText.slice(listHead, listEnd));
   const planHasCopyList = listSection.includes("```json");
-  const finalBody = latestCommentBody(FINAL_PREFIX, comments);
-  if (finalBody === null) throw new Error(`Issue #${issueNum} 无「✅ 文案定稿 v1」评论——含界面文案迭代先跑文案评审段 lf-copy-review；无界面文案迭代由主控贴无文案占位声明`);
+  // 定稿消费（返修补丁）：取最新版「✅ 文案定稿 vN」评论（版本宽匹配首行），旧版定稿不遮挡新版。
+  const FINAL_HEAD_RE_LOCAL = /^\*\*✅ 文案定稿 v(\d+)\*\*/;
+  let finalIdxLocal = -1, finalV = 0;
+  for (let i = comments.length - 1; i >= 0; i--) {
+    const fm = FINAL_HEAD_RE_LOCAL.exec(((comments[i]?.body ?? "").split("\n")[0]) ?? "");
+    if (fm !== null && fm[1] !== undefined) { finalIdxLocal = i; finalV = Number(fm[1]); break; }
+  }
+  const finalBody = finalIdxLocal !== -1 ? (comments[finalIdxLocal]?.body ?? null) : null;
+  if (finalBody === null) throw new Error(`Issue #${issueNum} 无「✅ 文案定稿 vN」评论——含界面文案迭代先跑文案评审段 lf-copy-review；无界面文案迭代由主控贴无文案占位声明`);
   const finalHasJson = finalBody.includes("```json");
   // 「方案清单 × 定稿形态」双检（fail-closed）：方案声明与定稿形态必须同真同假——防漏跑文案段（清单在场却拿占位声明开工）与错配定稿（无清单却带 json 文案块）。
-  if (planHasCopyList && !finalHasJson) throw new Error(`Issue #${issueNum} 方案「界面文案清单」声明了界面文案，但「✅ 文案定稿 v1」为无 json 块的占位声明——文案段缺失，先跑 lf-copy 与 lf-copy-review（fail-closed）`);
+  if (planHasCopyList && !finalHasJson) throw new Error(`Issue #${issueNum} 方案「界面文案清单」声明了界面文案，但最新「✅ 文案定稿」为无 json 块的占位声明——文案段缺失，先跑 lf-copy 与 lf-copy-review（fail-closed）`);
   if (!planHasCopyList && finalHasJson) throw new Error(`Issue #${issueNum} 方案无「界面文案清单」但定稿含 json 文案块——定稿与方案形态不符，核对方案与定稿来源后重跑（fail-closed）`);
   copyRef = finalHasJson
-    ? `「✅ 文案定稿 v1」的 json 块（rows＋候选组）是文案唯一来源（逐字使用，不得改写）`
-    : `「✅ 文案定稿 v1」为无界面文案的占位声明（本轮无文案表，不适用逐字文案）`;
+    ? `最新版「✅ 文案定稿 v${finalV}」的 json 块（rows＋候选组）是文案唯一来源（逐字使用，不得改写）`
+    : `最新版「✅ 文案定稿 v${finalV}」为无界面文案的占位声明（本轮无文案表，不适用逐字文案）`;
   const prefix = /迭代\s*\d+/.test(issue.title) ? "iter/" : "fix/";
   branch = prefix + issueNum + "-" + slug;
   log("新建模式：分支 " + branch + " · 对照方案 v" + planVersion);

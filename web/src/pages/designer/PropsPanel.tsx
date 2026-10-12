@@ -26,7 +26,7 @@ export interface PropsPanelProps {
   onDelete: (ids: string[]) => void
   /** 图片资源表（key → 资源，迭代 132 · #329）：图片组信息行与缺资源判定用。 */
   imageAssets?: Record<string, ImageAsset>
-  /** 「更换图片」按钮：重选文件替换当前图片（换新 key，旧 key 孤儿随保存 GC——决策 #184）。 */
+  /** 「上传 / 更换图片」按钮：打开文件选择为目标元素填 key（空占位填充或换新 key，旧 key 孤儿随保存 GC——决策 #184）。 */
   onReplaceImage?: (id: string) => void
   /** 演示进行中（填充组「看实时效果」）：输入与操作禁用（AC-05，拍板 4 方案 A）。 */
   demoActive?: boolean
@@ -322,7 +322,11 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
             {t('props.imageTitle')}
             {dot('designer.image')}
           </div>
-          {e.key && imageAssets?.[e.key] ? (
+          {/* 三态（#329 方案 v2）：key 空＝未指定（提示＋「上传图片」）；key 非空有资源＝元信息；
+              key 非空缺资源＝资源缺失提示（可重新上传修复）。key 非空两态按钮组合不变（更换＋移除）。 */}
+          {!e.key ? (
+            <div className="hint">{t('props.imageEmpty')}</div>
+          ) : imageAssets?.[e.key] ? (
             <div className="hint mono">{t('props.imageMeta', { key: e.key, w: imageAssets[e.key].width, h: imageAssets[e.key].height })}</div>
           ) : (
             <div className="hint">{t('props.imageMissing')}</div>
@@ -330,7 +334,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
           <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
             <button className="btn sm" disabled={demoActive} onClick={() => onReplaceImage?.(e.id)}>
               <Icon name="upload" size={12} />
-              {t('props.imageReplace')}
+              {e.key ? t('props.imageReplace') : t('props.imageUpload')}
             </button>
             <button className="btn sm" disabled={demoActive} onClick={() => onDelete([e.id])}>
               <Icon name="trash" size={12} />

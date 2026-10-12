@@ -94,8 +94,9 @@ export interface ImageElement extends ElementBase {
   key: string
 }
 
-/** 图片资源（设计器内存态，迭代 132 · #329）：dataUrl 供画布解码；width / height 为原图像素尺寸（属性面板信息行）；
- *  sizeBytes 为原始字节量（上传预检总量上限用；模板回填按 base64 长度折算）。 */
+/** 图片资源（设计器内存态，迭代 132 · #329）：dataUrl 供画布解码；width / height 为入库图片像素尺寸（属性面板信息行）；
+ *  sizeBytes 为入库（压缩后）字节量——上传预检总量上限与保存体积按此计（#329 方案 v2 起超 1MB 走压缩管道，
+ *  入库字节 ≠ 用户原文件字节；模板回填按 base64 长度折算）。 */
 export interface ImageAsset {
   dataUrl: string
   width: number
@@ -161,19 +162,6 @@ export function defaultElement(type: ElementType, id = uid()): DesignElement {
   }
 }
 
-/** 图片元素构造辅助（迭代 132 · #329，拍板 7）：初始尺寸按原图宽高比、最长边夹取 30mm（可拖拽调整）。 */
-export function imageElement(key: string, aspect: number, id = uid()): ImageElement {
-  const r2 = (v: number) => Math.round(v * 100) / 100
-  const maxMm = 30
-  let w = maxMm
-  let h = maxMm
-  if (aspect > 0 && Number.isFinite(aspect)) {
-    if (aspect >= 1) h = maxMm / aspect
-    else w = maxMm * aspect
-  }
-  return { id, x: 5, y: 20, w: Math.max(1, r2(w)), h: Math.max(1, r2(h)), border: 0, type: 'Image', key }
-}
-
 /** 元素类型显示名（随界面语言）。 */
 export function typeLabel(e: DesignElement): string {
   switch (e.type) {
@@ -200,7 +188,8 @@ export function layerLabel(e: DesignElement): string {
       return i18next.t('designer:layer.typedField', { type: t, key: e.key || i18next.t('designer:layer.unbound'), text: e.text || '' })
     }
     case 'Rect': return i18next.t('designer:type.rect')
-    case 'Image': return e.key ? i18next.t('designer:layer.imageWithKey', { type: i18next.t('designer:type.image'), key: e.key }) : i18next.t('designer:type.image')
+    // 图片：key 空＝未指定（两步式空占位，#329 方案 v2）——图层标签提升辨识
+    case 'Image': return e.key ? i18next.t('designer:layer.imageWithKey', { type: i18next.t('designer:type.image'), key: e.key }) : i18next.t('designer:layer.imageEmpty')
     case 'Line': return i18next.t('designer:type.line')
     case 'Region': return i18next.t('designer:type.region')
   }

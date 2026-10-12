@@ -16,7 +16,8 @@
     "textField": "({{key}}) {{text}}",
     "typedLiteral": "({{type}}) {{text}}",
     "typedField": "({{type}}) ({{key}}) {{text}}",
-    "imageWithKey": "{{type}} ({{key}})"
+    "imageWithKey": "{{type}} ({{key}})",
+    "imageEmpty": "Image (not set)"
   },
   "content": {
     "literalEmpty": "(fixed value)",
@@ -26,6 +27,7 @@
     "barcodePlaceholder": "Barcode · field not bound",
     "qrPlaceholder": "QR code · field not bound",
     "imageNode": "Image: {{key}}",
+    "imageEmpty": "Click to upload an image",
     "regionNode": "Container {{id}}",
     "previewHint": "{{dpi}} dpi print preview · middle-drag pan · Ctrl+wheel zoom"
   },
@@ -62,8 +64,12 @@
     "saved": "Template \"{{name}}\" saved.",
     "saveFailed": "Save failed.",
     "nameRequired": "Enter a template name first.",
-    "imageRejected": "Failed to add image: {{reason}}",
-    "imageLoaded": "Added \"Image\"."
+    "imageReplaced": "Image updated.",
+    "imageCompressed": "Automatically compressed {{from}} MB → {{to}} MB.",
+    "imageRejected": {
+      "title": "Image Upload Failed",
+      "body": "{{reason}}. Adjust and try again."
+    }
   },
   "toolbar": {
     "backTitle": "Back to workbench",
@@ -205,6 +211,8 @@
     "imageTitle": "Image",
     "imageMeta": "Image resource: {{key}} · {{w}}×{{h}} px",
     "imageMissing": "Image missing. Re-upload with \"Replace Image\".",
+    "imageEmpty": "No image set yet; click the placeholder or \"Upload Image\".",
+    "imageUpload": "Upload Image",
     "imageReplace": "Replace Image",
     "imageRemove": "Remove Image"
   },
@@ -231,7 +239,7 @@
   },
   "imageReject": {
     "format": "unsupported image format (PNG / JPG / BMP only)",
-    "tooLarge": "image exceeds the 2MB limit",
+    "tooLarge": "still exceeds the 2MB limit after automatic compression",
     "tooMany": "more than 10 images per template",
     "totalTooLarge": "template images exceed the 10MB limit"
   }

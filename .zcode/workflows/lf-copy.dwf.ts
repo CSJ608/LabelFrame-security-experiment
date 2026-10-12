@@ -1,5 +1,5 @@
 /* zcode-workflow
-description: LabelFrame 工作流管线·文案草拟段（清单驱动）：按最新方案「界面文案清单」json 契约（槽位×zh/en 上限由方案声明）撰写迭代全部界面文案草稿（文案表＋候选组），落 Issue 评论「✍️ 文案草稿 v1」。低档位运行（GLM-5.3-Flash）。
+description: LabelFrame 工作流管线·文案草拟段（清单驱动）：按最新方案「界面文案清单」json 契约（槽位×zh/en 上限由方案声明）撰写迭代全部界面文案草稿（文案表＋候选组），落 Issue 评论「✍️ 文案草稿 vN」（与最新方案比新旧、版本递增——同 Issue 方案返工不阻断）。低档位运行（GLM-5.3-Flash）。
 whenToUse: 工作流实验管线第 2 段（方案「界面文案清单」节含 json 契约的迭代使用）：最新「📐 方案 vN」评论在场后起跑，产出文案草稿供评审段校对。
 args:
   issue:
@@ -8,7 +8,7 @@ args:
     required: true
 */
 // LabelFrame 工作流实验 · 文案草拟段（lf-copy）· v3（#298 泛化：从导览/帮助专用改「界面文案清单」契约驱动——任务面、槽位集、字数上限、候选组数全部来自方案，不再写死任务清单 A–H 与 15~45 行等硬编码）
-// 职责：按最新「📐 方案 vN」的「界面文案清单」json 契约撰写迭代全部界面文案草稿（zh+en），落 Issue 评论「✍️ 文案草稿 v1」。
+// 职责：按最新「📐 方案 vN」的「界面文案清单」json 契约撰写迭代全部界面文案草稿（zh+en），落 Issue 评论「✍️ 文案草稿 vN」（与最新方案比新旧、版本递增——同 Issue 方案返工不阻断）。
 // 前置：最新方案评论在场且其清单节含 json 契约块（fail-closed）；幂等：草稿评论已存在则直接退出。
 
 interface CopySlotSpec {
@@ -288,7 +288,17 @@ async function postIssueCommentByFile(num: number, body: string): Promise<void> 
 const issueNum = Number(args.issue);
 if (!Number.isFinite(issueNum) || issueNum <= 0) throw new Error("参数 issue 缺失或非法");
 const PLAN_HEAD_RE = /^\*\*📐 方案 v(\d+)\*\*/;
-const DRAFT_PREFIX = "**✍️ 文案草稿 v1**";
+/** 草稿版本宽匹配（迭代 132 返修实证盲区补丁）：草稿评论须与最新方案比新旧，而非「存在即退出」——
+ *  同 Issue 方案返工（vN 递增）时旧草稿在场不阻断，新草稿按 maxV+1 递增落评论。 */
+const DRAFT_HEAD_RE = /^\*\*✍️ 文案草稿 v(\d+)\*\*/;
+function maxDraftVersion(comments: Comment[]): number {
+  let max = 0;
+  for (const c of comments) {
+    const m = DRAFT_HEAD_RE.exec(((c?.body ?? "").split("\n")[0]) ?? "");
+    if (m !== null && m[1] !== undefined) max = Math.max(max, Number(m[1]));
+  }
+  return max;
+}
 const MAX_REWRITE = 2;
 
 phase("建场守卫：核对方案在场与草稿缺席");
@@ -302,10 +312,13 @@ const comments = issue.comments ?? [];
 const planIdx = commentHeadLastIndex(PLAN_HEAD_RE, comments);
 if (planIdx < 0) throw new Error(`Issue #${issueNum} 无「📐 方案 vN」评论——先跑设计段 lf-design`);
 const planBody = comments[planIdx]?.body ?? "";
-if (latestCommentBody(DRAFT_PREFIX, comments) !== null) {
-  log("草稿评论已存在，幂等退出");
-  return { conclusion: `Issue #${issueNum} 已有「✍️ 文案草稿 v1」评论，本段幂等退出。`, findings: [], verified: ["建场守卫：草稿评论在场"], notCovered: [] };
+const draftIdx = commentHeadLastIndex(DRAFT_HEAD_RE, comments);
+if (draftIdx !== -1 && draftIdx > planIdx) {
+  log("最新草稿评论晚于最新方案评论，幂等退出");
+  return { conclusion: `Issue #${issueNum} 最新「✍️ 文案草稿 vN」晚于最新「📐 方案」评论，本段幂等退出；方案更新后重跑即产新版本草稿。`, findings: [], verified: ["建场守卫：草稿晚于方案"], notCovered: [] };
 }
+const nextDraftV = maxDraftVersion(comments) + 1;
+const DRAFT_PREFIX = "**✍️ 文案草稿 v" + nextDraftV + "**";
 const contract = parseCopyContract(planBody);
 log("清单契约解析：" + contract.items.length + " 条文案项＋" + contract.candidates.length + " 组候选，开始撰写");
 
@@ -396,7 +409,7 @@ const draftMd = [
   "```",
 ].join("\n");
 await postIssueCommentByFile(issueNum, draftMd);
-await artifact.markdown("copy-draft", draftMd, { title: "文案草稿 v1（Issue #" + issueNum + "）", description: "按方案「界面文案清单」契约产出的文案草稿（文案表＋候选组），待评审段校对。", primary: true });
+await artifact.markdown("copy-draft", draftMd, { title: "文案草稿 v" + nextDraftV + "（Issue #" + issueNum + "）", description: "按方案「界面文案清单」契约产出的文案草稿（文案表＋候选组），待评审段校对。", primary: true });
 log("草稿已落 Issue #" + issueNum);
 return {
   conclusion: `Issue #${issueNum} 文案草稿完成：${draft.rows.length} 行 zh+en（按清单 ${contract.items.length} 条）＋候选组 ${draft.candidateSets.length} 组，风格模仿自现有 i18n 资源，清单契约定量断言全部通过。下一步：起文案评审段 lf-copy-review。`,

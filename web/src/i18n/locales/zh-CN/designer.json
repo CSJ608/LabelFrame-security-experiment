@@ -16,7 +16,8 @@
     "textField": "({{key}}) {{text}}",
     "typedLiteral": "({{type}}) {{text}}",
     "typedField": "({{type}}) ({{key}}) {{text}}",
-    "imageWithKey": "{{type}} ({{key}})"
+    "imageWithKey": "{{type}} ({{key}})",
+    "imageEmpty": "图片（未指定）"
   },
   "content": {
     "literalEmpty": "（固定值）",
@@ -26,6 +27,7 @@
     "barcodePlaceholder": "条码 · 未绑定字段",
     "qrPlaceholder": "二维码 · 未绑定字段",
     "imageNode": "图片: {{key}}",
+    "imageEmpty": "点击上传图片",
     "regionNode": "容器 {{id}}",
     "previewHint": "{{dpi}} dpi 打印预览 · 中键平移 · Ctrl+滚轮缩放"
   },
@@ -62,8 +64,12 @@
     "saved": "模板「{{name}}」已保存。",
     "saveFailed": "保存失败。",
     "nameRequired": "请先填写模板名称。",
-    "imageRejected": "添加图片失败：{{reason}}",
-    "imageLoaded": "已添加「图片」。"
+    "imageReplaced": "已更新图片。",
+    "imageCompressed": "已自动压缩 {{from}}MB → {{to}}MB。",
+    "imageRejected": {
+      "title": "图片上传失败",
+      "body": "{{reason}}，请调整后重试。"
+    }
   },
   "toolbar": {
     "backTitle": "返回工作台",
@@ -205,6 +211,8 @@
     "imageTitle": "图片",
     "imageMeta": "图片资源：{{key}} · {{w}}×{{h}} px",
     "imageMissing": "图片资源缺失，请点「更换图片」重新上传。",
+    "imageEmpty": "尚未指定图片；点占位元素或「上传图片」均可。",
+    "imageUpload": "上传图片",
     "imageReplace": "更换图片",
     "imageRemove": "移除图片"
   },
@@ -231,7 +239,7 @@
   },
   "imageReject": {
     "format": "不支持的图片格式（仅 PNG / JPG / BMP）",
-    "tooLarge": "图片超过 2MB 上限",
+    "tooLarge": "已自动压缩，仍超过 2MB 上限",
     "tooMany": "图片数量超过 10 张上限",
     "totalTooLarge": "图片总量超过 10MB 上限"
   }

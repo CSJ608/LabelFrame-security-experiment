@@ -2,6 +2,9 @@
 // 迭代 112（#246）：画布节点文案（图片 / 容器占位）key 化（designer 域）。
 // 迭代 132（#329）：图片元素由占位框升级为实际图片内容（资源表 dataURL 异步解码为
 // HTMLImageElement 喂 Konva Image）；缺资源 / 加载失败保持占位框（决策 #184 拍板 4-A）。
+// 迭代 132 返修（#329 方案 v2）：图片内容三态——key 空＝未指定（虚线空占位）、key 非空缺资源＝
+// 缺资源占位、加载成功＝实际图片；成功分支与空占位分支都带整盒 fill 命中区（KImage listening={false}
+// 不参与命中——无 fill 兜底则画布点击穿透，返修 1 阻断项）。
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -47,6 +50,9 @@ export function ElementNode({ e, editable, ox, oy, imageAssets, onDragStart, onD
     onDragMove,
     onDragEnd,
   }
+
+  // 预览态（editable=false）且 key 空：不渲染任何内容（「未指定＝不存在于打印面」，方案 v2 AC-02e）
+  if (!editable && e.type === 'Image' && !e.key) return null
 
   switch (e.type) {
     case 'Text':
@@ -180,8 +186,11 @@ function ImageContent({ e, wPx, hPx, qr }: { e: BarcodeElement | QrCodeElement; 
 }
 
 /** 图片元素内容（迭代 132 · #329）：资源表 dataURL 异步解码为 HTMLImageElement 喂 Konva Image，
- *  拉伸填满元素盒（决策 #184 填充拍板 A，与后端渲染同口径）；缺资源 / 加载失败回退占位框（拍板 4-A：
- *  编辑器内可辨认、可重新上传修复；预览 / 打印侧才显式报错）。 */
+ *  拉伸填满元素盒（决策 #184 填充拍板 A，与后端渲染同口径）。三态（方案 v2）：
+ *  key 空＝未指定（虚线空占位，canvas.imageEmpty）；key 非空缺资源 / 解码中 / 加载失败＝
+ *  缺资源占位（拍板 4-A：编辑器内可辨认、可重新上传修复；预览 / 打印侧才显式报错）；
+ *  加载成功＝实际图片。成功分支与空占位分支都渲染整盒 fill 的 Rect——KImage listening={false}
+ *  不参与事件命中，命中全靠这个 Rect（对齐 Rect 控件口径，「盒即命中」）。 */
 function ElementImageContent({ e, wPx, hPx, borderW, asset }: { e: DesignElement; wPx: number; hPx: number; borderW: number; asset?: ImageAsset }) {
   const { t } = useTranslation('designer')
   const [img, setImg] = useState<HTMLImageElement | null>(null)
@@ -207,20 +216,23 @@ function ElementImageContent({ e, wPx, hPx, borderW, asset }: { e: DesignElement
     }
   }, [dataUrl])
 
+  const key = (e as { key?: string }).key || ''
+
   if (img) {
     return (
       <>
         <KImage image={img} x={0} y={0} width={wPx} height={hPx} listening={false} />
-        {e.border > 0 && <KRect x={0} y={0} width={wPx} height={hPx} stroke="#000" strokeWidth={borderW} strokeScaleEnabled={false} />}
+        {/* 兜底命中区：fill=transparent 整盒常在（stroke 仅 border>0）——一个 Rect 同时承担边框与命中 */}
+        <KRect x={0} y={0} width={wPx} height={hPx} fill="transparent" stroke={e.border > 0 ? '#000' : undefined} strokeWidth={borderW} strokeScaleEnabled={false} />
       </>
     )
   }
 
-  // 占位框（缺资源 / 解码中 / 加载失败；与既有形态一致）
+  // 空占位（key 空＝未指定）与缺资源占位（key 非空）：形态一致（虚线灰框），文案分流；整盒 fill 命中保留
   return (
     <>
       <KRect x={0} y={0} width={wPx} height={hPx} fill="#f5f6f8" stroke={e.border > 0 ? '#000' : '#aab4c0'} strokeWidth={borderW} dash={[4, 3]} strokeScaleEnabled={false} />
-      <KText x={4} y={4} text={t('canvas.imageNode', { key: (e as { key?: string }).key || '' })} fontSize={11} fontFamily="Microsoft YaHei" fill="#6b7684" listening={false} />
+      <KText x={4} y={4} text={key ? t('canvas.imageNode', { key }) : t('canvas.imageEmpty')} fontSize={11} fontFamily="Microsoft YaHei" fill="#6b7684" listening={false} />
     </>
   )
 }

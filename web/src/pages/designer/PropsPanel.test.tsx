@@ -325,6 +325,20 @@ describe('图片元素属性组（迭代 132 · #329）', () => {
     expect(onDelete).toHaveBeenCalledWith(['i1'])
   })
 
+  it('key 空（未指定，三态拆分 · 方案 v2）：提示尚未指定图片＋「上传图片」入口；「移除图片」删除该空占位元素', () => {
+    // key 空与缺资源是不同态：提示不出现「资源缺失」字样（未指定 ≠ 缺资源）
+    const emptyEl = { ...defaultElement('Image', 'i1'), key: '' } as DesignElement
+    const { onReplaceImage, onDelete } = renderImageProps([emptyEl], ['i1'])
+    expect(screen.getByText('尚未指定图片；点占位元素或「上传图片」均可。')).toBeTruthy()
+    expect(screen.queryByText(/图片资源缺失/)).toBeNull()
+    expect(screen.getByRole('button', { name: '上传图片' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '更换图片' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
+    expect(onReplaceImage).toHaveBeenCalledWith('i1')
+    fireEvent.click(screen.getByRole('button', { name: '移除图片' }))
+    expect(onDelete).toHaveBeenCalledWith(['i1'])
+  })
+
   it('容器元素仍挂 compat 组（收敛为仅容器）；边框字段保留', () => {
     renderImageProps([{ ...defaultElement('Region', 'r1') }], ['r1'])
     expect(document.querySelector('[data-help="designer.compat"]')).toBeTruthy()
@@ -349,7 +363,6 @@ describe('设计器主链：图层选择 → 属性面板字段（SidePanel + Pr
           pendingType={null}
           fields={deriveFieldInfos(elements)}
           onPickType={() => {}}
-          onPickImage={() => {}}
           onSelect={(id, toggle) => setSelected((prev) => (toggle ? prev.filter((x) => x !== id).concat(prev.includes(id) ? [] : [id]) : [id]))}
           onMoveLayer={() => {}}
           onLayerTop={() => {}}

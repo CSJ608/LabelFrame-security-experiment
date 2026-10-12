@@ -21,11 +21,12 @@ import { PropsPanel } from './designer/PropsPanel'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
 import type { DesignElement, ImageAsset, ImageElement } from '../lib/design/types'
-import { cloneElement, defaultElement, imageElement } from '../lib/design/types'
+import { cloneElement, defaultElement } from '../lib/design/types'
 import { deriveFieldInfos } from '../lib/design/fields'
 import { createHistory } from '../lib/design/history'
 import { r2 } from '../lib/design/geometry'
 import { exportDesign, parseDesign } from '../lib/design/format'
+import { compressImageIfNeeded } from '../lib/design/imageCompress'
 import { HELP_DEMO_PRESETS, HELP_LINK_ELEMENTS, helpSampleDisplayName } from '../lib/help'
 import { useHelpDeepLink } from '../lib/helpLink'
 import i18next from '../i18n'
@@ -37,14 +38,21 @@ const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.pa
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 
 // ---------- 图片资源（迭代 132 · #329，决策 #184）：限制上限与前端预检常量 ----------
+// 方案 v2：限制按入库（压缩后）字节判定——>1MB 先走浏览器内压缩管道（imageCompress），压缩后仍超限才拒收
 /** 支持格式（accept + 预检白名单，与服务端格式探嗅对齐）。 */
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/bmp'
-/** 单图原始字节上限（2MB）。 */
+/** 单图入库字节上限（2MB，压缩后）。 */
 const IMAGE_MAX_BYTES = 2 * 1024 * 1024
 /** 单模板张数上限。 */
 const IMAGE_MAX_COUNT = 10
-/** 单模板总量上限（10MB，原始字节）。 */
+/** 单模板总量上限（10MB，入库字节）。 */
 const IMAGE_MAX_TOTAL_BYTES = 10 * 1024 * 1024
+
+/** 字节数 → MB 显示（压缩提示插值用）：≥1MB 一位小数，更小保留两位（防「0.0MB」失真）。 */
+function fmtMb(bytes: number): string {
+  const v = bytes / (1024 * 1024)
+  return v >= 1 ? v.toFixed(1) : v.toFixed(2)
+}
 
 /** 文件名净化为资源 key（对齐后端 zip SanitizeKey 口径：字母数字与 . - _ 之外替换 _，空名兜底 image）。 */
 function sanitizeImageKey(fileName: string): string {
@@ -89,8 +97,8 @@ function decodeImageSize(dataUrl: string): Promise<{ width: number; height: numb
   })
 }
 
-/** 读文件为 dataURL。 */
-function readFileAsDataUrl(file: File): Promise<string> {
+/** 读文件为 dataURL（File 或压缩产物 Blob 均可）。 */
+function readFileAsDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result))
@@ -377,7 +385,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     (type: string, xMm: number, yMm: number) => {
       const s = stateRef.current
       if (!s) return
-      const e = defaultElement(type as 'Text' | 'Barcode' | 'QrCode' | 'Rect') as DesignElement
+      // 五类控件栏入口（图片两步式：先落 key 空 20×20mm 空占位，再上传填充——#329 方案 v2）
+      const e = defaultElement(type as 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image') as DesignElement
       e.x = Math.max(0, Math.min(s.paperW - 2, r2(xMm)))
       e.y = Math.max(0, Math.min(s.paperH - 2, r2(yMm)))
       const next = { ...s, elements: [...s.elements, e] }
@@ -399,36 +408,61 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     [commit],
   )
 
-  // ---------- 图片上传（迭代 132 · #329，决策 #184）----------
-  /** 文件落地：校验（格式 / 单图 / 张数 / 总量，前端预检与服务端硬校验双闸）→ dataURL → 解码尺寸 →
-   *  key 净化去重 → 建图片元素（初始尺寸按宽高比最长边夹 30mm）或更换目标元素 key（换新 key 防共享旧 key
-   *  的多元素同变；旧 key 孤儿随保存 GC）。资源表不进历史快照——撤销「添加图片元素」即成孤儿，保存时回收。 */
+  // ---------- 图片上传（迭代 132 · #329，决策 #184；方案 v2 两步式＋压缩） ----------
+  /** 上传失败提醒（拍板 1-A）：页内轻量 toast 浮层自动消失（5s）——单条最新覆盖（连续失败不堆积），
+   *  Designer 局部实现不引全局组件；成功 / 压缩提示仍走状态栏（常驻语义，最新覆盖）。 */
+  const [imageToast, setImageToast] = useState<string | null>(null)
+  const imageToastTimerRef = useRef<number | null>(null)
+  const showImageToast = useCallback((message: string) => {
+    setImageToast(message)
+    if (imageToastTimerRef.current !== null) window.clearTimeout(imageToastTimerRef.current)
+    imageToastTimerRef.current = window.setTimeout(() => setImageToast(null), 5000)
+  }, [])
+  useEffect(
+    () => () => {
+      if (imageToastTimerRef.current !== null) window.clearTimeout(imageToastTimerRef.current)
+    },
+    [],
+  )
+
+  /** 文件落地（两步式，必带目标元素——空占位填充或更换）：格式预检 → 压缩管道（>1MB 自动压缩，
+   *  压缩后仍 >2MB 才拒收；张数 / 总量按入库（压缩后）字节）→ dataURL → 解码尺寸 → key 净化去重 →
+   *  写目标元素 key（换新 key 防共享旧 key 的多元素同变；旧 key 孤儿随保存 GC）。填充后保持用户
+   *  所画盒尺寸、图片拉伸填满（拍板 3-A，取代 v1 拍板 7 的 30mm 自动尺寸）。资源表不进历史快照。 */
   const addImageFile = useCallback(
-    (file: File, replaceId?: string) => {
-      const reject = (reasonKey: string) => app.setStatus(t('status.imageRejected', { reason: t(reasonKey) }))
+    (file: File, targetId: string) => {
+      const reject = (reasonKey: string) => showImageToast(t('status.imageRejected.body', { reason: t(reasonKey) }))
       if (file.type && !['image/png', 'image/jpeg', 'image/bmp'].includes(file.type)) {
         reject('imageReject.format')
         return
       }
-      if (file.size > IMAGE_MAX_BYTES) {
-        reject('imageReject.tooLarge')
-        return
-      }
-      const assets = imageAssetsRef.current
-      if (!replaceId && Object.keys(assets).length >= IMAGE_MAX_COUNT) {
-        reject('imageReject.tooMany')
-        return
-      }
-      const totalBytes = Object.values(assets).reduce((sum, a) => sum + a.sizeBytes, 0)
-      if (totalBytes + file.size > IMAGE_MAX_TOTAL_BYTES) {
-        reject('imageReject.totalTooLarge')
-        return
-      }
+      const s0 = stateRef.current
+      // 目标必须是图片元素（空占位或已填）——画布 / 属性面板入口都以元素 id 为准
+      if (!s0 || !s0.elements.some((el) => el.id === targetId && el.type === 'Image')) return
 
       void (async () => {
+        const { blob, compressed } = await compressImageIfNeeded(file)
+        if (blob.size > IMAGE_MAX_BYTES) {
+          reject('imageReject.tooLarge')
+          return
+        }
+        const assets = imageAssetsRef.current
+        // 张数按「将被引用的新 key」计：目标已持有 key 的更换不占新增名额（旧 key 成孤儿随保存 GC）
+        const targetEl = stateRef.current?.elements.find((el) => el.id === targetId && el.type === 'Image') as ImageElement | undefined
+        if (!targetEl) return
+        if (!targetEl.key && Object.keys(assets).length >= IMAGE_MAX_COUNT) {
+          reject('imageReject.tooMany')
+          return
+        }
+        const totalBytes = Object.values(assets).reduce((sum, a) => sum + a.sizeBytes, 0)
+        if (totalBytes + blob.size > IMAGE_MAX_TOTAL_BYTES) {
+          reject('imageReject.totalTooLarge')
+          return
+        }
+
         const s = stateRef.current
         if (!s) return
-        const dataUrl = await readFileAsDataUrl(file)
+        const dataUrl = await readFileAsDataUrl(blob)
         const size = await decodeImageSize(dataUrl)
         const existing = new Set<string>([
           ...Object.keys(imageAssetsRef.current),
@@ -437,35 +471,19 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         const key = uniqueImageKey(sanitizeImageKey(file.name), existing)
         const nextAssets: Record<string, ImageAsset> = {
           ...imageAssetsRef.current,
-          [key]: { dataUrl, width: size.width, height: size.height, sizeBytes: file.size },
+          [key]: { dataUrl, width: size.width, height: size.height, sizeBytes: blob.size },
         }
         imageAssetsRef.current = nextAssets
         setImageAssets(nextAssets)
-
-        if (replaceId) {
-          changeElement(replaceId, { key })
-          return
-        }
-        const e = imageElement(key, size.width > 0 && size.height > 0 ? size.width / size.height : 1)
-        e.x = Math.max(0, Math.min(s.paperW - e.w - 1, e.x))
-        e.y = Math.max(0, Math.min(s.paperH - e.h - 1, e.y))
-        commit({ ...s, elements: [...s.elements, e] })
-        setSelected([e.id])
-        selectedRef.current = [e.id]
-        app.setStatus(t('status.imageLoaded'))
+        changeElement(targetId, { key })
+        // 成功提示（拍板 5-A）：压缩发生时以压缩轻提示为终态（原始→入库体积知情权），否则「已更新图片。」
+        app.setStatus(compressed ? t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }) : t('status.imageReplaced'))
       })()
     },
-    [app, changeElement, commit, t],
+    [app, changeElement, showImageToast, t],
   )
 
-  /** 控件栏「图片」入口：打开文件选择。 */
-  const pickImage = useCallback(() => {
-    if (viewMode === 'preview') return
-    replaceTargetRef.current = null
-    fileInputRef.current?.click()
-  }, [viewMode])
-
-  /** 属性面板「更换图片」：重选文件换新 key。 */
+  /** 属性面板「上传 / 更换图片」与画布空占位单击（拍板 2-A）：打开文件选择，目标为该元素。 */
   const replaceImage = useCallback(
     (id: string) => {
       if (viewMode === 'preview') return
@@ -478,10 +496,11 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const onImageInputChange = useCallback(
     (ev: React.ChangeEvent<HTMLInputElement>) => {
       const file = ev.target.files?.[0]
-      const replaceId = replaceTargetRef.current
+      const targetId = replaceTargetRef.current
       replaceTargetRef.current = null
       ev.target.value = '' // 同名文件可再次选择
-      if (file) addImageFile(file, replaceId ?? undefined)
+      // 入口只经元素目标（属性面板按钮 / 画布空占位单击）——无目标即对话框已过期的防御性丢弃
+      if (file && targetId) addImageFile(file, targetId)
     },
     [addImageFile],
   )
@@ -1003,6 +1022,14 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         </div>
       )}
 
+      {/* 上传失败提醒（#329 方案 v2 拍板 1-A）：页内轻量 toast，5s 自动消失，单条最新覆盖 */}
+      {imageToast && (
+        <div className="image-toast" role="alert" data-testid="image-toast">
+          <div className="image-toast-title">{t('status.imageRejected.title')}</div>
+          <div className="image-toast-body">{imageToast}</div>
+        </div>
+      )}
+
       {state && viewState && (
         <div className="designer-body">
           {/* 演示期间（demoActive）左栏与画布编辑全禁用：回调整体换 no-op（写入侧结构性兜底，
@@ -1014,7 +1041,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
             pendingType={pendingType}
             fields={fields}
             onPickType={demoActive ? () => {} : (t) => setPendingType(t)}
-            onPickImage={demoActive ? () => {} : pickImage}
             onSelect={demoActive ? () => {} : (id, toggle) => handleSelect([id], toggle)}
             onMoveLayer={demoActive ? () => {} : moveLayer}
             onLayerTop={demoActive ? () => {} : layerToTop}
@@ -1033,6 +1059,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
             imageAssets={imageAssets}
             onSelect={demoActive ? () => {} : handleSelect}
             onAddElement={demoActive ? () => {} : addElementAt}
+            onRequestImageUpload={demoActive ? () => {} : replaceImage}
             onUpdateElements={demoActive ? () => {} : applyElements}
             onCommit={demoActive ? () => {} : commitNow}
             onZoomChange={setZoom}
