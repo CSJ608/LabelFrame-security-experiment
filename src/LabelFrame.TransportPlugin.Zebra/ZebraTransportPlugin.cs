@@ -36,10 +36,10 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
             new TransportParameterOption("Usb", "USB（自动发现）"),
             new TransportParameterOption("Driver", "Windows 驱动"),
         }),
-        new TransportParameterSpec("host", "打印机地址 / IP", TransportParameterType.String, Required: false, Hint: "kind=Tcp 时必填，如 192.168.1.50"),
-        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100"),
-        new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: false, Hint: "kind=Driver 时必填"),
-        new TransportParameterSpec("usbName", "Zebra USB 打印机名", TransportParameterType.String, Required: false, Hint: "kind=Usb 时为空自动发现第一台"),
+        new TransportParameterSpec("host", "打印机地址 / IP", TransportParameterType.String, Required: true, Hint: "如 192.168.1.50", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"]),
+        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"]),
+        new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: true, Hint: "如 ZDesigner ZD421-203dpi ZPL", VisibleWhenKey: "kind", VisibleWhenValues: ["Driver"]),
+        new TransportParameterSpec("usbName", "Zebra USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现第一台", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"]),
         // 打印方式（§5.4.2 决议 2：仅连接级 Select 参数；默认 image，native = 插件编译器产出品牌原生指令）
         new TransportParameterSpec(
             TransportPrintMode.ParameterKey,

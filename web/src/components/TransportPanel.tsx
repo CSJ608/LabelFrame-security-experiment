@@ -19,6 +19,7 @@ import {
   defaultPluginParams,
   effectivePluginId,
   formatTransport,
+  isSpecVisible,
   modeLabel,
   pluginParamsFromConfig,
   specDefaultValue,
@@ -284,6 +285,8 @@ export function TransportPluginParamsEditor({
   return (
     <>
       {plugin.parameters.map((spec) => {
+        // 字段集按连接类型切换：不可见字段不渲染（值仍保留在表单状态，切换类型再切回不丢输入）
+        if (!isSpecVisible(spec, params)) return null
         const value = params[spec.key]
         if (spec.type === 'Bool') {
           return (

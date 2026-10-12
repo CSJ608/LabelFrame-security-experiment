@@ -10,6 +10,7 @@ import {
   formatTransport,
   isNativePrintMode,
   isPluginMode,
+  isSpecVisible,
   pluginParamsFromConfig,
   specDefaultValue,
   specOptions,
@@ -155,5 +156,29 @@ describe('spec 解析（兼容后端两种序列化）', () => {
     expect(pluginParamsFromConfig({ id: 'winspool', displayName: 'Windows 驱动', parameters: [{ key: 'printerName', label: '打印机名称', type: 'String', required: true }] }, oldCfg)).toEqual({
       printerName: 'ZDesigner',
     })
+  })
+
+  // ── isSpecVisible：条件可见性判定（与后端 spec.IsVisible 口径逐条对齐）──
+
+  it('isSpecVisible：无声明恒可见（兼容旧后端 / 无条件插件）', () => {
+    const spec = TCP9100_PLUGIN.parameters[0] // host，无 visibleWhenKey
+    expect(isSpecVisible(spec, {})).toBe(true)
+    expect(isSpecVisible(spec, { host: 'x' })).toBe(true)
+  })
+
+  it('isSpecVisible：条件键取值命中集合即可见（忽略大小写与首尾空白）', () => {
+    const spec = { key: 'host', label: '主机', type: 'String' as const, visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] }
+    expect(isSpecVisible(spec, { kind: 'Tcp' })).toBe(true)
+    expect(isSpecVisible(spec, { kind: ' tcp ' })).toBe(true)
+    expect(isSpecVisible(spec, { kind: 'Driver' })).toBe(false)
+    expect(isSpecVisible(spec, { kind: true })).toBe(false) // 非字符串条件值不强转命中
+  })
+
+  it('isSpecVisible：条件键缺失 / 空值 / 集合空 = 不可见', () => {
+    const spec = { key: 'host', label: '主机', type: 'String' as const, visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] }
+    expect(isSpecVisible(spec, {})).toBe(false)
+    expect(isSpecVisible(spec, { kind: '' })).toBe(false)
+    expect(isSpecVisible(spec, { kind: '   ' })).toBe(false)
+    expect(isSpecVisible({ ...spec, visibleWhenValues: null }, { kind: 'Tcp' })).toBe(false)
   })
 })

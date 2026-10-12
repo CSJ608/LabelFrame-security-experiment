@@ -53,7 +53,7 @@ public static class JobViews
         null);
 }
 
-/// <summary>传输插件参数规格（前端动态表单渲染用）。</summary>
+/// <summary>传输插件参数规格（前端动态表单渲染用；visibleWhenKey + visibleWhenValues 为条件可见性声明——字段集按连接类型切换，缺省 null = 恒可见）。</summary>
 public sealed record TransportPluginParameterDto(
     string Key,
     string Label,
@@ -61,7 +61,9 @@ public sealed record TransportPluginParameterDto(
     bool Required,
     string? DefaultValue,
     IReadOnlyList<TransportParameterOptionDto>? Options,
-    string? Hint);
+    string? Hint,
+    string? VisibleWhenKey = null,
+    IReadOnlyList<string>? VisibleWhenValues = null);
 
 /// <summary>Select 参数枚举项。</summary>
 public sealed record TransportParameterOptionDto(string Value, string? Label);

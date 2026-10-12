@@ -110,7 +110,9 @@ internal static class TransportApi
             p.Required,
             p.DefaultValue,
             p.Options?.Select(o => new TransportParameterOptionDto(o.Value, o.Label)).ToList(),
-            p.Hint)).ToList(),
+            p.Hint,
+            p.VisibleWhenKey,
+            p.VisibleWhenValues)).ToList(),
         plugin.IsExternal,
         plugin.AssemblyPath,
         plugin.SupportsDocumentCompile);

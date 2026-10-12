@@ -111,6 +111,18 @@ export function specOptions(spec: TransportParameterSpec): { value: string; labe
   })
 }
 
+/** 参数在当前表单取值下是否可见：无 visibleWhenKey 声明恒可见；有声明时条件键取值
+ *  （忽略大小写）命中集合即可见，键缺失 / 空值 = 不可见——与后端 spec.IsVisible 判定逐条对齐
+ *  （后端必填校验只对可见字段生效，两侧口径必须一致）。 */
+export function isSpecVisible(spec: TransportParameterSpec, params: PluginParams): boolean {
+  if (!spec.visibleWhenKey) return true
+  const raw = params[spec.visibleWhenKey]
+  if (raw === undefined || raw === null) return false
+  const cur = String(raw).trim().toLowerCase()
+  if (cur === '') return false
+  return (spec.visibleWhenValues ?? []).some((v) => String(v).trim().toLowerCase() === cur)
+}
+
 /** spec 默认值解析（Bool / Int 可能以字符串序列化，按 type 防御转换）。 */
 export function specDefaultValue(spec: TransportParameterSpec): PluginParamValue {
   const dv = spec.defaultValue

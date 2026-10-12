@@ -155,8 +155,11 @@ public sealed class TransportManager : ITransportManager, IDisposable
 
         foreach (var spec in plugin.Parameters)
         {
+            var visible = spec.IsVisible(config.Params);
             var present = config.Params.TryGetValue(spec.Key, out var rawValue) && !string.IsNullOrWhiteSpace(rawValue);
-            if (spec.Required && !present)
+            // 必填只对当前可见字段生效（字段集按连接类型切换：不可见字段跳过必填，
+            // 条件键自身的必填校验兜底）；类型 / Select 校验对已提供字段照常（存量配置携带隐藏字段值不报错）
+            if (spec.Required && visible && !present)
             {
                 return $"缺少必填参数：{spec.Label}（{spec.Key}）。";
             }

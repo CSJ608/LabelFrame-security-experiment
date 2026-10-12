@@ -38,9 +38,9 @@ public sealed class ZebraBuiltinTransportPlugin : ITransportPlugin
                 new TransportParameterOption(ZebraSdkTransport.ConnectionTypeBluetooth, "蓝牙"),
                 new TransportParameterOption(ZebraSdkTransport.ConnectionTypeUsb, "USB 数据线"),
             }),
-        new TransportParameterSpec("host", "打印机 IP 地址", TransportParameterType.String, DefaultValue: "192.168.1.50"),
-        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100"),
-        new TransportParameterSpec("bluetoothMac", "蓝牙地址", TransportParameterType.String),
+        new TransportParameterSpec("host", "打印机 IP 地址", TransportParameterType.String, DefaultValue: "192.168.1.50", VisibleWhenKey: "connectionType", VisibleWhenValues: [ZebraSdkTransport.ConnectionTypeTcp]),
+        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", VisibleWhenKey: "connectionType", VisibleWhenValues: [ZebraSdkTransport.ConnectionTypeTcp]),
+        new TransportParameterSpec("bluetoothMac", "蓝牙地址", TransportParameterType.String, VisibleWhenKey: "connectionType", VisibleWhenValues: [ZebraSdkTransport.ConnectionTypeBluetooth]),
     };
 
     /// <inheritdoc />

@@ -145,6 +145,10 @@ export interface TransportParameterSpec {
   options?: TransportParameterOption[] | string[]
   /** 输入提示 / 占位说明 */
   hint?: string
+  /** 条件可见性：依据哪个参数键（如 kind / connectionType）；缺省 = 恒可见。 */
+  visibleWhenKey?: string | null
+  /** 条件可见性：条件键取值集合（忽略大小写）；键缺失 / 空值 = 不可见。 */
+  visibleWhenValues?: string[] | null
 }
 
 /** 插件目录项（GET /api/transport.availablePlugins）。 */
