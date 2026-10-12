@@ -1,7 +1,7 @@
 namespace LabelFrame.Server;
 
 /// <summary>Server 问题码。约定：LF_SRV_xxx。</summary>
-/// <remarks>新增码须同步 web 端码表（`web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译—— ④）。</remarks>
+/// <remarks>新增码须同步 web 端码表（`web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译）。</remarks>
 public static class ServerErrorCodes
 {
     /// <summary>设备未注册。</summary>
@@ -37,7 +37,7 @@ public static class ServerErrorCodes
     /// <summary>Pending 暂存超期放弃（超 TTL 未投递置 Expired 终态的原因码，落 server_jobs.error_code）。</summary>
     public const string PendingExpired = "LF_SRV_011";
 
-    /// <summary>按 IP 未找到设备（提交 targetIp 解析 / GET by-ip 查询；与 LF_SRV_001 设备未注册语义不同，拆码见 ⑥）。</summary>
+    /// <summary>按 IP 未找到设备（提交 targetIp 解析 / GET by-ip 查询；与 LF_SRV_001 设备未注册语义不同，拆码见）。</summary>
     public const string DeviceNotFoundByIp = "LF_SRV_012";
 
     /// <summary>callbackUrl 无效（scheme 白名单仅 http/https，提交即拒；从 LF_SRV_002 拆出以区分语义）。</summary>

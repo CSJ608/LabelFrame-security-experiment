@@ -11,7 +11,7 @@ using WixToolset.BootstrapperApplicationApi;
 
 /// <summary>
 /// LabelFrame 引导 BA（WiX Burn out-of-proc， / ；/ 问卷收敛）：两层问卷（基础三步 / 高级角色模式，只读
-/// 就绪页自动加载清单）→ 确认页「安装」→ <see cref="IEngine.Plan"/> + <see cref="IEngine.Apply"/> 真装；装后按问卷写入客户端服务端地址（④）。
+/// 就绪页自动加载清单）→ 确认页「安装」→ <see cref="IEngine.Plan"/> + <see cref="IEngine.Apply"/> 真装；装后按问卷写入客户端服务端地址。
 /// 执行边界契约见 DESIGN / （确认前绝不 Apply）。
 /// 下载体验（/ ，DESIGN）：多源回退（CacheAcquireResolving 消费清单 urls，决策核心在
 /// <see cref="CacheSourceFallback"/>）+ 下载侧进度 / 失败分类 / 换源提示的事件映射。
@@ -38,7 +38,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
     /// <summary>多源回退状态机（DESIGN ，/）：每次 Apply 从当轮清单重建；引擎事件线程独占访问。</summary>
     private CacheSourceFallback? _sourceFallback;
 
-    /// <summary>缓存重试策略（③，DESIGN）：包级兜底 / 载荷获取 / 校验三重试点共用每包预算
+    /// <summary>缓存重试策略：包级兜底 / 载荷获取 / 校验三重试点共用每包预算
     /// （指数退避 + 连续无进展终止）；每次 Apply 复位。引擎事件线程独占访问。</summary>
     private CacheRetryPolicy _cacheRetryPolicy = new();
 
@@ -133,7 +133,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
 
             // 多源回退兜底驱动（DESIGN）：包级缓存失败且仍有未试源 → 覆写引擎动作为 Retry
             // 下一轮 CacheAcquireResolving 由 CacheSourceFallback 提供下一源（无源则不空转，走失败报告）。
-            // 重试预算（③）：只判「有无未试源」不判「重试间是否推进」的兜底重试对无源可换类失败
+            // 重试预算：只判「有无未试源」不判「重试间是否推进」的兜底重试对无源可换类失败
             // （附加容器获取 0x80070002——失败不进多源回退计数）形成无退避无终止热循环（真机实测 5 分钟 9.3 万次重试、
             // 日志 219–240MB）；改经 CacheRetryPolicy 指数退避 + 连续无进展三次即终止交失败报告页。
             if (args.Status != 0 && SourceFallback?.HasUntriedSources(args.PackageId) == true)
@@ -297,7 +297,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         }
 
         // 布局目录隐式检测+ 命令行 --manifest 显式覆写（/ ：测试注入与指定版本安装路径）：
-        // 优先级 = 命令行 > 同目录布局清单 > 稳定通道；就绪页进入即按此来源自动加载（③）
+        // 优先级 = 命令行 > 同目录布局清单 > 稳定通道；就绪页进入即按此来源自动加载
         var session = new WizardSession();
         if (!string.IsNullOrWhiteSpace(layoutArguments.ManifestSource))
         {
@@ -558,7 +558,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         _sourceFallback = CacheSourceFallback.FromManifest(
             session.Manifest ?? throw new InvalidOperationException("尚未加载安装清单，无法开始安装。"),
             session.LocalSourceDirectory);
-        _cacheRetryPolicy.Reset();  // 缓存重试预算同轮复位（③：「重试」= 全新 Plan + Apply）
+        _cacheRetryPolicy.Reset();  // 缓存重试预算同轮复位（「重试」= 全新 Plan + Apply）
 
         SetState(new InstallState { Phase = InstallPhase.Planning });
 
@@ -591,7 +591,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
 
         lock (_stateLock)
         {
-            // 装后服务端地址落位（/ ④，与 WinHost HostConfigStore 同一事实源）：
+            // 装后服务端地址落位（与 WinHost HostConfigStore 同一事实源）：
             // 仅计划含打印客户端且问卷已确认地址时写入；写失败不改变安装结果（客户端「设置」页仍可手改）
             if (_state.Phase == InstallPhase.Completed)
             {
@@ -602,7 +602,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         }
     }
 
-    /// <summary>装后服务端地址落位（/ ④）：写入 %ProgramData%\LabelFrame\Client\settings.json——装完客户端即按问卷地址连接服务端，无需进设置页手改。</summary>
+    /// <summary>装后服务端地址落位：写入 %ProgramData%\LabelFrame\Client\settings.json——装完客户端即按问卷地址连接服务端，无需进设置页手改。</summary>
     private void SaveServerUrlIfPlanned(Topology.TopologyPlan plan, WizardSession session)
     {
         var normalized = ServerUrlInput.Normalize(session.ServerUrl);
@@ -704,7 +704,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
     /// </summary>
     private void HandleCacheAcquireBegin(CacheAcquireBeginEventArgs args)
     {
-        // 附加容器获取本地源注入（②，DESIGN 落位机制）：容器获取形态（payload id 为空——
+        // 附加容器获取本地源注入（DESIGN 落位机制）：容器获取形态（payload id 为空
         // 托管事件对容器取 string.Empty 而非 null， 沙箱实测）只发生在引擎以「引擎桩副本」运行的会话——
         // 提权工作副本与包缓存 Bundle EXE 均只含引擎桩（无 WixAttachedContainer），
         // 内嵌载荷须经源解析搜索路径获取，原始源变量失效即 0x80070002 获取永不能完成（真机升级链三连败根因）。
@@ -797,7 +797,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
     private const string AttachedContainerId = "WixAttachedContainer";
 
     /// <summary>
-    /// 附加容器本地源注入（②）：把运行中的引导 EXE 原始路径交给引擎作为
+    /// 附加容器本地源注入：把运行中的引导 EXE 原始路径交给引擎作为
     /// <c>WixAttachedContainer</c> 的首搜索路径（<see cref="IEngine.SetLocalSource"/>——与 本地源注入同一事件入口）。
     /// 诊断行（原始源在位性）随注入留痕——此类故障此前在 Burn 日志中无 BA 侧可定位信号。
     /// </summary>
@@ -870,7 +870,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
 
         if (hasUntried)
         {
-            // 逐载荷重试 → 重新 Resolving → 换源；重试预算（③）：换源推进源游标属合法重试不衰减
+            // 逐载荷重试 → 重新 Resolving → 换源；重试预算：换源推进源游标属合法重试不衰减
             // 退避（事件回调内阻塞）避免快失败源的紧密轮询
             var decision = _cacheRetryPolicy.ShouldRetry(args.PackageOrContainerId, fallback?.FailureCount(args.PackageOrContainerId) ?? 0);
             if (decision.AllowRetry)
@@ -909,7 +909,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
 
         if (hasUntried && args.Recommendation == BOOTSTRAPPER_CACHEVERIFYCOMPLETE_ACTION.None)
         {
-            // 重试预算（③）：换源推进属合法重试；连续无进展超限即停（同载荷获取试点）
+            // 重试预算：换源推进属合法重试；连续无进展超限即停（同载荷获取试点）
             var decision = _cacheRetryPolicy.ShouldRetry(args.PackageOrContainerId, fallback?.FailureCount(args.PackageOrContainerId) ?? 0);
             if (decision.AllowRetry)
             {

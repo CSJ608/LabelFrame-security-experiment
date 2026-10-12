@@ -10,7 +10,7 @@
 // 销毁类操作必须先确认（此前灰色 ghost 无确认直接执行），Esc / 遮罩点击默认取消。
 // 壳层文案 key 化（样板迁移）——导航 / 状态栏 / 日志抽屉 / 清空确认弹窗全部走 t
 // （`useTranslation('shell')`，common 词条经 fallbackNS 兜底），作为 111/112 页面迁移的 key 命名与用法样例；
-// 本文件已圈入 lint 防线（oxlintrc.json overrides，裸中文 JSX 会被 oxlint 拦截—— ⑦）。
+// 本文件已圈入 lint 防线（oxlintrc.json overrides，裸中文 JSX 会被 oxlint 拦截）。
 // nav-foot 语言切换器——循环单按钮「中 / EN」（当前语言可视，点击互切即点即生效）
 // server 构建无设置页也能一步切换；与设置页语言卡同一 `changeLocale` 单点（双入口同状态源，互切一致）。
 // 新用户首次使用引导（client 构建专属）——首见延迟 ~300ms 自动启动
@@ -109,7 +109,7 @@ function Shell() {
     // 首见判定只在挂载时发生一次；isServerUi 为构建期常量、isGuideSeen 为模块级纯函数，均不入依赖
   }, [])
 
-  // 引导退出（跳过 / Esc / 完成共用）：写入首见标记后关闭——重放路径重复写入幂等（⑧⑨）
+  // 引导退出（跳过 / Esc / 完成共用）：写入首见标记后关闭——重放路径重复写入幂等
   const finishGuide = useCallback(() => {
     markGuideSeen()
     setGuideOpen(false)
@@ -158,7 +158,7 @@ function Shell() {
   // 元素锚点时，经既有 openDesigner({kind:'new'}) 自动新建草稿（不落库零写请求；示例元素由
   // Designer 随 init 并入初始基线并选中）。已打开模板（designerReq 存在）不触发，走既有锚点
   // 路径。：撤 !isServerUi 门——server 构建与 client 同语义（设计器
-  // 在 server 构建功能完整、深链可达，#178⑤「静默空态」口径随之反转），双构建共用本 effect。
+  // 在 server 构建功能完整、深链可达，#178「静默空态」口径随之反转），双构建共用本 effect。
   useEffect(() => {
     if (tab !== 'designer' || designerReq) return
     // Object.hasOwn 防 'toString' 等原型链属性名经 sub 段合法进入后 in 判定为真、取值非数组致渲染崩溃（评审实证）
@@ -174,7 +174,7 @@ function Shell() {
     icon,
   }))
 
-  // 壳层语言切换器状态——当前语言短名（「中」/「EN」，语言自名不随语言翻译， ③）
+  // 壳层语言切换器状态——当前语言短名（「中」/「EN」，语言自名不随语言翻译）
   // 与切换提示词条；点击经 changeLocale 单点互切（localStorage 持久化 + changeLanguage + <html lang> 同步）。
   const locale = toAppLocale(i18n.language)
   const switchToEn = locale === 'zh-CN'
@@ -200,7 +200,7 @@ function Shell() {
             ))}
           </div>
           {/* 迭代 80（#128 决议 2「三名义」）：client 构建指向「本机打印服务」（页面来源的本机后台服务），
-              不再沿用「服务端」一词（评审 #114 B-9 一词三义）；server 构建维持服务端自身连通（含义②语境） */}
+              不再沿用「服务端」一词（评审 #114 B-9 一词三义）；server 构建维持服务端自身连通（第二义语境） */}
           <div
             className="nav-foot"
             title={
@@ -254,7 +254,7 @@ function Shell() {
       </div>
 
       <footer className="statusbar">
-        {/* 迭代 80（#128 决议 2「三名义」①）：状态栏呈现本机打印服务运行状态——
+        {/* 状态栏呈现本机打印服务运行状态——
             client 构建 = 页面来源的本机 WinHost；server 构建此段不渲染（下方 meta 显示服务端地址） */}
         {!isServerUi && (
           <span className={'conn' + (app.localServiceUp ? ' on' : ' off')}>
@@ -286,7 +286,7 @@ function Shell() {
               )}
             </>
           )}
-          {/* 迭代 119（#276，决策 #170 ⑤）：「使用引导」重看入口——「日志」旁常驻小图标 ghost 按钮，
+          {/* 「使用引导」重看入口——「日志」旁常驻小图标 ghost 按钮，
               点击无视首见标记再放完整一轮（重放完成 / 跳过不改变已看状态）；server 构建不渲染 */}
           {!isServerUi && (
             <button
@@ -374,7 +374,7 @@ function DesignerEmpty({ onNew }: { onNew: () => void }) {
         <Icon name="designer" />
         <div className="empty-title">{t('designerEmpty.untitled')}</div>
         <div className="hint">{t('designerEmpty.hint')}</div>
-        {/* data-guide：首次引导第 2 步锚点（引导经 switchTab 切入 designer 时必为空态，#276 拍板⑥） */}
+        {/* data-guide：首次引导第 2 步锚点（引导经 switchTab 切入 designer 时必为空态， 拍板） */}
         <button className="btn primary" data-guide="designer-empty-new" onClick={onNew}>
           <Icon name="plus" size={13} />
           {t('designerEmpty.newTemplate')}

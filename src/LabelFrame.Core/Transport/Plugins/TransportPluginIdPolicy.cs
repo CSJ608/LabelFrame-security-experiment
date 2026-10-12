@@ -25,7 +25,7 @@ public static class TransportPluginIdPolicy
     /// <summary>内置传输插件保留 id（客户端核心 + WinHost 内置，禁止外部包占用；服务端上传拒绝）。</summary>
     public static readonly IReadOnlyList<string> ReservedBuiltinIds = ["log", "tcp9100", "winspool"];
 
-    /// <summary>是否官方插件 id（labelframe- 前缀；覆盖安装版本比较适用范围， ④）。</summary>
+    /// <summary>是否官方插件 id（labelframe- 前缀；覆盖安装版本比较适用范围）。</summary>
     public static bool IsOfficial(string pluginId)
         => !string.IsNullOrWhiteSpace(pluginId)
            && pluginId.StartsWith(OfficialPrefix, StringComparison.OrdinalIgnoreCase);
@@ -36,7 +36,7 @@ public static class TransportPluginIdPolicy
            && ReservedBuiltinIds.Contains(pluginId.Trim(), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// 旧内置时代 id 读取别名归一（②）：zebra → labelframe-transport-zebra
+    /// 旧内置时代 id 读取别名归一：zebra → labelframe-transport-zebra
     /// 其余原样返回。仅用于读取存量配置的内存态映射，不做落盘迁移。
     /// </summary>
     public static string NormalizeAlias(string? pluginId)

@@ -109,11 +109,11 @@ public sealed class TrayMenuPresenter
                 AppendMenu(menu, MF_STRING, new IntPtr(CmdExit), "退出");
 
                 // 标准前置模式三件套（KB135788）：
-                // ① 前置 owner——owner 非前台时系统不会在外部点击时收起菜单（症状 1）；
+                // 前置 owner——owner 非前台时系统不会在外部点击时收起菜单（症状 1）
                 _setForegroundWindow(owner);
-                // ② 模态弹出，返回即菜单已关闭（TPM_RETURNCMD：选中命令 Id 作为返回值）；
+                // 模态弹出，返回即菜单已关闭（TPM_RETURNCMD：选中命令 Id 作为返回值）
                 var cmd = _trackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN, pt.x, pt.y, 0, owner, IntPtr.Zero);
-                // ③ 投 WM_NULL 清除菜单模态状态——否则后续弹出可能被系统立即取消（症状 2）。
+                // 投 WM_NULL 清除菜单模态状态——否则后续弹出可能被系统立即取消（症状 2）。
                 _postMessage(owner, WM_NULL, IntPtr.Zero, IntPtr.Zero);
                 return (int)cmd.ToInt64();
             }

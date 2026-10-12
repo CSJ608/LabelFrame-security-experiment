@@ -7,9 +7,9 @@ namespace LabelFrame.Core.Tests.Excel;
 
 /// <summary>
 /// Excel 读取回归测试（/ ，随 TemplateFrame.Excel.Simple 2.0.0 → 2.4.1 升级补强）：
-/// ① 续填行识别——上游 2.0.0 修复场景（模板生成方在数据区写命名区域，读取方曾止步于命名区域边界，
+/// 续填行识别——上游 2.0.0 修复场景（模板生成方在数据区写命名区域，读取方曾止步于命名区域边界
 ///    用户在命名区域下方续填的行丢失）；防上游回退。
-/// ② 非 A 列起始表头——上游 2.2.0 修复场景（第三方表格表头不在 A 列起始时前几列恒空、末列静默丢弃）。
+/// 非 A 列起始表头——上游 2.2.0 修复场景（第三方表格表头不在 A 列起始时前几列恒空、末列静默丢弃）。
 /// 两场景均以 inline string 构造单元格（Excel 手工输入形态，亦为 SimpleExcel 写出形态）。
 /// </summary>
 public class ExcelTableReaderRegressionTests

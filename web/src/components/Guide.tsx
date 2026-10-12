@@ -1,8 +1,8 @@
-// 分步气泡引导（· ，①②：spotlight 形态、自研实现，复用 Popover portal 经验）。
+// 分步气泡引导（spotlight 形态、自研实现，复用 Popover portal 经验）。
 // 结构：全屏遮罩层（拦截其余区域交互）+ box-shadow 巨影法 spotlight 挖洞（无需 SVG mask）+ 定位气泡；
-// createPortal 到 body（①：fixed 锚定脱离 overflow 祖先裁剪）。步骤定义为 lib/guide.ts 纯数据。
+// createPortal 到 body（fixed 锚定脱离 overflow 祖先裁剪）。步骤定义为 lib/guide.ts 纯数据。
 // 切页必须经调用方注入的 switchTab（设计器离开守卫统一入口），组件内不做裸 setTab。
-// 退出语义（⑧⑨）：「跳过」/ Esc / 「完成」共用 onFinish——首见标记是否写入由调用方决定
+// 退出语义：「跳过」/ Esc / 「完成」共用 onFinish——首见标记是否写入由调用方决定
 // （首见与重放均写标记，setItem 幂等，重放不改变已看状态）。
 // 已知边界（风险记录）：Esc 为 document 级监听，与 Modal / Popover 同键并存时同帧双响应
 // ——引导激活期间遮罩已拦截打开 Modal 的常规路径，仅「重放 + 设计器 dirty」边缘场景可达，不做监听互斥；
@@ -134,7 +134,7 @@ export function Guide({ open, tab, onSwitchTab, onFinish }: GuideProps) {
     return () => window.removeEventListener('resize', compute)
   }, [open, anchorEl, stepIndex])
 
-  // Esc = 跳过本轮并写标记（⑨，与 Modal「Esc=取消」语义对齐；document 级监听同 Modal/Popover 先例）
+  // Esc = 跳过本轮并写标记（与 Modal「Esc=取消」语义对齐；document 级监听同 Modal/Popover 先例）
   useEffect(() => {
     if (!open) return
     const onKey = (ev: KeyboardEvent) => {

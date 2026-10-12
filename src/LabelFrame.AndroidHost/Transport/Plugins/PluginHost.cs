@@ -33,7 +33,7 @@ public sealed class PluginHostState
 /// </summary>
 public static class PluginHost
 {
-    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins—— ⑤，一插件一子目录）。</summary>
+    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins—— ，一插件一子目录）。</summary>
     public const string PluginsDirName = "plugins";
 
     /// <summary>插件数据目录名（插件状态文件根，{FilesDir}/plugins-data）。</summary>

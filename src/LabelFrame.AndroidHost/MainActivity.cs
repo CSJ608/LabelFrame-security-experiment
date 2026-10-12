@@ -19,7 +19,7 @@ namespace LabelFrame.AndroidHost;
 /// 宿主配置页（唯一 UI）：主页展示运行状态与设置入口，「连接服务器 / 连接打印机 / 插件管理 / 本机信息」
 /// 子页各自编辑并保存（保存即重启宿主服务生效）；设备号由系统唯一码自动生成只读展示。
 /// 文案面向不懂技术的仓库用户：只说「这里填什么 / 点按钮会发生什么 / 状态意味着什么与下一步」。
-/// （⑤）：全部 UI 文案经 <c>Resources/values</c>（缺省中文）+
+/// 全部 UI 文案经 <c>Resources/values</c>（缺省中文）+
 /// <c>values-en</c> 资源 id 引用，语言跟随系统；错误消息经 <see cref="LfErrorCatalog"/> 按码翻译。
 /// </summary>
 [Activity(Label = "@string/app_name", MainLauncher = true, Exported = true, LaunchMode = LaunchMode.SingleTop,
@@ -185,7 +185,7 @@ public sealed class MainActivity : Activity
         }
     }
 
-    // ---------- 本地化辅助（/ ， ⑤：文案一律资源 id 引用） ----------
+    // 本地化辅助（文案一律资源 id 引用）
 
     private string L(int resId) => GetString(resId)!;
 
@@ -768,7 +768,7 @@ public sealed class MainActivity : Activity
         }
     }
 
-    // ---------- 插件管理子页（/ ②：已装列表 + 浏览服务端安装 + 卸载，重启生效） ----------
+    // 插件管理子页（已装列表 + 浏览服务端安装 + 卸载，重启生效）
 
     private ScrollView BuildPluginsScreen()
     {

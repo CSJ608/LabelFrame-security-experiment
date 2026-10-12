@@ -158,7 +158,7 @@ internal sealed class CompletePage : UserControl, IWizardPage
     {
         if (component.Type == "runtime")
         {
-            // 探测腿映射（③ 顺带补齐）： 新增 aspnetcore 条目时误落 WebView2 探测腿——三腿各自对齐
+            // 探测腿映射（顺带补齐）： 新增 aspnetcore 条目时误落 WebView2 探测腿——三腿各自对齐
             var alreadyInstalled = component.Id switch
             {
                 "runtime-desktop" => _ba.RuntimeStatus.DesktopRuntimeInstalled,

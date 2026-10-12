@@ -17,7 +17,7 @@ public sealed class LabelJobQueue : IDisposable
     private bool _shutdownPrepared;
     private int _activeSends;
 
-    /// <summary>模板化领域异常构造（③ /）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>模板化领域异常构造：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
     private static LabelJobException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 

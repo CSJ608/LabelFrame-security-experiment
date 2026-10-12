@@ -43,7 +43,7 @@ public sealed record ClaimedJob(string JobId, string RequestId, int TotalItems, 
 public sealed record JobPayload(TemplateDto Template, IReadOnlyList<LabelDto> Labels);
 
 /// <summary>设备回报结果（POST 体）。</summary>
-/// <param name="ErrorCode">失败原因码（可选，加法—— ③ / ：落 server_jobs.error_code 供按码追溯；旧宿主不发送即为 null）。</param>
+/// <param name="ErrorCode">失败原因码（可选，加法—— / ：落 server_jobs.error_code 供按码追溯；旧宿主不发送即为 null）。</param>
 public sealed record ReportResultRequest(string? Status, int? CompletedItems, int? FailedItems, string? ErrorMessage, string? ErrorCode = null);
 
 /// <summary>设备进度增量上报（POST 体）。计数按字段取 max 单调递增，只描述过程不改终态。</summary>

@@ -53,7 +53,7 @@ public sealed class PrintHostService : Service
         var pluginHost = PluginHost.Load(this);
         // 打印传输品牌路由：zebra → 内置 SDK（既有路径原样）；外置插件品牌 → 插件传输；未安装 → 回退 zebra + 留痕
         _transport = AndroidTransportFactory.Create(config, pluginHost.Registry, pluginHost.PluginContext, this);
-        // 摘要经资源取值（/）：HostStatus 与通知随系统语言；本行日志为诊断内容维持中文（②）
+        // 摘要经资源取值：HostStatus 与通知随系统语言；本行日志为诊断内容维持中文
         // 摘要主体是地址 / 端口等技术值，仅连接方式词随语言
         var printerTarget = config.PrinterDisplay(this);
         HostStatus.NoteServiceStarted(config.ServerUrl, printerTarget);
@@ -104,7 +104,7 @@ public sealed class PrintHostService : Service
     {
         if (OperatingSystem.IsAndroidVersionAtLeast(26))
         {
-            // 渠道名不双语化（⑤）：Android 渠道创建后不可改名，维持中文现状——范围显式排除
+            // 渠道名不双语化：Android 渠道创建后不可改名，维持中文现状——范围显式排除
             var channel = new NotificationChannel(ChannelId, "LabelFrame 打印服务", NotificationImportance.Low);
             var manager = (NotificationManager?)GetSystemService(NotificationService);
             manager?.CreateNotificationChannel(channel);

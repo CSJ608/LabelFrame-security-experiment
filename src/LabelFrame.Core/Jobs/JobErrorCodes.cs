@@ -9,10 +9,10 @@ public static class JobErrorCodes
     /// <summary>当前状态不允许该操作。</summary>
     public const string InvalidTransition = "LF_JOB_002";
 
-    /// <summary>作业没有该序号的标签（条目级重打越界；从 LF_JOB_002 拆出以区分语义， ⑥）。</summary>
+    /// <summary>作业没有该序号的标签（条目级重打越界；从 LF_JOB_002 拆出以区分语义）。</summary>
     public const string ItemNotFound = "LF_JOB_003";
 
-    /// <summary>该序号标签状态不允许重打（仅 Failed 可重打；从 LF_JOB_002 拆出以区分语义， ⑥）。</summary>
+    /// <summary>该序号标签状态不允许重打（仅 Failed 可重打；从 LF_JOB_002 拆出以区分语义）。</summary>
     public const string ItemNotRetriable = "LF_JOB_004";
 
     /// <summary>发送到打印机失败。</summary>

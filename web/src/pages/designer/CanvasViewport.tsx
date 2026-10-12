@@ -199,7 +199,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
 
   /* * 多选联合盒吸附（返工 · ，用户拍板「整体刚性」）：被拖盒 = dragStart 联合盒
    *  + 主导总位移（Konva dragmove fire 时节点已为本步指针位置——DragAndDrop._drag 实读）；候选 = 未选中
-   * 元素（组内元素零参与——既不作被拖盒也不作候选， ④「残影盒」防御的语义超集）；吸附量施加于
+   * 元素（组内元素零参与——既不作被拖盒也不作候选， 「残影盒」防御的语义超集）；吸附量施加于
    *  主导节点，跟随元素由「初始快照 + 主导总位移」另行刚性设置。与单选 snapNode 共用 computeSnap
    *  （含按盒左上角贴 1mm 网格的兜底——此处即联合盒左上角）。 */
   const snapUnion = useCallback(

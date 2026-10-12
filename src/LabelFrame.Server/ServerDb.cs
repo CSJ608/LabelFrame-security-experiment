@@ -140,7 +140,7 @@ public sealed class ServerDb
         }
     }
 
-    /// <summary>旧库兼容迁移：server_jobs 表缺少 error_code 列时补列（③ / ，；已存在则跳过；失败静默忽略，不影响启动）。error_message 中文存量不迁移（历史行 error_code 为 NULL）。</summary>
+    /// <summary>旧库兼容迁移：server_jobs 表缺少 error_code 列时补列（已存在则跳过；失败静默忽略，不影响启动）。error_message 中文存量不迁移（历史行 error_code 为 NULL）。</summary>
     private static async Task MigrateServerJobsErrorCodeAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         var hasErrorCode = false;
@@ -394,7 +394,7 @@ public sealed class ServerDb
     }
 
     /// <summary>更新作业结果。</summary>
-    /// <param name="errorCode">失败原因码（③ / ：宿主回报可选携带；成功回报传 null）。</param>
+    /// <param name="errorCode">失败原因码（宿主回报可选携带；成功回报传 null）。</param>
     public async Task<ServerJob?> UpdateJobResultAsync(
         string jobId,
         ServerJobStatus status,

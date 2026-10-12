@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const checkUrl = useCallback((url: string): Promise<boolean> => probeHealthz(url), [])
 
-  // 本机打印服务探测（「三名义」意义①）：页面来源 /healthz——client 构建页面由本机 WinHost 托管
+  // 本机打印服务探测（「三名义」意义）：页面来源 /healthz——client 构建页面由本机 WinHost 托管
   // 探测结果即「本机打印服务：运行中 / 未运行」；server 构建不调用（状态栏不呈现该项）
   const checkLocalService = useCallback(async (): Promise<boolean> => {
     try {

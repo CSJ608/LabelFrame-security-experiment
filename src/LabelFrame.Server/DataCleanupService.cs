@@ -89,7 +89,7 @@ public sealed partial class DataCleanupService : BackgroundService
 
             if (sizeGate.VacuumWarning is { } warning)
             {
-                // VACUUM / 空库仍超阈等异常经 ILogger 记 Error（服务宿主可能无控制台， 留观项②）
+                // VACUUM / 空库仍超阈等异常经 ILogger 记 Error（服务宿主可能无控制台， 留观项）
                 LogVacuumFailed(_logger, warning);
             }
         }

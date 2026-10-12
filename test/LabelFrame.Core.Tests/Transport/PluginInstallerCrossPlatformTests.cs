@@ -72,7 +72,7 @@ public class PluginInstallerCrossPlatformTests
         }
     }
 
-    // ---- manifest platforms 契约（①：可选字段 + 单包单端 + 向后兼容） ----
+    // manifest platforms 契约（可选字段 + 单包单端 + 向后兼容）
 
     [Fact]
     public void Manifest_without_platforms_should_parse_null_and_mean_windows_only()
@@ -120,7 +120,7 @@ public class PluginInstallerCrossPlatformTests
         Assert.Contains("空白平台 id", ex.Message);
     }
 
-    // ---- 平台门（三层校验 ①b：宿主平台不在声明集合内拒绝） ----
+    // 平台门（三层校验 b：宿主平台不在声明集合内拒绝）
 
     [Fact]
     public async Task Install_android_package_on_android_host_should_succeed()
@@ -270,7 +270,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_non_assembly_dll_should_reject()
     {
-        // 三层校验第 ③ 层（ALC 预检）：DLL 不是有效 .NET 程序集 → 可行动中文提示
+        // 三层校验第 层（ALC 预检）：DLL 不是有效 .NET 程序集 → 可行动中文提示
         var (installer, _, pluginsDir) = Create(PluginPlatforms.Android);
         try
         {
@@ -289,7 +289,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_builtin_id_conflict_should_reject()
     {
-        // 内置 id 拒绝按宿主注册表动态判定（PDA 内置 zebra—— ③）
+        // 内置 id 拒绝按宿主注册表动态判定（PDA 内置 zebra）
         var (installer, registry, pluginsDir) = Create(PluginPlatforms.Android);
         Assert.False(registry.GetPlugin("zebra")!.IsExternal);
         try
@@ -308,7 +308,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_manifest_id_mismatch_should_reject()
     {
-        // 三层校验第 ③ 层：ALC 预检发现的真实插件 id 与 manifest.pluginId 不一致拒绝
+        // 三层校验第 层：ALC 预检发现的真实插件 id 与 manifest.pluginId 不一致拒绝
         var (installer, _, pluginsDir) = Create(PluginPlatforms.Android);
         try
         {
@@ -323,7 +323,7 @@ public class PluginInstallerCrossPlatformTests
         }
     }
 
-    // ---- 官方插件版本比较（④ 语义双端一致——android 宿主路径） ----
+    // 官方插件版本比较（语义双端一致——android 宿主路径）
 
     [Fact]
     public async Task Install_official_same_version_should_be_idempotent_and_downgrade_rejected_on_android()

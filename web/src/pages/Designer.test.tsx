@@ -639,7 +639,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     // 1.5MB JPEG：>1MB 阈值触发压缩管道（桩 canvas），压后 300KB 过 2MB 闸
     uploadImage('photo.jpg', new Uint8Array(Math.floor(1.5 * 1024 * 1024)), 'image/jpeg')
     await screen.findByText('图片资源：photo.jpg · 8×4 px', undefined, { timeout: 3000 })
-    // 复陪验反馈 2-②：压缩提示并入 toast（推翻 拍板 5-A 的状态栏口径——用户实证看不见）
+    // 复陪验反馈 2-：压缩提示并入 toast（推翻 拍板 5-A 的状态栏口径——用户实证看不见）
     const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
     expect(toast.textContent).toContain('已自动压缩 1.5MB → 0.29MB')
 

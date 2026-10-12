@@ -4,7 +4,7 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 服务端地址页（/ ④ + D1）：仅含客户端的角色出现——「仅打印客户端」必填（已装机从 settings.json 预填）
+/// 服务端地址页（+ D1）：仅含客户端的角色出现——「仅打印客户端」必填（已装机从 settings.json 预填）
 /// 「服务端 + 同机客户端」预填本机默认 <c>127.0.0.1:53961</c> 可改；规范化见 <see cref="ServerUrlInput.Normalize"/>，
 /// 装后由 BA 写入 settings.json（装完即连上，无需进客户端设置页）。
 /// </summary>

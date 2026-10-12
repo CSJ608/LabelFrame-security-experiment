@@ -105,14 +105,14 @@ public sealed class WizardForegroundActivatorTests
         Assert.Equal(
             new[]
             {
-                $"GetWindowThread({Other})=0x{ForegroundThread:X}",                              // ① 探测前台线程
+                $"GetWindowThread({Other})=0x{ForegroundThread:X}",  // 探测前台线程
                 $"GetWindowThread({Window})=0x{OwnThread:X}",                                   //    与本窗口线程
-                $"AttachThreadInput(0x{OwnThread:X}, 0x{ForegroundThread:X}, True)=True",       // ② 输入队列挂接（挂接方 = 本线程）
-                $"ShowWindow({Window}, 6)",                                                     // ③ SW_MINIMIZE
-                $"ShowWindow({Window}, 9)",                                                     // ④ SW_RESTORE（前台授予关键拳）
-                $"SwitchToThisWindow({Window}, altTab=True)",                                   // ⑤ 会话切换
-                $"SetForegroundWindow({Window})=True",                                          // ⑥ 前置请求
-                $"AttachThreadInput(0x{OwnThread:X}, 0x{ForegroundThread:X}, False)=True",      // ⑦ 解除挂接（finally）
+                $"AttachThreadInput(0x{OwnThread:X}, 0x{ForegroundThread:X}, True)=True",  // 输入队列挂接（挂接方 = 本线程）
+                $"ShowWindow({Window}, 6)",  // SW_MINIMIZE
+                $"ShowWindow({Window}, 9)",  // SW_RESTORE（前台授予关键拳）
+                $"SwitchToThisWindow({Window}, altTab=True)",  // 会话切换
+                $"SetForegroundWindow({Window})=True",  // 前置请求
+                $"AttachThreadInput(0x{OwnThread:X}, 0x{ForegroundThread:X}, False)=True",  // 解除挂接
             },
             calls.Items);
         Assert.DoesNotContain(calls.Items, item => item.StartsWith("FlashWindowEx")); // 成功不触发兜底

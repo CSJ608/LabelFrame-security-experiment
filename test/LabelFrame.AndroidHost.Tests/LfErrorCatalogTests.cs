@@ -1,7 +1,7 @@
-// LF_* 错误码 PDA 侧码表测试（/ ， ③ / ——语义对齐的 web 端测试）：
-// ① 覆盖断言：解析后端错误码注册表源码（ApiErrorCodes / ServerErrorCodes / Core JobErrorCodes）提取码字面量，
+// LF_* 错误码 PDA 侧码表测试（语义对齐的 web 端测试）：
+// 覆盖断言：解析后端错误码注册表源码提取码字面量
 //    断言 zh + en 两份码表全覆盖且无多余死码——新增码漏表即红（与 web errorCodes.test.ts 同一道防线）；
-// ② 展示端翻译行为：en 已知码按码表插值渲染、未知码 / 参数不全回退后端中文、zh 直用后端 message。
+// 展示端翻译行为：en 已知码按码表插值渲染、未知码 / 参数不全回退后端中文、zh 直用后端 message。
 // 取证说明：本断言的失败形态 = 逐条列出缺失 / 多余码后 Assert 失败。
 
 using System.Runtime.CompilerServices;

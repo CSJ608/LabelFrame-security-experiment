@@ -244,7 +244,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
                     // 单个文件被占用 / 权限不足（Windows 只读属性、ACL 拒绝）跳过，继续删其余
-                    // （写入中文件按元组序总在队尾不会被选中）—— 留观项①
+                    // （写入中文件按元组序总在队尾不会被选中）—— 留观项
                 }
             }
         }

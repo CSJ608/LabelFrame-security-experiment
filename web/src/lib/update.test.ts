@@ -1,4 +1,4 @@
-// 检查更新辅助（/ DESIGN ⑤）：版本解析 / 比较 / 结论三态。
+// 检查更新辅助：版本解析 / 比较 / 结论三态。
 
 import { describe, expect, it } from 'vitest'
 import { checkForUpdate, compareVersions, parseClientPackageVersion, pickLatestPackageVersion } from './update'

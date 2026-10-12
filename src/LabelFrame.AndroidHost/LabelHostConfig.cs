@@ -58,7 +58,7 @@ public sealed class LabelHostConfig
     public required string DatabasePath { get; set; }
 
     /// <summary>
-    /// 外置插件根目录（/ ⑤）：{FilesDir}/plugins，一插件一子目录
+    /// 外置插件根目录：{FilesDir}/plugins，一插件一子目录
     /// （语义对齐 Windows %ProgramData%\LabelFrame\Client\plugins——卸载 = 删目录 + 重启生效）。
     /// </summary>
     public required string PluginsPath { get; set; }
@@ -129,7 +129,7 @@ public sealed class LabelHostConfig
 
     /// <summary>打印机连接方式的用户可读摘要（主页状态卡 / 通知 / 状态页共用，按连接类型给一句话）。
     /// 外置插件品牌（brand ≠ zebra）统一显示「IP:端口」——插件品牌连接类型固定网口 tcp 起步。
-    /// （⑤）：连接方式词经资源 id 引用，随系统语言（values 缺省中文与原字面量等价）。</summary>
+    /// 连接方式词经资源 id 引用，随系统语言（values 缺省中文与原字面量等价）。</summary>
     public string PrinterDisplay(Android.Content.Context context)
     {
         var brand = PrinterBrand.Trim();

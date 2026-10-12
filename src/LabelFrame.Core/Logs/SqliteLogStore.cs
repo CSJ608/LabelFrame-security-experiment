@@ -141,7 +141,7 @@ public sealed class SqliteLogStore
     }
 
     /// <summary>量闸执行结果：累计删除行数 + 异常态警告（null = 无异常；VACUUM 失败 / 表空仍超阈等，
-    /// 由调用方经 ILogger 记录——Core 库无日志抽象，服务宿主可能无控制台， 留观项②）。</summary>
+    /// 由调用方经 ILogger 记录——Core 库无日志抽象，服务宿主可能无控制台， 留观项）。</summary>
     public sealed record SizeLimitResult(int DeletedRows, string? VacuumWarning);
 
     /// <summary>

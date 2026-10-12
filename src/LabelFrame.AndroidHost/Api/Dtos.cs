@@ -36,7 +36,7 @@ public sealed record JobView(
 public sealed record JobItemView(int Index, string Status, string? ErrorCode, string? ErrorMessage);
 
 /// <summary>错误响应：问题码 + 中文消息（可选字段键、可选模板参数）。
-/// params（③ / ，定契约、PDA 副本对齐）：扁平字符串键值对象
+/// params（定契约、PDA 副本对齐）：扁平字符串键值对象
 /// 键名与展示端码表模板占位符 <c>{key}</c> 同名，供 PDA / web 按码翻译插值；后端 message 永远为渲染后中文兜底。
 /// 缺省 / null 时序列化与旧形态逐字节等价（<see cref="JsonIgnoreAttribute"/> WhenWritingNull）。</summary>
 public sealed record ErrorView(

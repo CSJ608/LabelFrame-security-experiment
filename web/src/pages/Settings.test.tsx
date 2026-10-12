@@ -328,9 +328,9 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
   it('AC-01：连接方式摘要与测试打印说明均显示「模拟打印」，无「LOG」直出', async () => {
     mockLogPluginTransport()
     renderSettings()
-    // ① 连接方式折叠头摘要（displayText 优先 = 插件 Describe 用户语）
+    // 连接方式折叠头摘要（displayText 优先 = 插件 Describe 用户语）
     expect(await screen.findByText('模拟打印')).toBeTruthy()
-    // ③ 测试打印说明（打印机分组）：当前连接方式：模拟打印
+    // 测试打印说明（打印机分组）：当前连接方式：模拟打印
     const printerSection = withinSection('打印机')
     await waitFor(() => expect(printerSection.textContent).toContain('当前连接方式：模拟打印'))
     // 全页无「LOG」直出（起选项名亦为「模拟打印」，页面无任何「Log」字样）

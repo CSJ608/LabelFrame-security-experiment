@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 // ElementNode 图片内容结构级断言：jsdom 无 2d context、react-konva
-// 画布不可挂载（Designer.test.tsx 桩化先例； ③ / 「画布 Konva Image 断言只能结构级」）——
+// 画布不可挂载（Designer.test.tsx 桩化先例； / 「画布 Konva Image 断言只能结构级」）
 // 以 DOM 桩替换 react-konva 组件（props 序列化进 data-props），锚定承重结构：
-// ① 成功分支 KImage 后跟整盒 fill=transparent 兜底命中 Rect（阻断根因——无此 Rect 则画布点击穿透
-//    仅能经图层面板选中）；② 空占位分支（key 空）保留整盒 fill 命中＋canvas.imageEmpty 文案（评审建议：
-//    拆两态若只画虚线 stroke 会复现阻断 bug）；③ key 非空缺资源维持 imageNode 文案；④ 预览态且 key 空
+// 成功分支 KImage 后跟整盒 fill=transparent 兜底命中 Rect（阻断根因——无此 Rect 则画布点击穿透
+// 仅能经图层面板选中）； 空占位分支（key 空）保留整盒 fill 命中＋canvas.imageEmpty 文案（评审建议：
+// 拆两态若只画虚线 stroke 会复现阻断 bug）； key 非空缺资源维持 imageNode 文案； 预览态且 key 空
 // 整元素不渲染。真实 Konva 命中 / 点击交互归 复陪验。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'

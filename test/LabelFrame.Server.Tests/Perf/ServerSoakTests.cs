@@ -13,7 +13,7 @@ namespace LabelFrame.Server.Tests.Perf;
 /// Server 稳定性 soak（Trait=Soak，`dotnet test --filter Category=Soak` 运行，默认 5 分钟 / 环境变量 LF_SOAK_MINUTES 调整）：
 /// 稳态平台期 = 混合负载持续运行（并发 提交+领取+回报+长轮询 notify+日志写入），
 /// 按 Grafana soak 实践断言三类漂移——
-/// ① GC 堆无持续增长（首/末窗口对比）② SQLite WAL 文件有界（autocheckpoint 生效）③ 吞吐无衰减（末窗口 ≥ 首窗口 80%）。
+/// GC 堆无持续增长（首/末窗口对比） SQLite WAL 文件有界（autocheckpoint 生效） 吞吐无衰减（末窗口 ≥ 首窗口 80%）。
 /// </summary>
 [Trait("Category", "Soak")]
 public sealed class ServerSoakTests : IDisposable
@@ -107,14 +107,14 @@ public sealed class ServerSoakTests : IDisposable
             await Task.Delay(200);
         }
 
-        // ① 无错误（稳态下偶发锁错误即不稳定）
+        // 无错误（稳态下偶发锁错误即不稳定）
         Assert.Equal(0, errors);
 
-        // ② WAL 有界：autocheckpoint=1000 页（≈4MB）+ 运行期余量，10MB 上限
+        // WAL 有界：autocheckpoint=1000 页（≈4MB）+ 运行期余量，10MB 上限
         var finalWal = SafeWalSize();
         Assert.True(finalWal < 10 * 1024 * 1024, $"WAL 文件 {finalWal / 1024}KB 无界增长——autocheckpoint 未生效");
 
-        // ③ 托管堆无持续增长：允许 50% 余量（GC 波动），排除泄漏
+        // 托管堆无持续增长：允许 50% 余量（GC 波动），排除泄漏
         GC.Collect();
         var finalHeap = GC.GetTotalMemory(false);
         Assert.True(finalHeap < firstSnapshot * 1.5 + 10 * 1024 * 1024,

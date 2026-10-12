@@ -20,7 +20,7 @@ public enum WizardForegroundOutcome
 /// 启动者无前台权（计划任务 / 后台进程触发、Explorer 未持前台、下载后立即切走）时向导静默不前置，
 /// 用户以为安装无响应（ 复现 S1 / S3 / S3b；S3c 预试证明单一 <c>SetForegroundWindow</c>——
 /// 即使配合 <see cref="AttachThreadInput"/>——也会被前台锁拒绝）。
-/// 本类实现用户拍板的组合拳（选项①）：已在前台则零扰动；否则
+/// 本类实现用户拍板的组合拳（选项）：已在前台则零扰动；否则
 /// <see cref="AttachThreadInput"/>（本 UI 线程挂接当前前台线程输入队列）→
 /// <see cref="ShowWindow"/>(SW_MINIMIZE→SW_RESTORE)（还原动作的前台授予独立于置前配额）→
 /// <see cref="SwitchToThisWindow"/> → <see cref="SetForegroundWindow"/>，仍被拒时
@@ -148,7 +148,7 @@ public sealed class WizardForegroundActivator
             return WizardForegroundOutcome.AlreadyForeground;
         }
 
-        // ① 挂接：本 UI 线程与当前前台线程共享输入队列——前置请求从前台线程视角发出；
+        // 挂接：本 UI 线程与当前前台线程共享输入队列——前置请求从前台线程视角发出
         //    无前台窗口（句柄为零）或同线程（自家窗口）时无需挂接
         var foregroundThread = foreground == IntPtr.Zero ? 0 : _getWindowThread(foreground);
         var ownThread = _getWindowThread(window);
@@ -158,11 +158,11 @@ public sealed class WizardForegroundActivator
         bool requested;
         try
         {
-            // ② 状态扰动：最小化 → 还原——系统对还原动作的前台授予独立于 SetForegroundWindow 配额，
+            // 状态扰动：最小化 → 还原——系统对还原动作的前台授予独立于 SetForegroundWindow 配额
             //    是无前台权进程取得前台的关键一拳（S3c 证明缺它单靠挂接 + 前置请求会被拒）
             _showWindow(window, SwMinimize);
             _showWindow(window, SwRestore);
-            // ③ 会话切换（等效 Alt-Tab 目标）＋ 直接前置请求
+            // 会话切换（等效 Alt-Tab 目标）＋ 直接前置请求
             _switchToThisWindow(window, true);
             requested = _setForegroundWindow(window);
         }
@@ -179,7 +179,7 @@ public sealed class WizardForegroundActivator
             return WizardForegroundOutcome.Activated;
         }
 
-        // ④ 兜底：任务栏 + 标题强闪烁，闪至成为前台自停（FLASHW_TIMERNOFG）——置前彻底被拒时的可感知强提示
+        // 兜底：任务栏 + 标题强闪烁，闪至成为前台自停（FLASHW_TIMERNOFG）——置前彻底被拒时的可感知强提示
         _flashWindowEx(window, FlashwAll | FlashwTimerNoFg, FlashCount);
         return WizardForegroundOutcome.FlashFallback;
     }

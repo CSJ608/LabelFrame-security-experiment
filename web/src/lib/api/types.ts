@@ -323,7 +323,7 @@ export interface PrinterTestResult {
   bytes: number
 }
 
-/* * 后端错误响应（ErrorView；params 为· ③ / 新增可选字段）。 */
+/* * 后端错误响应（ErrorView；params 为· / 新增可选字段）。 */
 export interface ApiErrorBody {
   code: string
   message: string

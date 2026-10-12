@@ -1,15 +1,15 @@
 // 新用户首次使用引导——步骤定义纯数据 + 首见标记读写（·）。
-// 拍板口径（用户拍板）：①分步气泡 spotlight ②自研实现 ③localStorage 每浏览器首见一次
-// ④键名带版本号 ⑤重看入口在状态栏 meta 区「日志」旁 ⑧跳过即已看 ⑨Esc = 跳过并写标记。
+// 拍板口径（用户拍板）：分步气泡 spotlight 自研实现 localStorage 每浏览器首见一次
+// 键名带版本号 重看入口在状态栏 meta 区「日志」旁 跳过即已看 Esc = 跳过并写标记。
 //
 // 存储对照（已核实口径）：首见标记是「每浏览器一次」的偏好型数据（需跨标签页共享、持久）
-// 与 ④语言偏好（labelframe.locale）、默认目标设备（AppContext labelframe.defaultTargetDeviceId）
+// 与 语言偏好（labelframe.locale）、默认目标设备（AppContext labelframe.defaultTargetDeviceId）
 // 同类先例；DESIGN 「禁 localStorage」的适用范围是 DataPrint 会话草稿（printDraft 需标签页隔离故
 // sessionStorage），语义相反不适用本标记；不新增后端 API（机器级 settings.json 路线不出轮）。
 
 import type { TabId } from '../state/types'
 
-/* * 首见标记 localStorage 键（值 'done'；带版本号——未来引导改版换键即可整体重放， ④）。 */
+/* * 首见标记 localStorage 键（值 'done'；带版本号——未来引导改版换键即可整体重放）。 */
 export const GUIDE_SEEN_KEY = 'labelframe.guide.client.v1'
 
 /* * 引导步骤定义（顺序即播放顺序；V1 五步覆盖核心链， 步骤清单拍板）。 */

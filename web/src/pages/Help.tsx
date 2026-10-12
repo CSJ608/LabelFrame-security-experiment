@@ -1,7 +1,7 @@
-// 帮助页 V3.1（· ，，观感返工拍板②）：左目录树＋受限宽正文的文档站版式
+// 帮助页 V3.1（观感返工拍板）：左目录树＋受限宽正文的文档站版式
 //（Stripe / GitHub 口径）——左栏两级目录（根「功能索引」＋页节点；当前文章页展开小节、其余收起
-// 的手风琴形态，拍板④），点击页节点进文章、小节节点跳转对应 section；主区滚动时当前节高亮跟随；
-// 正文阅读宽度受限（~760px）；窄窗（≤960px，拍板③对齐 .grid-2 断点）左栏收起、page-head 目录
+// 的手风琴形态，拍板），点击页节点进文章、小节节点跳转对应 section；主区滚动时当前节高亮跟随
+// 正文阅读宽度受限（~760px）；窄窗（≤960px，拍板对齐 .grid-2 断点）左栏收起、page-head 目录
 // 按钮展开为浮层。主区保留既有两种视图：功能索引卡（根节点选中态）/ 分界面文章。
 // 文章小节与界面内「?」文档点共用同一词条（lib/help.ts 单源双视图，拍板 5）；有文档点的小节提供
 // 「去界面查看」深链——回调注入方（App Shell）以 hash 赋值导航（#/目标页/<锚点>， 机制迁移）。
@@ -22,7 +22,7 @@ interface HelpProps {
   onOpenInUi: (tab: TabId, anchor: string) => void
 }
 
-/* * 窄窗阈值（px， 拍板③）：与 styles.css .grid-2 断点一致——窗口不宽于该值时左栏默认收起。 */
+/* * 窄窗阈值（px， 拍板）：与 styles.css .grid-2 断点一致——窗口不宽于该值时左栏默认收起。 */
 const TOC_NARROW_WIDTH = 960
 
 /** 平滑滚动受 prefers-reduced-motion 约束（jsdom 未实现 matchMedia——typeof 守卫防炸）。 */
@@ -103,7 +103,7 @@ export function Help({ onOpenInUi }: HelpProps) {
           >
             {t(`index.${p.page}.title`)}
           </button>
-          {/* 手风琴（拍板④）：仅当前文章页展开小节列表——label 与正文 h3 /「?」气泡同源词条 */}
+          {/* 手风琴（拍板）：仅当前文章页展开小节列表——label 与正文 h3 /「?」气泡同源词条 */}
           {article === p.page && (
             <div className="help-toc-sections">
               {p.topics.map((topic) => (

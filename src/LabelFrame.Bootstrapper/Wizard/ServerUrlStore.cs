@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace LabelFrame.Bootstrapper.Wizard;
 
-/// <summary>客户端服务端地址存取（/ ④）：与 WinHost <c>HostConfigStore</c> 同一事实源——<c>%ProgramData%\LabelFrame\Client\settings.json</c> 的 <c>{"serverUrl": …}</c>。
+/// <summary>客户端服务端地址存取：与 WinHost <c>HostConfigStore</c> 同一事实源——<c>%ProgramData%\LabelFrame\Client\settings.json</c> 的 <c>{"serverUrl": …}</c>。
 /// 问卷侧只读（<see cref="WizardSession"/> 只读契约：探测已配地址用于预填）；装后写入归 BA（Apply 成功后调用 <see cref="Save"/>）。</summary>
 public sealed class ServerUrlStore
 {
@@ -60,7 +60,7 @@ public sealed class ServerUrlStore
     }
 }
 
-/// <summary>服务端地址问卷输入规范化（/ ④）：裸主机名 / host:port 补 http:// 前缀；空值或非法输入返回 null。</summary>
+/// <summary>服务端地址问卷输入规范化：裸主机名 / host:port 补 http:// 前缀；空值或非法输入返回 null。</summary>
 public static class ServerUrlInput
 {
     /// <summary>同机服务端默认地址（服务端 + 同机客户端角色预填，可改）。</summary>

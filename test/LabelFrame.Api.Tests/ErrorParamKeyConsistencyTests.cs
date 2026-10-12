@@ -1,7 +1,7 @@
 // 防复发断言（「单码单参数键集」）：
 // 解析 src 全部 C# 源码中「携带 params 的错误构造调用点」——两种既有惯用法：
-//   ① Templated(码, "模板{key}", new() { ["key"] = … })（ServerService / LabelJobQueue 私有助手）；
-//   ② new Dictionary<string, string> { ["key"] = … } + 邻近 ErrorView / LabelJobException 构造（端点层 / AndroidHost）。
+// Templated(码, "模板{key}", new() { ["key"] = … })（ServerService / LabelJobQueue 私有助手）
+// new Dictionary<string, string> { ["key"] = … } + 邻近 ErrorView / LabelJobException 构造（端点层 / AndroidHost）。
 // 按错误码分组断言：同码所有调用点的参数键集一致；并把键集与 web 端 zh-CN / en 两份码表词条占位符对齐
 // （带占位符的词条必须与键集逐键相等——否则该变体在 en 态触发「参数不全」守卫回退中文，即验收失败项 1a 的缺陷形态）。
 // 防假绿：站点数下限锚定；注册表 / 接线解析不完整、存在无法解析码表达式的站点 → 直接失败（宁可红不可静默漏检）。

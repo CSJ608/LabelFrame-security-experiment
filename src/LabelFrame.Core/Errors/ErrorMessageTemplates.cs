@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace LabelFrame.Core.Errors;
 
 /// <summary>
-/// 错误消息模板插值（③ /）：
+/// 错误消息模板插值：
 /// 带内插的中文错误消息改「模板 + 参数」构造——模板占位 <c>{key}</c>，参数为扁平字符串键值对象
 /// （随 ErrorView 可选 <c>params</c> 透出，展示端按码表翻译时用同名插值槽）。
 /// 规则：单遍替换（参数值内嵌 <c>{x}</c> 不级联替换）；参数缺失时占位符原样保留——消息兜底不抛。

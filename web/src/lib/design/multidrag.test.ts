@@ -2,8 +2,8 @@
 // 多选组合视为一个整体——吸附单位 = 整组联合包围盒（边缘 / 中心与画布 / 内容区 / 未选中元素参考线
 // 对齐，网格兜底按联合盒左上角贴 1mm 网格），组内元素全部退出吸附（既不作被拖盒也不作候选），
 // 拖动 / 吸附位移以同一平移量刚性施加于整组。v3 语义（真实浏览器插桩定位后的修复口径）：
-// ① 松手段纯提交——dragend 不再跑二次联合盒吸附、终态不读节点现值，统一取 dragmove 末步写入
-// 快照的 lastApplied（吸附后主导位置）；② 主导权防御——Konva Transformer._proxyDrag 会在主导首次
+// 松手段纯提交——dragend 不再跑二次联合盒吸附、终态不读节点现值，统一取 dragmove 末步写入
+// 快照的 lastApplied（吸附后主导位置）； 主导权防御——Konva Transformer._proxyDrag 会在主导首次
 // dragmove 把跟随节点强推 startDrag 产生「假 dragstart」（v2 松手瞬移根因：单例快照被跟随元素的
 // 快照顶替，dragend 以「主导节点位置 × 跟随快照」错配算补丁）——假拖动节点的 dragstart/dragmove/
 // dragend 一律忽略，提交权唯一归属主导元素。本文件按 v3 链序复刻断言，并保留 v1 口径证伪与
@@ -213,7 +213,7 @@ function dragEndV2Legacy(s: DragState, nodeId: string) {
   return { snap, patches }
 }
 
-/* * v1 snapNode 复刻：被拖盒 = 主导元素模型盒；候选排除全部选中元素（④）。 */
+/* * v1 snapNode 复刻：被拖盒 = 主导元素模型盒；候选排除全部选中元素。 */
 function snapNodeV1(s: DragState, g: Konva.Node): { dx: number; dy: number } {
   const e = elementById(s.elements, g.id())!
   const followerIds = s.selected

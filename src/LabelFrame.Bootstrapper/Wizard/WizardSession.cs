@@ -66,7 +66,7 @@ public sealed class WizardSession
     /// <summary>已选本机角色（问卷角色页；基础模式由就绪页默认置 <see cref="TopologyPreset.Client"/>）。</summary>
     public TopologyPreset? Preset { get; set; }
 
-    /// <summary>是否进入高级模式（就绪页「高级选项」显式入口，D3）：置位后问卷出现角色页与明细展开， ⑤。</summary>
+    /// <summary>是否进入高级模式（就绪页「高级选项」显式入口，D3）：置位后问卷出现角色页与明细展开， 。</summary>
     public bool AdvancedMode { get; set; }
 
     /// <summary>问卷采集的服务端地址原始输入（地址页；规范化与校验见 <see cref="ServerUrlInput.Normalize"/>，装后落位由 BA 承担）。</summary>
@@ -94,7 +94,7 @@ public sealed class WizardSession
         // 清单新鲜度（latest.json 消费）：推导得到来源才读，失败静默跳过（不阻断主流程）
         Latest = await TryLoadLatestAsync(effectiveHttp, cancellationToken).ConfigureAwait(false);
 
-        // 已配服务端地址只读探测（④，地址页预填）：读不到 = null，不阻断
+        // 已配服务端地址只读探测（地址页预填）：读不到 = null，不阻断
         try
         {
             ExistingServerUrl = _existingServerUrlProbe();

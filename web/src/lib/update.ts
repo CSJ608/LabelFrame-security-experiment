@@ -1,4 +1,4 @@
-// 客户端「检查更新」辅助（/ DESIGN ⑤）：
+// 客户端「检查更新」辅助：
 // 从服务端 client-packages 文件名解析客户端 MSI 版本（发版命名事实 LabelFrame-Client-<版本>.msi），
 // 与本机版本（/api/host/config.version）比较——有新版提示获取入口、无新版明确「已是最新」；
 // 不做应用内自动下载安装（/ 维持）。
@@ -38,7 +38,7 @@ export function compareVersions(left: string, right: string): number {
   return 0
 }
 
-/* * 「检查更新」结论（⑤：三种形态——有新版 / 已是最新 / 无法比较不显示）。 */
+/* * 「检查更新」结论（三种形态——有新版 / 已是最新 / 无法比较不显示）。 */
 export type UpdateCheck =
   | { kind: 'update-available'; latestVersion: string; localVersion: string }
   | { kind: 'up-to-date'; localVersion: string }

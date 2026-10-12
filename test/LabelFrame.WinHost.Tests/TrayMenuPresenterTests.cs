@@ -42,9 +42,9 @@ public sealed class TrayMenuPresenterTests
         Assert.Equal(
             new[]
             {
-                $"SetForegroundWindow({owner})",                                // ① 前置 owner 先于菜单弹出
-                $"TrackPopupMenu(flags=0x0100, owner={owner})",                 // ② TPM_RETURNCMD 且 owner 窗口一致
-                $"PostMessage(hwnd={owner}, msg=0x0000, wParam=0, lParam=0)",   // ③ WM_NULL 后于菜单关闭
+                $"SetForegroundWindow({owner})",  // 前置 owner 先于菜单弹出
+                $"TrackPopupMenu(flags=0x0100, owner={owner})",  // TPM_RETURNCMD 且 owner 窗口一致
+                $"PostMessage(hwnd={owner}, msg=0x0000, wParam=0, lParam=0)",  // WM_NULL 后于菜单关闭
             },
             calls);
     }

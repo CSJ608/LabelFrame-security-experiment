@@ -170,7 +170,7 @@ describe('模板卡片打印直达（迭代 85 · #133 C-4）', () => {
   })
 })
 
-// 卡片脚收纳——「编辑」升主操作（修订①），导出 / 删除收进 ⋯ 溢出菜单
+// 卡片脚收纳——「编辑」升主操作（修订），导出 / 删除收进 ⋯ 溢出菜单
 // 修复四按钮平铺（最小需宽约 216px）超出最窄卡片可用宽度 176px 致「删除」被 .wb-card overflow:hidden
 // 裁剪不可见不可点的回归（/）。
 describe('卡片脚操作收纳（迭代 104 · #225）', () => {
@@ -181,7 +181,7 @@ describe('卡片脚操作收纳（迭代 104 · #225）', () => {
     const editBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '编辑' }) as HTMLButtonElement
     const printBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '打印' }) as HTMLButtonElement
     const moreBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: /更多操作/ }) as HTMLButtonElement
-    // 主操作归属（修订①）：编辑 = primary；打印 = 普通按钮
+    // 主操作归属（修订）：编辑 = primary；打印 = 普通按钮
     expect(editBtn.className).toContain('primary')
     expect(printBtn.className).not.toContain('primary')
     expect(moreBtn.getAttribute('aria-haspopup')).toBe('menu')

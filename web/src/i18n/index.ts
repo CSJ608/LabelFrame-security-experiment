@@ -1,4 +1,4 @@
-// i18n 基座（· ， ④）：react-i18next 接入 + 语言状态（localStorage 持久化
+// i18n 基座：react-i18next 接入 + 语言状态（localStorage 持久化
 // 首启跟随浏览器语言：`zh*` → zh-CN，其他 → en）+ `index.html` lang 动态化 + Intl 日期 / 数字格式化。
 //
 // 语言包组织（待决议-2 结论，供 111/112 沿用）：按域单文件 JSON（`locales/<locale>/<域>.json`），
@@ -40,7 +40,7 @@ import enPluginPackages from './locales/en/pluginPackages.json'
 import enGuide from './locales/en/guide.json'
 import enHelp from './locales/en/help.json'
 
-/* * 界面语言全集（zh-CN 为源语言；en 为第一翻译目标—— ①）。 */
+/* * 界面语言全集（zh-CN 为源语言；en 为第一翻译目标）。 */
 export type AppLocale = 'zh-CN' | 'en'
 
 export const APP_LOCALES: readonly AppLocale[] = ['zh-CN', 'en']
@@ -55,7 +55,7 @@ export function toAppLocale(lng: string | undefined | null): AppLocale {
 
 /**
  * 首启语言探测（依赖注入形式便于组件测试模拟 localStorage 与 navigator.language）：
- * ① localStorage 已保存的偏好优先；② 否则浏览器语言列表任一 `zh*` 开头 → zh-CN，其他 → en。
+ * localStorage 已保存的偏好优先； 否则浏览器语言列表任一 `zh*` 开头 → zh-CN，其他 → en。
  */
 export function detectInitialLocale(storage: Pick<Storage, 'getItem'> | null | undefined, languages: readonly string[]): AppLocale {
   const saved = storage?.getItem(LOCALE_STORAGE_KEY)
@@ -169,7 +169,7 @@ export function changeLocale(locale: AppLocale): void {
   void i18next.changeLanguage(locale)
 }
 
-// ---- Intl 格式化（ ④：替换硬编码 toLocaleString（'zh-CN'），跟随当前界面语言）----
+// Intl 格式化（ ：替换硬编码 toLocaleString（'zh-CN'），跟随当前界面语言）
 
 /** 日期时间（含时分秒，24 小时制）——工作台模板更新时间等列表展示用。 */
 export function formatDateTime(locale: AppLocale, date: Date): string {

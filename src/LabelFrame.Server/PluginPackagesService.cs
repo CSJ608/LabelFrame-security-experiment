@@ -56,7 +56,7 @@ public sealed class PluginPackagesService : FilePackageService<PluginPackageView
         var bytes = buffer.ToArray();
         var packageContent = PluginPackageReader.Read(bytes); // 非法抛 PluginPackageException（中文原因）
 
-        // 内置传输保留 id 拒绝（⑤，DESIGN）：log / tcp9100 / winspool 为内置插件 id
+        // 内置传输保留 id 拒绝：log / tcp9100 / winspool 为内置插件 id
         // 上传此类包会让客户端安装时与内置冲突——与客户端安装侧「注册表内置即拒绝」互为纵深；
         // 官方插件 id（labelframe- 前缀，如 labelframe-transport-zebra）放行，官方插件经本通道集中分发。
         if (TransportPluginIdPolicy.IsReservedBuiltin(packageContent.Manifest.PluginId))

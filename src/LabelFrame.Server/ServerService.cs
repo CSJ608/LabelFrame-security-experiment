@@ -62,7 +62,7 @@ public sealed partial class ServerService : IDisposable
     private DateTimeOffset? PendingTtlCutoff(DateTimeOffset now)
         => _options?.PendingJobTtl is { } ttl ? now - ttl : null;
 
-    /// <summary>模板化领域异常构造（③ /）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>模板化领域异常构造：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
     private static ServerException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 

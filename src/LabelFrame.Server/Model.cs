@@ -84,7 +84,7 @@ public sealed class ServerJob
     /// <summary>失败原因（中文）。</summary>
     public string? ErrorMessage { get; set; }
 
-    /// <summary>失败原因码（③ / ：宿主回报可选携带、失联回收 LF_SRV_009、超期放弃 LF_SRV_011；中文存量不迁移，可空）。</summary>
+    /// <summary>失败原因码（宿主回报可选携带、失联回收 LF_SRV_009、超期放弃 LF_SRV_011；中文存量不迁移，可空）。</summary>
     public string? ErrorCode { get; set; }
 
     /// <summary>作业载荷（模板 + labels 的 JSON，领取时原样返回宿主）。</summary>

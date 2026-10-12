@@ -4,7 +4,7 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 就绪页（/ ③ ⑤）：进入即自动加载安装清单（邻接布局清单 → 本地；否则稳定通道 URL——打开向导即联网的口径变化已记决策表）
+/// 就绪页：进入即自动加载安装清单（邻接布局清单 → 本地；否则稳定通道 URL——打开向导即联网的口径变化已记决策表）
 /// 成功自动进问卷（基础模式默认角色 = 仅打印客户端）；失败给一句可行动提示并展开手动来源区（浏览本地清单 / 重试）。
 /// 「高级选项」角落按钮（D3）：置位 <see cref="WizardSession.AdvancedMode"/> 后前进进入角色页与技术细节。
 /// </summary>
@@ -158,7 +158,7 @@ internal sealed class ReadyPage : UserControl, IWizardPage
             await _session.LoadManifestAsync();
             _statusLabel.Text = DescribeReady();
 
-            // 基础模式默认角色 = 仅打印客户端（高级模式由角色页默认选择， ①）
+            // 基础模式默认角色 = 仅打印客户端（高级模式由角色页默认选择）
             if (!_session.AdvancedMode)
             {
                 _session.Preset ??= TopologyPreset.Client;

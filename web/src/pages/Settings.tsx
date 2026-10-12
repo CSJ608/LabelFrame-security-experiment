@@ -385,7 +385,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             title={transportOpen ? t('transport.collapseTitle') : t('transport.expandTitle')}
           >
             {t('transport.title')}
-            {/* 「?」点击 stopPropagation（评审建议②）：防冒泡连带触发展开 / 收起 */}
+            {/* 「?」点击 stopPropagation（评审建议）：防冒泡连带触发展开 / 收起 */}
             {dot('settings.transport')}
             <span className="hint" style={{ marginLeft: 6 }}>{t('transport.current')}</span>
             <span

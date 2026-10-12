@@ -61,7 +61,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
 
         // 按 IP 未找到拆码 LF_SRV_012（原 LF_SRV_001 与「设备未注册 {deviceId}」双键变体混用）
         Assert.Equal("LF_SRV_012", body.GetProperty("code").GetString());
-        // 后端中文 message 与改造前内插文案等价（中文兜底， ③）
+        // 后端中文 message 与改造前内插文案等价（中文兜底）
         Assert.Equal("按 IP 未找到设备：10.99.99.99。", body.GetProperty("message").GetString());
         // params：扁平字符串键值对象，键名与模板占位符一致（待决议-1 建议形态）
         var parameters = body.GetProperty("params");
@@ -88,7 +88,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Submit_with_invalid_callback_url_should_return_dedicated_code_and_params()
     {
-        // callbackUrl 校验从 LF_SRV_002 拆出专属码 LF_SRV_013（单码单参数键集， ⑥）
+        // callbackUrl 校验从 LF_SRV_002 拆出专属码 LF_SRV_013（单码单参数键集）
         using var response = await _client.PostAsync(
             "/api/jobs",
             Json("""{ "requestId": "ep-cb", "targetDeviceId": "any", "callbackUrl": "file://x", "template": { "contract": { "name": "t", "version": "1", "fields": [] }, "layout": { "name": "l", "contractName": "t", "contractVersion": "1", "widthMm": 40, "heightMm": 20, "elements": [] } }, "labels": [ { "data": {} } ] }"""));

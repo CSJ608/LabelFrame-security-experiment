@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>缓存重试判定结果（③）。</summary>
+/// <summary>缓存重试判定结果。</summary>
 /// <param name="AllowRetry">是否允许驱动引擎重试（假 = 连续无进展次数超限，应停止重试交引擎失败处置）。</param>
 /// <param name="Delay">本次重试前的指数退避等待（事件回调内阻塞即节流引擎缓存线程）。</param>
 /// <param name="GrantedRetries">该包累计已授予的重试次数（退避指数）。</param>
@@ -16,7 +16,7 @@ public sealed record CacheRetryDecision(
 }
 
 /// <summary>
-/// 缓存重试策略（③，DESIGN）：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 Retry /
+/// 缓存重试策略：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 Retry
 /// 载荷获取 <c>CacheAcquireComplete</c> Retry / 校验 <c>CacheVerifyComplete</c> RetryAcquisition）共用每包预算。
 /// </summary>
 /// <remarks>

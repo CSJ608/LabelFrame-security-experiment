@@ -43,7 +43,7 @@ public class TransportPluginIdPolicyTests
         => Assert.Equal(TransportPluginIdPolicy.ZebraPluginId, TransportPluginIdPolicy.BrandPluginIds["zebra"]);
 }
 
-/// <summary>插件版本比较（④：官方插件覆盖安装版本比较语义）。</summary>
+/// <summary>插件版本比较（官方插件覆盖安装版本比较语义）。</summary>
 public class PluginVersionComparerTests
 {
     [Theory]

@@ -243,7 +243,7 @@ describe('server 构建 · 设计器深链自动开草稿（迭代 129 · #320�
     render(<App />)
     // 空态被自动草稿取代：填充组锚点（Text 示例元素选中）入 DOM——设计器文档点在 server 渲染
     await waitFor(() => expect(document.querySelector('[data-help="designer.fill"]')).toBeTruthy(), { timeout: 5000 })
-    // draftOpened 终态提示驻留状态栏（与 client 同语义，#178⑤ 静默空态口径反转）
+    // draftOpened 终态提示驻留状态栏（与 client 同语义， 静默空态口径反转）
     expect(await screen.findByText(/帮助打开的是临时示例草稿/)).toBeTruthy()
     // hash 带 sub 段驻留（可分享 / 刷新还原）
     expect(window.location.hash).toBe('#/designer/designer.fill')

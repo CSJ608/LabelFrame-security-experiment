@@ -15,7 +15,7 @@ public sealed record ServerJobPayload(
     IReadOnlyList<LabelDto> Labels);
 
 /// <summary>回报给 Server 的作业结果。</summary>
-/// <param name="ErrorCode">失败原因码（可选，加法—— ③ / ：Server 落 server_jobs.error_code 供按码追溯；无码失败为 null）。</param>
+/// <param name="ErrorCode">失败原因码（可选，加法—— / ：Server 落 server_jobs.error_code 供按码追溯；无码失败为 null）。</param>
 public sealed record ServerJobResult(string Status, int CompletedItems, int FailedItems, string? ErrorMessage, string? ErrorCode = null);
 
 /// <summary>上报给 Server 的作业进度（计数口径与结果回报一致：完成 + 失败 / 取消）。</summary>

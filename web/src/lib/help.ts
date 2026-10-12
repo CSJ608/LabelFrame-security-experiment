@@ -3,7 +3,7 @@
 // （help.article.<page>.intro / help.topic.<page>.<id>），文章视图与「?」文档点气泡
 // 共用同一词条（单源双视图，防双份漂移——拍板 5）。
 //
-// 锚点命名法与 lib/guide.ts 的 data-guide 对称（data-help 语义分离， ②）
+// 锚点命名法与 lib/guide.ts 的 data-guide 对称（data-help 语义分离）
 // 纯文章小节无 anchor——帮助页不渲染「去界面查看」深链按钮。
 // 演示预设是显示层注入的示例值（mode/key/displayName/text），由 Designer 合并进
 // viewElements，不写 stateRef / historyRef（零落库的结构性前提）。

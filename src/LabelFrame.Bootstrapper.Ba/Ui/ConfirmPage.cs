@@ -5,7 +5,7 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 确认页（/ ⑤ + D2）：默认视图只保留用户做决定必需的三要素——装什么（角色摘要 + 体积）、执行边界一行（语义不变）
+/// 确认页（+ D2）：默认视图只保留用户做决定必需的三要素——装什么（角色摘要 + 体积）、执行边界一行（语义不变）
 /// 升级 / 新鲜度状态行；「显示明细」折叠区承载技术细节（组件全表含来源 URL 与本机版本、清单来源覆写入口、离线安装说明）。
 /// 「下一步」= 开始安装（进入进度页触发引擎 Plan + Apply，执行边界契约）。
 /// </summary>
@@ -233,7 +233,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _ => brand,
     };
 
-    /// <summary>运行时探测腿文案（③）：按当轮计划集合过滤——计划不含的运行时不输出「未装（将安装）」。</summary>
+    /// <summary>运行时探测腿文案：按当轮计划集合过滤——计划不含的运行时不输出「未装（将安装）」。</summary>
     private string DescribeRuntimeProbes(TopologyPlan plan)
     {
         var notes = new List<string>();

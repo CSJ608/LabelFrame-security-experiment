@@ -40,7 +40,7 @@ app.MapGet("/api/devices/by-ip/{ip}", async (string ip, ServerService svc, Cance
         return Results.Ok(device);
     }
 
-    // 模板化消息（③ /）：中文 message 渲染结果与旧内插文案等价，params 供展示端按码表翻译插值
+    // 模板化消息：中文 message 渲染结果与旧内插文案等价，params 供展示端按码表翻译插值
     // 按 IP 未找到拆码 LF_SRV_012（{ip}），与 LF_SRV_001 设备未注册（{deviceId}）各自单参数键集
     var parameters = new Dictionary<string, string> { ["ip"] = ip };
     return Results.NotFound(new ErrorView(

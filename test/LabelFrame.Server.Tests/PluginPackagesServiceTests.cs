@@ -179,7 +179,7 @@ public class PluginPackagesServiceTests
         }
     }
 
-    // ---- 官方插件放行策略（⑤）----
+    // 官方插件放行策略
 
     [Fact]
     public async Task Save_official_plugin_id_should_be_allowed()
