@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace LabelFrame.WinHost;
 
-/// <summary>系统托盘图标（原生 P/Invoke，无 WinForms 依赖）：隐藏窗口接收回调，双击 / 右键菜单（打开界面 / 退出）；图标用内嵌白色托盘变体（深色任务栏可辨）。</summary>
+/// <summary>系统托盘图标（原生 P/Invoke，无 WinForms 依赖）：隐藏窗口接收回调，双击 / 右键菜单（打开界面 / 退出）；图标用内嵌彩色托盘变体（珊瑚承形，深浅任务栏双态可辨）。</summary>
 public sealed class TrayIconService : IDisposable
 {
     private const uint NIM_ADD = 0;
@@ -22,7 +22,7 @@ public sealed class TrayIconService : IDisposable
     private const string WindowClass = "LabelFrameTrayWindow";
 
     /// <summary>程序集内嵌托盘图标资源名（csproj LogicalName 固定，勿随默认命名空间漂移）。</summary>
-    internal const string TrayIconResourceName = "LabelFrame.brand.tray-white.ico";
+    internal const string TrayIconResourceName = "LabelFrame.brand.tray-color.ico";
 
     /// <summary>
     /// explorer 重启后系统广播的消息号（重启会销毁全部托盘图标，收到即须重新 NIM_ADD，
@@ -171,8 +171,8 @@ public sealed class TrayIconService : IDisposable
                 return;
             }
 
-            // 白色托盘变体持有至 NIM_DELETE（Icon 释放即销毁 HICON，图标期间句柄必须存活）；
-            // 加载失败回退 exe 应用图标（彩色版），托盘功能不受资源问题影响
+            // 彩色托盘变体持有至 NIM_DELETE（Icon 释放即销毁 HICON，图标期间句柄必须存活）；
+            // 加载失败回退应用图标，托盘功能不受资源问题影响
             using var trayIcon = TryLoadTrayIcon(_log);
             var icon = trayIcon?.Handle ?? LoadIcon(instance, new IntPtr(0x7F00)); // IDI_APPLICATION
             var nid = new NOTIFYICONDATA

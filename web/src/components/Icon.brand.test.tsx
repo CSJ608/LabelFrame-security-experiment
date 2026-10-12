@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// 品牌 v02（client 分支）：导航 LabelLogo 换「剥离 / Peel & Feed」微型几何——
-// 24px 方形 viewBox、深青 #123B3C 标签体 + 珊瑚 #D96C4F 剥离角（母版 assets/brand/symbol-color-24.svg，
-// 固定填充不走 currentColor/--accent，--accent 测量蓝是界面语言非品牌标识）；
-// index.html favicon 外链最小集（favicon.svg + favicon.ico + apple-touch-icon.png，去 data URI）。
+// 品牌承形色重设计（迭代 139）：导航 LabelLogo「剥离 / Peel & Feed」微型几何换承形色——
+// 24px 方形 viewBox、珊瑚 #C9553B 标签体 + 深青 #123B3C 剥离角（母版 assets/brand/symbol-color-24.svg，
+// 固定填充不走 currentColor/--accent，--accent 测量蓝是界面语言非品牌标识；珊瑚在深浅背景
+// 对比度均 ≥3.5:1，无需主题切换）；index.html favicon 外链最小集不变化。
 
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
@@ -10,8 +10,8 @@ import { LabelLogo } from './Icon'
 // jsdom 环境 import.meta.url 非 file 协议（node:fs readFileSync 不可用），?raw 编译期内联源码
 import indexHtml from '../../index.html?raw'
 
-describe('LabelLogo 品牌 v02 微型几何（AC-05）', () => {
-  it('24px 方形 viewBox，深青标签体 + 珊瑚剥离角固定填充（不再走 currentColor / --accent）', () => {
+describe('LabelLogo 品牌微型几何（承形色重设计）', () => {
+  it('24px 方形 viewBox，珊瑚标签体 + 深青剥离角固定填充（不走 currentColor / --accent）', () => {
     const { container } = render(<LabelLogo />)
     const svg = container.querySelector('svg')
     expect(svg).not.toBeNull()
@@ -23,8 +23,8 @@ describe('LabelLogo 品牌 v02 微型几何（AC-05）', () => {
     expect(svg?.querySelector('rect')).toBeNull()
     const paths = Array.from(svg?.querySelectorAll('path') ?? [])
     expect(paths).toHaveLength(2)
-    expect(paths[0]?.getAttribute('fill')).toBe('#123B3C')
-    expect(paths[1]?.getAttribute('fill')).toBe('#D96C4F')
+    expect(paths[0]?.getAttribute('fill')).toBe('#C9553B')
+    expect(paths[1]?.getAttribute('fill')).toBe('#123B3C')
     for (const path of paths) {
       expect(path.getAttribute('stroke')).toBeNull()
       expect(path.getAttribute('fill')).not.toBe('none')
@@ -39,7 +39,7 @@ describe('LabelLogo 品牌 v02 微型几何（AC-05）', () => {
   })
 })
 
-describe('index.html favicon 外链最小集（AC-05，拍板①）', () => {
+describe('index.html favicon 外链最小集', () => {
   const html = indexHtml
 
   it('三件外链齐全：favicon.svg 主标 + favicon.ico alternate + apple-touch-icon', () => {

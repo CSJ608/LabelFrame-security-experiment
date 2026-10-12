@@ -174,14 +174,15 @@ export function Icon({ name, size = 16, ...rest }: IconProps) {
   )
 }
 
-/* * 品牌图形 v02「剥离 / Peel & Feed」微型几何——深青标签纸 + 珊瑚剥离角。
+/* * 品牌图形 v02「剥离 / Peel & Feed」微型几何——珊瑚标签纸 + 深青剥离角。
  *  几何逐字取自品牌母版 symbol-color-24.svg（assets/brand/），固定填充不随 --accent
- * （--accent 测量蓝是界面语言非品牌标识，Issue 不在范围）。 */
+ *  （--accent 测量蓝是界面语言非品牌标识，Issue 不在范围）；珊瑚承形在深浅背景下
+ *  对比度均 ≥3.5:1，无需随主题切换填充。 */
 export function LabelLogo({ size = 24 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-      <path fill="#123B3C" d="M6 3 H18 Q21 3 21 6 V14 C17.134 14 14 17.134 14 21 H6 Q3 21 3 18 V6 Q3 3 6 3 Z" />
-      <path fill="#D96C4F" d="M21 15.75 C18.1005 15.75 15.75 18.1005 15.75 21 H21 Z" />
+      <path fill="#C9553B" d="M6 3 H18 Q21 3 21 6 V14 C17.134 14 14 17.134 14 21 H6 Q3 21 3 18 V6 Q3 3 6 3 Z" />
+      <path fill="#123B3C" d="M21 15.75 C18.1005 15.75 15.75 18.1005 15.75 21 H21 Z" />
     </svg>
   )
 }

@@ -3,7 +3,7 @@ using System.Drawing;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// 托盘图标资源防线：内嵌白色变体存在且帧覆盖托盘槽尺寸（16~48，DPI 100%~200%）、
+/// 托盘图标资源防线：内嵌彩色变体存在且帧覆盖托盘槽尺寸（16~48，DPI 100%~200%）、
 /// 加载失败返回 null（托盘回退应用图标不崩宿主）。
 /// </summary>
 public class TrayIconResourceTests
