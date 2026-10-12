@@ -18,6 +18,23 @@ public sealed record TransportParameterSpec(
     IReadOnlyList<string>? VisibleWhenValues = null)
 {
     /// <summary>
+    /// 历史构造器（VisibleWhen 字段引入前的 7 参形态）：外部插件 DLL 按旧签名编译，
+    /// 宿主升级而插件未随发（服务端分发窗口期）时仍须可加载——可选参数是编译期语法糖，
+    /// 不显式保留此构造器，旧二进制将因 MissingMethodException 在装配期崩溃。不可删除。
+    /// </summary>
+    public TransportParameterSpec(
+        string Key,
+        string Label,
+        TransportParameterType Type,
+        bool Required,
+        string? DefaultValue,
+        IReadOnlyList<TransportParameterOption>? Options,
+        string? Hint)
+        : this(Key, Label, Type, Required, DefaultValue, Options, Hint, null, null)
+    {
+    }
+
+    /// <summary>
     /// 当前连接参数下该字段是否可见：无 VisibleWhenKey 声明恒可见；
     /// 有声明时条件键取值（忽略大小写）命中集合即可见，键缺失 / 空值视为不可见
     /// （必填校验随之跳过，由条件键自身的必填校验兜底）。
