@@ -1,6 +1,6 @@
 import type { DesignElement } from './types'
 
-/* * 打印字段信息：字段名（键）+ 可选显示名（· 决议 1：显示处一律 `displayName || key` 回退）。 */
+/* * 打印字段信息：字段名（键）+ 可选显示名（显示处一律 `displayName || key` 回退）。 */
 export interface FieldInfo {
   key: string
   displayName?: string
@@ -9,7 +9,7 @@ export interface FieldInfo {
 /**
  * 打印字段自动推导：字段集合 = 「字段填充」元素的字段名按元素顺序去重
  * （图片 / 线 / 容器不算字段）。
- * 显示名（· 决议 1）：同键多元素时取**首个非空**显示名（与去重的首现语义一致，确定性回填）。
+ * 显示名：同键多元素时取**首个非空**显示名（与去重的首现语义一致，确定性回填）。
  */
 export function deriveFieldInfos(elements: readonly DesignElement[]): FieldInfo[] {
   const infos: FieldInfo[] = []

@@ -3,7 +3,7 @@
 // 的手风琴形态，拍板），点击页节点进文章、小节节点跳转对应 section；主区滚动时当前节高亮跟随
 // 正文阅读宽度受限（~760px）；窄窗（≤960px，拍板对齐 .grid-2 断点）左栏收起、page-head 目录
 // 按钮展开为浮层。主区保留既有两种视图：功能索引卡（根节点选中态）/ 分界面文章。
-// 文章小节与界面内「?」文档点共用同一词条（lib/help.ts 单源双视图，拍板 5）；有文档点的小节提供
+// 文章小节与界面内「?」文档点共用同一词条（lib/help.ts 单源双视图）；有文档点的小节提供
 // 「去界面查看」深链——回调注入方（App Shell）以 hash 赋值导航（#/目标页/<锚点>， 机制迁移）。
 // server 管理界面纳入——页集按构建经 lib/help.ts BUILD_HELP_PAGES
 // 过滤（client 五页、server 七页：四共用页复用、settings 不出现、devices/packages/pluginPackages
@@ -32,7 +32,7 @@ function prefersReducedMotion(): boolean {
 
 export function Help({ onOpenInUi }: HelpProps) {
   const { t } = useTranslation('help')
-  // 当前构建的帮助页集（· ：client 五页 / server 七页）——构建期折叠出口（见
+  // 当前构建的帮助页集（client 五页 / server 七页）——构建期折叠出口（见
   // lib/help.ts BUILD_HELP_PAGES 注记：形参形态会破坏特征串折叠，生产消费点必须走本常量）
   const pages = BUILD_HELP_PAGES
   // 页内两级视图：null = 功能索引；否则显示该页文章
@@ -103,7 +103,7 @@ export function Help({ onOpenInUi }: HelpProps) {
           >
             {t(`index.${p.page}.title`)}
           </button>
-          {/* 手风琴（拍板）：仅当前文章页展开小节列表——label 与正文 h3 /「?」气泡同源词条 */}
+          {/* 手风琴：仅当前文章页展开小节列表——label 与正文 h3 /「?」气泡同源词条 */}
           {article === p.page && (
             <div className="help-toc-sections">
               {p.topics.map((topic) => (
@@ -142,7 +142,7 @@ export function Help({ onOpenInUi }: HelpProps) {
           {article === null ? (
             <>
               {t('page.title')}
-              {/* 副标题按构建切换（迭代 129 · #320）：client 计数口径串逐字不动，server 独立词条 */}
+              {/* 副标题按构建切换：client 计数口径串逐字不动，server 独立词条 */}
               <small>{t(isServerUi ? 'page.subtitleServer' : 'page.subtitle')}</small>
             </>
           ) : (
@@ -175,7 +175,7 @@ export function Help({ onOpenInUi }: HelpProps) {
               {page?.topics.map((topic) => (
                 <section key={topic.id} className="help-topic" data-topic-id={topic.id}>
                   <h3>{t(`topic.${article}.${topic.id}.title`)}</h3>
-                  {/* 正文按换行分段（#316 陪验反馈 2）：与文档点气泡同一 \n 段落口径 */}
+                  {/* 正文按换行分段（陪验反馈）：与文档点气泡同一 \n 段落口径 */}
                   {String(t(`topic.${article}.${topic.id}.body`)).split('\n').map((para, i) => (
                     <p key={i}>{para}</p>
                   ))}

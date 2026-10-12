@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
-// i18n 基座（·）：模块加载即同步初始化（语言探测 + <html lang> 对齐），先于 React 挂载
+// i18n 基座：模块加载即同步初始化（语言探测 + <html lang> 对齐），先于 React 挂载
 import './i18n'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'

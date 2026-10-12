@@ -4,7 +4,7 @@
 // 未保存离开保护——dirty（历史栈有已提交更改）时返回按钮与 Shell 导航切 tab
 // 均弹三选 Modal（保存并离开 / 放弃更改 / 继续编辑）；无编辑直接离开不弹窗。
 // 帮助深链锚点 = 路由 sub 段（helpAnchor props）——页内轮询
-//（useHelpDeepLink）等锚点入 DOM 自动弹文档点气泡；深链自动开草稿放示例元素入初始基线（拍板 A，
+// （useHelpDeepLink）等锚点入 DOM 自动弹文档点气泡；深链自动开草稿放示例元素入初始基线（
 // 见 init 落点），守卫链零改动（三选差异由示例元素落点自然产生）。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -37,7 +37,7 @@ import { shortcutGroups } from './designer/shortcuts'
 const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.paperH, elements: s.elements })
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 
-// ---------- 图片资源（·）：限制上限与前端预检常量 ----------
+// ---------- 图片资源：限制上限与前端预检常量 ----------
 // 限制按入库（压缩后）字节判定——>1MB 先走浏览器内压缩管道（imageCompress），压缩后仍超限才拒收
 /** 支持格式（accept + 预检白名单，与服务端格式探嗅对齐）。 */
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/bmp'
@@ -108,7 +108,7 @@ function readFileAsDataUrl(file: Blob): Promise<string> {
   })
 }
 
-/* * 深链示例元素构造（拍板 A）：预设 spec → defaultElement + patch 合并——每次调用
+/* * 深链示例元素构造：预设 spec → defaultElement + patch 合并——每次调用
  *  生成新 id（跨草稿不串号）、默认文案随当前语言；元素随草稿 init 并入初始基线（见 init 落点）。
  *  spec 类型全集含控件栏外三型（Line / Region 等），defaultElement 重载面按控件栏入口收窄——
  *  数据源为受控预设表，双转型到实现签名（全 7 型均有分支）。 */
@@ -128,9 +128,9 @@ interface DesignerProps {
    * 修复（取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行
    *  供路由 hashchange 分支判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
   registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
-  /* * 帮助深链锚点（· ：语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
+  /* * 帮助深链锚点（语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
    *  经 useHelpDeepLink 页内轮询等锚点入 DOM 后自动弹出对应文档点气泡；锚点已登记示例元素预设
-   *  且草稿为新建时，示例元素随 init 并入初始基线（拍板 A）。 */
+   * 且草稿为新建时，示例元素随 init 并入初始基线。 */
   helpAnchor?: string | null
 }
 
@@ -169,7 +169,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   // 深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
   //（PropsPanel 既有 autoOpenAnchor 链，处理后清信号防重复触发）。
   const [autoOpenAnchor, setAutoOpenAnchor] = useState<string | null>(null)
-  // 深链草稿一次性标记（拍板 A）：本挂载以深链自动开草稿时置位——首个 onFound 不清状态栏
+  // 深链草稿一次性标记：本挂载以深链自动开草稿时置位——首个 onFound 不清状态栏
   //（draftOpened 为终态提示），消费后复位（后续锚点 found 恢复清等待提示的旧口径）。
   const deepLinkDraftRef = useRef(false)
 
@@ -179,7 +179,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const contractNameRef = useRef('')
   const contractVersionRef = useRef('1')
   const selectedRef = useRef<string[]>([])
-  // 图片资源表（·）：key → 资源，由本组件持有——不进 DesignState / 历史快照
+  // 图片资源表：key → 资源，由本组件持有——不进 DesignState / 历史快照
   //（snap 仅 paperW/paperH/elements，防 base64 撑爆撤销栈）；撤销「添加图片元素」后资源成孤儿由保存时 GC。
   const [imageAssets, setImageAssets] = useState<Record<string, ImageAsset>>({})
   const imageAssetsRef = useRef<Record<string, ImageAsset>>({})
@@ -305,7 +305,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         initialNameRef.current = pkg.name
         contractNameRef.current = pkg.contract?.name ?? pkg.name
         contractVersionRef.current = pkg.contract?.version ?? '1'
-        // 图片资源回填（·）：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染
+        // 图片资源回填：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染
         // 像素尺寸异步解码补齐（属性面板信息行用；失败保持 0，仅影响展示不影响渲染）。
         if (pkg.images && Object.keys(pkg.images).length > 0) {
           const assets: Record<string, ImageAsset> = {}
@@ -333,10 +333,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
 
     if (request.kind === 'new') {
-      // （拍板 A·初始基线）：深链自动开草稿时按锚点小节类型放置示例
+      // （初始基线）：深链自动开草稿时按锚点小节类型放置示例
       // 元素——随 init 并入 stateRef 且作 createHistory 基线（可正常编辑、undoCount=0 不 dirty、
       // 未编辑退出静默弃、用户编辑后三选守卫照常）；「不落库零业务数据」重解释＝自动机制零写请求
-      // ＋用户显式命名保存属正常草稿行为（ 记录，偏离 Issue 约束句「不写 stateRef 保存链」的
+      // ＋用户显式命名保存属正常草稿行为（记录，偏离 Issue 约束句「不写 stateRef 保存链」的
       // 理由：纯显示层注入 ⇒ undoCount=0 ⇒ 「退出即弃带未保存守卫」永不触发的内在矛盾）。
       const linkAnchor = helpAnchor && Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? helpAnchor : null
       const samples = linkAnchor ? buildHelpLinkElements(linkAnchor) : []
@@ -359,7 +359,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           {
             paperW: pkg.layout?.widthMm || 100,
             paperH: pkg.layout?.heightMm || 60,
-            // · 决议 1：显示名存于契约 fields（版式元素 JSON 无此字段），加载时按字段名回填到元素
+            // 显示名存于契约 fields（版式元素 JSON 无此字段），加载时按字段名回填到元素
             elements: applyContractDisplayNames(fromBackendElements(pkg.layout?.elements ?? []), pkg.contract?.fields ?? []),
           },
           pkg,
@@ -409,8 +409,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     [commit],
   )
 
-  // ---------- 图片上传（· ，； 两步式＋压缩） ----------
-  /** 上传失败提醒（拍板 1-A）：页内轻量 toast 浮层自动消失（5s）——单条最新覆盖（连续失败不堆积），
+  // ---------- 图片上传（； 两步式＋压缩） ----------
+  /* * 上传失败提醒：页内轻量 toast 浮层自动消失（5s）——单条最新覆盖（连续失败不堆积），
    *  Designer 局部实现不引全局组件；成功 / 压缩提示仍走状态栏（常驻语义，最新覆盖）。 */
   const [imageToast, setImageToast] = useState<string | null>(null)
   const imageToastTimerRef = useRef<number | null>(null)
@@ -429,7 +429,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   /** 文件落地（两步式，必带目标元素——空占位填充或更换）：格式预检 → 压缩管道（>1MB 自动压缩，
    *  压缩后仍 >2MB 才拒收；张数 / 总量按入库（压缩后）字节）→ dataURL → 解码尺寸 → key 净化去重 →
    *  写目标元素 key（换新 key 防共享旧 key 的多元素同变；旧 key 孤儿随保存 GC）。填充后保持用户
-   *  所画盒尺寸、图片拉伸填满（拍板 3-A，取代 v1 拍板 7 的 30mm 自动尺寸）。资源表不进历史快照。 */
+   * 所画盒尺寸、图片拉伸填满（不做 30mm 自动尺寸）。资源表不进历史快照。 */
   const addImageFile = useCallback(
     (file: File, targetId: string) => {
       const reject = (reasonKey: string) => showImageToast(t('status.imageRejected.body', { reason: t(reasonKey) }))
@@ -477,7 +477,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         imageAssetsRef.current = nextAssets
         setImageAssets(nextAssets)
         changeElement(targetId, { key })
-        // 成功提示（复陪验反馈 2-，推翻 拍板 5-A）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见）
+        // 成功提示（复陪验反馈 2-，推翻）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见）
         // 原始→入库体积知情权；未压缩的常规更新仍走状态栏（画布变化本身可见）。
         if (compressed) showImageToast(t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }))
         else app.setStatus(t('status.imageReplaced'))
@@ -486,7 +486,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     [app, changeElement, showImageToast, t],
   )
 
-  /** 属性面板「上传 / 更换图片」与画布空占位单击（拍板 2-A）：打开文件选择，目标为该元素。 */
+  /* * 属性面板「上传 / 更换图片」与画布空占位单击：打开文件选择，目标为该元素。 */
   const replaceImage = useCallback(
     (id: string) => {
       if (viewMode === 'preview') return
@@ -708,7 +708,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     const onKey = (ev: KeyboardEvent) => {
       const s = stateRef.current
       if (!s) return
-      // 演示期间快捷键全停（拍板 4 方案 A）：撤销 / 删除 / 粘贴等都会写 stateRef，绕过锁输入
+      // 演示期间快捷键全停：撤销 / 删除 / 粘贴等都会写 stateRef，绕过锁输入
       if (demoActive) return
       const tag = ev.target instanceof HTMLElement ? ev.target.tagName : ''
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
@@ -790,7 +790,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         const fields = deriveFieldInfos(s.elements)
         const version = request.kind === 'new' ? '1' : contractVersionRef.current
         const contractName = request.kind === 'new' ? finalName : contractNameRef.current
-        // 图片资源（·）：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64
+        // 图片资源：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64
         // 恒发显式字典（有图非空 / 无图空字典），不依赖契约缺省态（缺省 / null＝保留仅为旧调用方兜底）
         const usedKeys = new Set(s.elements.filter((e) => e.type === 'Image' && e.key).map((e) => (e as ImageElement).key))
         const images: Record<string, string> = {}
@@ -850,7 +850,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
   }, [app, biz, doSave, name, request.kind, t])
 
-  // ---------- 离开保护（· ，决议 a：dirty = 历史栈有任一已提交更改） ----------
+  // ---------- 离开保护（决议 a：dirty = 历史栈有任一已提交更改） ----------
   /* * 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗；有则弹三选 Modal 挂起本次离开动作。
    * 返回 false=已挂起（三选待确认）、true=已直接放行——Shell switchTab 以此决定路由是否 pre-revert（取证修复）。 */
   const requestLeave = useCallback((leave: () => void): boolean => {
@@ -924,7 +924,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     return m
   }, [state])
 
-  // 字段显示名（· 决议 1）：与推导一致取首个非空，显示处 `displayName || key` 回退
+  // 字段显示名：与推导一致取首个非空，显示处 `displayName || key` 回退
   const displayNameByKey = useMemo(() => {
     const m = new Map<string, string>()
     if (!state) return m
@@ -937,7 +937,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   // ---------- 渲染 ----------
   return (
     <div className="page designer-page">
-      {/* 图片文件选择（迭代 132 · #329）：上传 / 更换共用，隐藏不占位 */}
+      {/* 图片文件选择：上传 / 更换共用，隐藏不占位 */}
       <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} style={{ display: 'none' }} onChange={onImageInputChange} data-testid="image-file-input" />
       <div className="designer-toolbar">
         <button className="btn ghost" onClick={requestClose} title={t('toolbar.backTitle')}>
@@ -1025,7 +1025,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         </div>
       )}
 
-      {/* 上传失败提醒（#329 方案 v2 拍板 1-A）：页内轻量 toast，5s 自动消失，单条最新覆盖 */}
+      {/* 上传失败提醒：页内轻量 toast，5s 自动消失，单条最新覆盖 */}
       {imageToast && (
         <div className="image-toast" role="alert" data-testid="image-toast">
           <div className="image-toast-title">{t('status.imageRejected.title')}</div>

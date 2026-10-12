@@ -54,7 +54,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       />
     )
   const [url, setUrl] = useState(app.baseUrl)
-  // （决议 1）：连接配置低频收纳——「连接方式」默认折叠为当前连接摘要一行，点击展开完整编辑区
+  // 连接配置低频收纳——「连接方式」默认折叠为当前连接摘要一行，点击展开完整编辑区
   const [transportOpen, setTransportOpen] = useState(false)
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -311,10 +311,10 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         </div>
       </div>
 
-      {/* 迭代 21+：内容容器与其他页面对齐——flex:1 + overflowY:auto，低屏高可滚动（此前被 .page overflow:hidden 裁剪，小分辨率看不到「打印机」卡片）；minWidth:0 防长文本（%ProgramData% 路径）撑破 */}
-      {/* 迭代 45（决策定稿 B）：布局随可用宽度自适应——多列网格（每列 ≥560px，列数随宽度自动增减），窄窗自动回退单列、不破版 */}
+      {/* 内容容器与其他页面对齐——flex:1 + overflowY:auto，低屏高可滚动（此前被 .page overflow:hidden 裁剪，小分辨率看不到「打印机」卡片）；minWidth:0 防长文本（%ProgramData% 路径）撑破 */}
+      {/* 布局随可用宽度自适应——多列网格（每列 ≥560px，列数随宽度自动增减），窄窗自动回退单列、不破版 */}
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(560px, 1fr))', gap: 14, alignItems: 'start' }}>
-        {/* 迭代 108（#241）：界面语言——切换即时生效（i18next changeLanguage，订阅组件重渲染）、
+        {/* 界面语言——切换即时生效（i18next changeLanguage，订阅组件重渲染）、
             localStorage 持久化、首启默认跟随浏览器语言（zh* → zh-CN，其他 → en，AC-01/02） */}
         <section className="panel" data-testid="language-panel">
           <div className="panel-head">
@@ -377,7 +377,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         </section>
 
         <section className="panel">
-          {/* 迭代 73（#108 决议 1）：默认折叠——面板头即当前连接摘要（Describe / displayText 数据源），点击整行展开编辑区 */}
+          {/* 默认折叠——面板头即当前连接摘要（Describe / displayText 数据源），点击整行展开编辑区 */}
           <div
             className="panel-head"
             style={{ cursor: 'pointer' }}
@@ -518,7 +518,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             </span>
           </div>
           <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* 迭代 64（决策 #126）：「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；unknown 不显示（无误导） */}
+            {/* 「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；unknown 不显示（无误导） */}
             {(() => {
               const update = checkForUpdate(app.hostVersion, (packages ?? []).map((p) => p.fileName))
               if (update.kind === 'unknown') {

@@ -1,14 +1,14 @@
-// 帮助体系 V3 纯数据（·）：分界面文章的主题小节清单 +
+// 帮助体系 V3 纯数据：分界面文章的主题小节清单 +
 // 文档点锚点 + 深链辅助。文案词条唯一来源是「✅ 文案定稿」写入的 help 域语言包
 // （help.article.<page>.intro / help.topic.<page>.<id>），文章视图与「?」文档点气泡
-// 共用同一词条（单源双视图，防双份漂移——拍板 5）。
+// 共用同一词条（单源双视图，防双份漂移）。
 //
 // 锚点命名法与 lib/guide.ts 的 data-guide 对称（data-help 语义分离）
 // 纯文章小节无 anchor——帮助页不渲染「去界面查看」深链按钮。
 // 演示预设是显示层注入的示例值（mode/key/displayName/text），由 Designer 合并进
 // viewElements，不写 stateRef / historyRef（零落库的结构性前提）。
 // 深链经路由 sub 段承载（#/designer/<anchor> 形，可分享 / 刷新
-// 还原）——HELP_LINK_ELEMENTS 为深链自动开草稿的示例元素预设（拍板 A：随草稿 init 并入初始
+// 还原）——HELP_LINK_ELEMENTS 为深链自动开草稿的示例元素预设（随草稿 init 并入初始
 // 基线，机制与演示预设的显示层注入不同，见 Designer.tsx 落点）；页内锚点轮询 hook 在
 // lib/helpLink.ts（本文件保持纯数据，不引 react）。
 // server 管理界面纳入帮助体系——HELP_PAGES 收录双构建全部页面
@@ -111,7 +111,7 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
   },
   // server 独有三页（devices / packages / pluginPackages）——各 intro＋2 纯文章
   // 小节、无 anchor（设备 / 插件页为单表平页无锚点结构，下载中心 sub 段已被页内 tab 占用；
-  // 与 workbench / data / jobs 纯文章先例一致，拍板 2-A）
+  // 与 workbench / data / jobs 纯文章先例一致）
   {
     page: 'devices',
     tab: 'devices',
@@ -137,7 +137,7 @@ function pagesInTabs(tabs: readonly TabMeta[]): readonly HelpPageDoc[] {
   return HELP_PAGES.filter((doc) => tabIds.has(doc.tab))
 }
 
-/* * 按构建模式的帮助页集（·）：双参形态供建页集直测（Help.test.tsx
+/* * 按构建模式的帮助页集：双参形态供建页集直测（Help.test.tsx
  *  数据自洽用例）与未来双集消费方；生产消费点用 BUILD_HELP_PAGES——形参分支使双 tab 集在两种
  *  产物中都被引用（摇树不可折叠，server 特征串 nav.devices 会渗入 client 产物），生产 bundle
  *  本函数无引用即被裁除。 */
@@ -161,7 +161,7 @@ export const HELP_DEMO_PRESETS: Record<string, Partial<DesignElement>> = {
   'designer.fill': { mode: 'field', key: 'location', text: 'A-01-02' },
 }
 
-/* * 深链示例元素预设（· ， 拍板 A）：帮助深链自动开草稿时按锚点小节类型
+/* * 深链示例元素预设：帮助深链自动开草稿时按锚点小节类型
  *  放置的示例元素——以 spec（type + patch）登记而非现成元素，构造时经 defaultElement 生成新 id
  *  （跨草稿不串号）且默认文案随当前语言。fill 复用 HELP_DEMO_PRESETS 同款示例值（「库位」en
  * 示例值定夺属 结项 wrapup——若改值两处须联动， 已记防漂移）；align 给两个 Rect 并
@@ -181,7 +181,7 @@ export const HELP_LINK_ELEMENTS: Record<string, readonly HelpLinkElementSpec[]> 
   'designer.qrcode': [{ type: 'QrCode' }],
   'designer.rect': [{ type: 'Rect' }],
   'designer.line': [{ type: 'Line' }],
-  // 图片（·）：示例给 key 不给资源——深链草稿呈现「缺资源占位」形态
+  // 图片：示例给 key 不给资源——深链草稿呈现「缺资源占位」形态
   // 与属性面板「图片资源缺失」提示配套（真实图片经空占位上传填充获得， 两步式）
   'designer.image': [{ type: 'Image', patch: { key: 'sample.png' } }],
   'designer.compat': [{ type: 'Region' }],

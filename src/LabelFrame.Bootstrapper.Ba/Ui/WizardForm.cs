@@ -2,11 +2,11 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>向导壳：分步导航（就绪 →（角色·高级）→ 打印机 → 服务端地址 →（管理界面·服务端角色）→ 确认 → 安装进度 → 完成 / 失败报告；不适用页自动越过，/ ）。</summary>
+/// <summary>向导壳：分步导航（就绪 →（角色 高级）→ 打印机 → 服务端地址 →（管理界面 服务端角色）→ 确认 → 安装进度 → 完成 / 失败报告；不适用页自动越过，/）。</summary>
 /// <remarks>
 /// 导航索引 / 惰性装配 / 越界防御由 <see cref="WizardNavigator{TPage}"/> 承担（可单测）
 /// 本类只做 WinForms 呈现与按钮接线——<see cref="NavigateTo"/> 为<b>绝对</b>页索引（原增量 Navigate(delta)
-/// 的 Navigate（0） 会被越界守卫静默吞掉，即验收回流缺陷，见 Issue ）。
+/// 的 Navigate（0） 会被越界守卫静默吞掉，即验收回流缺陷，见 Issue）。
 /// 两层问卷：<see cref="NavigateTo"/> 先以 <see cref="IWizardPage.ShouldSkip"/> 越过不适用页
 /// （基础模式角色页 / 服务端角色打印机与地址页 / 客户端角色管理界面页），前进向后找、后退向前找。
 /// 确认页「下一步」语义 = 开始安装（进入进度页由进度页驱动 <c>Engine.Apply</c>）
@@ -27,7 +27,7 @@ internal sealed class WizardForm : Form
 
     private readonly WizardNavigator<IWizardPage> _navigator;
 
-    /// <summary>首显主动置前器（/）：启动链无前台权时向导静默不前置——用户以为安装无响应。</summary>
+    /// <summary>首显主动置前器：启动链无前台权时向导静默不前置——用户以为安装无响应。</summary>
     private readonly WizardForegroundActivator _foregroundActivator = new();
 
     /// <summary>会话由 BA 创建注入（起）：布局目录隐式检测后 BA 已改写默认清单来源，本类不再自建会话。</summary>
@@ -153,7 +153,7 @@ internal sealed class WizardForm : Form
     }
 
     /// <summary>
-    /// 首显主动置前（/）：向导此前完全依赖系统默认前台授予链，启动者无前台权
+    /// 首显主动置前：向导此前完全依赖系统默认前台授予链，启动者无前台权
     /// （计划任务 / 后台进程 / Explorer 未持前台 / 下载后立即切走）时静默不前置。已在前台则零调用零扰动
     /// （正常双击链不回归）；否则组合置前（挂接 + 最小化还原 + 切换 + 前置请求），被拒时任务栏强闪烁兜底。
     /// 结果写 Burn 日志（无前台权场景的机器可读证据行）。

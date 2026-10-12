@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// server 构建分支（VITE_UI_MODE=server）帮助体系守门（· 起；· 
+// server 构建分支（VITE_UI_MODE=server）帮助体系守门（起；
 // 口径反转——断言按新口径「更新而非删除」，循 Guide.server.test.tsx 先例）：
 // 设计器挂点（PropsPanel）撤 !isServerUi 门——server 分支照常渲染「?」与 data-help 锚点（设计器
 // tab 在 SERVER_TABS 可达且功能完整，词条同源已进双产物）；Settings 挂点维持门（client-only 页

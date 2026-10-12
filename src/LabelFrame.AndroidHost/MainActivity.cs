@@ -81,7 +81,7 @@ public sealed class MainActivity : Activity
     private TextView _printTestText = null!;
     private TextView _printerSaveHint = null!;
 
-    // 插件管理子页（/）
+    // 插件管理子页
     private LinearLayout _installedList = null!;
     private TextView _installedSummary = null!;
     private LinearLayout _serverPackagesList = null!;
@@ -461,7 +461,7 @@ public sealed class MainActivity : Activity
         _tcpFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         content.AddView(_tcpFields);
 
-        // 蓝牙参数：MAC 地址手输（预授权决议 1：首版最简）
+        // 蓝牙参数：MAC 地址手输（预授权：首版最简）
         _bluetoothFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _bluetoothFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         _bluetoothFields.AddView(FieldLabel(L(Resource.String.printer_bt_label)));
@@ -471,7 +471,7 @@ public sealed class MainActivity : Activity
         _bluetoothFields.AddView(Subtle(L(Resource.String.printer_bt_note)));
         content.AddView(_bluetoothFields);
 
-        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误，预授权决议 2）
+        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误，预授权）
         _usbFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _usbFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         var usbNote = TextView(L(Resource.String.printer_usb_note), 12.5f, ColorTextSecondary);
@@ -627,7 +627,7 @@ public sealed class MainActivity : Activity
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                // 错误码翻译（/）：已知码本地翻译、未知码回退后端中文 message
+                // 错误码翻译：已知码本地翻译、未知码回退后端中文 message
                 var detail = Truncate(DescribeErrorBody(body));
                 SetResult(_printTestText, L(Resource.String.printer_test_http_error, detail), ColorErr);
                 return;

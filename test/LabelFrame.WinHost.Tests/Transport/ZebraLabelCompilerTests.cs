@@ -149,7 +149,7 @@ public class ZebraLabelCompilerTests
     [Fact]
     public void Plugin_should_declare_print_mode_select_parameter()
     {
-        // 决议 2：Select 参数 Key printMode、必填、默认 image、Options image / native
+        // Select 参数 Key printMode、必填、默认 image、Options image / native
         var spec = new ZebraTransportPlugin().Parameters.Single(p => p.Key == TransportPrintMode.ParameterKey);
         Assert.Equal(TransportParameterType.Select, spec.Type);
         Assert.True(spec.Required);
@@ -511,7 +511,7 @@ public class ZebraLabelCompilerTests
     [Fact]
     public void Qrcode_utf8_chinese_value_should_compile_with_charset_instruction()
     {
-        // UTF-8 中文可编译（^CI28 字符集指令在场，整页头部输出）；"库位A-01" 10 字节 ≤ V1-M 容量 14 → 矩阵 21 模块
+        // UTF-8 中文可编译（^CI28 字符集指令在场，整页头部输出）；"库位 A-01" 10 字节 ≤ V1-M 容量 14 → 矩阵 21 模块
         var result = Compile(DocumentWithData(
             new Dictionary<string, string> { ["code"] = "A-01", ["qr"] = "库位A-01" },
             Text(yMm: 1),

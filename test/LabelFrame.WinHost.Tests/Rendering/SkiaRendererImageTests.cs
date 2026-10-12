@@ -6,7 +6,7 @@ using SkiaSharp;
 namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
-/// 图片元素渲染（·）：预览 PNG 与打印 1bpp 输出统一单色
+/// 图片元素渲染：预览 PNG 与打印 1bpp 输出统一单色
 /// （DrawImage 解码后 luma 阈值 128 单色化——彩色像素存在即红：红 luma≈76→黑、蓝 luma≈29→黑、白→白，
 /// 未单色化的旧口径会在 PNG 中留下 R≠G≠B 的彩色像素）；缺资源显式报错（不再灰占位照打）。
 /// </summary>
@@ -109,7 +109,7 @@ public class SkiaRendererImageTests
                 HeightMm = 20,
                 Elements =
                 [
-                    // 边框 >0 也一并跳过（拍板 6-A「未指定＝不存在于打印面」，含边框）
+                    // 边框 >0 也一并跳过（「未指定＝不存在于打印面」，含边框）
                     new LabelImageElement { SourceKey = "", XMm = 2, YMm = 5, WidthMm = 20, HeightMm = 10, BorderMm = 0.3 },
                 ],
             },

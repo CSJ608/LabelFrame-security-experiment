@@ -45,7 +45,7 @@ public sealed class LabelHostConfig
     /// <summary>打印机端口。</summary>
     public int TcpPort { get; set; } = DefaultTcpPort;
 
-    /// <summary>蓝牙打印机 MAC 地址（SPP 手输，预授权决议 1；连接类型为 bluetooth 时使用）。</summary>
+    /// <summary>蓝牙打印机 MAC 地址（SPP 手输，预授权；连接类型为 bluetooth 时使用）。</summary>
     public string BluetoothMac { get; set; } = string.Empty;
 
     /// <summary>设备号（系统唯一码自动生成）。</summary>
@@ -64,7 +64,7 @@ public sealed class LabelHostConfig
     public required string PluginsPath { get; set; }
 
     /// <summary>从 SharedPreferences 加载（旧装机数据自动迁移：tcp_host 键沿用，端口与品牌缺失取默认值；
-    /// 存量 tcp 配置零迁移直入 SDK TCP 路径，）。</summary>
+    /// 存量 tcp 配置零迁移直入 SDK TCP 路径）。</summary>
     public static LabelHostConfig Load(Context context)
     {
         var prefs = context.GetSharedPreferences("labelframe", FileCreationMode.Private)!;

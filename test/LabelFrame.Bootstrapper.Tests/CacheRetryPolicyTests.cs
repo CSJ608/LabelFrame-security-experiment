@@ -30,7 +30,7 @@ public sealed class CacheRetryPolicyTests
         Assert.False(fourth.AllowRetry);
         Assert.True(fourth.Exhausted);
 
-        // 退避调度：500ms → 1s → 2s（基值 × 2^(N-1)）
+        // 退避调度：500ms → 1s → 2s（基值 × 2^()）
         Assert.Equal(TimeSpan.FromMilliseconds(500), first.Delay);
         Assert.Equal(TimeSpan.FromSeconds(1), second.Delay);
         Assert.Equal(TimeSpan.FromSeconds(2), third.Delay);

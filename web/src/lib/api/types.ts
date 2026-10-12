@@ -28,7 +28,7 @@ export interface TemplatePackage {
   contract: BackendContract
   layout: BackendLayout
   testData?: Record<string, string>
-  /* * 图片资源（键 → base64，·）：保存请求三态语义（缺省 / null＝保留、空字典＝清空、非空＝覆盖）——
+  /* * 图片资源（键 → base64）：保存请求三态语义（缺省 / null＝保留、空字典＝清空、非空＝覆盖）——
    *  设计器恒发显式字典（被引用 key 全集）；GET 详情响应本就携带。 */
   images?: Record<string, string>
 }
@@ -87,7 +87,7 @@ export interface LogEntry {
 }
 
 /**
- * 提交作业请求（：服务端模式优先 `templateName` 引用模板库 + `targetDeviceId` 定向投递
+ * 提交作业请求（服务端模式优先 `templateName` 引用模板库 + `targetDeviceId` 定向投递
  * 自包含 `template` 保留兼容——单机 WinHost / 调试出图使用）。
  */
 export interface SubmitJobRequest {
@@ -226,7 +226,7 @@ export interface PdaPackageInfo {
   url?: string
 }
 
-// ── 本机 IPv4 候选（· ：下载中心「连接信息」卡地址候选）──
+// ── 本机 IPv4 候选（下载中心「连接信息」卡地址候选）──
 
 /** 服务端枚举的本机 IPv4 候选（GET /api/server/ipv4-candidates；私网（局域网）地址优先排序）。 */
 export interface Ipv4Candidates {
@@ -323,7 +323,7 @@ export interface PrinterTestResult {
   bytes: number
 }
 
-/* * 后端错误响应（ErrorView；params 为· / 新增可选字段）。 */
+/* * 后端错误响应（ErrorView；params 为 / 新增可选字段）。 */
 export interface ApiErrorBody {
   code: string
   message: string

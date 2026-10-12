@@ -1,8 +1,8 @@
-// 应用框架：左侧主导航（tab 状态为渲染真源，hash 路由地基同步 URL——·）+ 底部状态栏 + 日志抽屉
+// 应用框架：左侧主导航（tab 状态为渲染真源，hash 路由地基同步 URL——）+ 底部状态栏 + 日志抽屉
 // 双构建（VITE_UI_MODE）——server 构建菜单移除设置与打印机相关内容，新增「在线设备」
 // 状态栏 server 显示服务端地址（同源）与 UI 模式、client 显示本机 IP。
-// （决议 2「三名义」）：client 状态栏改呈现「本机打印服务：运行中 / 未运行」——
-// 「服务端」一词不再兼指本机后台服务（评审 B-9）；服务端连通在设置页、加入状态在数据与打印页。
+// 「三名义」口径：client 状态栏改呈现「本机打印服务：运行中 / 未运行」——
+// 「服务端」一词不再兼指本机后台服务；服务端连通在设置页、加入状态在数据与打印页。
 // 「PDA 日志 / 设备日志」页下线（回传链路不存在前界面收敛）——双形态导航入口移除。
 // 导航切 tab 统一走 switchTab——设计器在编辑且有未保存更改时经其注册的离开守卫
 // 弹三选确认（保存并离开 / 放弃更改 / 继续编辑），确认后才切换，防误触丢失排版工作。
@@ -44,10 +44,10 @@ import { DownloadCenter } from './pages/DownloadCenter'
 import { PluginPackages } from './pages/PluginPackages'
 
 // 导航元数据（label 经 shell 域 key 在渲染期求值——t() 绑定当前语言，切换即时生效）已迁 lib/tabs.ts
-// 单源维护（·）——SERVER_TABS 末位含「帮助」，与 CLIENT_TABS 同位。
+// 单源维护——SERVER_TABS 末位含「帮助」，与 CLIENT_TABS 同位。
 
 // 路由 page 段白名单 = 本构建 tab 集（server 构建解析 #/settings
-// 即回退 workbench——受限页集不可经 hash 越权进入；#/help 随server tab 集纳入 help 反转为可达）
+// 即回退 workbench——受限页集不可经 hash 越权进入；#/help 随 server tab 集纳入 help 反转为可达）
 // 构建期常量，与 tab 元数据同源派生。
 const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
 
@@ -84,7 +84,7 @@ function Shell() {
 
   useEffect(() => {
     void checkConnection()
-    // （决议 2「三名义」）：client 构建周期探测本机打印服务（页面来源 /healthz）——
+    // client 构建周期探测本机打印服务（页面来源 /healthz）——
     // 状态栏「本机打印服务：运行中 / 未运行」数据源，与服务端地址连通性（checkConnection）各自独立
     if (!isServerUi) void checkLocalService()
     // 周期探测连接（10s），后端重启后状态自动恢复
@@ -138,7 +138,7 @@ function Shell() {
   // 守卫取消 pre-revert；sub 段（下载中心页内 tab 首用）由 route 下传消费页。
   const route = useHashRoute({ allowed: ROUTE_ALLOWED, page: tab, requestPage: switchTab })
 
-  // （C-4，决议 1）：工作台卡片「打印」直达——先把该模板写入打印草稿（与手动在下拉选择同一入口
+  // 工作台卡片「打印」直达——先把该模板写入打印草稿（与手动在下拉选择同一入口
   // 字段值 / 调试开关等草稿行为一致），再切到「数据与打印」页；两步内可开始填数据打印。
   const openPrintFromTemplate = (name: string) => {
     app.setDraftSelected(name)
@@ -148,17 +148,17 @@ function Shell() {
   // （机制迁移）：帮助文章「去界面查看」深链＝hash 赋值导航——目标位置
   // #/<page>/<anchor> 经 hashchange 既有通道落位（页不同经 requestPage=switchTab 统一切页入口，
   // 继承设计器离开守卫与守卫挂起 pre-revert；router 零改动），落位后 setSubState 承载锚点、下传
-  // 目标页页内轮询（lib/helpLink.ts）。sub 段驻留 URL（拍板 2-A）：分享 / 刷新 / 后退到该条目
+  // 目标页页内轮询（lib/helpLink.ts）。sub 段驻留 URL：分享 / 刷新 / 后退到该条目
   // 一致还原，主导航重进该页既有语义自动清 sub（入栈条目 sub 清空）不重触发。
   const openHelpInUi = (target: TabId, anchor: string) => {
     window.location.hash = formatHash(target, anchor)
   }
 
-  // （拍板 A）：深链自动开草稿——设计器空态且路由 sub 为已登记的深链示例
+  // 深链自动开草稿——设计器空态且路由 sub 为已登记的深链示例
   // 元素锚点时，经既有 openDesigner({kind:'new'}) 自动新建草稿（不落库零写请求；示例元素由
   // Designer 随 init 并入初始基线并选中）。已打开模板（designerReq 存在）不触发，走既有锚点
   // 路径。：撤 !isServerUi 门——server 构建与 client 同语义（设计器
-  // 在 server 构建功能完整、深链可达，#178「静默空态」口径随之反转），双构建共用本 effect。
+  // 在 server 构建功能完整、深链可达，「静默空态」口径随之反转），双构建共用本 effect。
   useEffect(() => {
     if (tab !== 'designer' || designerReq) return
     // Object.hasOwn 防 'toString' 等原型链属性名经 sub 段合法进入后 in 判定为真、取值非数组致渲染崩溃（评审实证）
@@ -199,7 +199,7 @@ function Shell() {
               </button>
             ))}
           </div>
-          {/* 迭代 80（#128 决议 2「三名义」）：client 构建指向「本机打印服务」（页面来源的本机后台服务），
+          {/* client 构建指向「本机打印服务」（页面来源的本机后台服务），
               不再沿用「服务端」一词（评审 #114 B-9 一词三义）；server 构建维持服务端自身连通（第二义语境） */}
           <div
             className="nav-foot"
@@ -214,7 +214,7 @@ function Shell() {
             }
           >
             <span className={'status-dot' + ((isServerUi ? app.connected : app.localServiceUp) ? ' on' : '')} />
-            {/* 迭代 114（#260）：语言切换器（连接状态点旁）——server 构建无设置页的一步切换入口；
+            {/* 语言切换器（连接状态点旁）——server 构建无设置页的一步切换入口；
                 按钮自身 title 覆盖容器连接提示（悬浮按钮时显示切换语义），两构建统一显示 */}
             <button
               type="button"
@@ -240,14 +240,14 @@ function Shell() {
             />
           )}
           {tab === 'designer' && !designerReq && <DesignerEmpty onNew={() => openDesigner({ kind: 'new' })} />}
-          {/* 迭代 85（#133 C-5）：数据与打印进度区的「作业历史」指引可点击跳转（经 switchTab 统一入口） */}
+          {/* 数据与打印进度区的「作业历史」指引可点击跳转（经 switchTab 统一入口） */}
           {tab === 'data' && <DataPrint onOpenJobHistory={() => switchTab('jobs')} />}
           {tab === 'devices' && <Devices />}
           {tab === 'jobs' && <JobHistory />}
           {tab === 'packages' && <DownloadCenter sub={route.sub} onSubChange={route.setSub} />}
           {tab === 'plugin-packages' && <PluginPackages />}
           {tab === 'settings' && <Settings helpAnchor={route.sub} />}
-          {/* 迭代 126（#308）：帮助页（文档底座）——迭代 129（#320）起双构建均挂载（help tab 在
+          {/* 帮助页（文档底座）——双构建均挂载（help tab 在
               SERVER_TABS / CLIENT_TABS 均居末位；内容按构建页集适配见 lib/help.ts BUILD_HELP_PAGES） */}
           {tab === 'help' && <Help onOpenInUi={openHelpInUi} />}
         </main>
@@ -273,14 +273,14 @@ function Shell() {
           ) : (
             <>
               <span className="mono">{app.baseUrl}</span>
-              {/* 迭代 20：客户端状态栏显示本机 IP（/api/host/config.ips，多 IP 逗号分隔全部）；
+              {/* 客户端状态栏显示本机 IP（/api/host/config.ips，多 IP 逗号分隔全部）；
                   迭代 80：随「本机打印服务」运行状态显示（本机事实不依赖服务端地址连通性） */}
               {app.localServiceUp && app.hostIps.length > 0 && (
                 <span className="mono" title={app.hostIps.join(', ')}>
                   {t('statusbar.localIps', { ips: truncateIps(app.hostIps) })}
                 </span>
               )}
-              {/* 迭代 22 §2.1：客户端状态栏显示本机设备名称（/api/host/config.deviceName，与本机 IP 并列） */}
+              {/* 客户端状态栏显示本机设备名称（/api/host/config.deviceName，与本机 IP 并列） */}
               {app.localServiceUp && app.hostDeviceName && (
                 <span className="mono">{t('statusbar.localDevice', { name: app.hostDeviceName })}</span>
               )}
@@ -305,7 +305,7 @@ function Shell() {
         </span>
       </footer>
 
-      {/* 迭代 119（#276）：分步引导——server 构建整特性不挂载（V1 范围仅 client，决策 #63 双构建裁剪同口径） */}
+      {/* 分步引导——server 构建整特性不挂载（V1 范围仅 client，双构建裁剪同口径） */}
       {!isServerUi && <Guide open={guideOpen} tab={tab} onSwitchTab={switchTab} onFinish={finishGuide} />}
 
       {app.drawerOpen && (
@@ -313,7 +313,7 @@ function Shell() {
           <div className="log-head">
             <span>{t('logsDrawer.title')}</span>
             <span className="spacer" />
-            {/* 迭代 104（#225，决策 #161）：清空 = 销毁类操作——实心红 danger＋先弹确认（原灰色 ghost 直执行） */}
+            {/* 清空 = 销毁类操作——实心红 danger＋先弹确认（原灰色 ghost 直执行） */}
             <button className="btn sm danger" onClick={() => setConfirmingClearLogs(true)}>
               <Icon name="clear" size={13} />
               {t('logsDrawer.clear')}
@@ -333,7 +333,7 @@ function Shell() {
         </div>
       )}
 
-      {/* 迭代 104（#225）：清空日志确认——文案含「不可恢复」，Esc / 遮罩默认取消（通用 Modal 既有语义） */}
+      {/* 清空日志确认——文案含「不可恢复」，Esc / 遮罩默认取消（通用 Modal 既有语义） */}
       {confirmingClearLogs && (
         <Modal
           title={t('clearLogsConfirm.title')}

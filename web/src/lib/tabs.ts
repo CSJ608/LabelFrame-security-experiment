@@ -1,4 +1,4 @@
-// 主导航元数据单源（·）：SERVER_TABS / CLIENT_TABS 自 App.tsx 迁入——
+// 主导航元数据单源：SERVER_TABS / CLIENT_TABS 自 App.tsx 迁入——
 // 「某构建有哪些页」这一事实只在纯数据层维护，供三处共享派生（App 导航渲染 / 路由白名单
 // ROUTE_ALLOWED / 帮助页集 helpPagesFor），防同款页集在多处复制漂移；label 经 shell 域 key
 // 在渲染期求值（t() 绑定当前语言，切换即时生效）。

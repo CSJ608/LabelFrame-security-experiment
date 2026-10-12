@@ -32,7 +32,7 @@ public sealed partial class DataCleanupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // 启动后延迟 60 秒执行一次，之后按 CleanupIntervalHours 周期执行（：首清在延迟后立即发生
+        // 启动后延迟 60 秒执行一次，之后按 CleanupIntervalHours 周期执行（首清在延迟后立即发生
         // 不等首个周期 tick——否则默认周期下升级 / 重启后最长 24h 不做任何清理，量闸同步失效）
         var interval = TimeSpan.FromHours(Math.Max(1, _options.CleanupIntervalHours));
         try

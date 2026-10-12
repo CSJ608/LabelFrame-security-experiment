@@ -9,7 +9,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 错误消息模板化端点集成（· ， /）：
+/// 错误消息模板化端点集成：
 /// params 缺省时 HTTP 响应原文与旧形态逐字节等价；带参错误（按 IP 查设备 / 作业不存在）透出 params 且中文 message 等价；
 /// WMS 终态回调载荷（schema）字段集零变化（不含 params）。
 /// </summary>

@@ -224,7 +224,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
         => _registry.CreateTransport(config.PluginId, new TransportPluginParameters(config.Params), _context);
 
     /// <summary>
-    /// 启动装配护栏（/）：生效配置引用的插件未注册（如 zebra 外置后未安装
+    /// 启动装配护栏：生效配置引用的插件未注册（如 zebra 外置后未安装
     /// 升级自动安装失败）时回退默认连接并留痕，不因缺插件崩溃——「未装外置包则该品牌不可用」的可控行为；
     /// 默认连接本身也引用缺失插件（appsettings / 环境变量 Transport=Zebra 而插件未装）时再回退 Log。
     /// </summary>

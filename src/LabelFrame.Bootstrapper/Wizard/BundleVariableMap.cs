@@ -24,7 +24,7 @@ public static class BundleVariableMap
     /// <summary>.NET 10 Desktop Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入）。</summary>
     public const string DesktopRuntimeVariable = "DesktopRuntimeInstalled";
 
-    /// <summary>ASP.NET Core Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入；）。</summary>
+    /// <summary>ASP.NET Core Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入）。</summary>
     public const string AspNetCoreRuntimeVariable = "AspNetCoreRuntimeInstalled";
 
     /// <summary>WebView2 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入）。</summary>

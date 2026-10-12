@@ -3,7 +3,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>打印机品牌多选页（Issue 决议 2；/ 仅含客户端角色出现）：选项来源仅为清单已有 plugin-&lt;brand&gt; 条目；ZDesigner 驱动名预选 Zebra。</summary>
+/// <summary>打印机品牌多选页（仅含客户端角色出现）：选项来源仅为清单已有 plugin-&lt;brand&gt; 条目；ZDesigner 驱动名预选 Zebra。</summary>
 internal sealed class BrandPage : UserControl, IWizardPage
 {
     private readonly WizardSession _session;

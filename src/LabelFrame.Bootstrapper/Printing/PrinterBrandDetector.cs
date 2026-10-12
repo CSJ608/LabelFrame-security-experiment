@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Printing;
 
-/// <summary>打印机品牌预选（Issue 决议 2：本轮仅 Zebra——读 Windows 已装打印机驱动名，ZDesigner → zebra 预勾选；其余品牌从零勾选）。</summary>
+/// <summary>打印机品牌预选（Issue ：本轮仅 Zebra——读 Windows 已装打印机驱动名，ZDesigner → zebra 预勾选；其余品牌从零勾选）。</summary>
 /// <remarks>完整「驱动名关键词 → 品牌」映射表归专项 7/8；此处只含唯一规则，扩表零契约变更。</remarks>
 public static class PrinterBrandDetector
 {

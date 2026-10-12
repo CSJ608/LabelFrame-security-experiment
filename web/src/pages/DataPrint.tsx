@@ -3,13 +3,13 @@
 // 调试模式独立开关——开：打印按钮改为后端渲染出图下载（单张 PNG / 批量 zip），不建作业不发驱动。
 // 无字段模板 = 静态标签（合法模板），操作区照常渲染可打印测试（提交空数据单张）
 // Excel 模板 / 导入维持无字段禁用（无列可生成 / 映射）。
-// （决议 2 / C-3）：本页对服务端的状态一律用「已加入 / 未加入服务端」（设备注册，hostInList）
-// 且随探测周期（10s）自动刷新——后台注册状态变化后无需切页（评审 B-9 / C-3）。
-// （决议，评审 C-1）：「图片预览」名副其实——点击后页内弹层呈现当前字段值的渲染图
+// 本页对服务端的状态一律用「已加入 / 未加入服务端」（设备注册，hostInList）
+// 且随探测周期（10s）自动刷新——后台注册状态变化后无需切页（评审 /）。
+// （决议，评审）：「图片预览」名副其实——点击后页内弹层呈现当前字段值的渲染图
 // （复用 render-image 端点实时取图，不建作业不自动下载）；下载由弹层内显式「下载」按钮触发，预览与下载分离。
-// （评审 / B-6）：副标题改「填写数据并打印 / Excel 批量打印」（本页是日常主打印入口
+// （评审 /）：副标题改「填写数据并打印 / Excel 批量打印」（本页是日常主打印入口
 // 不再自称「测试数据」）；作业进度「目标设备」显示设备名（无可解析名称回退设备 ID），与在线设备页 / 目标设备下拉同源。
-// （C-4 / C-5）：接收工作台「打印」直达的预选草稿（同手动选择）；作业进度区指向「作业历史」的
+// 接收工作台「打印」直达的预选草稿（同手动选择）；作业进度区指向「作业历史」的
 // 纯文字指引改为可点击跳转（onOpenJobHistory → 切作业历史页，行可展开逐张 / 汇总明细）。
 // 页面文案 key 化（dataPrint 域；jobStatus / action 等 common 词条经 fallbackNS 兜底）。
 // requestId 改用 uuid 包 v4 生成——crypto.randomUUID 是安全上下文专属 API（仅 HTTPS /
@@ -56,7 +56,7 @@ const isTerminal = (s: string) => s === 'Completed' || s === 'Failed' || s === '
 /** 中文顿号 / 英文逗号分隔（重复映射字段列表拼接，随当前界面语言）。 */
 const localeSep = () => (i18next.language === 'en' ? ', ' : '、')
 
-/* * 图片预览弹层状态（·）：ready 持有 blob 供弹层内「下载」按钮复用（下载不再重新请求）。 */
+/* * 图片预览弹层状态：ready 持有 blob 供弹层内「下载」按钮复用（下载不再重新请求）。 */
 type ImagePreview = { status: 'loading' } | { status: 'ready'; url: string; blob: Blob; filename: string } | { status: 'error'; message: string }
 
 /** 作业轮询（1.5s，终端状态停止）；API 跟随模式（服务端 / 单机降级）。
@@ -107,7 +107,7 @@ function useJobPolling(jobId: string | null, biz: Pick<typeof serverApi, 'getJob
   return { job, error, retry }
 }
 
-/* * 行内链接式按钮（· C-5）：提示文案中的页内跳转（如「作业历史」）——视觉为链接，语义 / 焦点行为为按钮。
+/* * 行内链接式按钮：提示文案中的页内跳转（如「作业历史」）——视觉为链接，语义 / 焦点行为为按钮。
  * children 改可选——词条内 <0>…</0> 标签经 Trans 注入文本（组件数组形式不静态传 children）。 */
 function InlineLink({ onClick, children }: { onClick: () => void; children?: ReactNode }) {
   return (
@@ -132,9 +132,9 @@ function JobPanel({
   debugMode: boolean
   /* * （G4）：server 构建无逐张 retry 端点——隐藏逐张失败重试表格（Server 作业本就无 items，强制隐藏兜底）。 */
   canRetry: boolean
-  /* * （B-6）：目标设备显示名解析（设备名优先，无可解析名称回退设备 ID；单机模式无设备列表 = 恒回退 ID）。 */
+  /* * ：目标设备显示名解析（设备名优先，无可解析名称回退设备 ID；单机模式无设备列表 = 恒回退 ID）。 */
   resolveDeviceName: (deviceId: string) => string
-  /* * （C-5）：跳转「作业历史」页（进度区文字指引可点击——作业历史行可展开明细）。 */
+  /* * ：跳转「作业历史」页（进度区文字指引可点击——作业历史行可展开明细）。 */
   onOpenJobHistory: () => void
 }) {
   const app = useApp()
@@ -179,7 +179,7 @@ function JobPanel({
               {job.items && canRetry ? (
                 t('jobPanel.retryBelow')
               ) : (
-                // （C-5）：指引可点击跳转——作业历史行可展开查看状态与失败原因
+                // 指引可点击跳转——作业历史行可展开查看状态与失败原因
                 <Trans t={t} i18nKey="jobPanel.checkJobHistory" components={[<InlineLink key={0} onClick={onOpenJobHistory} />]} />
               )}
             </div>
@@ -264,7 +264,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
 
   const [submitting, setSubmitting] = useState(false)
 
-  // 图片预览弹层（·）：loading / ready（blob URL）/ error 三态
+  // 图片预览弹层：loading / ready（blob URL）/ error 三态
   // 代数计数用于关闭弹层后作废在途请求（防结果回来自动重开「幽灵弹层」）
   const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null)
   const previewGenRef = useRef(0)
@@ -360,7 +360,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
       )
     }
     probeRoute()
-    // （C-3）：client 构建设备列表 / routeMode / hostInList 随健康探测周期刷新（10s）——
+    // client 构建设备列表 / routeMode / hostInList 随健康探测周期刷新（10s）——
     // 后台注册状态变化（含保存服务端地址后的热切换）后页面在探测周期内自动更新，无需切页；
     // baseUrl 变化（保存新地址）时立即重探。server 构建维持「进入拉取一次」契约（提交前另有现拉校验）
     const timer = isServerUi ? null : setInterval(probeRoute, 10000)
@@ -373,7 +373,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   const selectedName = printDraft.selectedName
   const debugMode = printDraft.debugMode
 
-  /* * （B-6）：目标设备显示名——从本页已拉取的设备列表解析（GET /api/devices，与在线设备页 /
+  /* * ：目标设备显示名——从本页已拉取的设备列表解析（GET /api/devices，与在线设备页 /
    *  目标设备下拉同源），无可解析名称（空 / 空白 / 不在列表，含单机模式无设备列表）回退设备 ID。 */
   const resolveDeviceName = useCallback(
     (deviceId: string) => deviceDisplayName(devices.find((d) => d.deviceId === deviceId)?.name, deviceId),
@@ -418,7 +418,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   }, [selectedName, deviceMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 打印字段（键 + 显示名）：contract.fields 优先，空则从版式推导；
-  // 标签与占位符一律 `displayName || key`（· 决议 1：存量模板未填显示名回退键名，不报错）
+  // 标签与占位符一律 `displayName || key`（存量模板未填显示名回退键名，不报错）
   const formFields = useMemo(() => {
     if (!pkg) return []
     const fromContract = (pkg.contract.fields ?? [])
@@ -545,7 +545,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   }
 
   /** 测试打印 / 出图的单张数据：有字段模板提交当前表单值（含预填）；
-   * 无字段模板（静态标签，·）提交空字典——即使模板包携带遗留 testData 也不外带
+   * 无字段模板（静态标签）提交空字典——即使模板包携带遗留 testData 也不外带
    *  后端受理 / 校验 / 渲染三层均支持空 data，静态内容按版式原样输出。 */
   const singleTestData = () => (formFields.length === 0 ? {} : { ...values })
 
@@ -561,7 +561,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
     void downloadDebug([{ data: singleTestData() }], false)
   }
 
-  /* * 调试关：图片预览（· 决议）——实时调用 render-image 取当前字段值的渲染图
+  /* * 调试关：图片预览——实时调用 render-image 取当前字段值的渲染图
    *  页内弹层呈现（不建作业、不自动下载）；下载由弹层内「下载」按钮显式触发，预览与下载分离。 */
   const previewImage = () => {
     if (!pkg) return
@@ -666,7 +666,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
           <small>{t('subtitle')}</small>
         </div>
         <div className="spacer" />
-        {/* data-guide：首次引导第 3 步锚点（迭代 119 / #276） */}
+        {/* data-guide：首次引导第 3 步锚点*/}
         <select
           className="input"
           data-guide="dataprint-template-select"
@@ -691,7 +691,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
             <Icon name="download" size={13} />
             {excelTplBusy ? t('excelTpl.generating') : t('excelTpl.download')}
           </button>
-        {/* data-guide：首次引导第 4 步锚点（迭代 119 / #276） */}
+        {/* data-guide：首次引导第 4 步锚点*/}
         <button
           className="btn"
           data-guide="dataprint-excel-import"
@@ -714,7 +714,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
         />
       </div>
 
-      {/* 连接状态徽标（迭代 18 F5）：本机连接（Client 传输方式）与「已加入服务端」（设备注册状态）各自含义。
+      {/* 连接状态徽标）：本机连接（Client 传输方式）与「已加入服务端」（设备注册状态）各自含义。
           本页对服务端的状态 = 设备是否已加入服务端设备列表
           （hostInList，随探测周期刷新），不再用「已连接 / 未连接」（评审 #114 B-9 / C-3 一词三义与同屏矛盾）。
           迭代 20：server 构建隐藏（本机连接 = 打印机相关内容；加入状态在目标设备行显示） */}
@@ -859,7 +859,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
                       </button>
                     )}
                   </div>
-                  {/* 原生指令模式连接提示（迭代 78，DESIGN §5.4.2）：本机连接为 native 时出纸由打印机指令渲染，界面预览（图片口径）不代表实际效果 */}
+                  {/* 原生指令模式连接提示）：本机连接为 native 时出纸由打印机指令渲染，界面预览（图片口径）不代表实际效果 */}
                   {!isServerUi && isNativePrintMode(app.transportConfig) && <NativePrintModeHint />}
                   <div className="hint">
                     {debugMode
@@ -1007,7 +1007,7 @@ function MappingModal({
 }
 
 /**
- * 图片预览弹层（· 决议）：与工作台缩略图灯箱同交互（居中大图，Esc / 点背景 / 点 × 关闭
+ * 图片预览弹层：与工作台缩略图灯箱同交互（居中大图，Esc / 点背景 / 点 × 关闭
  * 点卡片本体不关闭）；底部操作行提供显式「下载」按钮——预览与下载是两个独立动作，不再混用同一次点击。
  * 复用工作台灯箱样式（preview-modal*），仅操作行与图片高度为本弹层专有（不影响工作台）。
  */

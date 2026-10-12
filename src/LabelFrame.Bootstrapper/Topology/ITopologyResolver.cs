@@ -5,7 +5,7 @@ namespace LabelFrame.Bootstrapper.Topology;
 /// <summary>「角色 + 开关 → 组件集合」解析契约（DESIGN ，形状细化见；/ 问卷收敛为本机角色三选）——专项 5/8（下载引擎）与 6/8（安装编排）的公共契约。</summary>
 public interface ITopologyResolver
 {
-    /// <summary>按角色与开关计算组件集合：核心组件 = topologies 命中角色即纳入；开关组件（webui / plugin-&lt;brand&gt;）由开关决定且仍受 topologies 过滤；dependsOn 闭包纳入。</summary>
+    /// <summary>按角色与开关计算组件集合：核心组件 = topologies 命中角色即纳入；开关组件（webui / plugin-&lt;brand&gt）由开关决定且仍受 topologies 过滤；dependsOn 闭包纳入。</summary>
     /// <param name="manifest">安装清单（已通过 schema 校验）。</param>
     /// <param name="preset">本机角色（offline 不进问卷枚举；server-docker / server-linux 已移出问卷）。</param>
     /// <param name="options">仅有的两项自由开关：品牌多选（brand id）+ 是否带管理界面。</param>

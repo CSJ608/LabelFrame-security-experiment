@@ -26,7 +26,7 @@ public sealed class TopologyResolver : ITopologyResolver
         }
 #endif
 
-        // server-docker / server-linux 已移出问卷（/）：Docker = Release compose 指引
+        // server-docker / server-linux 已移出问卷：Docker = Release compose 指引
         // Linux = install.sh；本解析器只服务问卷三角色，manifest 中的 server-docker / server-linux
         // topologies 标记保留（install.sh 消费），不再有对应枚举值。
         var topologyId = preset.ToManifestId();

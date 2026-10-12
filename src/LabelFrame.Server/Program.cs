@@ -140,7 +140,7 @@ app.MapGet("/api/server/info", (ServerOptions options) =>
         version = ServerOptions.ProductVersion,
     }));
 
-// ---- 本机 IPv4 候选（· ：下载中心「连接信息」卡地址候选；只读枚举
+// ---- 本机 IPv4 候选（下载中心「连接信息」卡地址候选；只读枚举
 //      协议与端口由前端按当前 origin 拼装——本接口只给 IP 候选，不拼完整地址）----
 app.MapGet("/api/server/ipv4-candidates", () => Results.Ok(new { candidates = LocalIpv4Candidates.Enumerate() }));
 

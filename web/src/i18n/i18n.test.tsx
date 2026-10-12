@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// i18n 基座行为自证（·）：
+// i18n 基座行为自证：
 // - 首启默认：detectInitialLocale 纯函数（依赖注入 localStorage / 浏览器语言列表）——
 //   保存的偏好优先；未保存时 `zh*` → zh-CN、其他 → en；
 // - 单例初始化：模块加载即选定语言并同步 <html lang>（含已保存偏好在全新模块加载下的生效——「刷新后保持」的机制证明）；

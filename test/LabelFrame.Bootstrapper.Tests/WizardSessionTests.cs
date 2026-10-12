@@ -111,7 +111,7 @@ public sealed class WizardSessionTests
         Assert.Contains("本机角色", ex.Message);
     }
 
-    // ---- 隐式优先源目录（/）：本地清单所在目录 = 布局目录 ----
+    // ---- 隐式优先源目录：本地清单所在目录 = 布局目录 ----
 
     [Fact]
     public async Task Local_manifest_source_resolves_local_source_directory()

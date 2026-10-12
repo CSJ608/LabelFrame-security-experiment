@@ -168,7 +168,7 @@ public sealed class ErrorParamKeyConsistencyTests
             foreach (Match match in DictionarySiteRegex.Matches(source))
             {
                 // 站点邻域（前后各 900 字符）内取「距字典最近」的码表达式（ErrorView / 异常构造的码位）——
-                // 取最近而非最先：邻域可能覆盖上一个端点Handler 的码位（如 TemplateEndpoints 的 POST → GET 相邻）
+                // 取最近而非最先：邻域可能覆盖上一个端点 Handler 的码位（如 TemplateEndpoints 的 POST → GET 相邻）
                 var windowStart = Math.Max(0, match.Index - 900);
                 var windowLength = Math.Min(source.Length, match.Index + match.Length + 900) - windowStart;
                 var window = source.AsSpan(windowStart, windowLength).ToString();

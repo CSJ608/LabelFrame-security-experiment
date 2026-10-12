@@ -79,7 +79,7 @@ public class TransportPluginRegistryTests
     [Fact]
     public void Log_plugin_copy_should_be_user_friendly()
     {
-        // （评审 B-1 / / B-5）：徽标 / 摘要取值（Describe）用户化「模拟打印」，不再直出「LOG」
+        // （评审 / /）：徽标 / 摘要取值（Describe）用户化「模拟打印」，不再直出「LOG」
         // 说明文（Description）句读完整且无开发者用语（「联调」）。
         // 选项列表显示名（DisplayName）同步去技术前缀「Log」；插件 Id 保持 log（存量连接兼容）。
         var (registry, _) = Create();

@@ -68,7 +68,7 @@ const enlargedOf = (name: string) => screen.getByAltText(`模板「${name}」预
 
 /** 冲洗挂载链（探测 → 列表加载 → 预览请求 → blob 渲染）至静默。
  *  挂载链为纯 promise + React 状态更新，但 React 调度走真实宏任务——固定单轮冲洗在高负载
- * runner 上可能残留未落定的渲染代际（ 同类时序敏感，届时同步断言 getByText / mock 计数
+ * runner 上可能残留未落定的渲染代际（同类时序敏感，届时同步断言 getByText / mock 计数
  *  会偶发失败）。改为有界循环：以「模板行已渲染且相关 mock 调用计数连续两轮不变」为静默条件。 */
 async function flush() {
   const counts = () =>

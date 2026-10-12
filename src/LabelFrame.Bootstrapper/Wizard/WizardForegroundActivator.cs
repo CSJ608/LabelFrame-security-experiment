@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace LabelFrame.Bootstrapper.Wizard;
 
-/// <summary>向导首显主动置前结果（/）。</summary>
+/// <summary>向导首显主动置前结果。</summary>
 public enum WizardForegroundOutcome
 {
     /// <summary>窗体已在前台（启动链前台授予成立，系统已交付）——零调用零扰动。</summary>
@@ -18,7 +18,7 @@ public enum WizardForegroundOutcome
 /// <summary>
 /// 向导首显主动置前器：安装引导 BA 的窗口此前完全依赖系统默认前台授予链
 /// 启动者无前台权（计划任务 / 后台进程触发、Explorer 未持前台、下载后立即切走）时向导静默不前置，
-/// 用户以为安装无响应（ 复现 S1 / S3 / S3b；S3c 预试证明单一 <c>SetForegroundWindow</c>——
+/// 用户以为安装无响应（复现 S1 / S3 / S3b；S3c 预试证明单一 <c>SetForegroundWindow</c>——
 /// 即使配合 <see cref="AttachThreadInput"/>——也会被前台锁拒绝）。
 /// 本类实现用户拍板的组合拳（选项）：已在前台则零扰动；否则
 /// <see cref="AttachThreadInput"/>（本 UI 线程挂接当前前台线程输入队列）→

@@ -389,7 +389,7 @@ export function TransportPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="hint">{t('transportForm.currentConnection')}</span>
-        {/* 迭代 80（#128「三名义」）：本机连接徽标随「本机打印服务」运行状态着色（本机事实），不随服务端地址连通性 */}
+        {/* 本机连接徽标随「本机打印服务」运行状态着色（本机事实），不随服务端地址连通性 */}
         <span className={'badge ' + (app.localServiceUp ? 'ok' : '')}>
           {formatTransport(app.transportConfig) || app.transport || t('value.unknown')}
         </span>

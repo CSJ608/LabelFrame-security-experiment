@@ -44,7 +44,7 @@ export interface TextElement extends ElementBase {
   mode: ContentMode
   /** 字段填充的字段名（打印数据按此匹配） */
   key: string
-  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
   displayName?: string
   /** 固定值内容 / 字段填充的预览值（仅画布显示） */
   text: string
@@ -60,7 +60,7 @@ export interface BarcodeElement extends ElementBase {
   type: 'Barcode'
   mode: ContentMode
   key: string
-  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
   displayName?: string
   text: string
   paddingH: number
@@ -75,7 +75,7 @@ export interface QrCodeElement extends ElementBase {
   type: 'QrCode'
   mode: ContentMode
   key: string
-  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
   displayName?: string
   text: string
   paddingH: number
@@ -94,8 +94,8 @@ export interface ImageElement extends ElementBase {
   key: string
 }
 
-/* * 图片资源（设计器内存态，·）：dataUrl 供画布解码；width / height 为入库图片像素尺寸（属性面板信息行）
- * sizeBytes 为入库（压缩后）字节量——上传预检总量上限与保存体积按此计（ 起超 1MB 走压缩管道
+/* * 图片资源（设计器内存态）：dataUrl 供画布解码；width / height 为入库图片像素尺寸（属性面板信息行）
+ * sizeBytes 为入库（压缩后）字节量——上传预检总量上限与保存体积按此计（起超 1MB 走压缩管道
  *  入库字节 ≠ 用户原文件字节；模板回填按 base64 长度折算）。 */
 export interface ImageAsset {
   dataUrl: string
@@ -140,7 +140,7 @@ export function defaultElement(type: 'Rect', id?: string): RectElement
 export function defaultElement(type: 'Image', id?: string): ImageElement
 export function defaultElement(type: 'Line', id?: string): LineElement
 export function defaultElement(type: 'Region', id?: string): RegionElement
-/* * 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片——· 起图片入控件栏）。 */
+/* * 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片—— 起图片入控件栏）。 */
 export function defaultElement(type: 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image', id?: string): TextElement | BarcodeElement | QrCodeElement | RectElement | ImageElement
 export function defaultElement(type: ElementType, id = uid()): DesignElement {
   const base = { id, x: 5, y: 5, w: 40, h: 10, border: 0 }

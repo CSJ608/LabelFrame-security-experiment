@@ -42,7 +42,7 @@ export function downscaleSize(width: number, height: number, maxEdge: number): {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) }
 }
 
-/** 重编码目标格式（纯函数）：PNG 保持 PNG；BMP 转 PNG（canvas 无 BMP 编码器，拍板 4-A）；其余（JPEG）按原格式。 */
+/* * 重编码目标格式（纯函数）：PNG 保持 PNG；BMP 转 PNG（canvas 无 BMP 编码器）；其余（JPEG）按原格式。 */
 export function encodeTargetMime(fileType: string): string {
   if (fileType === 'image/png') return 'image/png'
   if (fileType === 'image/bmp') return 'image/png'

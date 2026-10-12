@@ -1,4 +1,4 @@
-// 连接地址候选选择纯函数单测（· ：下载中心「连接信息」卡地址默认选择规则）。
+// 连接地址候选选择纯函数单测（下载中心「连接信息」卡地址默认选择规则）。
 
 import { describe, expect, it } from 'vitest'
 import { joinAddress, pickDefaultAddress } from './connection'

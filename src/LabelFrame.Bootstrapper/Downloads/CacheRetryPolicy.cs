@@ -76,7 +76,7 @@ public sealed class CacheRetryPolicy
         return new CacheRetryDecision(true, DelayFor(state.GrantedRetries), state.GrantedRetries, state.StalledRetries);
     }
 
-    /// <summary>第 N 次授予的重试的退避等待（500ms × 2^(N-1)，上限 30s）。</summary>
+    /// <summary>第 N 次授予的重试的退避等待（500ms × 2^()，上限 30s）。</summary>
     public static TimeSpan DelayFor(int grantedRetryCount) =>
         grantedRetryCount <= 0
             ? TimeSpan.Zero

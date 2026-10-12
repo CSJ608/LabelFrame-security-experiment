@@ -110,7 +110,7 @@ export function Devices() {
             <Icon name="grid" />
             <div className="empty-title">{t('empty')}</div>
             <div className="hint">
-              {/* （决议 2「三名义」）：设备出现在列表 = 已加入服务端（设备注册），不再用「连接服务端」 */}
+              {/* 「三名义」口径：设备出现在列表 = 已加入服务端（设备注册），不再用「连接服务端」 */}
               {t('emptyHintInstalled')}
               <br />
               {t('emptyHintOffline')}

@@ -2,7 +2,7 @@
 // F6：作业历史页——服务端 / 单机降级列表、空态按模式文案、刷新、徽标区分。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链）。
 // 目标设备列设备名解析与编号收敛断言。
-// （C-5，决议 2）：行展开明细——本机直连作业逐张结果（状态 / 失败原因）；服务端形态汇总 + 如实占位。
+// 行展开明细——本机直连作业逐张结果（状态 / 失败原因）；服务端形态汇总 + 如实占位。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -84,7 +84,7 @@ const JOBS: JobView[] = [
 
 /** 挂载链等待超时（ms）：AppProvider 启动链（getHostConfig → healthz → serverMode）→ 首次列表加载
  *  为多段 promise + React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms
- * （实证：「服务端模式：列表渲染」找不到「已完成」，2530ms）；统一放宽（与 DataPrint.test 同口径）。 */
+ * （「服务端模式：列表渲染」找不到「已完成」，2530ms）；统一放宽（与 DataPrint.test 同口径）。 */
 const MOUNT_WAIT = { timeout: 8000 }
 
 function renderJobHistory() {
@@ -199,7 +199,7 @@ describe('作业历史页（迭代 18 F6）', () => {
   })
 })
 
-// （评审 B-6 / B-7）：目标设备列设备名解析（与在线设备页 / 目标设备下拉同源）与编号收敛（决议 2）。
+// （评审 /）：目标设备列设备名解析（与在线设备页 / 目标设备下拉同源）与编号收敛。
 describe('作业信息可读性（迭代 84 · #132）', () => {
   it('AC-02：目标设备列经 GET /api/devices 解析设备名；无名称设备回退设备 ID', async () => {
     renderJobHistory()
@@ -263,7 +263,7 @@ describe('作业信息可读性（迭代 84 · #132）', () => {
   })
 })
 
-// （C-5，决议 2）：作业历史行展开明细。
+// 作业历史行展开明细。
 describe('作业行展开明细（迭代 85 · #133 C-5）', () => {
   /** 本机直连作业（WinHost 列表即返回逐张 items）：完成 2 / 失败 2（errorMessage 与 errorCode 回退两形态）。 */
   const LOCAL_DETAIL_JOB: JobView = {
@@ -356,7 +356,7 @@ describe('作业历史自动轮询（迭代 48，用户定稿：1.5s / 仅进行
   /** 冲洗挂载链（配置加载 → healthz 探测 → serverMode 确定 → 首次列表加载）至完全落定。
    *  挂载链本身是纯 promise + React 状态更新，但 React 调度走真实宏任务——固定两轮冲洗在
    *  高负载 runner 上可能残留未落定的渲染代际，迟到渲染落在计时窗口内会重触发加载 effect，
-   * 表现为轮询计数错位（实证：「2s 退避后重试」期望 2 实得 3）。改为有界多轮冲洗：
+   * 表现为轮询计数错位（「2s 退避后重试」期望 2 实得 3）。改为有界多轮冲洗：
    *  以「首次拉取已发生 + 列表行已渲染」为落定条件，命中后再补两轮空转吸收迟到的真实宏任务渲染。 */
   async function flush() {
     for (let i = 0; i < 15; i++) {

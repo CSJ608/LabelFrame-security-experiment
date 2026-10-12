@@ -22,7 +22,7 @@ describe('geometry 毫米↔像素换算', () => {
   it('DPI → 每毫米点数（203 → 8，300 → 12）', () => {
     expect(dotsPerMm(203)).toBe(8)
     expect(dotsPerMm(300)).toBe(12)
-    expect(previewScale(203)).toBe(2) // 8 点 / 4px每mm
+    expect(previewScale(203)).toBe(2)  // 8 点 / 4px每 mm
     expect(previewScale(300)).toBe(3)
   })
 

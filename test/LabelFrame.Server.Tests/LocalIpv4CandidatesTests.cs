@@ -6,7 +6,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 本机 IPv4 候选枚举单测（· ：下载中心「连接信息」卡）：
+/// 本机 IPv4 候选枚举单测（下载中心「连接信息」卡）：
 /// 枚举结果全部为合法非回环 IPv4 且去重；私网（RFC1918）判定与「私网优先」排序可离线断言。
 /// </summary>
 public sealed class LocalIpv4CandidatesTests

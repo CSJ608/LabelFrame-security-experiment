@@ -169,7 +169,7 @@ export function changeLocale(locale: AppLocale): void {
   void i18next.changeLanguage(locale)
 }
 
-// Intl 格式化（ ：替换硬编码 toLocaleString（'zh-CN'），跟随当前界面语言）
+// Intl 格式化（替换硬编码 toLocaleString（'zh-CN'），跟随当前界面语言）
 
 /** 日期时间（含时分秒，24 小时制）——工作台模板更新时间等列表展示用。 */
 export function formatDateTime(locale: AppLocale, date: Date): string {

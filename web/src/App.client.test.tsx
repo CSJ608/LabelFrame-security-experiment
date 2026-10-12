@@ -2,8 +2,8 @@
 // client 构建菜单与状态栏——含 设置（不含 在线设备 / 设备日志）
 // 「PDA 日志」页下线——导航入口移除（回传链路不存在前的界面收敛）
 // 状态栏在本机打印服务运行中时显示本机 IP（/api/host/config.ips，多 IP 逗号分隔，title 给全量）。
-// （决议 2「三名义」）：状态栏改呈现「本机打印服务：运行中 / 未运行」
-// 不再用「服务端已连接」兼指本机后台服务可达（评审 B-9）。
+// 「三名义」口径：状态栏改呈现「本机打印服务：运行中 / 未运行」
+// 不再用「服务端已连接」兼指本机后台服务可达。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'

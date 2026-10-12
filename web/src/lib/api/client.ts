@@ -40,7 +40,7 @@ import i18next from '../../i18n'
 // ── base 解析 ──
 
 // （K1）：server 构建下 serverApi base 固定同源相对路径（''，不读 localStorage / 机器级配置）——
-// Server UI 由服务端托管，同源即可访问 API；局域网其他机器访问 http://<服务端IP>:53961 时避免回环地址
+// Server UI 由服务端托管，同源即可访问 API；局域网其他机器访问 http://<服务端 IP>:53961 时避免回环地址
 // 错连到访问者本机、或 localStorage 残留旧值错连到客户端 WinHost。client 构建保持现状。
 let serverBaseUrl = UI_MODE === 'server' ? '' : getBaseUrl()
 
@@ -62,7 +62,7 @@ export function getLocalBaseUrl(): string {
   return DEFAULT_LOCAL_BASE_URL
 }
 
-// ── 请求超时（· a 案决议）──
+// ── 请求超时（a 案决议）──
 
 /** 超时分档：normal = 普通请求（列表 / 保存 / 提交等）；heavy = 出图 / 导入导出 / 安装包等大负载端点放宽档。
  *  导出为可变对象：单测注入秒级短超时验证超时分支（不真实等待 30s / 120s）。 */
@@ -142,7 +142,7 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
   }
 }
 
-/* * 解析 Content-Disposition 下载文件名（·）。
+/* * 解析 Content-Disposition 下载文件名。
  *  后端 ASP.NET Core 对非 ASCII 文件名按 RFC 6266/5987 同时发两个参数——
  *  `filename=____.lfpkg`（ASCII 回退值，非 ASCII 字符替换为 _）与 `filename*=UTF-8''%E4%B8%AD...`（百分号编码，无损）。
  *  优先解析 filename* 并 decodeURIComponent 还原中文；无 / 畸形 / 非 UTF-8 的 filename* 回退现行为 filename=，
@@ -299,7 +299,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
         body: JSON.stringify(req),
       }, 'label-print.png', i18next.t('api.renderFailed'), requestTimeouts.heavy),
 
-    /* * 模板预览 PNG（：按模板 TestData 渲染，工作台预览列用；Server 与 WinHost 双宿主已实现
+    /* * 模板预览 PNG（按模板 TestData 渲染，工作台预览列用；Server 与 WinHost 双宿主已实现
      *  模板不存在等业务失败由调用方按失败态处理）。与 renderImage 同构的 blob 封装。
      *  空 JSON 体 + 显式 Content-Type 必须携带：旧版 Server 对无 Content-Type 的裸 POST 按路由不匹配
      *  返回空体 404（2026-09-10 真机验收发现——新版宽容、旧版不宽容，显式携带两端通吃）。 */
@@ -355,7 +355,7 @@ export const serverApi = {
   },
   deletePdaPackage: (fileName: string) => serverRequest<void>(`/api/pda-packages/${encodeURIComponent(fileName)}`, { method: 'DELETE' }),
 
-  // ── 本机 IPv4 候选（· ：下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）──
+  // ── 本机 IPv4 候选（下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）──
   listServerIpv4Candidates: () => serverRequest<Ipv4Candidates>('/api/server/ipv4-candidates'),
 
   // ── 插件包分发（仅 Server 实现；64MB 上限与校验在后端，前端按 sizeBytes 预检）──

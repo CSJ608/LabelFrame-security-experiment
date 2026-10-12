@@ -173,7 +173,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
         // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致，），非锚定文本维持决策 A 兜底
+        // 自动高度即字高，格顶语义与锚定偏移一致），非锚定文本维持决策 A 兜底
         // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致）。
         // 锚定路径此前误用兜底框再按 VerticalAlign 居中，字形比锚定盒中心下沉 (兜底框高 − 字高)/2，
         // 小字号时约 1.5–2 字高，穿出锚定盒底边（真机陪验 取证）。
@@ -526,7 +526,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         int dpi)
     {
         // SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框）
-        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（拍板 4-A 不变）
+        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（不变）
         if (string.IsNullOrEmpty(image.SourceKey))
         {
             return;

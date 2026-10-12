@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>引导布局生成参数解析测试（/）——双横线 --layout / --manifest 形态锚定。</summary>
+/// <summary>引导布局生成参数解析测试——双横线 --layout / --manifest 形态锚定。</summary>
 public sealed class LayoutModeArgumentsTests
 {
     [Fact]

@@ -18,7 +18,7 @@ using Xunit;
 namespace LabelFrame.WinHost.Integration;
 
 /// <summary>
-/// 服务端地址切换「保存即生效」HTTP 集成测试（/）：
+/// 服务端地址切换「保存即生效」HTTP 集成测试：
 /// 用与生产一致的 WinHostApp 装配 + 两个真实 Kestrel stub 服务端模拟运行中切换——
 /// 断言设备在新服务端注册（POST /api/devices 可见）、与旧服务端的长轮询连接被断开（notify 请求中止）。
 /// </summary>

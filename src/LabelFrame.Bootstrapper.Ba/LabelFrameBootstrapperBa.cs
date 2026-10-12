@@ -15,7 +15,7 @@ using WixToolset.BootstrapperApplicationApi;
 /// 执行边界契约见 DESIGN / （确认前绝不 Apply）。
 /// 下载体验（/ ，DESIGN）：多源回退（CacheAcquireResolving 消费清单 urls，决策核心在
 /// <see cref="CacheSourceFallback"/>）+ 下载侧进度 / 失败分类 / 换源提示的事件映射。
-/// 离线布局（/）：<c>--layout &lt;目录&gt;</c> 生成模式（<see cref="OfflineLayoutBuilder"/>）
+/// 离线布局：<c>--layout &lt;目录&gt;</c> 生成模式（<see cref="OfflineLayoutBuilder"/>）
 /// 与安装期本地源优先（<see cref="IEngine.SetLocalSource"/>，清单所在目录 = 隐式优先源目录）。
 /// </summary>
 internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
@@ -240,7 +240,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
 
         var command = _command;
 
-        // 布局目录生成模式（/）：--layout <目录>（双横线，引擎透传 BA）或引擎原生 -layout
+        // 布局目录生成模式：--layout <目录>（双横线，引擎透传 BA）或引擎原生 -layout
         // （LaunchAction.Layout + LayoutDirectory，单横线）→ 同一生成流程——优先于一切安装路径（生成机无需问卷 / 探测）；
         // 参数无效（--layout 缺值等）同样进入本路径显式失败，不静默落到安装向导
         var layoutArguments = LayoutModeArguments.Parse(command?.CommandLine);
@@ -696,7 +696,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
     private IBootstrapperCommand? _command;
 
     /// <summary>
-    /// 多源回退 · 源注入点（DESIGN ，/）：每次获取尝试开始时，按清单 urls 顺序把
+    /// 多源回退 源注入点（DESIGN ，/）：每次获取尝试开始时，按清单 urls 顺序把
     /// urls[min(失败数, count-1)] 设为引擎下载源（<see cref="IEngine.SetDownloadSource"/>——v3 ResolveSource
     /// 的 DownloadSource 覆写在 v7 的官方后继；运行时清单是源顺序权威，：顺序即优先级）。
     /// 仅作用于<b>远程载荷</b>（不在内嵌容器中——伴生内嵌载荷经容器解压获取，与下载源无关）；
@@ -743,7 +743,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         if (outcome.IsLocal)
         {
             // 本地源优先（/ ， 源解析顺序契约）：布局目录文件经 SetLocalSource 交给引擎本地
-            // 获取——引擎对本地源副本同样按包内嵌摘要（= manifest sha256，构建期实测锁定）强制校验（ fail-closed：
+            // 获取——引擎对本地源副本同样按包内嵌摘要（= manifest sha256，构建期实测锁定）强制校验（fail-closed：
             // 篡改布局文件 → 校验失败 → 按既有推进语义换源重取，断网则源耗尽失败，篡改内容绝不落装）
             engine.SetLocalSource(args.PackageOrContainerId, args.PayloadId, outcome.LocalPath!);
             var localName = Path.GetFileName(outcome.LocalPath!);

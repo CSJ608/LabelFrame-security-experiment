@@ -1,5 +1,5 @@
-// 下载中心页（改版 · ，升级 设立的下载中心）：页内三 tab——
-// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态由路由 sub 段承载（· 
+// 下载中心页（改版 ，升级 设立的下载中心）：页内三 tab——
+// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态由路由 sub 段承载（
 // ——升级 的 #dc= 形态为 #/packages/<sub>，旧 #dc= 分享链接经 parseHash 兼容映射直达）
 // 刷新 / 直链打开均还原当前 tab；视觉沿用仓库页内 tab 先例（btn + active 分段风格）。
 // 快速访问 = 消费视图（拿包 + 连服务器），整区限宽居中：上区块标题「客户端」——Windows / Android 各一张
@@ -43,7 +43,7 @@ interface PackageRow {
   downloadHref: string
 }
 
-// ── 页内 tab（· 立；· 改路由 sub 段承载）：#/packages/<sub>，刷新 / 直链还原 ──
+// ── 页内 tab（立； 改路由 sub 段承载）：#/packages/<sub>，刷新 / 直链还原 ──
 
 /** 页内 tab 标识：quick = 快速访问（默认消费视图）；windows / android = 平台包管理。 */
 type DcTab = 'quick' | 'windows' | 'android'
@@ -487,7 +487,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
     else void removePda(row)
   }
 
-  // 时间排序（决议 3 → 收口为「最新上传」货架语义：按上架时间展示，latest.json 对齐事项就此关闭）
+  // 时间排序（收口为「最新上传」货架语义：按上架时间展示，latest.json 对齐事项就此关闭）
   const byNewest = <T extends { modifiedAt?: string }>(list: T[] | null): T[] | null =>
     list === null ? null : [...list].sort((a, b) => (b.modifiedAt ?? '').localeCompare(a.modifiedAt ?? ''))
 
@@ -527,7 +527,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
       {notice && <div className="banner notice">{notice}</div>}
 
       <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-        {/* 页内三 tab（#272）：分段按钮（btn + active 既有样式，不新造设计语言） */}
+        {/* 页内三 tab：分段按钮（btn + active 既有样式，不新造设计语言） */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {DC_TABS.map((id) => (
             <button key={id} className={'btn' + (tab === id ? ' active' : '')} onClick={() => switchTo(id)}>
@@ -597,7 +597,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
 
         {tab === 'android' && (
           <>
-            {/* ── Android 包管理（pda-packages 目录，迭代 59 决策 #119；上传 / 下载 / 删除行为不动）── */}
+            {/* ── Android 包管理（pda-packages 目录，上传 / 下载 / 删除行为不动）── */}
             <SectionHead
               title={t('android.title')}
               hint={t('android.hint')}

@@ -106,7 +106,7 @@ public static class AndroidLabelRenderer
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
         // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致，），非锚定文本维持决策 A 兜底
+        // 自动高度即字高，格顶语义与锚定偏移一致），非锚定文本维持决策 A 兜底
         // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致；与 PC Skia 渲染同口径）。
         var anchored = text.RegionId is not null && regions.ContainsKey(text.RegionId);
         var boxHeightMm = text.HeightMm > 0
@@ -317,7 +317,7 @@ public static class AndroidLabelRenderer
             using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                // 拉伸填满元素盒（与 PC Skia 同口径， 填充拍板 A）；Paint 传 true 开双线性滤波防缩小混叠
+                // 拉伸填满元素盒（与 PC Skia 同口径， 填充）；Paint 传 true 开双线性滤波防缩小混叠
                 using var paint = new Paint { AntiAlias = true, FilterBitmap = true };
                 canvas.DrawBitmap(source, null, new Rect(x, y, x + width, y + height), paint);
                 return;

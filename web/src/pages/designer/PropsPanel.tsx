@@ -5,9 +5,9 @@
 // 同源词条）。：撤 !isServerUi 门——设计器 tab 在 SERVER_TABS 可达
 // 且功能完整，「?」在 server 构建同样渲染（词条同源、已随 help 域进双产物）；设置页挂点维持
 // 门（client-only 页防御门，见 Settings.tsx）。演示（填充组「看实时效果」）期间输入与操作禁用
-// （拍板 4 方案 A：禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态
+// （禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态
 // openDot 由本组件持有，帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位
-// 由 Designer 页内轮询确认，· 机制迁移后信号源 = 路由 sub 段）。
+// 由 Designer 页内轮询确认， 机制迁移后信号源 = 路由 sub 段）。
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,11 +24,11 @@ export interface PropsPanelProps {
   onChange: (id: string, patch: Partial<DesignElement>) => void
   onAlign: (align: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
   onDelete: (ids: string[]) => void
-  /* * 图片资源表（key → 资源，·）：图片组信息行与缺资源判定用。 */
+  /* * 图片资源表（key → 资源）：图片组信息行与缺资源判定用。 */
   imageAssets?: Record<string, ImageAsset>
   /* * 「上传 / 更换图片」按钮：打开文件选择为目标元素填 key（空占位填充或换新 key，旧 key 孤儿随保存 GC——）。 */
   onReplaceImage?: (id: string) => void
-  /* * 演示进行中（填充组「看实时效果」）：输入与操作禁用（拍板 4 方案 A）。 */
+  /* * 演示进行中（填充组「看实时效果」）：输入与操作禁用）。 */
   demoActive?: boolean
   onDemoStart?: (anchor: string) => void
   onDemoExit?: () => void
@@ -56,7 +56,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
   }
   const toggleDot = (anchor: string) => changeDot(openDot === anchor ? null : anchor)
 
-  /* * 分组标题「?」文档点（· 撤 server 门：双构建直渲染——设计器 server 构建功能完整）。 */
+  /* * 分组标题「?」文档点（撤 server 门：双构建直渲染——设计器 server 构建功能完整）。 */
   const dot = (anchor: string) => (
     <HelpDot
       anchor={anchor}
@@ -307,7 +307,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
       {e.type === 'Region' && (
         <div className="group">
           <div className="group-title">
-            {/* 迭代 132（#329）：兼容组收敛为仅容器——图片元素有专属「图片」组（其深链锚点 designer.image） */}
+            {/* 兼容组收敛为仅容器——图片元素有专属「图片」组（其深链锚点 designer.image） */}
             {t('type.region')}
             {dot('designer.compat')}
           </div>
@@ -322,7 +322,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
             {t('props.imageTitle')}
             {dot('designer.image')}
           </div>
-          {/* 三态（#329 方案 v2）：key 空＝未指定（提示＋「上传图片」）；key 非空有资源＝元信息；
+          {/* 三态：key 空＝未指定（提示＋「上传图片」）；key 非空有资源＝元信息；
               key 非空缺资源＝资源缺失提示（可重新上传修复）。key 非空两态按钮组合不变（更换＋移除）。 */}
           {!e.key ? (
             <div className="hint">{t('props.imageEmpty')}</div>
@@ -354,7 +354,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
 }
 
 /** 填充：固定值 / 字段填充（字段名 + 显示名 + 预览值）；标题挂「?」文档点（首波唯一内嵌实时演示，
- * · 起随 dot 撤门双构建渲染）。 */
+ * 起随 dot 撤门双构建渲染）。 */
 function ContentGroup({
   e,
   onChange,

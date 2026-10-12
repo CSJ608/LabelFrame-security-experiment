@@ -112,7 +112,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
         }
     }
 
-    /// <summary>ITestableTransport：连接测试走 SDK PrinterStatus 语义（不保留 ~HS 双轨，预授权决议 3）。
+    /// <summary>ITestableTransport：连接测试走 SDK PrinterStatus 语义（不保留 ~HS 双轨，预授权）。
     /// 成功返回 null；失败返回含目标与具体原因的中文错误消息（对齐 不泛化）。</summary>
     public Task<string?> TestAsync(CancellationToken cancellationToken = default)
     {
@@ -212,7 +212,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
 
     private Connection OpenUsb()
     {
-        // 自动发现锁定第一台 Zebra 设备（预授权决议 2）：发现器为 Java 回调式，阻塞等待有界超时
+        // 自动发现锁定第一台 Zebra 设备（预授权）：发现器为 Java 回调式，阻塞等待有界超时
         var found = new DiscoveredPrinter?[1];
         var error = new string?[1];
         using var completed = new ManualResetEventSlim(false);

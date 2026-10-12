@@ -256,7 +256,7 @@ export function fromBackendElements(list: readonly BackendElement[]): DesignElem
 
 /**
  * 字段推导结果 → 契约 fields（非必填，类型 Text）。
- * 显示名（· 决议 1）：可选，空则回退键（displayName 字段契约本就存在，非格式变更）。
+ * 显示名：可选，空则回退键（displayName 字段契约本就存在，非格式变更）。
  */
 export function toContractFields(fields: readonly FieldInfo[]): BackendField[] {
   return fields.map((f) => ({ key: f.key, displayName: f.displayName?.trim() || f.key, isRequired: false, type: 'Text' as const }))
@@ -268,7 +268,7 @@ export function toContract(name: string, version: string, fields: readonly Field
 }
 
 /**
- * 契约 fields 显示名 → 内部元素回填（按字段名匹配；· 决议 1）。
+ * 契约 fields 显示名 → 内部元素回填（按字段名匹配）。
  * 版式元素 JSON 无显示名字段（契约格式不变），保存路径显示名只进契约 fields——
  * 加载模板时按 sourceKey 匹配回填到元素，保证设计器往返（导出 / 导入）不丢显示名。
  * 存量模板 displayName = key（旧口径）时不回填（元素保持无显示名，显示处回退键，行为不变）。

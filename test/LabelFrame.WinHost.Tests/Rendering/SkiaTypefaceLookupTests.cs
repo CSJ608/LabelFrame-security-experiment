@@ -27,7 +27,7 @@ public class SkiaTypefaceLookupTests
         using var current = SkiaTypefaceLookup.CreateTypeface(null!, sample);
 
         // 同族同款 ⇒ 同一物理字体 ⇒ 渲染管线收到完全一致的字型（中文渲染逐字节一致的充分条件）：
-        // 常用汉字经系统回退链按脚本路由，与『中』解析到同一字体（探针实证：中 / 门 / 机 → 同族）。
+        // 常用汉字经系统回退链按脚本路由，与『中』解析到同一字体（探针中 / 门 / 机 → 同族）。
         // SKFontStyle 未重写 Equals（按本机句柄比较），故比较样式三分量。
         Assert.Equal(legacy.FamilyName, current.FamilyName);
         Assert.Equal(legacy.FontStyle.Weight, current.FontStyle.Weight);

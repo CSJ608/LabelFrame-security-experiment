@@ -393,7 +393,7 @@ public sealed partial class ServerService : IDisposable
     private static bool IsOnline(Device device, DateTimeOffset now)
         => now - device.LastSeenAt <= OnlineWindow + ClockSkew;
 
-    /// <summary>规范化来源 IP：IPv4-mapped IPv6（::ffff:a.b.c.d）统一为 IPv4 文本；其余原样。</summary>
+    /// <summary>规范化来源 IP：IPv4-mapped IPv6（:ffff:a.b.c.d）统一为 IPv4 文本；其余原样。</summary>
     public static string? NormalizeRemoteIp(System.Net.IPAddress? address)
     {
         if (address is null)

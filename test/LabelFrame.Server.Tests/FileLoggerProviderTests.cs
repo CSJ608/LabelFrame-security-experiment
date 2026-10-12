@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// FileLoggerProvider 启动防护与轮转 / 保留测试（；大小上限轮转与（日期,序号）序清理为 / ）：
+/// FileLoggerProvider 启动防护与轮转 / 保留测试（大小上限轮转与（日期,序号）序清理为 /）：
 /// 路径无效不抛异常（宿主可正常启动）、按日文件写入、单文件大小超限切序号文件、单日多次轮转总文件数受限、
 /// 清理按（日期,序号）元组序删最旧（写入中文件不被选中）、轮转失败回退旧文件、通道停用后写入不抛异常。
 /// </summary>
@@ -138,7 +138,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Multiple_size_rotations_within_one_day_should_stay_within_file_count_limit()
     {
-        // （评审 B3）：大小轮转分支同样触发清理——单日内多次超限轮转后文件总数不超个数上限
+        // 大小轮转分支同样触发清理——单日内多次超限轮转后文件总数不超个数上限
         // 写入中文件按（日期,序号）元组序总在队尾，清理不会删到它（通道保持可用、末行可落盘）
         var basePath = Path.Combine(_directory, "server.log");
         using var provider = new FileLoggerProvider(basePath, retainedFileCountLimit: 3, maxFileSizeBytes: 512);
@@ -157,7 +157,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Cleanup_should_delete_oldest_by_date_then_sequence_and_keep_current_file()
     {
-        // （评审 B2）：清理按（日期, 序号〔基名=0〕）元组序删最旧，替代文件名 Ordinal 串序——
+        // 清理按（日期, 序号〔基名=0〕）元组序删最旧，替代文件名 Ordinal 串序——
         // Ordinal 序下 ".10" 排在 ".2" 之前、基名文件（当日最旧）排在全部序号文件之后；
         // 6 个文件上限 3 → 删 (20200101,0)、(20200102,0)、(20200102,2)，保留 (20200102,10)、(20200103,0) 与写入中当日文件
         var basePath = Path.Combine(_directory, "server.log");

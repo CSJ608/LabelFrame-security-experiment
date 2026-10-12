@@ -8,7 +8,7 @@ using Xunit;
 namespace LabelFrame.Api.Tests;
 
 /// <summary>
-/// 模板保存图片三态契约（· ，，DESIGN）：
+/// 模板保存图片三态契约（，DESIGN）：
 /// 不带 images 字段＝保留存量；显式 "images": null＝保留（与同结果——record 可选参数反序列化合并为一态
 /// 本用例锚定该合并语义）；空字典＝清空；非空字典＝全量覆盖（旧 key 消失）。
 /// 另含：含图保存 → GET 回读 → 预览 PNG 元素盒有墨（黑白）；坏 base64 / 格式 / 上限 400。

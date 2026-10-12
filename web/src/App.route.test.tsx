@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-// hash 路由地基（·）client 分支—— / ：
+// hash 路由地基 client 分支——
 // - 逐页切换 hash 实时反映；预设 hash 挂载直达（刷新保持同机制＝带 hash 重挂载初始解析）；hashchange 页面跟随。
 // - 后退 / 前进在应用页面间导航；dirty 设计器离开守卫照常生效——back 触发守卫时页面与 hash 均不动
 //   不新增栈条目（pre-revert 按戳回退）；「继续编辑」停留、「放弃更改」前进且恰新增一条。
 // 帮助深链 sub 段用例——「去界面查看」hash 赋值导航、设计器空态自动开
-// 示例草稿（拍板 A：元素入初始基线并选中）＋气泡弹出＋draftOpened 终态、刷新 / 直链还原（sub 驻留）、
+// 示例草稿（元素入初始基线并选中）＋气泡弹出＋draftOpened 终态、刷新 / 直链还原（sub 驻留）、
 // 已开模板不重开走既有锚点路径、超时通用降级、settings 深链弹卡片气泡。
 // server 分支（受限 tab 集越权回退 / #/packages 直达）在 App.route.server.test.tsx。
 
@@ -391,7 +391,7 @@ describe('client 构建 · 帮助深链 sub 段（#316 · 决策 #178）', () =>
     // 页内轮询锚点入 DOM → 自动弹填充组文档点气泡（无可见标题、正文直出—— 联动）
     const dialog = await screen.findByRole('dialog')
     expect(dialog.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
-    // draftOpened 终态提示驻留状态栏（pending 一闪被覆盖，拍板 A 口径）
+    // draftOpened 终态提示驻留状态栏（pending 一闪被覆盖， 口径）
     expect(screen.getByText(/帮助打开的是临时示例草稿/)).toBeTruthy()
 
     // 未编辑（undoCount=0）退出：不弹三选、静默弃、回工作台（守卫语义与普通草稿一致）

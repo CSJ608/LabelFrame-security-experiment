@@ -33,7 +33,7 @@ public sealed class OfflineLayoutNamingTests
     [Theory]
     [InlineData("https://mirror.example/p/")]           // 末段无扩展名
     [InlineData("https://mirror.example/")]             // 无末段
-    [InlineData("ftp://mirror.example/some.msi")]       // 非 http(s)
+    [InlineData("ftp:  // mirror.example/some.msi")] // 非 http(s)
     [InlineData("not-a-url")]                           // 非法 URL
     public void Non_derivable_urls_without_fixed_entry_return_null(string url)
     {

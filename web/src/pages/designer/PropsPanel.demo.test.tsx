@@ -108,7 +108,7 @@ describe('「看实时效果」演示（AC-05）', () => {
       expect(el?.['key']).toBe('location')
       expect(el?.['displayName']).toBe('库位')
     })
-    // 属性面板同源反映（输入框收到注入值）且禁用（拍板 4 方案 A 锁输入）
+    // 属性面板同源反映（输入框收到注入值）且禁用（锁输入）
     const key = screen.getByLabelText('字段名') as HTMLInputElement
     expect(key.value).toBe('location')
     expect(key.disabled).toBe(true)

@@ -8,7 +8,7 @@ using Serilog;
 namespace LabelFrame.WinHost.Tests.Jobs;
 
 /// <summary>
-/// 失败上下文结构化日志验证（/）：发送失败日志须含作业 / 项索引 / 插件 / 打印目标 / 错误码 / 原因
+/// 失败上下文结构化日志验证：发送失败日志须含作业 / 项索引 / 插件 / 打印目标 / 错误码 / 原因
 /// 经与生产同模板的 Serilog 文件通道落盘后逐字段断言。
 /// </summary>
 public class JobPrintWorkerFailureLogTests

@@ -10,7 +10,7 @@ import { AppProvider, useApp } from '../state/AppContext'
 import { Settings } from './Settings'
 
 // 挂载链（getHostConfig → getTransport / healthz → 各分组列表）为多段 promise +
-// React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms（实证：TCP 参数表单
+// React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms（TCP 参数表单
 // findByLabelText 1s 超时）。本文件统一把异步查询超时放宽到 8000ms（与 JobHistory / DataPrint 的
 // MOUNT_WAIT 同口径），消除对默认 1s 的隐式时序依赖；单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
@@ -70,7 +70,7 @@ function withinSection(title: string): HTMLElement {
   return el.closest('section') as HTMLElement
 }
 
-/* * （决议 1）：连接方式面板默认折叠为当前连接摘要一行——点击面板头展开编辑区。 */
+/* * ：连接方式面板默认折叠为当前连接摘要一行——点击面板头展开编辑区。 */
 function openTransportPanel() {
   fireEvent.click(screen.getByText('连接方式'))
 }

@@ -84,7 +84,7 @@ public sealed class WizardSession
     /// <summary>当前清单可选择的品牌（无 plugin-* 条目则为空，品牌页展示说明）。</summary>
     public IReadOnlyList<string> AvailableBrands => Manifest is null ? [] : TopologyResolver.AvailableBrands(Manifest);
 
-    /// <summary>加载并校验清单（本地路径 = 文件读取；URL = 单次只读 GET；起由就绪页自动触发）→ 探测本机已装与已配服务端地址 → 计算升级评估 → 按已装打印机名预选品牌（决议 2）。</summary>
+    /// <summary>加载并校验清单（本地路径 = 文件读取；URL = 单次只读 GET；起由就绪页自动触发）→ 探测本机已装与已配服务端地址 → 计算升级评估 → 按已装打印机名预选品牌。</summary>
     public async Task LoadManifestAsync(HttpClient? http = null, CancellationToken cancellationToken = default)
     {
         var effectiveHttp = http ?? _http;
@@ -117,7 +117,7 @@ public sealed class WizardSession
 
         Assessment = UpgradeAssessor.Assess(Manifest, LocalInstall);
 
-        // 品牌预选（决议 2）：仅 Zebra——驱动名含 ZDesigner 且清单有对应条目才预勾选；其余品牌从零勾选
+        // 品牌预选：仅 Zebra——驱动名含 ZDesigner 且清单有对应条目才预勾选；其余品牌从零勾选
         SelectedBrands = new HashSet<string>(
             PrinterBrandDetector.DetectPreselectedBrands(_installedPrinterNames(), AvailableBrands), StringComparer.Ordinal);
     }

@@ -100,7 +100,7 @@ public sealed class RoutingLatencyTests : IDisposable
         _output.WriteLine($"设备 {deviceCount} 并发（每设备 {jobsPerDevice} 作业，每作业 2 张）：p50={p50}ms p95={p95}ms p99={p99}ms max={latencies[^1]}ms");
 
         // 实测特征（PERF-BASELINE.md）：本机 p50 恒 3-9ms；SQLite 单写者使高并发下写事务排队，
-        // 20 设备时 p95 尾部 2-3s（busy_timeout 排队，不丢不错）。阈值分环境口径（/）：
+        // 20 设备时 p95 尾部 2-3s（busy_timeout 排队，不丢不错）。阈值分环境口径：
         // 本地严格——p50 < 50ms（主体不受影响）+ p95 分层（≤5 设备 < 2s、20 设备 < 5s）；
         // GitHub 共享宿主 p50 轮间抖动 10-300 倍（4 轮实测 51-1169ms，同代码本机 6-9ms）无判别力——
         // 只判「无错误 + p95 分层」（放大至 5s / 10s），p50 转观测不判定。

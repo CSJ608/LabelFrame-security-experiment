@@ -66,7 +66,7 @@ public class SkiaRendererElementTests
     [Fact]
     public void Image_element_without_resource_should_throw_with_key_name()
     {
-        // （拍板 4-A）改写：缺资源由「灰占位照打（无墨仅边框）」变为
+        // 改写：缺资源由「灰占位照打（无墨仅边框）」变为
         // 显式报错（预览 / 出图 / 打印链失败并透出键名）——灰占位呈现归设计器画布与属性面板。
         var ex = Assert.Throws<MissingImageResourceException>(() => Render(new LabelLayout
         {

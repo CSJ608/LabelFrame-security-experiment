@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.OfflineLayout;
 
-/// <summary>引导程序布局生成参数（/）：<c>--layout &lt;目录&gt;</c> 进入布局生成模式，<c>--manifest &lt;路径|URL&gt;</c> 覆写生成用清单来源。</summary>
+/// <summary>引导程序布局生成参数：<c>--layout &lt;目录&gt;</c> 进入布局生成模式，<c>--manifest &lt;路径|URL&gt;</c> 覆写生成用清单来源。</summary>
 /// <remarks>
 /// <para>
 /// **双横线与引擎原生开关区分**：Burn 引擎自身解析单横线 <c>-layout [目录]</c>（<c>LaunchAction.Layout</c> +

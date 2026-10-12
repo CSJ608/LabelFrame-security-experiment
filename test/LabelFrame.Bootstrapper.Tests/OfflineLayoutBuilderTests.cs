@@ -8,7 +8,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 离线布局目录生成器测试（/）：逐组件 urls 顺序回退 + sha256 fail-closed +
+/// 离线布局目录生成器测试：逐组件 urls 顺序回退 + sha256 fail-closed +
 /// 幂等复用 + manifest / latest 原样落盘 + 引导 EXE 复制——与 scripts/make-offline-layout.ps1 同语义锚定。
 /// </summary>
 public sealed class OfflineLayoutBuilderTests : IDisposable

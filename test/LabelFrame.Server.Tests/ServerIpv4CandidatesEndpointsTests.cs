@@ -8,7 +8,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 本机 IPv4 候选只读端点 HTTP 集成测试（·）：
+/// 本机 IPv4 候选只读端点 HTTP 集成测试：
 /// GET /api/server/ipv4-candidates 返回 { candidates: [...] }，全部为合法非回环 IPv4，私网优先排序。
 /// </summary>
 public sealed class ServerIpv4CandidatesEndpointsTests : IDisposable

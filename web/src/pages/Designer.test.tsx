@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// （·）：Designer 加载 effect 与 Workbench 的 serverMode 守卫对齐——
+// Designer 加载 effect 与 Workbench 的 serverMode 守卫对齐——
 // unknown 阶段（模式探测未完成）不以 localApi 误发模板详情请求；模式解析后按正确 base 正常加载。
 // 画布为 react-konva 重组件（jsdom 无 2d context），以桩替换——本文件只验证加载链路守卫，不测画布交互。
-// （/ ·）：补页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）与
+// 补页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）与
 // 未保存离开保护三选路径（~03，dirty = 历史栈有已提交更改，决议 a）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -45,7 +45,7 @@ vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 // 画布桩：本文件只验证加载链路（serverMode 守卫），konva 画布由专门交互测试与真机验收覆盖。
 // 两步式链路需经画布动作驱动——桩以探针按钮转接两类回调：canvas-place＝画布点击
 // 放置 pendingType（onAddElement）；canvas-upload-empty＝画布空占位单击（onRequestImageUpload，
-// 拍板 2-A 的画布侧入口）。真实 Konva 命中 / 点击归 ElementNode 结构级断言＋ 复陪验。
+// 的画布侧入口）。真实 Konva 命中 / 点击归 ElementNode 结构级断言＋ 复陪验。
 vi.mock('./designer/CanvasViewport', () => ({
   CanvasViewport: (props: {
     state: { elements: Array<{ id: string; type: string; key?: string }> }
@@ -376,7 +376,7 @@ describe('未保存离开保护三选（迭代 92 F-02，决议 a：dirty = 历�
   })
 })
 
-// ---------- （拍板 A）：深链自动开示例草稿——元素入初始基线并选中 ----------
+// ---------- ：深链自动开示例草稿——元素入初始基线并选中 ----------
 
 describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
   useStandaloneStubs()
@@ -533,7 +533,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     const imageEl = pkg.layout?.elements.find((e) => e.type === 'image')
     expect(imageEl?.sourceKey).toBe('logo.png')
-    // 拍板 3-A：填充后保持用户所画盒（20×20mm 默认值不被 30mm 宽高比夹取改写）
+    // 填充后保持用户所画盒（20×20mm 默认值不被 30mm 宽高比夹取改写）
     expect(imageEl?.widthMm).toBe(20)
     expect(imageEl?.heightMm).toBe(20)
     expect(Object.keys(pkg.images ?? {})).toEqual(['logo.png'])
@@ -639,7 +639,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     // 1.5MB JPEG：>1MB 阈值触发压缩管道（桩 canvas），压后 300KB 过 2MB 闸
     uploadImage('photo.jpg', new Uint8Array(Math.floor(1.5 * 1024 * 1024)), 'image/jpeg')
     await screen.findByText('图片资源：photo.jpg · 8×4 px', undefined, { timeout: 3000 })
-    // 复陪验反馈 2-：压缩提示并入 toast（推翻 拍板 5-A 的状态栏口径——用户实证看不见）
+    // 复陪验反馈 2-：压缩提示并入 toast（推翻 的状态栏口径——用户实证看不见）
     const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
     expect(toast.textContent).toContain('已自动压缩 1.5MB → 0.29MB')
 

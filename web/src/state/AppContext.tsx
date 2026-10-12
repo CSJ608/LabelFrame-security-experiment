@@ -2,8 +2,8 @@
 // 本机连接（transportConfig）、机器级配置、DataPrint 会话草稿、状态栏消息、日志
 // （F2）：serverBase 优先级 = 机器级配置（GET /api/host/config）> localStorage 兜底 > 默认 127.0.0.1:53961
 // 启动加载机器级配置后立即生效；保存服务端地址 = setHostConfig + 内存更新 + 重新探测（无需重启）。
-// （决议 2「三名义」）：「本机打印服务」（localServiceUp，状态栏）与「服务端地址」连通性（connected
-// 设置页）各自独立探测——此前状态栏用 connected 兼指本机后台服务可达，一词三义（评审 B-9）。
+// 「三名义」口径：「本机打印服务」（localServiceUp，状态栏）与「服务端地址」连通性（connected
+// 设置页）各自独立探测——此前状态栏用 connected 兼指本机后台服务可达，一词三义。
 // （a 案）：serverUrl 为空 = 未配置服务端——不做网络探测，直接判「服务端未连接（单机模式可用）」
 // 探测按配置就绪串行化——client 构建机器级配置加载完成前不探测（消除初始化探测与配置加载后探测的竞态双态）。
 
@@ -116,7 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [baseUrl, setBaseUrlState] = useState(() => (isServerUi ? '' : getBaseUrl()))
   const [serverMode, setServerMode] = useState<ServerMode>('unknown')
   const [connected, setConnected] = useState(false)
-  // （决议 2「三名义」）：本机打印服务可达性独立于「服务端地址」连通性——
+  // 本机打印服务可达性独立于「服务端地址」连通性——
   // 状态栏呈现本机后台服务（页面来源），不再与服务端地址（remote Server）共用一个「connected」
   const [localServiceUp, setLocalServiceUp] = useState(false)
   const [hostDeviceId, setHostDeviceId] = useState<string | null>(null)

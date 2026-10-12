@@ -83,7 +83,7 @@ public static class TemplateEndpoints
             }
 
             // 模板化消息：渲染结果与旧内插文案逐字一致（冒号后无空格为既有文案形态）
-            // 参数键 templateName（ ：单码单参数键集——与 ServerService 作业提交链的同码变体统一
+            // 参数键 templateName（单码单参数键集——与 ServerService 作业提交链的同码变体统一
             // 否则 en 码表 {{templateName}} 词条对不上 name 变体会回退中文）
             var parameters = new Dictionary<string, string> { ["templateName"] = name };
             return Results.NotFound(new ErrorView(

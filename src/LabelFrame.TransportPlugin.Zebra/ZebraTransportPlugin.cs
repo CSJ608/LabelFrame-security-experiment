@@ -9,7 +9,7 @@ namespace LabelFrame.TransportPlugin.Zebra;
 /// 插件 Id = <see cref="TransportPluginIdPolicy.ZebraPluginId"/>（labelframe-transport-zebra）；
 /// 旧内置时代 id "zebra" 由 WinHost 读取配置时按别名映射（DESIGN），插件侧不再使用。
 /// 同一插件对象实现 <see cref="ILabelCommandCompiler"/>（品牌级能力，——
-/// 与连接实例 / 传输形态无关），并声明连接级打印方式参数 printMode（决议 2）。
+/// 与连接实例 / 传输形态无关），并声明连接级打印方式参数 printMode。
 /// Description / printMode Hint 补「原生指令模式下二维码（QR）数据不支持中文（仅 ASCII）」
 /// 说明（真机实证见 ：原生 ^CI28 下中文被打印机静默过滤）；编译行为不动（保持现状，未升级 fail-closed）。
 /// </remarks>
@@ -40,7 +40,7 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
         new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"]),
         new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: true, Hint: "如 ZDesigner ZD421-203dpi ZPL", VisibleWhenKey: "kind", VisibleWhenValues: ["Driver"]),
         new TransportParameterSpec("usbName", "Zebra USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现第一台", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"]),
-        // 打印方式（决议 2：仅连接级 Select 参数；默认 image，native = 插件编译器产出品牌原生指令）
+        // 打印方式（仅连接级 Select 参数；默认 image，native = 插件编译器产出品牌原生指令）
         new TransportParameterSpec(
             TransportPrintMode.ParameterKey,
             "打印方式",

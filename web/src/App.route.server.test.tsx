@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// hash 路由地基（·）server 分支——：
+// hash 路由地基 server 分支
 // server 页同形态路由（#/devices / #/packages / #/plugin-packages 等）；受限 tab 集不可经 hash 越权
 // 进入（#/settings 解析即回退 workbench 并规范化 URL，页面不挂载）；#/packages/<sub> 直达下载中心
 // 页内 tab（含旧 #dc= 分享链接兼容映射）。vi.mock uiMode 注入 server 分支（Guide.server.test.tsx 双跑先例）。
@@ -165,7 +165,7 @@ describe('server 构建 · AC-03：路由对 server tab 集生效且形态一致
     window.location.hash = '#/settings'
     render(<App />)
     expect(await screen.findByText(PAGE_MARKER.workbench)).toBeTruthy()
-    // 拍板 A：回退同时 URL 规范化为 #/workbench（与所见一致、可安全分享）
+    // 回退同时 URL 规范化为 #/workbench（与所见一致、可安全分享）
     await waitFor(() => expect(window.location.hash).toBe('#/workbench'))
   })
 

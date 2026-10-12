@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 自研 hash 路由（·）：parseHash / formatHash 纯函数全分支 +
+// 自研 hash 路由：parseHash / formatHash 纯函数全分支 +
 // useHashRoute hook 行为（入栈时序、sub 不入栈、hashchange 页面跟随、守卫取消 pre-revert 按戳回退、
 // 挂载规范化）。jsdom 的 history back/forward/go 触发 hashchange 且逐条目保留 state——pre-revert 可测
 // （设计段勘察实证，本文件复验）。

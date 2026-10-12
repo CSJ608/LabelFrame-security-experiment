@@ -17,7 +17,7 @@ internal static class ZebraQrCodeMetrics
     /// </summary>
     internal static readonly int[,] ByteModeCapacities =
     {
-        // L    M    Q    H
+        // L M Q H
         { 17, 14, 11, 7 }, // V1
         { 32, 26, 20, 14 },
         { 53, 42, 32, 24 },

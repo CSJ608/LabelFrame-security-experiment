@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// 下载中心页（改版 ·）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问
-// tab 状态经路由 sub 段进 URL——· 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原
+// 下载中心页（改版）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问
+// tab 状态经路由 sub 段进 URL—— 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原
 // 旧 #dc= 链接经 parseHash 兼容映射直达）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
 // 第一条的货架语义：文件名 / 大小 / 上传时间 / 下载二维码（origin + 下载路径）/ 下载按钮 /「全部版本 →」跳
 // 管理卡、空态引导跳转上传）+ 下区块「服务端信息」卡（大二维码 = 选中裸地址 URL + 地址文本与复制 +
@@ -77,7 +77,7 @@ function gotoManageTab(label: string): void {
 
 /**
  * 路由接线测试壳：等价 App 对 DownloadCenter 的接线（sub / onSubChange 经 useHashRoute 注入，
- * #/<page>/<sub> 两级形，· ）；「去别页」按钮模拟主导航切走（pushState 入栈）
+ * #/<page>/<sub> 两级形）；「去别页」按钮模拟主导航切走（pushState 入栈）
  * 供后退 / 前进还原 sub 用例使用。
  */
 function DownloadCenterRouteHarness() {

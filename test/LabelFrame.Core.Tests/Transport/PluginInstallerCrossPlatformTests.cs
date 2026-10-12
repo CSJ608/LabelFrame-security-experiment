@@ -8,7 +8,7 @@ using LabelFrame.TransportPlugin.Sample;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// fake 插件跨端单测矩阵（/ ，对齐fake 编译器矩阵模式）：
+/// fake 插件跨端单测矩阵（/ ，对齐 fake 编译器矩阵模式）：
 /// manifest platforms 契约（解析 / 向后兼容语义）＋ 三层校验平台门（windows / android 双向）＋
 /// 安装（含坏包拒绝：损坏 zip / manifest 缺失 / 内置 id 冲突 / pluginId 不一致 / 无 DLL）＋
 /// 官方插件版本比较（android 宿主路径）＋ 加载 / 发现 / 装配 / 发送（fake 插件全链路）。

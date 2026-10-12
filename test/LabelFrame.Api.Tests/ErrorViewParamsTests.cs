@@ -6,7 +6,7 @@ using Xunit;
 namespace LabelFrame.Api.Tests;
 
 /// <summary>
-/// ErrorView 可选 params 契约测试（· ， /）：
+/// ErrorView 可选 params 契约测试：
 /// params 缺省 / null 时序列化与旧形态逐字节等价（加法兼容，旧调用方无感）；
 /// params 非空时以 JSON 对象形态追加在字段尾部；模板插值单遍替换、参数缺失占位符原样保留。
 /// </summary>

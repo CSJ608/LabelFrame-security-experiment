@@ -4,7 +4,7 @@
 // 预览缩略图（列表加载后按需拉取全部预览，会话内缓存随列表刷新失效；点击居中灯箱放大）。
 // 整体信息架构重构（用户定稿方案 A）——表格形态收敛为卡片网格（缩略图主视觉）
 //   自适应多列卡片，名称 / 分组 / 日期 / 操作收于卡片下部；既有能力全部保留。
-// （C-4，决议 1）：卡片操作区新增「打印」——经 onOpenPrint 跳「数据与打印」页并预选该模板
+// 卡片操作区新增「打印」——经 onOpenPrint 跳「数据与打印」页并预选该模板
 //   （字段草稿行为与手动选择一致）；双击卡片仍进设计器（现状不变）。
 // （修订）：卡片主操作 = 「编辑」（主色），「打印」降常驻普通按钮
 //   低频「导出 / 删除」收进 ⋯ 溢出菜单（锚定 Popover：portal + fixed 防 .wb-card overflow 裁剪）——
@@ -63,7 +63,7 @@ export function Workbench({
   onOpenPrint,
 }: {
   onOpenDesigner: (req: DesignerRequest) => void
-  /* * （C-4）：卡片「打印」直达——跳「数据与打印」页并预选该模板（预选写草稿由 App 侧统一完成）。 */
+  /* * ：卡片「打印」直达——跳「数据与打印」页并预选该模板（预选写草稿由 App 侧统一完成）。 */
   onOpenPrint: (name: string) => void
 }) {
   const app = useApp()
@@ -225,14 +225,14 @@ export function Workbench({
             ev.target.value = ''
           }}
         />
-        {/* data-guide：首次引导第 1 步锚点（迭代 119 / #276） */}
+        {/* data-guide：首次引导第 1 步锚点*/}
         <button className="btn primary" data-guide="workbench-new" onClick={() => onOpenDesigner({ kind: 'new' })}>
           <Icon name="plus" size={13} />
           {t('newTemplate')}
         </button>
       </div>
 
-      {/* 迭代 93（#151 F-17）：页头刷新按钮（与作业历史同款）+ 失败横幅旁重试入口——此前列表加载失败只能切页重试 */}
+      {/* 页头刷新按钮（与作业历史同款）+ 失败横幅旁重试入口——此前列表加载失败只能切页重试 */}
       {error && (
         <div className="banner error">
           {error}
@@ -311,7 +311,7 @@ export function Workbench({
         )}
       </div>
 
-      {/* 迭代 104（#225）：⋯ 溢出菜单（导出 / 删除）——portal 到 body + fixed 锚定，防 .wb-card overflow 裁剪；
+      {/* ⋯ 溢出菜单（导出 / 删除）——portal 到 body + fixed 锚定，防 .wb-card overflow 裁剪；
           「删除」为 danger 菜单项，点击仍走下方确认 Modal（决策 #161：销毁操作必须先确认） */}
       {menu && (
         <Popover anchor={menu.anchor} ariaLabel={t('card.moreAria', { name: menu.tpl.name })} onClose={() => setMenu(null)}>

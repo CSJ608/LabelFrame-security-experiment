@@ -11,7 +11,7 @@ export function elementsByIds(els: readonly DesignElement[], ids: readonly strin
 }
 
 /**
- * 容器锚定重算（· 自 CanvasViewport.containerHit 原样提取，语义逐行不变）：
+ * 容器锚定重算（自 CanvasViewport.containerHit 原样提取，语义逐行不变）：
  * 元素（可带补丁坐标）中心点落在某 Region 内 → 该 Region 的 containerId，未命中 → undefined；
  * 排除以该元素为容器的候选（元素不锚定进自己充当的容器；谓词 c.containerId !== e.id）。组件与单测共用，保证锚定算式被真实代码路径执行。
  */

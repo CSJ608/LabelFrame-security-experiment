@@ -28,7 +28,7 @@ public class PrintImageRetentionCleanerTests
 
             new PrintImageRetentionCleaner(root, retentionDays: 31, log).CleanupExpired();
 
-            // 超期作业目录连同内部 PNG 删除；当日作业保留（/）
+            // 超期作业目录连同内部 PNG 删除；当日作业保留
             Assert.False(Directory.Exists(expired));
             Assert.False(File.Exists(Path.Combine(expired, "label-1.png")));
             Assert.True(Directory.Exists(retained));

@@ -524,7 +524,7 @@ public sealed class EmbeddedHttpServer : IDisposable
         catch (Core.Transport.Plugins.Package.PluginPackageException ex)
         {
             // 业务性失败（非 zip / zip 损坏 / manifest 缺失或非法 / 平台不匹配 / 内置 id 冲突等）：消息已是中文可行动提示；
-            // detail 参数随 ErrorView 透出（/），供展示端按码翻译插值
+            // detail 参数随 ErrorView 透出，供展示端按码翻译插值
             return Json(400, new ErrorView(PluginErrorCodes.Invalid, ex.Message, null, new Dictionary<string, string> { ["detail"] = ex.Message }));
         }
         catch (Exception ex)
