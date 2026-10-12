@@ -1,10 +1,6 @@
 # 更新日志
 
-本文件面向使用者，记录每个版本**对用户有价值的变化**与**升级注意事项**；格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
-
-- 想知道版本变了什么、升级有没有风险 → 看下方版本段落（先读「升级注意」）；
-- 想回顾历史版本 → 看「0.x 历史版本速览」；
-- 想了解开发过程与实现细节 → 见[迭代过程档案](docs/archive/CHANGELOG-iterations.md)（完整逐迭代记录）与 [docs/ROADMAP.md](docs/ROADMAP.md)（迭代状态总览）。
+本项目所有重要变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
 ## [0.34.0] - 未发布
 
@@ -34,7 +30,7 @@
 
 ## 0.x 历史版本速览
 
-> v1.0 之前的历史版本以速览呈现（每版择要 3~5 条）；逐迭代完整过程记录见[迭代过程档案](docs/archive/CHANGELOG-iterations.md)。
+> v1.0 之前的历史版本速览；逐迭代完整过程记录见[迭代过程档案](docs/archive/CHANGELOG-iterations.md)。
 
 | 版本 | 日期 | 要点 |
 |---|---|---|
