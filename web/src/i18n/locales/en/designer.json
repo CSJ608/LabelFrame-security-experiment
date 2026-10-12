@@ -241,6 +241,7 @@
     "format": "unsupported image format (PNG / JPG / BMP only)",
     "tooLarge": "still exceeds the 2MB limit after automatic compression",
     "tooMany": "more than 10 images per template",
-    "totalTooLarge": "template images exceed the 10MB limit"
+    "totalTooLarge": "template images exceed the 10MB limit",
+    "pngAlphaTooLarge": "This PNG has transparency and stays over 2 MB after automatic compression — export it as JPG or reduce its dimensions, then retry"
   }
 }

@@ -241,6 +241,7 @@
     "format": "不支持的图片格式（仅 PNG / JPG / BMP）",
     "tooLarge": "已自动压缩，仍超过 2MB 上限",
     "tooMany": "图片数量超过 10 张上限",
-    "totalTooLarge": "图片总量超过 10MB 上限"
+    "totalTooLarge": "图片总量超过 10MB 上限",
+    "pngAlphaTooLarge": "PNG 图片过大且含透明通道，自动压缩后仍超 2MB——请导出为 JPG（无透明需求时）或缩小尺寸后重试"
   }
 }

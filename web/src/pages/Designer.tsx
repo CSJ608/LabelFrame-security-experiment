@@ -54,9 +54,10 @@ function fmtMb(bytes: number): string {
   return v >= 1 ? v.toFixed(1) : v.toFixed(2)
 }
 
-/** 文件名净化为资源 key（对齐后端 zip SanitizeKey 口径：字母数字与 . - _ 之外替换 _，空名兜底 image）。 */
-function sanitizeImageKey(fileName: string): string {
-  const safe = fileName.replace(/[^A-Za-z0-9._-]/g, '_')
+/** 文件名净化为资源 key（真对齐后端 zip SanitizeKey 口径：char.IsLetterOrDigit 为 Unicode 感知——中文文件名
+ *  保留（复陪验反馈 2-③：ASCII 白名单曾把「微信图片_….png」替成「______.png」）；\p{L}\p{N} 与 . - _ 之外替换 _）。 */
+export function sanitizeImageKey(fileName: string): string {
+  const safe = fileName.replace(/[^\p{L}\p{N}._-]/gu, '_')
   return safe.trim() === '' ? 'image' : safe
 }
 
@@ -441,9 +442,9 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       if (!s0 || !s0.elements.some((el) => el.id === targetId && el.type === 'Image')) return
 
       void (async () => {
-        const { blob, compressed } = await compressImageIfNeeded(file)
+        const { blob, compressed, pngAlphaKept } = await compressImageIfNeeded(file, IMAGE_MAX_BYTES)
         if (blob.size > IMAGE_MAX_BYTES) {
-          reject('imageReject.tooLarge')
+          reject(pngAlphaKept ? 'imageReject.pngAlphaTooLarge' : 'imageReject.tooLarge')
           return
         }
         const assets = imageAssetsRef.current
@@ -476,8 +477,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         imageAssetsRef.current = nextAssets
         setImageAssets(nextAssets)
         changeElement(targetId, { key })
-        // 成功提示（拍板 5-A）：压缩发生时以压缩轻提示为终态（原始→入库体积知情权），否则「已更新图片。」
-        app.setStatus(compressed ? t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }) : t('status.imageReplaced'))
+        // 成功提示（复陪验反馈 2-②，推翻方案 v2 拍板 5-A）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见），
+        // 原始→入库体积知情权；未压缩的常规更新仍走状态栏（画布变化本身可见）。
+        if (compressed) showImageToast(t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }))
+        else app.setStatus(t('status.imageReplaced'))
       })()
     },
     [app, changeElement, showImageToast, t],

@@ -15,7 +15,7 @@ import { AppProvider, useApp } from '../state/AppContext'
 // CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms；统一放宽到 8000ms（与 JobHistory /
 // DataPrint / Settings 同口径），单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
-import { Designer } from './Designer'
+import { Designer, sanitizeImageKey } from './Designer'
 
 const mocks = vi.hoisted(() => ({
   server: {
@@ -629,7 +629,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     await waitFor(() => expect(screen.queryByTestId('image-toast')).toBeNull(), { timeout: 8000 })
   })
 
-  it('AC-01④：>1MB 触发自动压缩——压缩后入库（状态栏压缩提示含前后体积），保存请求体 images 体积 <2MB', async () => {
+  it('AC-01④：>1MB 触发自动压缩——压缩后入库（压缩提示走 toast 含前后体积），保存请求体 images 体积 <2MB', async () => {
     stubCanvasEncode(new Uint8Array(300 * 1024)) // 压缩产物 300KB
     renderDesigner()
     await waitForNewReady()
@@ -639,7 +639,9 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     // 1.5MB JPEG：>1MB 阈值触发压缩管道（桩 canvas），压后 300KB 过 2MB 闸
     uploadImage('photo.jpg', new Uint8Array(Math.floor(1.5 * 1024 * 1024)), 'image/jpeg')
     await screen.findByText('图片资源：photo.jpg · 8×4 px', undefined, { timeout: 3000 })
-    expect(screen.getByTestId('status-msg').textContent).toContain('已自动压缩 1.5MB → 0.29MB')
+    // 复陪验反馈 2-②：压缩提示并入 toast（推翻方案 v2 拍板 5-A 的状态栏口径——用户实证看不见）
+    const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
+    expect(toast.textContent).toContain('已自动压缩 1.5MB → 0.29MB')
 
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
     fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
@@ -660,5 +662,24 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     uploadImage('anim.gif', new Uint8Array(8), 'image/gif')
     const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
     expect(toast.textContent).toContain('不支持的图片格式')
+  })
+
+  it('复陪验反馈 2-③：中文文件名保留为资源 key（Unicode 口径对齐后端，不再替换为下划线）', async () => {
+    renderDesigner()
+    await waitForNewReady()
+    await placeEmptyImagePlaceholder()
+    fireEvent.click(screen.getByRole('button', { name: '上传图片' }))
+
+    uploadImage('微信图片_20260401170145_16_2679.png', new Uint8Array(16))
+    await screen.findByText('图片资源：微信图片_20260401170145_16_2679.png · 8×4 px', undefined, { timeout: 3000 })
+  })
+})
+
+describe('sanitizeImageKey（文件名净化 · Unicode 口径，复陪验反馈 2-③）', () => {
+  it('中文保留；路径分隔符 / 空白等替换为 _；空名兜底 image', () => {
+    expect(sanitizeImageKey('微信图片_20260401170145_16_2679.png')).toBe('微信图片_20260401170145_16_2679.png')
+    expect(sanitizeImageKey('a/b' + String.fromCharCode(92) + 'c d.png')).toBe('a_b_c_d.png')
+    expect(sanitizeImageKey('logo (final).png')).toBe('logo__final_.png')
+    expect(sanitizeImageKey('')).toBe('image')
   })
 })

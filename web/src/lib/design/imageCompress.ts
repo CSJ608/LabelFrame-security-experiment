@@ -11,10 +11,26 @@ export const IMAGE_COMPRESS_MAX_EDGE_PX = 2000
 /** JPEG 重编码质量。 */
 export const IMAGE_COMPRESS_JPEG_QUALITY = 0.85
 
-/** 压缩结果：blob 为入库字节（未压缩时即原文件）；compressed 标记是否经过压缩管道。 */
+/** 压缩结果：blob 为入库字节（未压缩时即原文件）；compressed 标记是否经过压缩管道；
+ *  pngAlphaKept 标记「PNG 重编码后仍超 maxBytes 且含透明通道、未能转 JPEG 兜底」（调用方给针对性指引）。 */
 export interface ImageCompressResult {
   blob: Blob
   compressed: boolean
+  pngAlphaKept?: boolean
+}
+
+/** 画布是否含透明像元（PNG 超 maxBytes 时的 JPEG 兜底前提——JPEG 无透明通道，含透明的 PNG 不转格式）。
+ *  不可判定（getImageData 不可用，如 jsdom 桩环境）返回 null＝按含透明保守处理（不转格式）。 */
+function canvasHasAlpha(ctx: CanvasRenderingContext2D, width: number, height: number): boolean | null {
+  try {
+    const data = ctx.getImageData(0, 0, width, height).data
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 255) return true
+    }
+    return false
+  } catch {
+    return null
+  }
 }
 
 /** 降采样目标尺寸（纯函数）：长边 >maxEdge 时等比缩到长边 = maxEdge，否则保持原尺寸。 */
@@ -70,10 +86,12 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number)
 
 /**
  * 压缩入口：≤1MB 直通原文件；>1MB 走「解码 → 长边降采样 → 重编码」管道。
+ * PNG / BMP 的重编码目标为 PNG（无损格式压不动字节，陪验实证 2.9MB→2.24MB）——同格式产物仍超 maxBytes
+ * 且画布无透明通道时兜底转 JPEG q0.85（不透明 logo 类可压进限）；含透明通道则保持 PNG 由调用方拒收并给指引。
  * 压缩管道任一环不可用（解码 / canvas / toBlob）时回退原文件（compressed=false）——
  * 上传链的 2MB 拒收闸仍以最终 blob 字节判定，不会因压缩失败放行超限图。
  */
-export async function compressImageIfNeeded(file: File): Promise<ImageCompressResult> {
+export async function compressImageIfNeeded(file: File, maxBytes: number = Number.POSITIVE_INFINITY): Promise<ImageCompressResult> {
   if (file.size <= IMAGE_COMPRESS_THRESHOLD_BYTES) return { blob: file, compressed: false }
   try {
     const img = await loadImage(await readFileAsDataUrl(file))
@@ -86,6 +104,17 @@ export async function compressImageIfNeeded(file: File): Promise<ImageCompressRe
     ctx.drawImage(img, 0, 0, target.width, target.height)
     const mime = encodeTargetMime(file.type)
     const blob = await canvasToBlob(canvas, mime, mime === 'image/jpeg' ? IMAGE_COMPRESS_JPEG_QUALITY : undefined)
+    if (mime === 'image/png' && blob.size > maxBytes) {
+      const alpha = canvasHasAlpha(ctx, target.width, target.height)
+      if (alpha === false) {
+        // 无透明通道：转 JPEG 兜底（更小时才采用；JPEG 也压不动的罕见场景走通用超限口径）
+        const jpeg = await canvasToBlob(canvas, 'image/jpeg', IMAGE_COMPRESS_JPEG_QUALITY)
+        if (jpeg.size > 0 && jpeg.size < blob.size) return { blob: jpeg, compressed: true }
+        return { blob, compressed: true }
+      }
+      // 含透明通道（或不可判定）：保持 PNG，由调用方按 pngAlphaKept 给针对性指引
+      return { blob, compressed: true, pngAlphaKept: true }
+    }
     return { blob, compressed: true }
   } catch {
     return { blob: file, compressed: false }

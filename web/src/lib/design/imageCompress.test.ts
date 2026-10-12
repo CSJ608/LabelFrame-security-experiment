@@ -46,10 +46,23 @@ interface ToBlobCall {
   canvasHeight: number
 }
 
-/** 桩环境：全局 Image（固定像素尺寸异步 onload）＋ canvas getContext / toBlob（记录参数、回固定 Blob）。 */
-function stubCanvasPipeline(naturalWidth: number, naturalHeight: number, blobBytes = new Uint8Array([1, 2, 3])) {
+/** 桩环境：全局 Image（固定像素尺寸异步 onload）＋ canvas getContext / toBlob / getImageData（记录参数、回可配 Blob）。
+ *  opts.alpha 控制透明判定（true 含透明 / false 不透明 / 'throw' 不可判定）；opts.jpegBytes 控制 JPEG 兜底产物字节。 */
+function stubCanvasPipeline(
+  naturalWidth: number,
+  naturalHeight: number,
+  blobBytes: Uint8Array<ArrayBuffer> | ((mime: string) => Uint8Array<ArrayBuffer>) = new Uint8Array([1, 2, 3]),
+  opts: { alpha?: boolean | 'throw'; jpegBytes?: Uint8Array<ArrayBuffer> } = {},
+) {
   const calls: ToBlobCall[] = []
-  const ctx = { drawImage: () => {} }
+  const ctx = {
+    drawImage: () => {},
+    getImageData: () => {
+      if (opts.alpha === 'throw') throw new Error('getImageData unavailable')
+      // 单像元 alpha：含透明 128 / 不透明 255（管道只看 alpha 通道 <255）
+      return { data: opts.alpha ? new Uint8ClampedArray([0, 0, 0, 128]) : new Uint8ClampedArray([0, 0, 0, 255]) }
+    },
+  }
   class FakeImage {
     onload: (() => void) | null = null
     onerror: (() => void) | null = null
@@ -74,7 +87,8 @@ function stubCanvasPipeline(naturalWidth: number, naturalHeight: number, blobByt
     quality?: number,
   ) {
     calls.push({ mime: mime ?? '', quality, canvasWidth: this.width, canvasHeight: this.height })
-    callback(new Blob([blobBytes], { type: mime ?? 'application/octet-stream' }))
+    const bytes = typeof blobBytes === 'function' ? blobBytes(mime ?? '') : blobBytes
+    callback(new Blob([mime === 'image/jpeg' && opts.jpegBytes ? opts.jpegBytes : bytes], { type: mime ?? 'application/octet-stream' }))
     return undefined
   })
   return calls
@@ -162,5 +176,66 @@ describe('compressImageIfNeeded（压缩管道分支）', () => {
     const result = await compressImageIfNeeded(file)
     expect(result.blob).toBe(file)
     expect(result.compressed).toBe(false)
+  })
+
+  // ---------- PNG 超 maxBytes 的 alpha 感知兜底（复陪验反馈 2-①：LOGO_2 类大 PNG 压不进 2MB） ----------
+
+  it('PNG 重编码后仍超 maxBytes 且无透明：转 JPEG q0.85 兜底（采用更小的 JPEG 产物）', async () => {
+    const pngBytes = new Uint8Array(2.2 * 1024 * 1024) // 2.2MB：>2MB 上限
+    const jpegBytes = new Uint8Array(300 * 1024) // 兜底 JPEG 300KB
+    const calls = stubCanvasPipeline(2752, 1536, pngBytes, { alpha: false, jpegBytes })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'), 2 * 1024 * 1024)
+    expect(result.compressed).toBe(true)
+    expect(result.pngAlphaKept).toBeUndefined()
+    expect(result.blob.size).toBe(300 * 1024)
+    expect(result.blob.type).toBe('image/jpeg')
+    expect(calls).toHaveLength(2)
+    expect(calls[0].mime).toBe('image/png')
+    expect(calls[1].mime).toBe('image/jpeg')
+    expect(calls[1].quality).toBe(IMAGE_COMPRESS_JPEG_QUALITY)
+  })
+
+  it('PNG 重编码后仍超 maxBytes 且含透明：保持 PNG 并置 pngAlphaKept（调用方给针对性指引）', async () => {
+    const pngBytes = new Uint8Array(2.2 * 1024 * 1024)
+    const calls = stubCanvasPipeline(2752, 1536, pngBytes, { alpha: true, jpegBytes: new Uint8Array(1024) })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'), 2 * 1024 * 1024)
+    expect(result.compressed).toBe(true)
+    expect(result.pngAlphaKept).toBe(true)
+    expect(result.blob.type).toBe('image/png')
+    expect(calls).toHaveLength(1) // 含透明不转格式——仅 PNG 一次编码
+  })
+
+  it('PNG 超 maxBytes 但透明判定不可用（getImageData 异常）：按含透明保守处理（不转格式）', async () => {
+    const pngBytes = new Uint8Array(2.2 * 1024 * 1024)
+    const calls = stubCanvasPipeline(2752, 1536, pngBytes, { alpha: 'throw', jpegBytes: new Uint8Array(1024) })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'), 2 * 1024 * 1024)
+    expect(result.pngAlphaKept).toBe(true)
+    expect(calls).toHaveLength(1)
+  })
+
+  it('无透明但 JPEG 兜底产物不小于 PNG：仍用 PNG、不置 pngAlphaKept（走通用超限口径）', async () => {
+    const pngBytes = new Uint8Array(2.2 * 1024 * 1024)
+    stubCanvasPipeline(2752, 1536, pngBytes, { alpha: false, jpegBytes: new Uint8Array(2.3 * 1024 * 1024) })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'), 2 * 1024 * 1024)
+    expect(result.blob.type).toBe('image/png')
+    expect(result.pngAlphaKept).toBeUndefined()
+  })
+
+  it('PNG 重编码后 ≤ maxBytes：不走兜底（无第二次编码）', async () => {
+    const pngBytes = new Uint8Array(1.5 * 1024 * 1024)
+    const calls = stubCanvasPipeline(2752, 1536, pngBytes, { alpha: false, jpegBytes: new Uint8Array(1024) })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'), 2 * 1024 * 1024)
+    expect(result.blob.type).toBe('image/png')
+    expect(result.pngAlphaKept).toBeUndefined()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('未传 maxBytes（默认不限）：PNG 保持单次编码且不置 pngAlphaKept——既有调用方行为不变', async () => {
+    const pngBytes = new Uint8Array(2.2 * 1024 * 1024)
+    const calls = stubCanvasPipeline(2752, 1536, pngBytes, { alpha: false, jpegBytes: new Uint8Array(1024) })
+    const result = await compressImageIfNeeded(fileOf(2.86 * 1024 * 1024, 'image/png', 'logo.png'))
+    expect(result.blob.type).toBe('image/png')
+    expect(result.pngAlphaKept).toBeUndefined()
+    expect(calls).toHaveLength(1)
   })
 })
