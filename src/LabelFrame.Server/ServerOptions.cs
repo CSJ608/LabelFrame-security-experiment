@@ -74,7 +74,7 @@ public sealed class ServerOptions
     public int LogsDbMaxSizeMB { get; set; } = 256;
 
     /// <summary>产品版本（与打包脚本 -Version 保持一致）。</summary>
-    public const string ProductVersion = "0.33.0";
+    public const string ProductVersion = "0.34.0";
 
     /// <summary>客户端安装包目录（服务端统一分发客户端安装包；Windows %ProgramData%\\LabelFrame\\server\\client-packages；Linux /var/lib/labelframe/server/client-packages）。</summary>
     public static string DefaultClientPackagesPath => Path.Combine(DefaultDataDirectory, "client-packages");
