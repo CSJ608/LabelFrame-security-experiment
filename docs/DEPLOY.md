@@ -140,7 +140,26 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
      脚本会：建 `labelframe` 用户 → 解压 `/opt/labelframe/server` → 数据目录 `/var/lib/labelframe/server` → 安装并启动 systemd 服务（自启 + 崩溃重启）。
   3. 防火墙放行：`sudo ufw allow 53961/tcp`；Windows Client 设置页填 `http://<Ubuntu-IP>:53961`。
 
-## 6. 服务端管理界面（可选插件）
+## 6. 升级与迁移
+
+总原则：**模板、作业历史、日志与配置在各部署形态下都与程序分离存放，正常升级不清数据**；升级前建议对数据目录做一次备份（Windows：`%ProgramData%\LabelFrame`；Linux：`/var/lib/labelframe`）。各版本的变化与升级注意事项见[更新日志](../CHANGELOG.md)。
+
+| 形态 | 升级方法 | 数据与回滚 |
+|---|---|---|
+| Windows（引导程序 / MSI） | 本机已装 LabelFrame 时**重跑新版安装引导程序**即进入升级模式（列出可升级组件「现版本 → 新版本」，复用同一安装链覆盖升级）；或直接运行新版 MSI 覆盖安装——客户端升级会自动安全退出正在运行的程序再安装。客户端「检查更新」发现新版本时同样指向引导程序入口 | 数据在 `%ProgramData%\LabelFrame`（模板 / 作业 / 日志），`appsettings.json` 与用户配置在覆盖安装 / 卸载时均默认保留（卸载时可选清除，默认不清除）；回滚＝运行旧版本引导程序或 MSI 覆盖安装 |
+| Linux Docker（compose 分发） | 编辑 `.env` 把 `LABELFRAME_VERSION` 改为新版本（或 `latest`）→ `docker compose pull && docker compose up -d` | 数据在数据卷（默认 `labelframe-data`），重建容器不丢失；回滚＝改回旧版本号后重建 |
+| Ubuntu（systemd） | 幂等设计：**重跑 `sudo bash install-server-linux.sh`** 即覆盖升级（也可 `--manifest` 指定版本） | `/var/lib/labelframe` 数据与 `appsettings.json` 不动；回滚＝`--manifest` 指定旧版本重跑 |
+| Linux 离线部署包 | 新版离线包解压到**当初部署的同一目录**（`--strip-components=1`）后重跑 `bash install.sh`；**勿换目录升级**——数据卷名绑定部署目录名，换目录会新建空卷（模板 / 数据库不跟随） | 卷数据保留；旧版本镜像文件可删 `images/` 下旧 `.image.tar.gz` 释放磁盘；回滚＝旧版包同目录重跑 |
+| PDA（Android 宿主） | 服务端「下载中心」扫码或直接下载新版 APK 覆盖安装（GitHub Release 与下载中心分发的都是同一签名的 Release 构建） | 配置（服务器地址 / 打印机 / 设备名）保留；**换签名来源的 APK 须先卸载重装**——配置会被清空且设备号变化（Server 设备目录出现新条目），详见「自动化发布与签名」一节 |
+
+补充要点：
+
+- **升级顺序**：建议先升级服务端，再升级各打印客户端与 PDA；跨版本升级前先读[更新日志](../CHANGELOG.md)当版的「升级注意」。
+- **模板兼容**：新版本可继续打开既有模板；但**旧版本程序可能不认识新版本模板中的新元素**（如图片元素）——把模板回传给旧版本使用前请先确认。
+- **插件随行**：Zebra 官方传输插件随客户端 MSI 附带并在启动时自动安装 / 升级（见「分发通道」一节），升级客户端无需单独处理插件。
+- **服务端管理界面（可选插件）**：经安装引导程序安装的随升级自动处理；手动放置 `web-ui` 插件的，升级后用新版 `labelframe-server-webui-*.zip` 覆盖目录即可（放入即生效）。
+
+## 7. 服务端管理界面（可选插件）
 
 服务端默认无头（仅 `/healthz` + API）。需要管理界面时，把前端 server 构建产物（`web/dist-server`，或 Release 里的 `labelframe-server-webui-x.x.x.zip`）放进插件目录即可——**放入即生效、移除即无头，无需重启**：
 
@@ -149,7 +168,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 
 打包脚本：`scripts/package-server-webui.ps1`。管理界面与客户端界面是同一前端的两种构建（工作台 / 设计器 / 在线设备 / 作业历史 / 下载中心 / 插件管理），无打印机相关内容。
 
-## 7. 分发通道
+## 8. 分发通道
 
 ### 客户端安装包分发（服务端集中下载）
 
@@ -174,7 +193,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 - 内置传输插件：`log`（模拟打印）、`tcp9100`、`winspool`（Windows 驱动）。插件接口见 DESIGN「传输插件」相关决策记录。
 - **Zebra 品牌传输已外置为官方插件**：插件 id `labelframe-transport-zebra`，`.lfplugin` 包随 GitHub Release 发布（`labelframe-transport-zebra-<版本>.lfplugin`）并经客户端 MSI 附带（安装目录 `plugin-packages\`）；连接配置引用 Zebra 时插件未装则客户端启动自动从附带包安装（升级无断裂），也可在「插件管理」手动安装 / 升级（官方插件覆盖安装带版本比较：新版本覆盖、同版本幂等、降级需先卸载）。未安装该插件时 Zebra 品牌不可用（连接引用则回退默认连接并在 host.log 留痕）。
 
-## 8. 自动化发布与签名
+## 9. 自动化发布与签名
 
 - 发版两步：① 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 提交推送；② 例如 `git tag v0.22.2 && git push origin v0.22.2`。
 - CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release。
@@ -189,7 +208,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
   - **备份要求**：keystore 或密码丢失 = 无法再发同签名升级包（只能换签名，见下），务必在生成后立即离线备份并记录别名与两个密码；GitHub Secrets 可随时重写（keystore 文件还在即可恢复）。
   - **换签名影响**：换签名后已装设备**需先卸载旧版再安装**——卸载会清空配置（服务器地址 / 打印机 IP / 设备名称需重填）；且 Android 8+ 的设备号（ANDROID_ID）绑定签名密钥，**换签名后设备号会变**，Server 设备目录出现新条目（旧条目停留显示离线，可忽略）。PDA 安装 / 覆盖升级详见 [AndroidHost README](../src/LabelFrame.AndroidHost/README.md)。
 
-## 9. 配置与环境变量
+## 10. 配置与环境变量
 
 - 服务端监听 / 数据库路径 / 历史清理保留期（作业默认 30 天、日志默认 90 天）/ 日志大小上限（文本单文件默认 50MB、logs.db 按量闸默认 256MB）均可用 `LABELFRAME_SERVER_*` 环境变量覆盖（systemd 单元已设默认值）。
 - 服务端暂存作业过期：设备离线期间暂存的 Pending 作业默认 **12 小时**未投递即放弃（终态 Expired，作业历史可见、不重新投递，业务系统重打需用新 requestId 重发）；TTL 只对 Pending 计龄，作业被设备领取后不再计龄。配置 `Server.PendingJobTtlHours`（`LABELFRAME_SERVER_PENDING_TTL_HOURS`），设为 0 或负值 = 关闭过期（行为与现状一致）；过期扫描周期 `Server.ExpirationScanIntervalMinutes`（默认 5 分钟，`LABELFRAME_SERVER_EXPIRATION_SCAN_MINUTES`）。例：
@@ -223,7 +242,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
   Logging__LogLevel__LabelFrame.Server.ServerService=Warning   # 隐藏业务事件 INFO 行
   ```
 
-## 10. 辅助脚本
+## 11. 辅助脚本
 
 - `scripts\install-server-linux.sh`：Linux 服务端一键安装（manifest 校验 + systemd + 管理界面落位；在线 / 离线布局目录 / 指定版本，见「Ubuntu（systemd 裸机部署）」一节）。
 - `scripts\demo-winhost.ps1`：无打印机验证打印闭环（构建 → 启动 WinHost → 提交含中文作业 → 展示 ZPL）。
