@@ -4,10 +4,8 @@ using LabelFrame.Core.Layout;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 内置测试标签（60×40mm）：标题 + 时间 + 编码文本 + Code128 条码。
-/// 用于「测试打印」——走完整真实链路（校验 → 渲染 → ^GF → TCP 发送 → 终态），验证打印功能无误。
-/// </summary>
+/// <summary>内置测试标签（60×40mm）：标题 + 时间 + 编码文本 + Code128 条码，
+/// 「测试打印」走完整真实链路（校验 → 渲染 → ^GF → 发送 → 终态）验证打印功能。</summary>
 public static class TestLabelTemplate
 {
     /// <summary>测试契约。</summary>

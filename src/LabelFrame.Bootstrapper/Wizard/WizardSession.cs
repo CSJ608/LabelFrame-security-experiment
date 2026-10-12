@@ -7,12 +7,11 @@ using LabelFrame.Bootstrapper.Upgrade;
 
 namespace LabelFrame.Bootstrapper.Wizard;
 
-/// <summary>问卷会话（UI 无关的核心状态机，BA 页面复用）：manifest 来源 → 已加载清单 → 本机已装探测与升级评估 → 本机角色（基础 / 高级模式）/ 品牌多选 / 服务端地址 / 管理界面开关 → 组件集合。</summary>
+/// <summary>问卷会话（UI 无关的核心状态机，BA 页面复用）：manifest 来源 → 已加载清单 → 本机已装探测与升级评估 → 本机角色 / 品牌多选 / 服务端地址 / 管理界面开关 → 组件集合。</summary>
 /// <remarks>
-/// 问卷只读契约（Issue 、DESIGN ， 修订执行边界）：本类没有任何下载、写入或系统改动方法——
-/// 问卷阶段全程只读（清单获取 + 已装打印机名枚举 + 本机已装版本探测（MSI 注册表 / 落位目录 manifest / 运行时探测，均只读））
-/// 执行边界 = 确认页「安装」，实际下载 / 链装由 Burn 引擎在 BA 调用 <c>Engine.Apply</c> 后承担（BA 侧编排见
-/// <c>LabelFrameBootstrapperBa.ExecuteInstallAsync</c>）。
+/// 问卷只读契约（不变量）：本类不得出现任何下载、写入或系统改动方法——问卷阶段全程只读；
+/// 执行边界 = 确认页「安装」，实际下载 / 链装由 Burn 引擎在 BA 调用 <c>Engine.Apply</c> 后承担
+/// （编排见 <c>LabelFrameBootstrapperBa.ExecuteInstallAsync</c>）。
 /// </remarks>
 public sealed class WizardSession
 {
@@ -46,8 +45,8 @@ public sealed class WizardSession
     public string ManifestSource { get; set; } = StableChannelManifestUrl;
 
     /// <summary>
-    /// 隐式优先源目录（离线布局目录）：清单来源为<b>本地路径</b>时 = 其所在目录（Apply 期本地源解析优先）
-    /// URL 来源时为 null（纯 urls，行为与现状一致， 回归边界）。清单加载成功时更新。
+    /// 隐式优先源目录（离线布局目录）：清单来源为<b>本地路径</b>时 = 其所在目录（Apply 期本地源解析优先）；
+    /// URL 来源时为 null（纯 urls，在线安装行为不变——回归边界）。清单加载成功时更新。
     /// </summary>
     public string? LocalSourceDirectory { get; private set; }
 
@@ -60,13 +59,13 @@ public sealed class WizardSession
     /// <summary>本机已装组件快照（清单加载成功后探测）。</summary>
     public LocalInstallSnapshot? LocalInstall { get; private set; }
 
-    /// <summary>升级评估（清单加载成功后按 组件级口径计算；呈现由页面过滤——欢迎页全清单摘要 / 确认页按拓扑计划）。</summary>
+    /// <summary>升级评估（清单加载成功后计算；呈现由页面过滤——确认页按拓扑计划）。</summary>
     public UpgradeAssessment? Assessment { get; private set; }
 
     /// <summary>已选本机角色（问卷角色页；基础模式由就绪页默认置 <see cref="TopologyPreset.Client"/>）。</summary>
     public TopologyPreset? Preset { get; set; }
 
-    /// <summary>是否进入高级模式（就绪页「高级选项」显式入口，D3）：置位后问卷出现角色页与明细展开， 。</summary>
+    /// <summary>是否进入高级模式（就绪页「高级选项」显式入口）：置位后问卷出现角色页与明细展开。</summary>
     public bool AdvancedMode { get; set; }
 
     /// <summary>问卷采集的服务端地址原始输入（地址页；规范化与校验见 <see cref="ServerUrlInput.Normalize"/>，装后落位由 BA 承担）。</summary>
@@ -84,7 +83,7 @@ public sealed class WizardSession
     /// <summary>当前清单可选择的品牌（无 plugin-* 条目则为空，品牌页展示说明）。</summary>
     public IReadOnlyList<string> AvailableBrands => Manifest is null ? [] : TopologyResolver.AvailableBrands(Manifest);
 
-    /// <summary>加载并校验清单（本地路径 = 文件读取；URL = 单次只读 GET；起由就绪页自动触发）→ 探测本机已装与已配服务端地址 → 计算升级评估 → 按已装打印机名预选品牌。</summary>
+    /// <summary>加载并校验清单（本地路径 = 文件读取；URL = 单次只读 GET；进入就绪页自动触发）→ 探测本机已装与已配服务端地址 → 计算升级评估 → 按已装打印机名预选品牌。</summary>
     public async Task LoadManifestAsync(HttpClient? http = null, CancellationToken cancellationToken = default)
     {
         var effectiveHttp = http ?? _http;

@@ -5,12 +5,9 @@ namespace LabelFrame.Bootstrapper.Wizard;
 /// </summary>
 /// <typeparam name="TPage">向导分页类型（BA 侧为 <c>IWizardPage</c>）。</typeparam>
 /// <remarks>
-/// 原 WizardForm 以「增量」语义导航（<c>target = currentIndex + delta</c>）
-/// 构造期 <c>Navigate(0)</c> 意图「进入首页」，实际计算 <c>-1 + 0 = -1</c> 被越界守卫静默拒绝——首页从未装配、
-/// 索引停在 -1，向导带着空白内容区进入消息循环，点「下一步」即 <see cref="ArgumentOutOfRangeException"/>。
-/// 本类改用「绝对索引」语义收口装配入口（<see cref="TryNavigateTo"/>，0 = 首页），显式暴露装配状态
-/// （<see cref="IsStarted"/>）与未装配访问的防御性异常，导航行为全部可单测（BA 工程为 net48 WinForms，
-/// 状态机留在本库才能被 net10.0-windows 测试腿覆盖）。
+/// 防回归：必须用「绝对索引」语义——曾以「增量」语义导航（<c>currentIndex + delta</c>），构造期意图进入首页的
+/// <c>Navigate(0)</c> 计算 <c>-1 + 0 = -1</c> 被越界守卫静默拒绝，向导带着空白内容区与 -1 索引进消息循环、
+/// 点「下一步」即崩。状态机留在本库（而非 net48 BA 工程）才能被 net10.0-windows 测试腿覆盖。
 /// </remarks>
 public sealed class WizardNavigator<TPage> where TPage : class
 {

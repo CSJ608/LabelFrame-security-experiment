@@ -3,10 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace LabelFrame.Bootstrapper.Manifest;
 
-/// <summary>
-/// 最新版本指针（<c>latest.json</c>，随发版由 <c>generate-install-manifest.ps1</c> 生成——）：
-/// 内容 = 最新版本号 + 该版 manifest URL。引导程序用于「清单新鲜度」提示（不参与组件级比较，组件版本权威 = manifest）。
-/// </summary>
+/// <summary>最新版本指针（<c>latest.json</c>）：最新版本号 + 该版 manifest URL——仅用于「清单新鲜度」提示，不参与组件级比较（组件版本权威 = manifest）。</summary>
 public sealed record LatestPointer(string LabelframeVersion, string ManifestUrl)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -34,10 +31,7 @@ public sealed record LatestPointer(string LabelframeVersion, string ManifestUrl)
         }
     }
 
-    /// <summary>
-    /// 由清单来源推导 latest.json 地址（消费规则）：稳定通道 URL（GitHub latest 语义）→ 同通道 latest.json
-    /// 本地路径 → 同目录 latest.json（离线包内嵌场景）；特定版本 Release URL / 其他形态返回 null（不推导）。
-    /// </summary>
+    /// <summary>由清单来源推导 latest.json 地址（稳定通道 → 同通道；本地路径 → 同目录；特定版本 Release 等形态返回 null 不推导）。</summary>
     public static string? DeriveSource(string manifestSource)
     {
         const string ManifestFileName = "install-manifest.json";

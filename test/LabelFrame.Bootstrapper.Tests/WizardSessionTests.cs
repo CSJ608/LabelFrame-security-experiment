@@ -86,7 +86,7 @@ public sealed class WizardSessionTests
         var plan = session.BuildPlan();
 
         Assert.Equal(TopologyPreset.Client, plan.Preset);
-        // client 预设含 aspnetcore（二次，——WinHost 亦 Sdk.Web 隐式依赖）
+        // client 预设含 aspnetcore——WinHost 亦 Sdk.Web 隐式依赖
         Assert.Equal(
             new[] { "runtime-desktop", "runtime-aspnetcore", "runtime-webview2", "client-msi", "plugin-zebra" }.ToList(),
             plan.Components.Select(item => item.Component.Id).ToList());

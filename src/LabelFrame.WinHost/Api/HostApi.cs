@@ -19,8 +19,7 @@ internal static class HostApi
 {
     public static IEndpointRouteBuilder MapHostApi(this IEndpointRouteBuilder app, Action<string> hostInfo)
     {
-    // ---- 机器级配置（/api/host/config，前端读写 ServerUrl；仅回环可写）----
-    // GET 响应含只读 version（客户端产品版本 HostOptions.ProductVersion，——客户端「检查更新」比较口径；POST 忽略该字段）
+    // GET 响应含只读 version（客户端「检查更新」比较口径；POST 忽略该字段）
     app.MapGet("/api/host/config", (HostOptions options) =>
         Results.Ok(new Api.HostConfigDto(options.ServerUrl ?? string.Empty, options.DeviceId, options.DeviceName, LocalIpAddresses.EnumerateIpv4(), HostOptions.ProductVersion)));
 
@@ -45,20 +44,19 @@ internal static class HostApi
 
         store.SaveServerUrl(serverUrl);
         options.ServerUrl = serverUrl;
-        // 保存即生效：路由热切换——重建 poller / worker 注册到新服务端并清理旧连接
-        // 地址未变化时幂等无动作（不打断进行中的注册 / 长轮询）
+        // 保存即生效：路由热切换——地址未变化时幂等无动作（不打断进行中的注册 / 长轮询）
         await routing.ApplyServerUrlAsync(serverUrl, context.RequestAborted);
         hostInfo($"机器级配置已更新：ServerUrl={serverUrl}");
         return Results.Ok(new Api.HostConfigDto(serverUrl, options.DeviceId, options.DeviceName, LocalIpAddresses.EnumerateIpv4(), HostOptions.ProductVersion));
     });
-    // ---- 批次作业设置：GET/POST /api/host/print-settings；仅回环可写；保存即生效 ----
+    // 批次作业设置：仅回环可写、保存即生效
     app.MapGet("/api/host/print-settings", (PrintSettings printSettings) =>
         Api.PrintSettingsApi.Get(printSettings));
 
     app.MapPost("/api/host/print-settings", (HttpContext context, PrintSettingsDto? request, PrintSettingsStore store, PrintSettings printSettings) =>
         Api.PrintSettingsApi.Post(context.Connection.RemoteIpAddress, request, store, printSettings));
 
-    // ---- 本机服务关闭（Web UI 设置页「退出程序」用；与托盘菜单共用统一退出路径）----
+    // 本机服务关闭（与托盘菜单共用统一退出路径）
     app.MapPost("/api/host/shutdown", async (HttpContext context, HostExitCoordinator exit, LabelJobQueue queue, CancellationToken cancellationToken) =>
     {
         var remote = context.Connection.RemoteIpAddress;
@@ -67,14 +65,13 @@ internal static class HostApi
             return Results.StatusCode(StatusCodes.Status403Forbidden);
         }
 
-        // 队列锁内原子拒绝正在打印的退出请求，并停止新提交 / 领取，避免检查与开始打印之间的竞态。
+        // 队列锁内原子拒绝正在打印的退出请求，并停止新提交 / 领取，避免检查与开始打印之间的竞态
         if (!await queue.TryPrepareForShutdownAsync(cancellationToken))
         {
             return Results.Conflict(new ErrorView(JobErrorCodes.InvalidTransition, "当前有标签正在打印。请等待本张完成后重试升级。"));
         }
 
-        // 200ms 缓冲让本响应先送达客户端，再进入「优雅停止 + 限时兜底强退」序列——
-        // 与托盘菜单退出同一协调器（HostExitCoordinator），两条路径无强弱退差异
+        // 200ms 缓冲让本响应先送达客户端，再进入「优雅停止 + 限时兜底强退」序列
         _ = exit.RequestShutdownAsync("HTTP /api/host/shutdown（Web UI 设置页「退出程序」）", TimeSpan.FromMilliseconds(200));
         return Results.Ok(new { shuttingDown = true });
     });

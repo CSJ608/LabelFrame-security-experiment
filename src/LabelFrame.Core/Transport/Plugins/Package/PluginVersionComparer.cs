@@ -1,9 +1,8 @@
 namespace LabelFrame.Core.Transport.Plugins.Package;
 
 /// <summary>
-/// 插件版本比较（官方插件覆盖安装率先支持版本比较）。
-/// 比较语义：双方均可解析为 <see cref="Version"/> 时按其比较；否则按字符串 Ordinal 比较
-/// （与主版本演进约定配套——官方插件版本始终是主版本形态，解析失败仅出现在第三方异常版本号场景）。
+/// 插件版本比较（官方插件覆盖安装用）：双方均可解析为 <see cref="Version"/> 时按其比较；
+/// 否则按字符串 Ordinal 比较（官方插件版本始终是主版本形态，解析失败仅出现在第三方异常版本号场景）。
 /// </summary>
 public static class PluginVersionComparer
 {

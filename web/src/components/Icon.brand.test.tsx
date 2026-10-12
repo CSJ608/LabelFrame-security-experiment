@@ -2,7 +2,7 @@
 // 品牌 v02（client 分支）：导航 LabelLogo 换「剥离 / Peel & Feed」微型几何——
 // 24px 方形 viewBox、深青 #123B3C 标签体 + 珊瑚 #D96C4F 剥离角（母版 assets/brand/symbol-color-24.svg，
 // 固定填充不走 currentColor/--accent，--accent 测量蓝是界面语言非品牌标识）；
-// index.html favicon 外链最小集（拍板：favicon.svg + favicon.ico + apple-touch-icon.png，去 data URI）。
+// index.html favicon 外链最小集（favicon.svg + favicon.ico + apple-touch-icon.png，去 data URI）。
 
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'

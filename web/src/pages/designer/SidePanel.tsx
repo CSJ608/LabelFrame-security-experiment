@@ -1,8 +1,6 @@
-// 设计器左侧栏：控件栏（点击放置 / 拖入画布）+ 打印字段（只读推导）+ 图层
-// 文案 key 化（designer 域 side.*）；控件栏标签随界面语言。
-// 控件栏增第五入口「图片」。
-// 图片改两步式——与其他控件同模式（点击武装 pendingType /
-// 可拖入画布），先落空占位元素再上传填充（key 空＝未指定），不再走一步式文件上传入口。
+// 设计器左侧栏：控件栏（点击放置 / 拖入画布）+ 打印字段（只读推导）+ 图层。
+// 图片控件两步式——与其他控件同模式（点击武装 pendingType / 可拖入画布），
+// 先落空占位元素再上传填充（key 空＝未指定）。
 
 import { useTranslation } from 'react-i18next'
 import type { DesignElement } from '../../lib/design/types'
@@ -161,7 +159,6 @@ function PaletteIcon({ name }: { name: PaletteIconName }) {
     case 'rect':
       return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="7" width="16" height="10" rx="1" /></svg>
     case 'image':
-      // 山日图标（与原型图片占位形态呼应）
       return (
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3.5" y="5" width="17" height="14" rx="1.5" />

@@ -2,8 +2,8 @@
 // Designer 加载 effect 与 Workbench 的 serverMode 守卫对齐——
 // unknown 阶段（模式探测未完成）不以 localApi 误发模板详情请求；模式解析后按正确 base 正常加载。
 // 画布为 react-konva 重组件（jsdom 无 2d context），以桩替换——本文件只验证加载链路守卫，不测画布交互。
-// 补页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）与
-// 未保存离开保护三选路径（~03，dirty = 历史栈有已提交更改，决议 a）。
+// 页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）与
+// 未保存离开保护三选路径（dirty = 历史栈有已提交更改）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -45,7 +45,7 @@ vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 // 画布桩：本文件只验证加载链路（serverMode 守卫），konva 画布由专门交互测试与真机验收覆盖。
 // 两步式链路需经画布动作驱动——桩以探针按钮转接两类回调：canvas-place＝画布点击
 // 放置 pendingType（onAddElement）；canvas-upload-empty＝画布空占位单击（onRequestImageUpload，
-// 的画布侧入口）。真实 Konva 命中 / 点击归 ElementNode 结构级断言＋ 复陪验。
+// 的画布侧入口）。真实 Konva 命中 / 点击归 ElementNode 结构级断言与复陪验。
 vi.mock('./designer/CanvasViewport', () => ({
   CanvasViewport: (props: {
     state: { elements: Array<{ id: string; type: string; key?: string }> }
@@ -170,7 +170,7 @@ describe('serverMode 守卫对齐 Workbench（迭代 91 F-13）', () => {
   })
 })
 
-// ---------- ：页级保存链路 + 未保存离开保护（单机模式，biz = localApi） ----------
+// ---------- 页级保存链路 + 未保存离开保护（单机模式，biz = localApi） ----------
 
 /** 单机模式默认桩：服务端不可达 → serverMode=standalone；本机 API 就绪（沿用 DataPrint.test.tsx 范式）。 */
 function useStandaloneStubs() {
@@ -193,7 +193,7 @@ async function waitForEditLoaded() {
   await screen.findByDisplayValue('70', undefined, { timeout: 3000 })
 }
 
-/** 提交一步历史更改（改纸张宽）——决议 a：undoCount > 0 即 dirty。 */
+/** 提交一步历史更改（改纸张宽）——undoCount > 0 即 dirty。 */
 function makeDirty() {
   fireEvent.change(screen.getByDisplayValue('70'), { target: { value: '80' } })
   expect(screen.getByDisplayValue('80')).toBeTruthy()
@@ -376,7 +376,7 @@ describe('未保存离开保护三选（迭代 92 F-02，决议 a：dirty = 历�
   })
 })
 
-// ---------- ：深链自动开示例草稿——元素入初始基线并选中 ----------
+// ---------- 深链自动开示例草稿——元素入初始基线并选中 ----------
 
 describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
   useStandaloneStubs()
@@ -390,11 +390,11 @@ describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
 
     // 示例元素已选中（fill 预设 = 演示同款示例值：字段名 location）
     expect(screen.getByText('location')).toBeTruthy()
-    // 页内轮询命中 → 自动弹填充组文档点气泡； 联动——dialog 无障碍名保留、可见标题不渲染
+    // 页内轮询命中 → 自动弹填充组文档点气泡——dialog 无障碍名保留、可见标题不渲染
     const dialog = await screen.findByRole('dialog')
     expect(dialog.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
     expect(screen.queryByText('填充：固定值或字段填充')).toBeNull()
-    // draftOpened 终态提示（pending 一闪被覆盖—— 状态消息链口径）
+    // draftOpened 终态提示（pending 一闪被覆盖属预期）
     expect(screen.getByTestId('status-msg').textContent).toContain('帮助打开的是临时示例草稿')
     // 基线不 dirty：未编辑直接退出不弹三选（静默即弃）
     fireEvent.click(screen.getByTitle('返回工作台'))
@@ -425,7 +425,7 @@ describe('深链自动开示例草稿（#316 拍板 A·初始基线）', () => {
   })
 })
 
-// ---------- ：图片控件两步式上传链路（控件栏武装 → 画布空占位 → 上传填充 → 保存 → 重开往返） ----------
+// ---------- 图片控件两步式上传链路（控件栏武装 → 画布空占位 → 上传填充 → 保存 → 重开往返） ----------
 
 /** 最小 PNG 字节（魔数 + 最小结构，前端不做图片解码校验——尺寸解码经下方 Image 桩）。 */
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52])
@@ -545,7 +545,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     await waitForNewReady()
     await placeEmptyImagePlaceholder()
 
-    // 画布桩转接：空占位元素的单击回调（真实 Konva 命中归）
+    // 画布桩转接：空占位元素的单击回调（真实 Konva 命中归 ElementNode 结构级断言）
     fireEvent.click(screen.getByTestId('canvas-upload-empty'))
     uploadImage()
     await screen.findByText('图片资源：logo.png · 8×4 px', undefined, { timeout: 3000 })
@@ -639,7 +639,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     // 1.5MB JPEG：>1MB 阈值触发压缩管道（桩 canvas），压后 300KB 过 2MB 闸
     uploadImage('photo.jpg', new Uint8Array(Math.floor(1.5 * 1024 * 1024)), 'image/jpeg')
     await screen.findByText('图片资源：photo.jpg · 8×4 px', undefined, { timeout: 3000 })
-    // 复陪验反馈 2-：压缩提示并入 toast（推翻 的状态栏口径——用户实证看不见）
+    // 压缩提示并入 toast（状态栏轻提示用户实证看不见——踩过）
     const toast = await screen.findByTestId('image-toast', undefined, { timeout: 3000 })
     expect(toast.textContent).toContain('已自动压缩 1.5MB → 0.29MB')
 

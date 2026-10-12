@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>非 MSI 落位（机制 A，DESIGN）：覆盖解压 + .lfplugin 的 版本比较（覆盖 / 同版幂等 / 降级拒绝）。</summary>
+/// <summary>非 MSI 落位：覆盖解压 + .lfplugin 版本比较（覆盖 / 同版幂等 / 降级拒绝）。</summary>
 public sealed class PayloadPlacerTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"labelframe-placer-{Guid.NewGuid():N}");

@@ -21,7 +21,7 @@
     <ProjectReference Include="..\..\src\LabelFrame.Bootstrapper\LabelFrame.Bootstrapper.csproj" />
   </ItemGroup>
 
-  <!-- 本地样例安装清单（严格按 DESIGN §6.2 schema 构造；AC-01/AC-02 全矩阵与 AC-03 dry-run 断言的数据源） -->
+  <!-- 本地样例安装清单（严格按 DESIGN §6.2 schema 构造；解析全矩阵与只读契约断言的数据源） -->
   <ItemGroup>
     <None Include="Manifests\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>latest.json 指针（消费， / 生成契约）：解析与来源推导规则。</summary>
+/// <summary>latest.json 指针：解析与来源推导规则（生成契约见 generate-install-manifest.ps1）。</summary>
 public sealed class LatestPointerTests
 {
     [Fact]

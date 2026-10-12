@@ -52,7 +52,7 @@ public sealed class TransportConfig
     {
         "tcp9100" => TransportMode.Tcp,
         "winspool" => TransportMode.WindowsDriver,
-        // 官方插件 id 与旧内置时代别名都归入 Zebra（旧字段仅作展示兼容）
+        // 官方插件 id 与旧内置时代别名都归入 Zebra
         TransportPluginIdPolicy.ZebraPluginId or TransportPluginIdPolicy.LegacyZebraPluginId => TransportMode.Zebra,
         _ => TransportMode.Log,
     };

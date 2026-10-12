@@ -2,7 +2,7 @@
 // 锚定 Popover 组件行为回归——portal 到 body（脱离 overflow:hidden 祖先）
 // Esc / 点击菜单外区域关闭、菜单内点击不关闭；anchor 为 null 时不渲染。
 // 视觉裁剪（.wb-card overflow:hidden）以「菜单不在卡片内 + fixed 定位」结构断言自证（Workbench.test.tsx 同口径），
-// 浏览器实测留待 验收走查。
+// 浏览器实测留待验收走查。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'

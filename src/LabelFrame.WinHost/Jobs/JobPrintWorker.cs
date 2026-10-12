@@ -4,12 +4,7 @@ using LabelFrame.WinHost.Transport;
 
 namespace LabelFrame.WinHost.Jobs;
 
-/// <summary>
-/// 打印 Worker：串行领取作业中的下一张标签并通过传输发送；
-/// 发送失败记 Failed 并由队列决定挂起 / 结束。每台打印机一次只处理一张。
-/// 按「批次作业」设置节流——每发满 N 张后、下一张发送前暂停间隔（claim-then-delay），
-/// 本机作业与服务端作业统一生效；批次计数内存态、按作业重置（每个作业首张不等待批间间隔）、不持久化。
-/// </summary>
+/// <summary>打印 Worker：串行领取下一张标签经当前传输发送，按批次设置节流（发送前暂停）；计数内存态按作业重置、不持久化。</summary>
 public sealed class JobPrintWorker : BackgroundService
 {
     /// <summary>空转等待兜底周期：信号唤醒为主（作业入队即醒），超时兜底防信号遗漏（正常路径不触发）。</summary>
@@ -27,7 +22,7 @@ public sealed class JobPrintWorker : BackgroundService
     /// <summary>批次节流内存计数：当前作业内发送成功张数，切换作业时归零（作业首张不等待批间间隔）。</summary>
     private int _sendsSinceBatch;
 
-    /// <summary>最近一次发送所属作业：领取到不同作业时将批次计数归零（按作业重置，决议）。</summary>
+    /// <summary>最近一次发送所属作业：领取到不同作业时将批次计数归零（按作业重置）。</summary>
     private string? _lastSentJobId;
 
     /// <summary>创建打印 Worker。</summary>

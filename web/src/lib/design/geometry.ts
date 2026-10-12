@@ -57,7 +57,7 @@ export function commitDragPosition(nodeX: number, nodeY: number, preview: boolea
   return { x: r2(pos.x), y: r2(pos.y) }
 }
 
-/* * 多选拖动松手提交入参（返工 ——用户拍板「整体刚性」）。 */
+/* * 多选拖动松手提交入参（「整体刚性」语义）。 */
 export interface MultiDragRigidArgs {
   /** 主导（被拖）元素 id（须在 items 中，缺失时 Δ 按 0 处理＝不动提交）。 */
   leaderId: string
@@ -80,7 +80,7 @@ export interface MultiDragRigidResult {
 }
 
 /**
- * 多选拖动松手提交（返工 ，用户拍板「整体刚性」，复用 commitDragPosition 口径）：
+ * 多选拖动松手提交（整体刚性，复用 commitDragPosition 口径）：
  * Δ = 主导终态 − 主导初始（dragStart 快照基准的总位移口径，对 dragend「保持末次 dragmove 位置」与
  * 「被指针覆盖」两种时序均自洽）；补丁 = 各元素 commitDragPosition(初始节点坐标 + Δ)——组内任意两
  * 元素模型坐标差与拖前逐对相等（同 Δ 刚性，两位舍入残差 ≤0.01mm）。CanvasViewport.handleDragEnd

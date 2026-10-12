@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- 迭代 110（#244，决策 #164 ⑤）：PDA 宿主 Android 资源体系。values/ 缺省 = 中文（待决议-1 建议项：
-       目标用户主场景，缺省兜底中文比 en 安全），values-en/ 为英文；语言跟随系统切换。
-       zh 文案与资源化前的硬编码字面量逐条等价（AC-02）；带参模板用 {0} 位置占位（string.Format，InvariantCulture）。 -->
+  <!-- PDA 宿主资源体系：values/ 缺省 = 中文（目标用户主场景，缺省兜底中文比 en 安全），
+       values-en/ 为英文，语言跟随系统，其余 locale 回退缺省中文；
+       带参模板用 {0} 位置占位（string.Format，InvariantCulture）。 -->
 
   <!-- 语言哨兵：当前生效资源语言（values = zh / values-en = en），错误码翻译据此选道，不直接解析 Configuration -->
   <string name="current_language">zh</string>
@@ -153,7 +153,7 @@
   <string name="apply_saved_toast">设置已保存，打印服务已重启</string>
   <string name="run_error_toast">出错了，请再试一次</string>
 
-  <!-- 常驻通知（标题用 app_name；渠道名不双语化——Android 渠道创建后不可改名，维持中文，决策 #164 ⑤） -->
+  <!-- 常驻通知（标题用 app_name；渠道名不双语化——Android 渠道创建后不可改名，维持中文） -->
   <string name="notify_server_unset">服务器：未设置</string>
   <string name="notify_server_error">服务器：连不上（自动重试中）</string>
   <string name="notify_server_ok">服务器：已连接</string>

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>品牌预选（Issue ：仅 Zebra——ZDesigner 驱动名 → zebra 预勾选；其余品牌从零勾选）。</summary>
+/// <summary>品牌预选（仅 Zebra——ZDesigner 驱动名 → zebra 预勾选；其余品牌从零勾选）。</summary>
 public sealed class BrandDetectionTests
 {
     [Fact]
@@ -29,7 +29,7 @@ public sealed class BrandDetectionTests
     [Fact]
     public void Detect_preselected_brands_without_manifest_entry_should_select_nothing()
     {
-        // 边界：预选只对「清单已有条目」的品牌生效（映射语义 7/8 完整化）
+        // 边界：预选只对「清单已有条目」的品牌生效
         var brands = PrinterBrandDetector.DetectPreselectedBrands(
             ["ZDesigner ZD421-203dpi ZPL"],
             []);

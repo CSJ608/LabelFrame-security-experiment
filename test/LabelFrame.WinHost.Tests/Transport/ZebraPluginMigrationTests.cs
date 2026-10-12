@@ -5,7 +5,7 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// 存量升级兼容：已用 zebra 配置 + 外置插件未装 → 自动安装随客户端附带的官方插件包
+/// 存量升级兼容：已用 zebra 配置 + 外置插件未装 → 自动安装随客户端附带的官方插件包；
 /// 无配置 / 已装 / 无附带包 / 附带包损坏等边界行为。
 /// </summary>
 public class ZebraPluginMigrationTests

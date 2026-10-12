@@ -1,10 +1,6 @@
-// fetch 封装（F1：双 base）：
-// - serverApi：服务端地址（机器级配置 > localStorage 兜底 > 默认 127.0.0.1:53961）——模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz；
-// （a 案）：client 构建下机器级配置 serverUrl 为空 = 未配置服务端——AppContext 不探测（connected 恒 false
-//   单机降级 localApi），serverApi 不以空串 base 冒充同源服务端探测 / 拉数据；server 构建同源相对路径语义不变；
-// - localApi：页面来源（托管本页的 LabelFrame Client，127.0.0.1:53960）——transport / printer / host/config 本机接口；
-//   业务 API 同时保留（单机降级：Server 不可达时模板 / 作业 / 日志走本机 WinHost 全套 API）。
-// 错误消息区分「服务端」与「本机客户端」。
+// fetch 封装（双 base）：serverApi = 服务端地址（机器级配置 > localStorage 兜底 > 默认 127.0.0.1:53961），
+// localApi = 页面来源（托管本页的 LabelFrame Client）。业务 API 双端共有（单机降级：Server 不可达时
+// 模板 / 作业 / 日志走本机 WinHost 全套 API）；错误消息区分「服务端」与「本机客户端」。
 
 import type {
   ApiErrorBody,
@@ -39,9 +35,9 @@ import i18next from '../../i18n'
 
 // ── base 解析 ──
 
-// （K1）：server 构建下 serverApi base 固定同源相对路径（''，不读 localStorage / 机器级配置）——
-// Server UI 由服务端托管，同源即可访问 API；局域网其他机器访问 http://<服务端 IP>:53961 时避免回环地址
-// 错连到访问者本机、或 localStorage 残留旧值错连到客户端 WinHost。client 构建保持现状。
+// server 构建下 serverApi base 固定同源相对路径（''，不读 localStorage / 机器级配置）——
+// Server UI 由服务端托管，同源即可访问 API；局域网其他机器访问时避免残留值错连到访问者本机
+// 或客户端 WinHost。client 构建读配置值。
 let serverBaseUrl = UI_MODE === 'server' ? '' : getBaseUrl()
 
 /** 更新服务端地址（AppContext 机器级配置加载 / 保存后调用，模块级即时生效；server 构建下不调用）。 */
@@ -62,7 +58,7 @@ export function getLocalBaseUrl(): string {
   return DEFAULT_LOCAL_BASE_URL
 }
 
-// ── 请求超时（a 案决议）──
+// ── 请求超时 ──
 
 /** 超时分档：normal = 普通请求（列表 / 保存 / 提交等）；heavy = 出图 / 导入导出 / 安装包等大负载端点放宽档。
  *  导出为可变对象：单测注入秒级短超时验证超时分支（不真实等待 30s / 120s）。 */
@@ -101,8 +97,7 @@ function transportError(t: ReturnType<typeof createRequestTimeout>, timeoutMs: n
 
 function makeRequest(base: () => string, label: '服务端' | '本机客户端') {
   return async function request<T>(path: string, init?: RequestInit, timeoutMs = requestTimeouts.normal): Promise<T> {
-    // 默认 30s 超时——后端挂起（接了不回）不再无限「处理中…」
-    // 出图 / 上传类大负载端点在调用处传 requestTimeouts.heavy（120s 放宽档）。
+    // 默认 30s 超时（后端挂起不再无限「处理中…」）；出图 / 上传类大负载端点在调用处传 heavy 档（120s）
     const timeout = createRequestTimeout(timeoutMs)
     try {
       let res: Response
@@ -201,7 +196,6 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
         throw transportError(timeout, timeoutMs, base, label)
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
-      // 优先 filename*（RFC 5987）还原中文，回退链 filename= → fallbackName
       const filename = parseDispositionFilename(disposition) ?? fallbackName
       return { blob, filename }
     } finally {
@@ -236,7 +230,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
         body: JSON.stringify(pkg),
       }),
     deleteTemplate: (name: string) => request<void>(`/api/templates/${encodeURIComponent(name)}`, { method: 'DELETE' }),
-    /* * ：改走 makeFetchBlob 同构——失败解析后端 ErrorView 呈现真实原因（不再固定 EXPORT_FAILED
+    /* * 模板导出改走 makeFetchBlob 同构——失败解析后端 ErrorView 呈现真实原因（不再固定 EXPORT_FAILED
      *  吞掉后端信息），Content-Disposition 解析收敛到 fetchBlob 一处；模板导出为大负载端点，挂 heavy 档超时。 */
     exportTemplate: (name: string): Promise<{ blob: Blob; filename: string }> =>
       fetchBlob(
@@ -282,7 +276,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
     retryJobItem: (jobId: string, index: number) =>
       request<JobView>(`/api/jobs/${encodeURIComponent(jobId)}/items/${index}/retry`, { method: 'POST' }),
 
-    /* * 作业历史（F6 / B10）：默认 100、上限 500，倒序；：可选 deviceId 过滤（客户端 UI 传本机 ID 只看自己）。 */
+    /* * 作业历史：默认 100、上限 500，倒序；可选 deviceId 过滤（客户端 UI 传本机 ID 只看自己）。 */
     getJobs: (limit = 100, deviceId?: string) => {
       const params = new URLSearchParams({ limit: String(limit) })
       if (deviceId) params.set('deviceId', deviceId)
@@ -333,7 +327,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
 const serverRequest = makeRequest(getServerBaseUrl, '服务端')
 const serverFetchBlob = makeFetchBlob(getServerBaseUrl, '服务端')
 
-/* * 服务端 API（模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz → 服务端地址；：+ 客户端安装包；：+ 插件包）。 */
+/* * 服务端 API（模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz → 服务端地址；+ 客户端 / PDA 安装包与插件包分发）。 */
 export const serverApi = {
   ...makeBusinessApi(getServerBaseUrl, '服务端'),
 
@@ -398,7 +392,7 @@ const localRequest = makeRequest(getLocalBaseUrl, '本机客户端')
 export const localApi = {
   ...makeBusinessApi(getLocalBaseUrl, '本机客户端'),
 
-  // ── 连接管理（恢复，F3）──
+  // ── 连接管理 ──
   getTransport: () => localRequest<TransportConfig>('/api/transport'),
   setTransport: (req: TransportApplyRequest) =>
     localRequest<TransportResult>('/api/transport', {
@@ -413,11 +407,11 @@ export const localApi = {
       body: JSON.stringify({ ...req, testOnly: true }),
     }),
 
-  // ── 打印机（恢复，F4）──
+  // ── 打印机 ──
   getPrinterStatus: () => localRequest<PrinterStatus>('/api/printer/status'),
   testPrinter: () => localRequest<PrinterTestResult>('/api/printer/test', { method: 'POST' }),
 
-  // ── 机器级配置（F2 / B6）──
+  // ── 机器级配置 ──
   getHostConfig: () => localRequest<HostConfig>('/api/host/config'),
   setHostConfig: (cfg: HostConfig) =>
     localRequest<void>('/api/host/config', {
@@ -426,7 +420,7 @@ export const localApi = {
       body: JSON.stringify(cfg),
     }),
 
-  // ── 批次作业设置（仅 WinHost 实现；GET Normalize 兜底、POST 校验 400 + 仅回环，保存即生效；旧 WinHost 404）──
+  // ── 批次作业设置（仅 WinHost 实现；GET Normalize 兜底、POST 校验 400、保存即生效；旧 WinHost 404）──
   getPrintSettings: () => localRequest<PrintSettings>('/api/host/print-settings'),
   setPrintSettings: (s: PrintSettings) =>
     localRequest<void>('/api/host/print-settings', {
@@ -435,7 +429,7 @@ export const localApi = {
       body: JSON.stringify(s),
     }),
 
-  // ── 客户端插件安装 / 卸载（/：仅 WinHost 实现；失败 400 ErrorView；旧 WinHost 404）──
+  // ── 客户端插件安装 / 卸载（仅 WinHost 实现；失败 400 ErrorView；旧 WinHost 404）──
   listInstalledPlugins: () => localRequest<InstalledPluginInfo[]>('/api/plugins/installed'),
   /** 安装插件包（multipart；file 保留原始文件名——服务端下载后 `new File([blob], fileName)` 传入）。 */
   installPlugin: (file: File) => {
@@ -452,7 +446,7 @@ export const localApi = {
 }
 
 /** 探测任意地址的 /healthz（设置页「测试连接」用输入值探测，不保存；5s 超时防挂起）。
- * （a 案）：空地址不发起网络探测直接判失败——空串 base 落同源会打到本机 WinHost /healthz 200
+ * 空地址不发起网络探测直接判失败——空串 base 落同源会打到本机 WinHost /healthz 200
  *  谎报「该地址可访问服务端」；未配置服务端地址的终态判定在 AppContext（空地址 = 未连接单机模式，不探测）。 */
 export async function probeHealthz(url: string): Promise<boolean> {
   const cleaned = url.trim().replace(/\/+$/, '')

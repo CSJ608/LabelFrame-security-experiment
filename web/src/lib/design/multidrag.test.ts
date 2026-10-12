@@ -1,4 +1,4 @@
-// 多选拖动机制锚定与旧口径证伪（返工 ——松手段纯提交＋主导权防御）：
+// 多选拖动机制锚定与旧口径证伪（松手段纯提交＋主导权防御）：
 // 多选组合视为一个整体——吸附单位 = 整组联合包围盒（边缘 / 中心与画布 / 内容区 / 未选中元素参考线
 // 对齐，网格兜底按联合盒左上角贴 1mm 网格），组内元素全部退出吸附（既不作被拖盒也不作候选），
 // 拖动 / 吸附位移以同一平移量刚性施加于整组。v3 语义（真实浏览器插桩定位后的修复口径）：
@@ -227,10 +227,8 @@ function snapNodeV1(s: DragState, g: Konva.Node): { dx: number; dy: number } {
   return { dx: snap.dx, dy: snap.dy }
 }
 
-/* * v1 链序复刻（「主导盒吸附 + 逐步差分」）走同一指针步序，返回 v1 主导松手落点（逻辑 px）：
- *  v1 主导补丁 = commitDragPosition(主导末次吸附后坐标)——落点由主导盒吸附决定（本证伪的目标）；
- *  逐步差分对跟随的累积 = 主导末次吸附后位置 − 初始（理想事件流下与 v2 同构，用户实测分离症状
- * 在 headless 复刻不可复现—— 风险第 1 条如实记录，落点分歧是可执行锚定点）。 */
+/* * v1 链序复刻（「主导盒吸附 + 逐步差分」）走同一指针步序，返回 v1 主导松手落点（逻辑 px，证伪锚定）：
+ * v1 主导补丁 = commitDragPosition(主导末次吸附后坐标)——落点由主导盒吸附决定；逐步差分累积在 headless 不可复现（如实记录），落点分歧是可执行锚定点。 */
 function runV1Landing(elements: DesignElement[], selected: string[], leaderId: string, steps: Array<[number, number]>): number {
   const s = setup(elements, selected, leaderId)
   const g = s.nodes.get(leaderId)!
@@ -600,6 +598,6 @@ describe('AC-02（v3）三场景机制复刻（与 web/scripts/repro-324.mjs 浏
 // Designer.test.tsx 桩化先例）：由代码结构保证——v3 多选路径仍是单一 onUpdateElements + 单一
 // onCommit（Designer.tsx applyElements/commitNow 既有链路不动），假拖动 dragend 被吞不产生第二
 // 步提交；history.test.ts 既有用例随全量回归 + 浏览器走查 / 陪验实测 Ctrl+Z 整组回退与单选零回归
-// （/ 先例：覆盖空档如实记录）。
-// 已知边界（评审建议 2 留观察，本轮维持不动）：多选整组含 Region 且组位移使元素中心跨过该
-// Region 拖前盒边界时 regionId 可能误删 / 误设——本文件 场景 Region 均不在同组，不覆盖。
+// （覆盖空档如实记录）。
+// 已知边界（留观察，维持不动）：多选整组含 Region 且组位移使元素中心跨过该
+// Region 拖前盒边界时 regionId 可能误删 / 误设——本文件场景 Region 均不在同组，不覆盖。

@@ -4,13 +4,8 @@ using Android.Util;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 全局崩溃捕获：Java 层默认未捕获异常处理器 + .NET <see cref="AppDomain"/>.UnhandledException。
-/// 崩溃完整堆栈经 <see cref="HostLog"/> 写 logcat（Error）与本地滚动日志；
-/// 另落一份崩溃摘要到应用私有目录（<c>{FilesDir}/crash/crash-yyyyMMdd-HHmmss.txt</c>，保留最近数份），
-/// 下次启动可读（服务启动时若检测到上一次运行的摘要会记录 Warn 提示取证）。
-/// 摘要不回传服务端（回传管道见 DESIGN「风险与未决问题」）。
-/// </summary>
+/// <summary>全局崩溃捕获：.NET AppDomain.UnhandledException + Java 层默认未捕获异常处理器，
+/// 堆栈入 HostLog；崩溃摘要落应用私有目录（{FilesDir}/crash/，保留最近 3 份）供下次启动取证。</summary>
 public static class CrashGuard
 {
     /// <summary>崩溃摘要目录内保留的文件数上限。</summary>
@@ -19,10 +14,8 @@ public static class CrashGuard
     private static int _registered;
     private static int _summaryWritten;
 
-    /// <summary>
-    /// 注册崩溃处理器（幂等，进程内只生效一次）。
-    /// 注册时机越早越好：应用进程创建首行（<see cref="HostApplication"/>）+ 服务 OnCreate 首行兜底。
-    /// </summary>
+    /// <summary>注册崩溃处理器（幂等，进程内只生效一次）。注册时机越早越好：
+    /// 应用进程创建首行 + 服务 OnCreate 首行兜底——晚于此的早期失败不在捕获窗口内。</summary>
     public static void Register()
     {
         if (Interlocked.Exchange(ref _registered, 1) == 1)
@@ -37,7 +30,6 @@ public static class CrashGuard
             WriteSummary("dotnet", detail);
         };
 
-        // Java 层兜底：托管异常最终也会以 Java 异常形态到达这里；此时此前已写过摘要则只补 logcat
         Java.Lang.Thread.DefaultUncaughtExceptionHandler =
             new UncaughtHandler(Java.Lang.Thread.DefaultUncaughtExceptionHandler);
     }
@@ -59,7 +51,8 @@ public static class CrashGuard
         }
     }
 
-    /// <summary>写崩溃摘要文件（单份：托管 / Java 双通道只落第一次；失败静默，只剩 logcat + 滚动日志）。</summary>
+    /// <summary>写崩溃摘要文件（单份：托管 / Java 双通道只落第一次——托管异常最终也会以 Java 形态到达；
+    /// 失败静默，只剩 logcat + 滚动日志）。</summary>
     private static void WriteSummary(string source, string stack)
     {
         if (Interlocked.Exchange(ref _summaryWritten, 1) == 1)
@@ -108,7 +101,7 @@ public static class CrashGuard
             }
             catch
             {
-                // 单个删除失败不影响本次崩溃记录
+                // 删除失败不影响本次崩溃记录
             }
         }
     }
@@ -135,7 +128,7 @@ public static class CrashGuard
             try
             {
                 var stack = throwable is null ? "（无异常对象）" : Log.GetStackTraceString(throwable);
-                // 线程名缺省时退回 Thread.toString()（含线程 id；Java.Lang.Thread.Id 属性低版本不可用）
+                // 线程名缺省时退回 Thread.toString()：Java.Lang.Thread.Id 属性低版本不可用
                 var where = thread is null ? "未知线程" : thread.Name ?? thread.ToString();
                 HostLog.Error(HostLog.Tags.Crash, $"Java 未捕获异常（{where}），进程即将终止。", stack);
                 WriteSummary("java", stack);

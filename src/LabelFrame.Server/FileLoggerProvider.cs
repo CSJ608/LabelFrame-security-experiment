@@ -3,15 +3,9 @@
 namespace LabelFrame.Server;
 
 /// <summary>
-/// 极简文件日志（增量见）：按日轮转 + 单文件大小上限轮转的 UTF-8 文本文件 + 超期清理
-/// 供 Linux 部署把日志目录挂载到宿主机直接查看。`LABELFRAME_SERVER_LOG_FILE` 为基准路径，
-/// 实际写入 <名>-&lt;yyyyMMdd&gt;.log（与客户端 app-*.log 口径一致）；单文件超过大小上限时切当日序号文件
-/// （<名>-yyyyMMdd.1.log → .2.log …，跨天自然回到新日期基名），大小轮转同样触发按个数清理——
-/// 文本层总占用上界 = 个数上限 × 单文件上限（默认 31 × 50MB ≈ 1.55GB）。
-/// 启动防护：路径无效（目录不存在且不可创建 / 磁盘不可用）时构造**不抛异常**——
-/// <see cref="FileChannelEnabled"/> 为 false，由调用方输出中文告警后跳过文件通道，宿主正常启动；
-/// 运行中防护：轮转开新文件失败继续写旧文件（下次写入再试），实际写入失败自我禁用并告警一次，
-/// <see cref="ILogger.Log{TState}"/> 永不抛出（不打断请求路径）。
+/// 极简文件日志：按日 + 单文件大小上限轮转 + 按个数清理（LABELFRAME_SERVER_LOG_FILE 为基准路径，
+/// 写入 <名>-yyyyMMdd[.N].log）。永不抛出：构造失败置 <see cref="FileChannelEnabled"/>=false 由调用方告警降级、
+/// 轮转失败退回旧文件继续写、真实写入失败自我禁用并告警一次（<see cref="ILogger.Log{TState}"/> 不打断请求路径）。
 /// </summary>
 public sealed class FileLoggerProvider : ILoggerProvider
 {
@@ -39,9 +33,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
 
     /// <summary>创建文件日志提供器。</summary>
     /// <param name="path">日志基准路径（如 .../server.log；实际写入 server-yyyyMMdd.log）。</param>
-    /// <param name="retainedFileCountLimit">文件个数保留上限（默认 31；0 或负值 = 不清理）。按日单文件时代即「保留天数」；
-    /// 大小上限启用后单日可产生多个序号文件，实际语义为「文件个数上限」（既有部署无感）。</param>
-    /// <param name="maxFileSizeBytes">单文件大小上限（字节；默认 50MB，；0 或负值 = 不限制大小轮转）。</param>
+    /// <param name="retainedFileCountLimit">文件个数保留上限（默认 31；0 或负 = 不清理）。大小轮转启用后单日可产生多个序号文件，实际语义为「文件个数上限」。</param>
+    /// <param name="maxFileSizeBytes">单文件大小上限（字节；默认 50MB；0 或负 = 不限制大小轮转）。</param>
     public FileLoggerProvider(string path, int retainedFileCountLimit = 31, long maxFileSizeBytes = DefaultMaxFileSizeBytes)
     {
         _basePath = path;
@@ -139,9 +132,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
         }
     }
 
-    /// <summary>按日 + 按大小轮转：跨天回新日期基名（序号归零），单文件超上限切当日下一个序号文件；
-    /// 任一轮转开新文件失败不抛出（退回旧文件继续写，下次写入再试—— 防护语义， 保持）。
-    /// 大小轮转分支同样触发清理（单日多次轮转后文件总数不超上限）。</summary>
+    /// <summary>按日 + 按大小轮转：跨天回新日期基名（序号归零），单文件超上限切当日下一序号文件；开新文件失败不抛出（退回旧文件继续写，下次再试）；大小轮转同样触发清理。</summary>
     private void TryRotate()
     {
         var today = Today();
@@ -181,10 +172,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
         CleanupOverRetained();
     }
 
-    /// <summary>清理超期文件：匹配 <名>-yyyyMMdd[.N]<扩展名>（日期部分前 8 字符可解析 yyyyMMdd）者，
-    /// 按（日期, 序号〔基名=0〕）元组序删最旧，保留最近 limit 个（含写入中文件）。
-    /// 旧实现按文件名 Ordinal 串序排序存在两处错序：`.10` 排在 `.2` 之前、基名文件（最旧）排在全部序号文件之后，
-    /// 极端压力下会选中写入中文件去删（Windows 打开句柄 File.Delete 抛 IOException 中止整轮清理）—— 修正。</summary>
+    /// <summary>清理超期文件：匹配 <名>-yyyyMMdd[.N]<扩展名> 者，按（日期, 序号〔基名=0〕）元组序删最旧、保留最近 limit 个（含写入中文件）。
+    /// 不可改用文件名 Ordinal 串序——`.10` 会排在 `.2` 之前、基名文件（最旧）排在全部序号文件之后，极端压力下选中写入中文件去删，Windows 打开句柄 File.Delete 抛 IOException 中止整轮清理。</summary>
     private void CleanupOverRetained()
     {
         if (_retainedFileCountLimit <= 0)
@@ -244,7 +233,6 @@ public sealed class FileLoggerProvider : ILoggerProvider
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
                     // 单个文件被占用 / 权限不足（Windows 只读属性、ACL 拒绝）跳过，继续删其余
-                    // （写入中文件按元组序总在队尾不会被选中）—— 留观项
                 }
             }
         }

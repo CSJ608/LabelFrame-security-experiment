@@ -1,20 +1,16 @@
-// 帮助体系 V3 纯数据：分界面文章的主题小节清单 +
-// 文档点锚点 + 深链辅助。文案词条唯一来源是「✅ 文案定稿」写入的 help 域语言包
-// （help.article.<page>.intro / help.topic.<page>.<id>），文章视图与「?」文档点气泡
-// 共用同一词条（单源双视图，防双份漂移）。
-//
-// 锚点命名法与 lib/guide.ts 的 data-guide 对称（data-help 语义分离）
-// 纯文章小节无 anchor——帮助页不渲染「去界面查看」深链按钮。
+// 帮助体系 V3 纯数据：分界面文章的主题小节清单 + 文档点锚点 + 深链辅助。
+// 文案词条唯一来源是 help 域语言包（help.article.<page>.intro / help.topic.<page>.<id>），
+// 文章视图与「?」文档点气泡共用同一词条（单源双视图，防双份漂移）。
+// 锚点命名法与 lib/guide.ts 的 data-guide 对称（data-help 语义分离）；纯文章小节无 anchor
+// （帮助页不渲染「去界面查看」深链按钮）。
 // 演示预设是显示层注入的示例值（mode/key/displayName/text），由 Designer 合并进
 // viewElements，不写 stateRef / historyRef（零落库的结构性前提）。
-// 深链经路由 sub 段承载（#/designer/<anchor> 形，可分享 / 刷新
-// 还原）——HELP_LINK_ELEMENTS 为深链自动开草稿的示例元素预设（随草稿 init 并入初始
-// 基线，机制与演示预设的显示层注入不同，见 Designer.tsx 落点）；页内锚点轮询 hook 在
-// lib/helpLink.ts（本文件保持纯数据，不引 react）。
-// server 管理界面纳入帮助体系——HELP_PAGES 收录双构建全部页面
-// （i18n key 段 camelCase：pluginPackages 对齐 pluginPackages.json 域名先例，tab 字段仍用
-// 'plugin-packages' 原 TabId），构建适配经 helpPagesFor 按当前构建主导航页集单源过滤（判据
-// 「帮助文章页集 = 当前构建主导航页集」从结构上防漂移，无需逐条目标注模式）。
+// 深链经路由 sub 段承载（#/designer/<anchor> 形，可分享 / 刷新还原）——HELP_LINK_ELEMENTS
+// 为深链自动开草稿的示例元素预设（随草稿 init 并入初始基线，机制与演示预设的显示层注入不同）；
+// 页内锚点轮询 hook 在 lib/helpLink.ts（本文件保持纯数据，不引 react）。
+// HELP_PAGES 收录双构建全部页面（i18n key 段 camelCase：pluginPackages 对齐既有域名，tab 字段
+// 仍用 'plugin-packages' 原 TabId），构建适配经 helpPagesFor 按当前构建主导航页集单源过滤
+//（判据「帮助文章页集 = 当前构建主导航页集」从结构上防漂移，无需逐条标注模式）。
 
 import i18next from 'i18next'
 import type { TabId } from '../state/types'
@@ -111,7 +107,7 @@ export const HELP_PAGES: readonly HelpPageDoc[] = [
   },
   // server 独有三页（devices / packages / pluginPackages）——各 intro＋2 纯文章
   // 小节、无 anchor（设备 / 插件页为单表平页无锚点结构，下载中心 sub 段已被页内 tab 占用；
-  // 与 workbench / data / jobs 纯文章先例一致）
+  // 与 workbench / data / jobs 纯文章小节一致）
   {
     page: 'devices',
     tab: 'devices',
@@ -149,7 +145,7 @@ export function helpPagesFor(isServer: boolean): readonly HelpPageDoc[] {
  * 先例——client 产物摇树裁除 SERVER_TABS（特征串四指标之 client nav.devices=0）。 */
 export const BUILD_HELP_PAGES: readonly HelpPageDoc[] = pagesInTabs(isServerUi ? SERVER_TABS : CLIENT_TABS)
 
-/* * 字段显示名示例值（随界面语言：zh「库位」/ en "Bin"—— 结项 wrapup 定夺；本文件唯一
+/* * 字段显示名示例值（随界面语言：zh「库位」/ en "Bin"；本文件唯一
  * 随语言取值的示例字段，消费点＝演示注入与深链示例构建（两处经同一预设联动，防漂移记录见）。 */
 export function helpSampleDisplayName(): string {
   return i18next.language?.startsWith('zh') ? '库位' : 'Bin'
@@ -164,7 +160,7 @@ export const HELP_DEMO_PRESETS: Record<string, Partial<DesignElement>> = {
 /* * 深链示例元素预设：帮助深链自动开草稿时按锚点小节类型
  *  放置的示例元素——以 spec（type + patch）登记而非现成元素，构造时经 defaultElement 生成新 id
  *  （跨草稿不串号）且默认文案随当前语言。fill 复用 HELP_DEMO_PRESETS 同款示例值（「库位」en
- * 示例值定夺属 结项 wrapup——若改值两处须联动， 已记防漂移）；align 给两个 Rect 并
+ * 同理——若改示例值两处须联动防漂移）；align 给两个 Rect 并
  *  错开位置（对齐组仅多选分支渲染，双选中锚点才现）。键集登记校验（须为 HELP_PAGES 已登记
  *  anchor、设计器侧全覆盖）在 Help.test.tsx 数据自洽用例断言。 */
 export interface HelpLinkElementSpec {

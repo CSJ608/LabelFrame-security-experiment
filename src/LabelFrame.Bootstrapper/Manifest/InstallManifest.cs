@@ -10,7 +10,7 @@ public sealed record InstallManifest(
     string GeneratedAt,
     IReadOnlyList<ManifestComponent> Components)
 {
-    /// <summary>引导程序支持的 schema 版本上限（fail-closed：遇到更照新清单拒绝并提示先升级引导程序， 演进规则）。</summary>
+    /// <summary>引导程序支持的 schema 版本上限（fail-closed：超出即拒绝并提示先升级引导程序）。</summary>
     public const int SupportedSchemaVersion = 1;
 
     /// <summary>schema 允许的组件 type 枚举（组件条目表）。</summary>
@@ -24,7 +24,7 @@ public sealed record InstallManifest(
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        // 兼容 演进规则：新增可选字段 = 兼容（旧引导程序忽略未知字段）
+        // 兼容义务：新增可选字段 = 兼容——旧引导程序必须忽略未知字段（不可改为报错）
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
     };
 
@@ -54,7 +54,6 @@ public sealed record InstallManifest(
 
         if (manifest.SchemaVersion > SupportedSchemaVersion)
         {
-            // fail-closed：schema 超出支持范围即拒绝，提示先升级引导程序（演进规则）
             throw new InstallManifestFormatException(
                 $"清单 schema 版本过新（{manifest.SchemaVersion}，本引导程序支持至 {SupportedSchemaVersion}），请先升级引导程序。");
         }

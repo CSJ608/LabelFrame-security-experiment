@@ -1,9 +1,6 @@
 namespace LabelFrame.Core.Documents;
 
-/// <summary>
-/// 单色（1bpp）位图，用于中文栅格化后的 ^GF 编码等场景。
-/// 每行按字节对齐，高位在前，1 表示黑点。
-/// </summary>
+/// <summary>单色（1bpp）位图：每行按字节对齐，高位在前（MSB），1 表示黑点——^GF 编码的线格式。</summary>
 public sealed class LabelBitmap
 {
     /// <summary>创建位图。</summary>

@@ -16,11 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace LabelFrame.WinHost;
 
-/// <summary>
-/// WinHost 应用装配：DI + 全部端点 + Web UI 静态托管。
-/// 不含宿主层职责（Serilog 文件日志 / 托盘 / 浏览器拉起 / 强制退出）——集成测试用同一装配拉起
-/// TestServer，保证测到的端点组合与生产完全一致。
-/// </summary>
+/// <summary>WinHost 应用装配：DI＋全部端点＋Web UI 静态托管。集成测试经同一装配拉 TestServer（测到的端点组合与生产一致），宿主层职责（日志 / 托盘 / 界面壳 / 退出）留在 Main。</summary>
 public static class WinHostApp
 {
 #if WINDOWS
@@ -58,7 +54,6 @@ public static class WinHostApp
         });
         configureBuilder?.Invoke(builder);
 
-        // Windows 注册内置传输能力（log / tcp9100 / winspool；zebra 已外置为官方插件）；Linux 首版固定只注册 Log。
         var transportRegistry = new TransportPluginRegistry();
 #if WINDOWS
         foreach (var plugin in BuiltinTransportPlugins.CreateCorePlugins())
@@ -68,8 +63,7 @@ public static class WinHostApp
 
         transportRegistry.Register(new WinspoolTransportPlugin());
 
-        // 存量升级兼容：已用 zebra 配置且外置插件未装 → 自动安装随客户端附带的官方插件包
-        // 须先于下方外部插件目录扫描执行（本次启动即完成装配）。
+        // 迁移须先于下方外部插件目录扫描执行——本次启动即完成装配
         ZebraPluginMigration.Run(options, hostLogWriter, hostInfo);
 #else
         options.Transport = TransportMode.Log;
@@ -94,7 +88,6 @@ public static class WinHostApp
 
         var hostConfigStore = new HostConfigStore(options.ConfigPath);
         builder.Services.AddSingleton(hostConfigStore);
-        // 批次作业设置（用户级持久化 + 内存单例，保存即生效；单例注入 JobPrintWorker）
         var printSettingsStore = new PrintSettingsStore(options.PrintSettingsPath);
         var printSettings = new PrintSettings();
         printSettings.Update(printSettingsStore.Load());
@@ -128,7 +121,6 @@ public static class WinHostApp
             options.PluginsPath,
             sp.GetRequiredService<ITransportPluginRegistry>(),
             hostLogWriter,
-            // 启动装配时的加载失败透出给已安装列表（「加载失败 err + 原因」）
             pluginLoad.Errors.ToDictionary(e => e.AssemblyPath, e => e.Error, StringComparer.OrdinalIgnoreCase)));
 #endif
         builder.Services.AddSingleton<ZplImageEncoder>();
@@ -137,10 +129,9 @@ public static class WinHostApp
         var templateStore = new TemplateStore(options.TemplatesDbPath);
         await templateStore.InitializeAsync();
         builder.Services.AddSingleton(templateStore);
-        // Skia 渲染器实例单例：DI 与共享端点（模板预览 / 调试出图）共用同一实例（预览与打印同源）
+        // 渲染器单例：DI 与共享端点（预览 / 调试出图）共用同一实例——预览与打印同源
         var skiaRenderer = new SkiaLabelRenderer();
         builder.Services.AddSingleton<ILabelBitmapRenderer>(skiaRenderer);
-        // 出图目录保留清理器：模拟打印落盘后顺带执行；测试构造缺省 null = 不清理
         var printRetentionCleaner = new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays, hostLogWriter);
         builder.Services.AddSingleton(sp => new JobSubmissionService(
             queue,
@@ -155,35 +146,28 @@ public static class WinHostApp
             options.PrintOutputPath,
             printRetentionCleaner));
 
-        // 本地工具服务：地址由用户配置（可跨机器 / 跨端口），启用宽松 CORS
         builder.Services.AddCors(corsOptions => corsOptions.AddDefaultPolicy(policy =>
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
-        // 全局异常处理：未捕获异常统一 500 + ErrorView，不透出堆栈 / 内部路径
         builder.Services.AddLabelFrameExceptionHandler();
 
         var logStore = new SqliteLogStore(options.LogsDbPath);
         await logStore.InitializeAsync();
         builder.Services.AddSingleton(logStore);
 
-        // 服务端路由协调器：无条件注册（未配置地址时空转）
-        // 「保存服务端地址」经 HostApi 热切换（重建 poller / worker + 旧连接清理），不再仅启动期固化
         builder.Services.AddSingleton(sp => new Routing.ServerRoutingCoordinator(
             sp,
             options,
             hostInfo));
 
-        // 服务层扩展点：在全部注册完成后执行（测试 RemoveAll<IHostedService> 等需要看到完整注册列表）
         configureServices?.Invoke(builder.Services);
 
-        // 统一退出协调器：托盘「退出」与 /api/host/shutdown 共用的「优雅停止 + 限时兜底强退」路径
         var exitCoordinator = new HostExitCoordinator(hostInfo);
         builder.Services.AddSingleton(exitCoordinator);
 
         var app = builder.Build();
         exitCoordinator.Bind(app.Lifetime);
 
-        // 服务端路由启动接线：绑定停机清理 + 按当前配置拉起（未配置地址空转，保存后热切换开启）
         var routingCoordinator = app.Services.GetRequiredService<Routing.ServerRoutingCoordinator>();
         routingCoordinator.Bind(app.Lifetime);
         await routingCoordinator.StartWithConfiguredUrlAsync();
@@ -198,13 +182,13 @@ public static class WinHostApp
                 status = "ok",
                 platform = HostPlatform,
                 headless = IsHeadless,
-                // 旧字段：连接方式（兼容旧前端徽标）；pluginId / displayText 精确透出当前插件
+                // 旧字段 transport 为兼容旧前端徽标保留
                 transport = transportManager.CurrentConfig.Mode.ToString(),
                 pluginId = transportManager.CurrentConfig.PluginId,
                 displayText = registry.Describe(transportManager.CurrentConfig.PluginId, new TransportPluginParameters(transportManager.CurrentConfig.Params)),
             }));
 
-        // ---- 模板库 / 调试出图（端点实现与 Server 共享，见 LabelFrame.Api.Endpoints）----
+        // 模板 / 出图 / 日志端点与 Server 共享（实现见 LabelFrame.Api.Endpoints）
         app.MapTemplateApi(new TemplateApiOptions(
             templateStore,
             skiaRenderer,
@@ -212,14 +196,13 @@ public static class WinHostApp
             JobErrorCodes.InvalidRequest,
             ApiErrorCodes.TemplateNotFound));
 
-        // 图片资源解析统一：请求附带 base64 优先、按名回退本地模板库（两端点行为一致）
+        // 图片资源解析与共享出图端点同源：base64 附带优先、按名回退本地模板库
         app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, options.Dpi, JobErrorCodes.InvalidRequest));
 
-        // 设备日志端点（补挂：与 Server 共享实现）——客户端实例 /api/logs 返回 JSON
-        // 不再命中下方 SPA 回退；错误码与宿主其他共享端点一致 LF_API_001
+        // 补挂该端点前客户端 /api/logs 命中 SPA 回退返回 index.html——必须保持 JSON + LF_API_001
         app.MapLogApi(new LogApiOptions(logStore, JobErrorCodes.InvalidRequest));
 
-        // ---- 宿主专属端点（分组实现见 Api/ 目录）----
+        // 宿主专属端点（分组实现见 Api/ 目录）
         app.MapTransportApi();
 #if WINDOWS
         app.MapPluginApi();
@@ -247,7 +230,6 @@ public static class WinHostApp
         var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webUiPath);
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
         app.UseStaticFiles(new StaticFileOptions { FileProvider = fileProvider });
-        // SPA fallback：未匹配 /api 的路径返回 index.html
         app.MapFallback(async context =>
         {
             var indexFile = Path.Combine(webUiPath, "index.html");

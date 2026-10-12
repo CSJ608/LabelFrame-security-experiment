@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// F2-F4：设置页三分组——服务端地址（机器级配置，保存即生效）/ 连接方式（本机 Client）/ 打印机。
+// 设置页三分组——服务端地址（机器级配置，保存即生效）/ 连接方式（本机 Client）/ 打印机。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链：getHostConfig / getTransport / healthz）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -187,7 +187,7 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
     expect(screen.getByText('单机模式')).toBeTruthy()
     expect(screen.getByText(/当前未连接服务端（单机模式）/)).toBeTruthy()
     expect(screen.getByText(/当前未连接服务端，处于单机模式/)).toBeTruthy()
-    // a 案：空地址无目标可探，不发起 healthz；业务列表不拉取（serverApi 不以空串 base 落同源打到本机 WinHost）
+    // 空地址无目标可探，不发起 healthz；业务列表不拉取（serverApi 不以空串 base 落同源打到本机 WinHost）
     await waitFor(() => expect(mocks.local.getHostConfig).toHaveBeenCalled())
     expect(mocks.server.healthz).not.toHaveBeenCalled()
     expect(mocks.server.listClientPackages).not.toHaveBeenCalled()
@@ -364,7 +364,7 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
     mockLogPluginTransport()
     renderSettings()
     // 挂载链先落定（连接配置已加载——折叠头摘要「模拟打印」出现为准），再展开交互：
-    // 实证（run 35553586518）：配置未落定即展开点选时，挂载期并发 mock 的迟到
+    // 实证（CI 高负载复现）：配置未落定即展开点选时，挂载期并发 mock 的迟到
     // 渲染会与单选列表 / 参数表单的渲染交错（选中态与表单不同步），findByLabelText 默认 1s 超时
     expect(await screen.findByText('模拟打印')).toBeTruthy()
     openTransportPanel()
@@ -802,7 +802,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
   })
 })
 
-// ---------- ：帮助深链 = 路由 sub 段承载，页内轮询自动弹卡片气泡 ----------
+// ---------- 帮助深链 = 路由 sub 段承载，页内轮询自动弹卡片气泡 ----------
 
 describe('帮助深链（#316 决策 #178）', () => {
   function renderSettingsWithLink(helpAnchor: string) {

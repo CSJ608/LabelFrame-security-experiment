@@ -5,11 +5,7 @@ namespace LabelFrame.Server;
 /// <summary>客户端安装包视图（GET /api/client-packages 列表项）。</summary>
 public sealed record ClientPackageView(string FileName, long SizeBytes, DateTimeOffset ModifiedAt, string Url);
 
-/// <summary>
-/// 客户端安装包目录服务：
-/// 服务端统一分发客户端安装包——目录直放文件与页面上传都支持；文件名一律拒绝路径分隔符 / .. / 非法字符（路径穿越防护），
-/// 只允许普通文件名（无子目录）。文件名规范化共享 Core <see cref="SafeFileName"/>（提取）。
-/// </summary>
+/// <summary>客户端安装包目录服务：目录直放与页面上传都支持；文件名一律经 <see cref="SafeFileName"/> 规范化（拒绝路径分隔符 / .. / 非法字符——路径穿越防护，只允许普通文件名）。</summary>
 public sealed class ClientPackagesService : FilePackageService<ClientPackageView>
 {
     /// <summary>创建服务（目录不存在自动创建）。</summary>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// P1-4：设计器属性面板组件测试——不同元素类型（文本 / 条码 / 二维码）选中时渲染对应属性控件
+// 设计器属性面板组件测试——不同元素类型（文本 / 条码 / 二维码）选中时渲染对应属性控件
 // 改值经 onChange 回调驱动状态更新（画布重绘的数据源）；多选对齐 / 删除；预览锁定与空态。
 // PropsPanel 为纯 props 驱动组件（不依赖 Konva 画布 / api client），直接以最小 props 真实渲染。
 
@@ -278,7 +278,7 @@ describe('多选对齐与删除', () => {
   })
 })
 
-// ---------- ：图片元素属性组（查看 / 更换 / 移除 / 缺资源提示） ----------
+// ---------- 图片元素属性组（查看 / 更换 / 移除 / 缺资源提示） ----------
 
 const imageEl = { ...defaultElement('Image', 'i1'), key: 'logo.png' } as DesignElement
 const IMAGE_ASSETS: Record<string, ImageAsset> = {

@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- 纯托管（轻量档，决策 #156）：无 Android / Windows 专属依赖，双端 CLR 均可字节加载；
-         PDA Spike（#185 AC-02）经 manifest platforms:["android"] 打包为 .lfplugin 走 AndroidHost 外置插件通道 -->
+    <!-- 纯托管轻量档：无 Android / Windows 专属依赖，双端 CLR 均可字节加载；
+         经 manifest platforms:["android"] 打包为 .lfplugin，走 AndroidHost 外置插件通道 -->
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>LabelFrame.TransportPlugin.Fake</RootNamespace>
     <LangVersion>latest</LangVersion>
@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- fake 传输插件（测试 / Spike 用）：验证外置插件通道「加载 → 发现 → 配置路由 → 测试打印」完整链路 -->
+    <!-- fake 传输插件（测试用）：验证外置插件通道「加载 → 发现 → 配置路由 → 测试打印」完整链路 -->
     <ProjectReference Include="..\..\src\LabelFrame.Core\LabelFrame.Core.csproj" />
   </ItemGroup>
 

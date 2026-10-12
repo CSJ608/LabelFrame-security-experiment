@@ -22,18 +22,14 @@ public interface ITransportManager
     Task<TransportChangeResult> ApplyAsync(TransportConfig config, bool testOnly, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// 连接管理器实现：启动时按 connection.json &gt; appsettings / 环境变量 &gt; 默认 Log 初始化；
-/// 同一时间只有单一连接生效；配置 pluginId + params 经传输插件注册表装配（内置 + 外部 DLL）；
-/// 切换成功才持久化到 %LOCALAPPDATA%\LabelFrame\connection.json（新格式，旧格式自动迁移）。
-/// </summary>
+/// <summary>连接管理器实现：启动按 connection.json &gt; appsettings / 环境变量 &gt; 默认 Log 初始化；单一连接生效，切换成功才持久化（旧格式自动迁移）。</summary>
 public sealed class TransportManager : ITransportManager, IDisposable
 {
     private readonly ITransportPluginRegistry _registry;
     private readonly ITransportPluginContext _context;
     private readonly TextWriter _hostLogWriter;
-    // 并发防护：_config/_transport 被打印 Worker（每张发送）与 API 并发读，切换时写入——
-    // 读写经 _stateLock；ApplyAsync 整体再经 _applyLock 串行化（避免两个「先测试后生效」交错切换）
+    // 并发防护：_config/_transport 被打印 Worker 与 API 并发读、切换时写入——读写经 _stateLock；
+    // ApplyAsync 整体再经 _applyLock 串行化（避免两个「先测试后生效」交错切换）
     private readonly object _stateLock = new();
     private readonly SemaphoreSlim _applyLock = new(1, 1);
     private TransportConfig _config;
@@ -157,8 +153,8 @@ public sealed class TransportManager : ITransportManager, IDisposable
         {
             var visible = spec.IsVisible(config.Params);
             var present = config.Params.TryGetValue(spec.Key, out var rawValue) && !string.IsNullOrWhiteSpace(rawValue);
-            // 必填只对当前可见字段生效（字段集按连接类型切换：不可见字段跳过必填，
-            // 条件键自身的必填校验兜底）；类型 / Select 校验对已提供字段照常（存量配置携带隐藏字段值不报错）
+            // 必填只对当前可见字段生效（字段集按连接类型切换）；类型 / Select 校验对已提供字段照常
+            // （存量配置携带隐藏字段值不报错）——两条口径不可合并
             if (spec.Required && visible && !present)
             {
                 return $"缺少必填参数：{spec.Label}（{spec.Key}）。";
@@ -188,9 +184,8 @@ public sealed class TransportManager : ITransportManager, IDisposable
             }
         }
 
-        // 打印方式合法性（保存层校验）：printMode=native 仅对有文档编译能力的插件合法
-        // 缺失 / 非法取值不在此拦截（读取口径回退 image），存量异常配置（手改 connection.json /
-        // 插件降级后能力消失）由提交链路兜底显式失败（LF_ENC_003），不静默按图片打印。
+        // 打印方式合法性（保存层校验）：printMode=native 仅对有文档编译能力的插件合法；
+        // 缺失 / 非法取值不在此拦截（读取口径回退 image），存量异常配置由提交链路兜底显式失败
         if (TransportPrintMode.Resolve(config.Params.TryGetValue(TransportPrintMode.ParameterKey, out var printMode) ? printMode : null)
             == TransportPrintMode.Native
             && !plugin.SupportsDocumentCompile)
@@ -224,9 +219,8 @@ public sealed class TransportManager : ITransportManager, IDisposable
         => _registry.CreateTransport(config.PluginId, new TransportPluginParameters(config.Params), _context);
 
     /// <summary>
-    /// 启动装配护栏：生效配置引用的插件未注册（如 zebra 外置后未安装
-    /// 升级自动安装失败）时回退默认连接并留痕，不因缺插件崩溃——「未装外置包则该品牌不可用」的可控行为；
-    /// 默认连接本身也引用缺失插件（appsettings / 环境变量 Transport=Zebra 而插件未装）时再回退 Log。
+    /// 启动装配护栏：生效配置引用的插件未注册时回退默认连接并留痕，不因缺插件崩溃；
+    /// 默认连接本身也引用缺失插件时再回退 Log。
     /// </summary>
     private IPrintTransport CreateTransportOrDefault(TransportConfig config, TransportConfig baseConfig)
     {
@@ -310,13 +304,12 @@ public sealed class TransportManager : ITransportManager, IDisposable
             var persisted = TransportConfig.FromJson(json);
             if (persisted is null)
             {
-                // 解析失败（损坏 JSON）回退默认连接：留痕原因与回退目标（——此前静默回退，用户打印机配置「消失」无痕迹）
+                // 解析失败（损坏 JSON）回退默认连接：留痕原因与回退目标——不得静默回退
                 WriteHostLog($"connection.json 解析失败（{ConfigFilePath}）：内容不是有效的连接配置，已回退默认连接 {Describe(baseConfig)}。");
                 return baseConfig;
             }
 
-            // 连接配置引用的传输插件已不存在（外部插件 DLL 被删除后重启）：
-            // 回退默认连接并记录日志，宿主正常启动，不因缺失插件崩溃。
+            // 连接配置引用的传输插件已不存在（外部插件 DLL 被删除后重启）：回退默认连接并留痕，宿主正常启动
             if (_registry.GetPlugin(persisted.PluginId) is null)
             {
                 _hostLogWriter.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 连接配置引用的传输插件不存在（{persisted.PluginId}），已回退默认连接 {Describe(baseConfig)}。");

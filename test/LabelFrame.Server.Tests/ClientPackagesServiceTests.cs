@@ -15,7 +15,7 @@ public class ClientPackagesServiceTests
         try
         {
             var saved = await svc.SaveAsync("LabelFrame-Client-0.18.0.msi", new MemoryStream(new byte[] { 1, 2, 3, 4 }));
-            Assert.Equal(4, saved.SizeBytes); // 返回视图在流关闭后取值（修复：先 dispose 再取 FileInfo）
+            Assert.Equal(4, saved.SizeBytes); // 返回视图在流关闭后取值
 
             var list = svc.List();
             var view = Assert.Single(list);

@@ -84,7 +84,7 @@ public sealed class TemplateStore
         await using var connection = await OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        // testData 读-改-写：以数据库现有值为基底 → 并入显式传入 → 被元素预览值派生覆盖（预览值优先）
+        // testData 为读-改-写（不是整体替换）：现有值为基底，元素预览值派生覆盖优先——不传不覆盖既有值
         var testData = await ReadTestDataAsync(connection, (Microsoft.Data.Sqlite.SqliteTransaction)transaction, package.Name, cancellationToken);
         foreach (var (key, value) in package.TestData)
         {
@@ -140,7 +140,7 @@ public sealed class TemplateStore
         await transaction.CommitAsync(cancellationToken);
     }
 
-    /// <summary>按名称查询模板（含图片资源）。</summary>
+    /// <summary>读取库中现有 testData（读-改-写合并的基底）。</summary>
     private static async Task<Dictionary<string, string>> ReadTestDataAsync(
         SqliteConnection connection,
         Microsoft.Data.Sqlite.SqliteTransaction transaction,
@@ -168,6 +168,7 @@ public sealed class TemplateStore
         LabelQrCodeElement q => q.SourceKey,
         _ => null,
     };
+    /// <summary>按名称查询模板（含图片资源与 testData）。</summary>
     public async Task<TemplatePackage?> GetAsync(string name, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);

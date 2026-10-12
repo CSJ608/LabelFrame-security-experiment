@@ -7,12 +7,8 @@ using ZXing.QrCode;
 
 namespace LabelFrame.AndroidHost.Rendering;
 
-/// <summary>
-/// Android 整版位图渲染器（AndroidHost 打印统一为图片）：
-/// 文本用 Android.Graphics（加粗 / 对齐 / 垂直对齐 / 单行缩小适应），条码 / 二维码用 ZXing，
-/// 线 / 区域 / 图片绘制，输出 1bpp LabelBitmap → ZplImageEncoder ^GF。
-/// 与 PC 端 Skia 渲染语义尽量一致；换行等高级排版在真机联调阶段补齐。
-/// </summary>
+/// <summary>Android 整版位图渲染器：Android.Graphics 文本 + ZXing 条码 / 二维码 + 线 / 区域 / 图片，
+/// 输出 1bpp LabelBitmap（与 PC 端 Skia 渲染语义对齐；单行渲染，无自动换行）。</summary>
 public static class AndroidLabelRenderer
 {
     /// <summary>渲染整张标签为 1bpp 位图（白底黑字）。</summary>
@@ -98,16 +94,15 @@ public static class AndroidLabelRenderer
             return;
         }
 
-        // 区域水平锚定按实测文本宽度计算：度量与绘制同一 Paint 管线（TextSize / FakeBoldText）
+        // 锚定偏移按实测文本宽度：度量与绘制必须同一 Paint 管线（TextSize / FakeBoldText），单侧改动即锚定错位
         var bounds = LabelLayoutResolver.ResolveBounds(text, regions, AndroidTextWidthMeasurer.Instance, value);
         var x = ToDots(bounds.XMm, dpi);
         var y = ToDots(bounds.YMm, dpi);
         var boxWidth = ToDots(bounds.WidthMm, dpi);
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
-        // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致），非锚定文本维持决策 A 兜底
-        // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致；与 PC Skia 渲染同口径）。
+        // 框高取值：显式 heightMm > 锚定框高（bounds.HeightMm）> 非锚定兜底 max(字高 + 2×最大边距, 10mm)（与 PC Skia 同口径）；
+        // 锚定路径禁改用兜底框再垂直居中——字形会较锚定盒中心下沉、小字号穿出盒底（曾有真机缺陷）。
         var anchored = text.RegionId is not null && regions.ContainsKey(text.RegionId);
         var boxHeightMm = text.HeightMm > 0
             ? text.HeightMm
@@ -134,7 +129,6 @@ public static class AndroidLabelRenderer
             FakeBoldText = text.Bold,
         };
 
-        // 单行超出框宽按比例缩小（最小 1.5mm），与 PC Skia 默认 shrink 一致
         var measured = paint.MeasureText(value);
         if (innerW > 0 && measured > innerW)
         {
@@ -299,8 +293,8 @@ public static class AndroidLabelRenderer
         IReadOnlyDictionary<string, LabelRegionElement> regions,
         int dpi)
     {
-        // SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框）
-        // 「未指定＝不存在于打印面」（与 PC Skia 同口径）；key 非空缺资源才走下方显式报错
+        // SourceKey 空＝未指定：整元素跳过（含边框，「未指定即不存在于打印面」，与 PC Skia 同口径）；
+        // key 非空缺资源才显式报错——两条路径语义不同，不可合并
         if (string.IsNullOrEmpty(image.SourceKey))
         {
             return;
@@ -317,7 +311,7 @@ public static class AndroidLabelRenderer
             using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                // 拉伸填满元素盒（与 PC Skia 同口径， 填充）；Paint 传 true 开双线性滤波防缩小混叠
+                // 拉伸填满元素盒（与 PC Skia 同口径）；FilterBitmap 防缩小混叠
                 using var paint = new Paint { AntiAlias = true, FilterBitmap = true };
                 canvas.DrawBitmap(source, null, new Rect(x, y, x + width, y + height), paint);
                 return;
@@ -331,15 +325,12 @@ public static class AndroidLabelRenderer
             return;
         }
 
-        // 缺资源＝打印侧显式报错（与 PC Skia 同口径），不再画灰占位框照打
+        // 缺资源＝打印侧显式报错（与 PC Skia 同口径），不画灰占位照打
         throw new MissingImageResourceException(image.SourceKey);
     }
 
-    /// <summary>
-    /// 解码图片并按 luma 阈值 128 预单色化（黑 / 白 ARGB，不透明）：与 PC Skia DrawImage 同阈值同源
-    /// （——口径一致＝阈值同源，两端缩放插值实现不同、逐像素一致不作承诺）
-    /// 透明区按白处理。解码失败返回 null（由调用方按缺资源口径处理）。
-    /// </summary>
+    /// <summary>解码图片并按 luma 阈值 128 预单色化（与 PC Skia 同阈值同源；透明区按白）；
+    /// 解码失败返回 null（由调用方按缺资源口径处理）。</summary>
     private static Bitmap? DecodeMonochrome(byte[] bytes)
     {
         using var source = BitmapFactory.DecodeByteArray(bytes, 0, bytes.Length);

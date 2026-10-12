@@ -3,11 +3,10 @@
 // server 页同形态路由（#/devices / #/packages / #/plugin-packages 等）；受限 tab 集不可经 hash 越权
 // 进入（#/settings 解析即回退 workbench 并规范化 URL，页面不挂载）；#/packages/<sub> 直达下载中心
 // 页内 tab（含旧 #dc= 分享链接兼容映射）。vi.mock uiMode 注入 server 分支（Guide.server.test.tsx 双跑先例）。
-// 补带 sub 段的越权形态（#/settings/<sub>）——深链 sub 段不构成旁路。
-// 帮助纳入 server——SERVER_TABS 增「帮助」后 #/help（含带 sub 段形态）
-// 从越权回退反转为直达（守门断言按 Guide.server.test.tsx 先例「更新而非删除」）；#/settings 维持回退；
-// 补 server 帮助内容适配（七卡 / 无设置卡 / server 副标题 / server 文章）与 #/designer/<anchor>
-// server 侧自动开草稿（深链撤门与 client 对称）用例。
+// 越权形态带 sub 段（#/settings/<sub>）同样回退——深链 sub 段不构成旁路。
+// 帮助在 SERVER_TABS：#/help（含带 sub 段形态）直达（守门断言按「更新而非删除」口径）；#/settings 维持回退；
+// 另覆盖 server 帮助内容适配（七卡 / 无设置卡 / server 副标题 / server 文章）与 #/designer/<anchor>
+// server 侧自动开草稿（与 client 对称）用例。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'

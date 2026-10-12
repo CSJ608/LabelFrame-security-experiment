@@ -5,7 +5,7 @@ public sealed record PrintSettingsDto(bool BatchEnabled, int BatchSize, int Batc
 
 /// <summary>
 /// 批次作业设置（选项模型）：全局单例，API 线程写、打印 Worker 线程读，
-/// 读写统一走 lock 保证跨线程可见性（评审 结论）。保存即生效，无需重启。
+/// 读写统一走 lock 保证跨线程可见性。保存即生效，无需重启。
 /// </summary>
 public sealed class PrintSettings
 {
@@ -28,7 +28,7 @@ public sealed class PrintSettings
 
     /// <summary>
     /// 读取 Normalize：缺失 / 损坏 / 越界统一回默认值——
-    /// <c>batchSize &lt; 1 → 10</c>、<c>batchIntervalMs &lt; 0 → 500</c>、<c>batchEnabled</c> 非 bool → <c>false</c>。
+    /// batchSize &lt; 1 → 10、batchIntervalMs &lt; 0 → 500、batchEnabled 非 bool → false。
     /// </summary>
     public static PrintSettingsDto Normalize(bool? batchEnabled, int? batchSize, int? batchIntervalMs)
         => new(

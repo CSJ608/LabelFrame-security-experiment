@@ -3,13 +3,10 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.AndroidHost.Transport.Plugins;
 
-/// <summary>
-/// 插件通道装配结果（宿主服务启动时一次性装配，随进程存活）：注册表 + 安装服务 + 逐 DLL 加载失败
-/// （已装列表 loadError 透出用）。
-/// </summary>
+/// <summary>插件通道装配结果（宿主服务启动时一次性装配，随进程存活）。</summary>
 public sealed class PluginHostState
 {
-    /// <summary>传输插件注册表（内置 zebra + 外部插件；外部 ALC 根随注册强持有——）。</summary>
+    /// <summary>传输插件注册表（内置 zebra + 外部插件；外部 ALC 根随注册强持有）。</summary>
     public required TransportPluginRegistry Registry { get; init; }
 
     /// <summary>插件安装 / 卸载服务（本地 HTTP 插件端点用；平台门 = android）。</summary>
@@ -25,24 +22,18 @@ public sealed class PluginHostState
     public required IReadOnlyList<string> ExternalPluginIds { get; init; }
 }
 
-/// <summary>
-/// PDA 外置插件通道装配（DESIGN 「跨端格式与 PDA 通道」）：
-/// 注册内置 Zebra 插件（SDK 档，id = zebra——外部包与内置 id 冲突的拒绝锚点）后扫描
-/// {FilesDir}/plugins/ 目录加载外部插件（轻量档纯托管，加载生命周期完全继承：
-/// 包目录单 collectible ALC 整体字节加载 + 注册表强持有 ALC 根；单插件加载失败留痕不阻断宿主）。
-/// </summary>
+/// <summary>PDA 外置插件通道装配：注册内置 Zebra 插件（id = zebra）后扫描 {FilesDir}/plugins/
+/// 加载外部插件（轻量档纯托管：包目录单 collectible ALC 整体字节加载，注册表强持有 ALC 根）。</summary>
 public static class PluginHost
 {
-    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins—— ，一插件一子目录）。</summary>
+    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins，一插件一子目录）。</summary>
     public const string PluginsDirName = "plugins";
 
     /// <summary>插件数据目录名（插件状态文件根，{FilesDir}/plugins-data）。</summary>
     public const string PluginDataDirName = "plugins-data";
 
-    /// <summary>
-    /// 装配插件通道：内置 zebra 注册 → 外部目录扫描加载（冲突跳过 / 失败留痕）。
-    /// 任何异常不外抛——插件通道失败不阻断打印服务启动（回退纯内置 zebra 能力）。
-    /// </summary>
+    /// <summary>装配插件通道（内置 zebra 注册 → 外部目录扫描，冲突跳过 / 失败留痕）。
+    /// 任何异常不外抛——插件通道失败不阻断打印服务启动，回退纯内置 zebra 能力。</summary>
     public static PluginHostState Load(Context context)
     {
         var filesDir = context.FilesDir!.AbsolutePath;
@@ -55,7 +46,7 @@ public static class PluginHost
         var loadErrors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var externalIds = new List<string>();
 
-        // SDK 档内置（brand 路由锚点 + 内置 id 冲突拒绝锚点；brand = zebra 的传输创建走既有 ZebraSdkTransport 路径）
+        // 内置 zebra 注册：brand = zebra 的路由锚点 + 外部包占用内置 id 的拒绝锚点
         registry.Register(new ZebraBuiltinTransportPlugin(context));
 
         try
@@ -79,7 +70,7 @@ public static class PluginHost
         }
         catch (Exception ex)
         {
-            // 插件目录扫描异常（IO 等）不阻断宿主：回退纯内置 zebra 能力
+            // 目录扫描异常（IO 等）不阻断宿主：回退纯内置 zebra 能力
             HostLog.Warn(HostLog.Tags.Plugin, $"外部插件目录扫描失败（{pluginsPath}）：{ex.Message}");
         }
 

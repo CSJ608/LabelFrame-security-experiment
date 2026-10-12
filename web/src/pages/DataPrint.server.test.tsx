@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // DataPrint server 构建（VITE_UI_MODE=server）——在线设备选择器（必选、仅在线可选、离线置灰显示
 // 上次心跳）；默认目标优先级 = 用户点选（localStorage labelframe.defaultTargetDeviceId，须在线）> 第一台在线；
-// 提交时现拉 GET /api/devices 校验在线（K3，掉线提示并禁止提交、作业不排队，不复用缓存列表）；
-// 隐藏打印机连接徽标与逐张失败重试表格（G4）；业务 API 恒 serverApi（无 standalone 分支）。
+// 提交时现拉 GET /api/devices 校验在线（掉线提示并禁止提交、作业不排队，不复用缓存列表）；
+// 隐藏打印机连接徽标与逐张失败重试表格（server 构建无逐张 retry 端点）；业务 API 恒 serverApi（无 standalone 分支）。
 // 图片预览页内弹层与下载分离双形态走查（与 client 构建行为一致）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -78,7 +78,7 @@ const DONE_JOB_SERVER: JobView = {
   deviceStatus: 'Online',
 }
 
-/** 含逐张 items 的作业视图（client 形状；server 构建下即使返回也不渲染重试表格——G4 强制隐藏）。 */
+/** 含逐张 items 的作业视图（client 形状；server 构建下即使返回也不渲染重试表格——强制隐藏）。 */
 const DONE_JOB_WITH_ITEMS: JobView = {
   ...DONE_JOB_SERVER,
   items: [
@@ -234,7 +234,7 @@ describe('DataPrint server 构建：隐藏逐张失败重试表格（G4）', () 
     fireEvent.click(screen.getByRole('button', { name: /打印测试（单张）/ }))
     expect(await screen.findByText('已完成 1 / 2 张')).toBeTruthy()
     expect(screen.getByText(/有 1 张打印失败/)).toBeTruthy()
-    // G4：server 构建强制隐藏逐张表格 / 重试按钮
+    // server 构建强制隐藏逐张表格 / 重试按钮
     expect(screen.queryByRole('button', { name: /重试/ })).toBeNull()
     expect(screen.queryByText(/可在下方列表中逐张重试/)).toBeNull()
     // 失败原因提示走汇总文案（指引改为可点击「作业历史」跳转入口——文本经按钮分段）
@@ -281,7 +281,7 @@ describe('DataPrint server 构建：无字段模板（静态标签）打印测�
   })
 })
 
-// （决议，评审）：图片预览页内弹层与下载分离——server 构建（服务端管理界面）
+// 图片预览页内弹层与下载分离——server 构建（服务端管理界面）
 // 与 client 构建行为一致：点击「图片预览」弹层呈现当前字段值渲染图，弹层内显式「下载」按钮；
 // 模拟出图（生成图片 / 批量 zip）文案与直接下载行为零回归。
 describe('DataPrint server 构建：图片预览页内弹层与下载分离（迭代 81 · #129）', () => {
@@ -331,7 +331,7 @@ describe('DataPrint server 构建：字段显示名渲染（迭代 83 · #131 �
   })
 })
 
-// （评审 /）：副标题用户化 + 作业进度目标设备显示设备名（server 构建 / 服务端管理界面）。
+// 副标题用户化 + 作业进度目标设备显示设备名（server 构建 / 服务端管理界面）。
 describe('DataPrint server 构建：打印页称谓与作业进度设备名（迭代 84 · #132）', () => {
   it('AC-01：副标题「填写数据并打印 / Excel 批量打印」，无「测试」字样（双形态）', async () => {
     await renderDataPrint()

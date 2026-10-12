@@ -28,7 +28,7 @@ internal static class PrinterApi
 
     app.MapPost("/api/printer/test", async (ITransportManager transportManager, ILabelBitmapRenderer renderer, ZplImageEncoder encoder, ILoggerFactory loggerFactory, CancellationToken ct) =>
     {
-        // 测试页与正式打印同源：Skia 渲染整版位图经 ^GF 发送（图片打印语义，无矢量 ZPL）
+        // 测试页与正式打印同源：Skia 渲染整版位图经 ^GF 发送（图片打印语义）
         var document = new LabelDocument
         {
             Layout = new LabelLayout
@@ -55,8 +55,8 @@ internal static class PrinterApi
         }
         catch (Exception ex) when (ex is IOException or SocketException or TimeoutException or InvalidOperationException)
         {
-            // 打印机连接失败是环境问题而非服务故障：400 + 可编程错误码（含目标地址与原因），
-            // 口径对齐 /api/printer/status 的降级信息；客户端日志留痕（目标 / 插件 / 原因）
+            // 打印机连接失败是环境问题而非服务故障：400 + 可编程错误码（含目标地址与原因）；
+            // 客户端日志留痕（目标 / 插件 / 原因）
             var logger = loggerFactory.CreateLogger("LabelFrame.WinHost.Api.PrinterApi");
             logger.LogWarning(ex, "测试页发送失败：目标 {Target}（插件 {PluginId}）", target, config.PluginId);
             // 模板化消息：target / reason 为动态数据，展示端按码表插值呈现

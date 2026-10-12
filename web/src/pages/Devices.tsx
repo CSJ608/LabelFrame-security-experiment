@@ -1,7 +1,6 @@
-// 在线设备页（Server UI 专用）：GET /api/devices 每 5s 自动刷新
+// 在线设备页（Server UI 专用）：GET /api/devices 每 5s 自动刷新；
 // 列表显示 deviceId / 名称 / lastIp / 在线状态 / 最近心跳；点击设备设为「数据与打印」默认目标
-// （localStorage labelframe.defaultTargetDeviceId，AppContext 共享状态，跨页联动）。
-// 文案 key 化（devices 域；zh-CN 值与原硬编码逐字一致）。
+//（labelframe.defaultTargetDeviceId，AppContext 共享状态，跨页联动）。
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,8 +24,7 @@ function formatTime(iso?: string): string {
 export function Devices() {
   const app = useApp()
   const { t } = useTranslation('devices')
-  // （决议 a 案）：初始 null = 首次拉取未完成（加载中文案行），[] = 确为空——
-  // 与插件管理页同一模式，消除进页瞬间闪现「暂无设备」的误导。
+  // 初始 null = 首次拉取未完成（加载中文案行），[] = 确为空——不得合并两态（会闪现「暂无设备」误导）。
   const [devices, setDevices] = useState<DeviceView[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -38,7 +36,7 @@ export function Devices() {
 
     const tick = async () => {
       try {
-        // 全量轮询替换（在线窗口 30s + 2s 偏差，5s 轮询下最坏约 37s 翻转；不要求即时）
+        // 全量轮询替换（在线窗口 30s + 2s 偏差，5s 轮询下最坏约 37s 翻转，不要求即时）
         const list = await serverApi.listDevices()
         if (!stopped) {
           setDevices(list)

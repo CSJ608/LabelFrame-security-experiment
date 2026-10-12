@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>卸载清理（DESIGN 「卸载清理」）：与落位同目标对称 + 清理边界（用户资产不误伤）。</summary>
+/// <summary>卸载清理：与落位同目标对称 + 清理边界（用户资产不误伤）。</summary>
 public sealed class PayloadCleanupTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"labelframe-cleanup-{Guid.NewGuid():N}");

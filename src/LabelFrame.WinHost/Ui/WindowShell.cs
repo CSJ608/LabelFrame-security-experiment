@@ -4,10 +4,8 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LabelFrame.WinHost.Ui;
 
 /// <summary>
-/// 窗口形态界面壳（D1=A）：独立 STA UI 线程 + WinForms 主窗体 + WebView2 控件
-/// 加载本地 UI 地址（HTTP 未就绪先显示加载态，就绪后自动导航）。
-/// 关闭窗口 = 隐藏到托盘、服务常驻（D3）；托盘「打开界面」/ 单实例二次启动 = 显示并前置。
-/// WebView2 运行时不可用时工厂返回 null，由调用方回退 <see cref="BrowserUiShell"/>（D2 兜底）。
+/// 窗口形态界面壳：独立 STA UI 线程 + WinForms 主窗体 + WebView2 控件加载本地 UI 地址（未就绪先加载态）。
+/// 关窗 = 隐藏到托盘、服务常驻；WebView2 运行时不可用时工厂返回 null（调用方回退 <see cref="BrowserUiShell"/>）。
 /// </summary>
 internal sealed class WindowUiShell : IUiShell
 {
@@ -23,7 +21,7 @@ internal sealed class WindowUiShell : IUiShell
         _thread = thread;
     }
 
-    /// <summary>WebView2 Evergreen 运行时是否可用（缺失时 MSI 引导安装 + 应用回退浏览器，D2）。</summary>
+    /// <summary>WebView2 Evergreen 运行时是否可用（缺失时 MSI 引导安装 + 应用回退浏览器）。</summary>
     public static bool IsWebView2RuntimeAvailable()
     {
         try
@@ -36,11 +34,9 @@ internal sealed class WindowUiShell : IUiShell
         }
     }
 
-    /// <summary>
-    /// 启动窗口壳。WebView2 运行时不可用返回 null（调用方回退浏览器形态）。
-    /// </summary>
+    /// <summary>启动窗口壳。WebView2 运行时不可用返回 null（调用方回退浏览器形态）。</summary>
     /// <param name="uiUrl">本地 UI 地址。</param>
-    /// <param name="showInitially">启动即显示窗口（D4：手动启动显示；--autostart 仅托盘不弹窗）。</param>
+    /// <param name="showInitially">启动即显示窗口（--autostart 仅托盘不弹窗）。</param>
     /// <param name="hideOnClose">用户关窗 = 隐藏到托盘（无托盘时关窗即退出宿主）。</param>
     /// <param name="activateEvent">单实例激活事件（二次启动 → 显示并前置窗口）。</param>
     /// <param name="log">host.log 写入回调。</param>
@@ -88,8 +84,8 @@ internal sealed class WindowUiShell : IUiShell
                     executeOnlyOnce: false);
 
                 _ = form.Handle; // 强制创建句柄（未显示的窗体也可跨线程 BeginInvoke）
-                // 不设 MainForm：Application.Run 会自动显示 MainForm（RunMessageLoopInner→SetVisibleCore），
-                // 与「--autostart 仅托盘不弹窗」（D4）冲突；改为 FormClosed 手动结束消息循环
+                // 不设 MainForm：Application.Run 会自动显示 MainForm，与「--autostart 仅托盘不弹窗」冲突；
+                // 改为 FormClosed 手动结束消息循环
                 var context = new ApplicationContext();
                 form.FormClosed += static (_, _) => Application.ExitThread();
                 if (showInitially)
@@ -119,7 +115,7 @@ internal sealed class WindowUiShell : IUiShell
 
         shell = new WindowUiShell(form, thread);
         // WebView2 / WinForms 控件要求 STA；.NET 线程默认 MTA，必须在 Start 前设置
-        //（缺失时 CoreWebView2Environment 初始化报 RPC_E_CHANGED_MODE 0x80010106，本机冒烟实证）
+        // （缺失时 CoreWebView2Environment 初始化报 RPC_E_CHANGED_MODE 0x80010106）
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         if (!ready.Wait(TimeSpan.FromSeconds(10)))
@@ -324,7 +320,7 @@ internal sealed class WindowUiShell : IUiShell
             }
             catch (Exception ex)
             {
-                // D2 兜底：运行时初始化失败（如安装后被卸载）→ 回退默认浏览器 + host.log 记录原因
+                // 运行时初始化失败（如安装后被卸载）→ 回退默认浏览器 + host.log 记录原因
                 BrowserFallback = true;
                 _log($"WebView2 界面初始化失败，回退默认浏览器：{ex.Message}");
                 OpenSystemBrowser(_uiUrl);
@@ -392,8 +388,8 @@ internal sealed class WindowUiShell : IUiShell
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
-            // D3：关窗 = 隐藏到托盘、服务常驻（真正退出走托盘「退出」/ 宿主停止）。
-            // 无托盘模式（LABELFRAME_TRAY=0）没有恢复入口，关窗即退出宿主。
+            // 关窗 = 隐藏到托盘、服务常驻（真正退出走托盘「退出」/ 宿主停止）；
+            // 无托盘模式没有恢复入口，关窗即退出宿主
             var hide = !_allowClose && _hideOnClose && e.CloseReason == CloseReason.UserClosing;
             _log($"界面窗口 FormClosing：CloseReason={e.CloseReason}，allowClose={_allowClose}，hideOnClose={_hideOnClose}，处理={(hide ? "隐藏到托盘" : "关闭窗口")}");
             if (hide)

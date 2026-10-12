@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // draft 保留（切 tab / 刷新 / 标签页隔离 / Excel 不保留）+ 调试开关下按钮行为与下载（单张 PNG / zip）
-// F5：双 base（serverApi / localApi 跟随 deviceMode）+ 本机设备默认选中（hostConfig.deviceId 匹配）+ 单机降级守门
+// 双 base（serverApi / localApi 跟随 deviceMode）+ 本机设备默认选中（hostConfig.deviceId 匹配）+ 单机降级守门
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -282,7 +282,7 @@ describe('调试开关与按钮语义（迭代 15 §6.3）', () => {
   })
 })
 
-// （决议，评审）：「图片预览」名副其实——页内弹层呈现当前字段值的渲染图
+// 「图片预览」页内弹层呈现当前字段值的渲染图
 // 弹层内显式「下载」按钮，预览与下载分离；模拟出图（生成图片 / 批量 zip）链路零回归。
 describe('图片预览页内弹层与下载分离（迭代 81 · #129）', () => {
   /** URL 全局桩上的 revokeObjectURL（beforeEach 内 stubGlobal 重建，用例内现取引用）。 */
@@ -487,7 +487,7 @@ describe('目标设备固定本机（迭代 22 决策 1A）', () => {
   })
 })
 
-// （评审 /）：副标题用户化 + 作业进度目标设备显示设备名（client 构建）。
+// 副标题用户化 + 作业进度目标设备显示设备名（client 构建）。
 describe('打印页称谓与作业进度设备名（迭代 84 · #132）', () => {
   it('AC-01：副标题「填写数据并打印 / Excel 批量打印」，无「测试」字样', async () => {
     await renderDataPrint()
@@ -776,7 +776,7 @@ describe('模板详情加载竞态守卫（迭代 91 F-12）', () => {  it('AC-0
     // 列表加载后默认选中第一项「模板 A」，其详情挂起在途（全量并行负载下放宽等待，见 MOUNT_WAIT 注释）
     await waitFor(() => expect((screen.getAllByRole('combobox')[0] as HTMLSelectElement).value).toBe('模板A'), { timeout: 8000 })
     // 选中值渲染与详情加载 effect 之间存在调度间隙——断言收敛等待而非立即判定
-    // （CI 高负载下两度复现： run 35687207583 / run 35743386663， 残留观察点补治）
+    // （CI 高负载下两度复现的时序间隙——须收敛等待而非立即判定）
     await waitFor(() => expect(mocks.local.getTemplate).toHaveBeenCalledWith('模板A'), { timeout: 8000 })
 
     // 快速切到「模板 B」：B 立即返回并渲染（字段值）

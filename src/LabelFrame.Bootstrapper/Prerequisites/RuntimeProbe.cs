@@ -2,10 +2,10 @@ using Microsoft.Win32;
 
 namespace LabelFrame.Bootstrapper.Prerequisites;
 
-/// <summary>运行时前置探测结果（DESIGN 检测口径；BA 在 engine.Detect 前写入 Burn 探测变量）。</summary>
+/// <summary>运行时前置探测结果（BA 在 engine.Detect 前写入 Burn 探测变量）。</summary>
 /// <param name="DesktopRuntimeInstalled">.NET 10 Desktop Runtime（x64）是否已装（文件版本探测，≥ 10.0.0，latestMajor 前滚）。</param>
 /// <param name="DesktopRuntimeVersion">已装的最高 Desktop Runtime 版本（目录名原样；未装为 null）。</param>
-/// <param name="AspNetCoreRuntimeInstalled">ASP.NET Core Runtime（x64）是否已装（文件版本探测，机制同 Desktop；，——Server 组件 Sdk.Web 隐式 FrameworkReference 所需）。</param>
+/// <param name="AspNetCoreRuntimeInstalled">ASP.NET Core Runtime（x64）是否已装（文件版本探测，机制同 Desktop；Server 与 WinHost 均 Sdk.Web 隐式 FrameworkReference 所需）。</param>
 /// <param name="AspNetCoreRuntimeVersion">已装的最高 ASP.NET Core Runtime 版本（目录名原样；未装为 null）。</param>
 /// <param name="WebView2Installed">WebView2 Evergreen 是否已装（EdgeUpdate Clients pv 注册表，HKLM + HKCU 双查）。</param>
 public sealed record RuntimeProbeResult(
@@ -16,10 +16,9 @@ public sealed record RuntimeProbeResult(
     bool WebView2Installed);
 
 /// <summary>
-/// 运行时前置探测（含 ASP.NET Core 腿）：.NET Desktop / ASP.NET Core Runtime 用
-/// <b>文件版本探测</b>（注册表 sharedfx 实证不可靠——运行时已装而键不存在，见 与本仓 MSI 注释）
-/// WebView2 用<b>注册表探测</b>（对齐 MSI 侧 WEBVIEW2_HKLM / WEBVIEW2_HKCU 先例）。
-/// 目录枚举与注册表读取以委托注入（net10 测试腿可注入假探针；net48 BA 腿用默认实现）。
+/// 运行时前置探测：.NET Desktop / ASP.NET Core Runtime 用<b>文件版本探测</b>——注册表 sharedfx 实证不可靠
+/// （运行时已装而键不存在，不可改注册表法）；WebView2 用<b>注册表探测</b>（对齐 MSI 侧 WEBVIEW2_HKLM / WEBVIEW2_HKCU 先例）。
+/// 目录枚举与注册表读取以委托注入（测试可注入假探针）。
 /// </summary>
 public sealed class RuntimeProbe
 {

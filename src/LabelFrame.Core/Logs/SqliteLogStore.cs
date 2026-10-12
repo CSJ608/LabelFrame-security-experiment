@@ -141,13 +141,13 @@ public sealed class SqliteLogStore
     }
 
     /// <summary>量闸执行结果：累计删除行数 + 异常态警告（null = 无异常；VACUUM 失败 / 表空仍超阈等，
-    /// 由调用方经 ILogger 记录——Core 库无日志抽象，服务宿主可能无控制台， 留观项）。</summary>
+    /// 由调用方记录——Core 库无日志抽象，服务宿主可能无控制台）。</summary>
     public sealed record SizeLimitResult(int DeletedRows, string? VacuumWarning);
 
     /// <summary>
     /// logs.db 按量闸：库文件（logs.db + logs.db-wal 合计）超过 <paramref name="maxBytes"/> 时
     /// 循环「删一批最旧 → VACUUM → wal_checkpoint(TRUNCATE)」直至合计回到阈值内 / 表已空 / 轮数上限。
-    /// 按大小删最旧不受保留期下限约束（有意行为）；返回累计删除行数与异常态警告。
+    /// 按大小删最旧不受保留期下限约束（有意行为）。
     /// 收敛判据只取 VACUUM + checkpoint 之后的合计大小——DELETE 之后主文件不会缩小（空闲页仅库内复用），
     /// 以删除间歇的文件大小判断收敛会在首次超阈即删空全表。
     /// </summary>

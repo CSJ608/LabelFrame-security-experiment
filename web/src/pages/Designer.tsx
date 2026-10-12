@@ -1,11 +1,6 @@
-// 设计器（核心）：顶栏（模板名/分组/纸张/DPI/预览/保存）+ 左栏（控件/字段/图层）
-// + 画布（移植原型交互）+ 右栏（属性 / 测试数据 Tab）。
-// 状态：stateRef 为同步真相（事件回调内先更新再 setState），历史为快照式。
-// 未保存离开保护——dirty（历史栈有已提交更改）时返回按钮与 Shell 导航切 tab
-// 均弹三选 Modal（保存并离开 / 放弃更改 / 继续编辑）；无编辑直接离开不弹窗。
-// 帮助深链锚点 = 路由 sub 段（helpAnchor props）——页内轮询
-// （useHelpDeepLink）等锚点入 DOM 自动弹文档点气泡；深链自动开草稿放示例元素入初始基线（
-// 见 init 落点），守卫链零改动（三选差异由示例元素落点自然产生）。
+// 设计器（核心）：顶栏（模板名 / 分组 / 纸张 / DPI / 预览 / 保存）+ 左栏（控件 / 字段 / 图层）
+// + 画布 + 右栏（属性 / 测试数据 Tab）。stateRef 为同步真相（事件回调内先更新再 setState），
+// 历史为快照式；dirty（历史栈有已提交更改）时离开走三选 Modal，无编辑直接离开不弹窗。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -38,7 +33,6 @@ const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.pa
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 
 // ---------- 图片资源：限制上限与前端预检常量 ----------
-// 限制按入库（压缩后）字节判定——>1MB 先走浏览器内压缩管道（imageCompress），压缩后仍超限才拒收
 /** 支持格式（accept + 预检白名单，与服务端格式探嗅对齐）。 */
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/bmp'
 /** 单图入库字节上限（2MB，压缩后）。 */
@@ -54,8 +48,7 @@ function fmtMb(bytes: number): string {
   return v >= 1 ? v.toFixed(1) : v.toFixed(2)
 }
 
-/** 文件名净化为资源 key（真对齐后端 zip SanitizeKey 口径：char.IsLetterOrDigit 为 Unicode 感知——中文文件名
- * 保留（复陪验反馈 2-：ASCII 白名单曾把「微信图片_….png」替成「______.png」）；\p{L}\p{N} 与 . - _ 之外替换 _）。 */
+/** 文件名净化为资源 key（口径对齐后端 SanitizeKey：Unicode 字母数字保留，中文文件名不得被 ASCII 白名单毁成下划线；\p{L}\p{N} 与 . - _ 之外替换 _）。 */
 export function sanitizeImageKey(fileName: string): string {
   const safe = fileName.replace(/[^\p{L}\p{N}._-]/gu, '_')
   return safe.trim() === '' ? 'image' : safe
@@ -108,14 +101,10 @@ function readFileAsDataUrl(file: Blob): Promise<string> {
   })
 }
 
-/* * 深链示例元素构造：预设 spec → defaultElement + patch 合并——每次调用
- *  生成新 id（跨草稿不串号）、默认文案随当前语言；元素随草稿 init 并入初始基线（见 init 落点）。
- *  spec 类型全集含控件栏外三型（Line / Region 等），defaultElement 重载面按控件栏入口收窄——
- *  数据源为受控预设表，双转型到实现签名（全 7 型均有分支）。 */
+/* * 深链示例元素构造：预设 spec → defaultElement + patch 合并——每次调用生成新 id、默认文案随当前语言。 */
 function buildHelpLinkElements(anchor: string): DesignElement[] {
   return (HELP_LINK_ELEMENTS[anchor] ?? []).map(({ type, patch }) => {
     const e = defaultElement(type as 'Text') as DesignElement
-    // fill 预设（字段填充三件套）补随语言的显示名示例值（其余锚点无 displayName 语义）
     const extra = 'mode' in (patch ?? {}) ? { displayName: helpSampleDisplayName() } : {}
     return { ...e, ...patch, ...extra } as DesignElement
   })
@@ -124,22 +113,18 @@ function buildHelpLinkElements(anchor: string): DesignElement[] {
 interface DesignerProps {
   request: DesignerRequest
   onClose: () => void
-  /* * ：向 Shell 注册离开守卫（导航 tab 切换拦截：dirty 时弹三选 Modal 挂起本次切换）；卸载自动注销。
-   * 修复（取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行
-   *  供路由 hashchange 分支判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
+  /* * 向 Shell 注册离开守卫（导航 tab 切换拦截）；卸载自动注销。返回 false=已挂起三选待确认、
+   * true=已直接放行——路由据此判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
   registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
-  /* * 帮助深链锚点（语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
-   *  经 useHelpDeepLink 页内轮询等锚点入 DOM 后自动弹出对应文档点气泡；锚点已登记示例元素预设
-   * 且草稿为新建时，示例元素随 init 并入初始基线。 */
+  /* * 帮助深链锚点（= 路由 sub 段，Shell 直传）；页内轮询入 DOM 后自动弹文档点气泡。 */
   helpAnchor?: string | null
 }
 
 export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: DesignerProps) {
   const app = useApp()
-  // 设计器文案 key 化（designer 域）；数据性默认值（分组「默认」）随界面语言（待决议-1）
   const { t } = useTranslation('designer')
   const { serverMode } = app
-  /* * 业务 API 跟随模式（与 Workbench 对齐：unknown 时下方加载 effect 不发请求，待探测完成）。 */
+  /* * 业务 API 跟随模式（unknown 时不发请求，待探测完成）。 */
   const biz = serverMode === 'server' ? serverApi : localApi
   const [state, setState] = useState<DesignState | null>(null)
   const [selected, setSelected] = useState<string[]>([])
@@ -157,20 +142,17 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const [loadError, setLoadError] = useState<string | null>(null)
   // 未保存离开保护——三选 Modal（保存并离开 / 放弃更改 / 继续编辑）
   const [leaveGuardOpen, setLeaveGuardOpen] = useState(false)
-  // 「看实时效果」演示——显示层 override（记录演示文档点锚点）
-  // 仅合并进 viewElements 喂画布与属性面板；不写 stateRef / historyRef → 不进历史栈、不置
-  // dirty、doSave 读 stateRef 不含注入值（零落库零写请求的结构性保证）；退出 = 清锚点即还原。
+  // 「看实时效果」演示——显示层 override（记录演示文档点锚点）：只喂画布与属性面板，
+  // 不写 stateRef / historyRef（不进历史栈、不置 dirty，保存链零落库零写请求）；退出清锚点即还原。
   const [demoAnchor, setDemoAnchor] = useState<string | null>(null)
-  // displayName 示例值随语言补入（预设不静态写死， wrapup 定夺 zh「库位」/ en "Bin"）
+  // displayName 示例值随语言补入（预设不静态写死）
   const demoPatch = demoAnchor
     ? { ...HELP_DEMO_PRESETS[demoAnchor], displayName: helpSampleDisplayName() }
     : undefined
   const demoActive = demoPatch !== undefined
-  // 深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
-  //（PropsPanel 既有 autoOpenAnchor 链，处理后清信号防重复触发）。
+  // 深链自动弹气泡的内部信号（PropsPanel 处理后清信号防重复触发）
   const [autoOpenAnchor, setAutoOpenAnchor] = useState<string | null>(null)
-  // 深链草稿一次性标记：本挂载以深链自动开草稿时置位——首个 onFound 不清状态栏
-  //（draftOpened 为终态提示），消费后复位（后续锚点 found 恢复清等待提示的旧口径）。
+  // 深链草稿一次性标记：深链自动开草稿时置位，首个 onFound 不清状态栏（draftOpened 为终态提示），消费后复位。
   const deepLinkDraftRef = useRef(false)
 
   const stateRef = useRef<DesignState | null>(null)
@@ -179,14 +161,13 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const contractNameRef = useRef('')
   const contractVersionRef = useRef('1')
   const selectedRef = useRef<string[]>([])
-  // 图片资源表：key → 资源，由本组件持有——不进 DesignState / 历史快照
-  //（snap 仅 paperW/paperH/elements，防 base64 撑爆撤销栈）；撤销「添加图片元素」后资源成孤儿由保存时 GC。
+  // 图片资源表：key → 资源，由本组件持有——不进历史快照（snap 仅 paperW/paperH/elements，防 base64 撑爆撤销栈）；孤儿 key 由保存时 GC。
   const [imageAssets, setImageAssets] = useState<Record<string, ImageAsset>>({})
   const imageAssetsRef = useRef<Record<string, ImageAsset>>({})
   /** 隐藏文件选择（上传 / 更换共用同一 input；replaceTargetRef 记录更换目标元素 id）。 */
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
-  // （决议 a）：离开保护挂起的离开动作——「放弃更改」与「保存并离开」成功后执行
+  // 离开保护挂起的离开动作：「放弃更改」与「保存并离开」成功后执行；
   // 各终止路径（继续编辑 / 保存失败 / 覆盖取消 / 名称缺失）就地作废，防陈旧离开动作误触发后续普通保存。
   const pendingLeaveRef = useRef<(() => void) | null>(null)
   // 加载单次闩锁 + 挂载标记（见下方加载 effect 注释）
@@ -199,10 +180,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
   }, [])
 
-  // （机制迁移）：深链锚点页内轮询（旧 Shell 两段信号收口删除，等待收敛
-  // 到目标页）——置于加载 effect 之前：自动草稿路径先写 pending、init 随即以 draftOpened 覆盖
-  //（方案风险节「pending 一闪后被 draftOpened 覆盖属预期」）；超时走通用降级词条（未开模板 /
-  // 未选中元素 / 类型不含目标分组 / 对齐组需多选 / 预览锁定等一切锚点不可见情形同此提示）。
+  // 深链锚点页内轮询——须声明于加载 effect 之前（自动草稿路径先写 pending、init 随即以 draftOpened 覆盖）；
+  // 超时走通用降级词条（一切锚点不可见情形同此提示）。
   useHelpDeepLink(helpAnchor, {
     onFound: () => {
       if (deepLinkDraftRef.current) deepLinkDraftRef.current = false
@@ -213,16 +192,13 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     onPending: () => app.setStatus(t('help:deepLink.pending')),
   })
 
-  // 深链到达性保障（陪验反馈 1）：锚点变更时若目标分组对当前选中不可见（未选中 / 类型不含
-  // 目标组 / 对齐组少于多选），主动把界面带到锚点可见状态——否则页内轮询只会超时降级、气泡内容
-  // 始终看不到。两档处置：深链原装示例草稿且未编辑（deepLinkDraftRef 在场 + undoCount=0）→ 按新
-  // 锚点重建示例元素集（等价「换一个小节看」，不丢任何用户内容）；其余（用户草稿已编辑 / 已开模板）
-  // → 自动选中既有匹配型元素（对齐组选任意两个），没有匹配元素则不动作（不往用户内容里加元素，
-  // 维持超时降级口径）。
+  // 深链到达性保障：锚点变更时若目标分组对当前选中不可见，主动带到可见状态（否则轮询只会超时降级）。
+  // 两档：示例草稿未编辑（undoCount=0）→ 按新锚点重建示例集（不丢用户内容）；用户内容 → 只改选中
+  // 不注入元素（对齐组选任意两个），无匹配元素则不动作（维持超时降级）。
   useEffect(() => {
     if (!helpAnchor) return
     const specs = Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? HELP_LINK_ELEMENTS[helpAnchor] : null
-    if (!specs) return // 非设计器文档点锚（settings 卡片等）——锚点常在，走既有轮询
+    if (!specs) return // 非设计器文档点锚——锚点常在，走既有轮询
     const s = stateRef.current
     if (!s) return
     const selEls = s.elements.filter((e) => selectedRef.current.includes(e.id))
@@ -230,8 +206,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     const reachable = helpAnchor === 'designer.align' ? selEls.length >= 2 : selEls.some((e) => types.has(e.type))
     if (reachable) return
     if (request.kind === 'new' && (historyRef.current?.undoCount ?? 0) === 0) {
-      // 重建示例集：undoCount=0 = 无任何用户已提交更改（含手动新建未动过的草稿），重建不丢工作；
-      // 沿用当前纸张尺寸，元素与历史基线整体换为目标锚点预设（undoCount 归零不 dirty）
+      // 重建示例集：undoCount=0 = 无任何已提交更改，重建不丢工作；元素与历史基线整体换为目标锚点预设（不 dirty）
       const samples = buildHelpLinkElements(helpAnchor)
       const next = { ...s, elements: samples }
       stateRef.current = next
@@ -240,12 +215,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       const ids = samples.map((e) => e.id)
       setSelected(ids)
       selectedRef.current = ids
-      // 与挂载路径同款一次性标记：本次 onFound 不清状态栏（draftOpened 为终态提示）
       deepLinkDraftRef.current = true
       app.setStatus(t('help:deepLink.draftOpened'))
       return
     }
-    // 用户内容：只改选中不改元素（对齐组取任意两个，其余取首个匹配型）
     const pick =
       helpAnchor === 'designer.align'
         ? s.elements.filter((e) => e.type !== 'Region').slice(0, 2).map((e) => e.id)
@@ -280,11 +253,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   }, [])
 
   // ---------- 加载 ----------
-  // 与 Workbench 的 serverMode 守卫对齐——unknown（模式探测未完成）时不以 localApi 误发请求
-  // 待 AppContext 解析出 server / standalone 后重跑本 effect 按正确 base 加载。serverMode 为原始值入依赖，
-  // 不会触发既有注释所述的无限循环（app 为 context 对象、每次渲染新引用，才是不能入依赖的雷区）；
-  // initedRef 单次闩锁——模式中途翻转（10s 周期探测 server ↔ standalone）不重拉模板、不重置编辑中状态
-  // （组件在 App 按 key 重挂，request 在一次挂载内不变，故无需按 request 变化作废在途结果）。
+  // serverMode unknown（探测未完成）时不以 localApi 误发请求，待解析后重跑本 effect；
+  // serverMode 为原始值入依赖安全——app（context 对象，每次渲染新引用）入依赖才会无限循环。
+  // initedRef 单次闩锁——模式中途翻转（周期探测 server ↔ standalone）不重拉模板、不重置编辑中状态
+  //（组件按 key 重挂，request 一次挂载内不变）。
   useEffect(() => {
     if (request.kind !== 'new' && serverMode === 'unknown') return
     if (initedRef.current) return
@@ -305,8 +277,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         initialNameRef.current = pkg.name
         contractNameRef.current = pkg.contract?.name ?? pkg.name
         contractVersionRef.current = pkg.contract?.version ?? '1'
-        // 图片资源回填：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染
-        // 像素尺寸异步解码补齐（属性面板信息行用；失败保持 0，仅影响展示不影响渲染）。
+        // 图片资源回填：base64 即时回填画布；像素尺寸异步解码补齐（失败保持 0，仅影响展示）。
         if (pkg.images && Object.keys(pkg.images).length > 0) {
           const assets: Record<string, ImageAsset> = {}
           for (const [key, base64] of Object.entries(pkg.images)) {
@@ -333,11 +304,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
 
     if (request.kind === 'new') {
-      // （初始基线）：深链自动开草稿时按锚点小节类型放置示例
-      // 元素——随 init 并入 stateRef 且作 createHistory 基线（可正常编辑、undoCount=0 不 dirty、
-      // 未编辑退出静默弃、用户编辑后三选守卫照常）；「不落库零业务数据」重解释＝自动机制零写请求
-      // ＋用户显式命名保存属正常草稿行为（记录，偏离 Issue 约束句「不写 stateRef 保存链」的
-      // 理由：纯显示层注入 ⇒ undoCount=0 ⇒ 「退出即弃带未保存守卫」永不触发的内在矛盾）。
+      // 深链自动开草稿时按锚点放置示例元素——并入初始基线（可正常编辑、undoCount=0 不 dirty、未编辑退出静默弃）。
       const linkAnchor = helpAnchor && Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? helpAnchor : null
       const samples = linkAnchor ? buildHelpLinkElements(linkAnchor) : []
       init({ paperW: 100, paperH: 60, elements: samples })
@@ -359,7 +326,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           {
             paperW: pkg.layout?.widthMm || 100,
             paperH: pkg.layout?.heightMm || 60,
-            // 显示名存于契约 fields（版式元素 JSON 无此字段），加载时按字段名回填到元素
             elements: applyContractDisplayNames(fromBackendElements(pkg.layout?.elements ?? []), pkg.contract?.fields ?? []),
           },
           pkg,
@@ -386,7 +352,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     (type: string, xMm: number, yMm: number) => {
       const s = stateRef.current
       if (!s) return
-      // 五类控件栏入口（图片两步式：先落 key 空 20×20mm 空占位，再上传填充——）
       const e = defaultElement(type as 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image') as DesignElement
       e.x = Math.max(0, Math.min(s.paperW - 2, r2(xMm)))
       e.y = Math.max(0, Math.min(s.paperH - 2, r2(yMm)))
@@ -410,8 +375,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   )
 
   // ---------- 图片上传（； 两步式＋压缩） ----------
-  /* * 上传失败提醒：页内轻量 toast 浮层自动消失（5s）——单条最新覆盖（连续失败不堆积），
-   *  Designer 局部实现不引全局组件；成功 / 压缩提示仍走状态栏（常驻语义，最新覆盖）。 */
+  /* * 上传失败提醒：页内轻量 toast（5s 自动消失，单条最新覆盖）；成功 / 压缩提示仍走状态栏。 */
   const [imageToast, setImageToast] = useState<string | null>(null)
   const imageToastTimerRef = useRef<number | null>(null)
   const showImageToast = useCallback((message: string) => {
@@ -426,10 +390,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     [],
   )
 
-  /** 文件落地（两步式，必带目标元素——空占位填充或更换）：格式预检 → 压缩管道（>1MB 自动压缩，
-   *  压缩后仍 >2MB 才拒收；张数 / 总量按入库（压缩后）字节）→ dataURL → 解码尺寸 → key 净化去重 →
-   *  写目标元素 key（换新 key 防共享旧 key 的多元素同变；旧 key 孤儿随保存 GC）。填充后保持用户
-   * 所画盒尺寸、图片拉伸填满（不做 30mm 自动尺寸）。资源表不进历史快照。 */
+  /** 文件落地（两步式，必带目标元素）：格式预检 → 压缩（拒收按压缩后字节）→ dataURL → key 净化去重 →
+   *  写目标元素 key（换新 key 防共享旧 key 的多元素同变；旧 key 孤儿随保存 GC）。 */
   const addImageFile = useCallback(
     (file: File, targetId: string) => {
       const reject = (reasonKey: string) => showImageToast(t('status.imageRejected.body', { reason: t(reasonKey) }))
@@ -438,7 +400,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         return
       }
       const s0 = stateRef.current
-      // 目标必须是图片元素（空占位或已填）——画布 / 属性面板入口都以元素 id 为准
       if (!s0 || !s0.elements.some((el) => el.id === targetId && el.type === 'Image')) return
 
       void (async () => {
@@ -448,7 +409,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           return
         }
         const assets = imageAssetsRef.current
-        // 张数按「将被引用的新 key」计：目标已持有 key 的更换不占新增名额（旧 key 成孤儿随保存 GC）
+        // 张数按「将被引用的新 key」计：更换不占新增名额（旧 key 成孤儿随保存 GC）
         const targetEl = stateRef.current?.elements.find((el) => el.id === targetId && el.type === 'Image') as ImageElement | undefined
         if (!targetEl) return
         if (!targetEl.key && Object.keys(assets).length >= IMAGE_MAX_COUNT) {
@@ -477,8 +438,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         imageAssetsRef.current = nextAssets
         setImageAssets(nextAssets)
         changeElement(targetId, { key })
-        // 成功提示（复陪验反馈 2-，推翻）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见）
-        // 原始→入库体积知情权；未压缩的常规更新仍走状态栏（画布变化本身可见）。
+        // 压缩发生时以 toast 呈现（状态栏轻提示用户看不见——踩过）；未压缩仍走状态栏。
         if (compressed) showImageToast(t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }))
         else app.setStatus(t('status.imageReplaced'))
       })()
@@ -502,7 +462,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       const targetId = replaceTargetRef.current
       replaceTargetRef.current = null
       ev.target.value = '' // 同名文件可再次选择
-      // 入口只经元素目标（属性面板按钮 / 画布空占位单击）——无目标即对话框已过期的防御性丢弃
       if (file && targetId) addImageFile(file, targetId)
     },
     [addImageFile],
@@ -666,7 +625,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     app.setStatus(t('status.pasted', { count: copies.length }))
   }, [app, commit, t])
 
-  // ---------- 设计 JSON 导入 / 导出（剪贴板，多级降级；修复：不再弹 prompt 重复复制） ----------
+  // ---------- 设计 JSON 导入 / 导出（剪贴板，多级降级） ----------
   const doExportDesign = useCallback(async () => {
     const s = stateRef.current
     if (!s) return
@@ -790,8 +749,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         const fields = deriveFieldInfos(s.elements)
         const version = request.kind === 'new' ? '1' : contractVersionRef.current
         const contractName = request.kind === 'new' ? finalName : contractNameRef.current
-        // 图片资源：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64
-        // 恒发显式字典（有图非空 / 无图空字典），不依赖契约缺省态（缺省 / null＝保留仅为旧调用方兜底）
+        // 图片资源：仅提交被引用的 key（孤儿 GC），剥 dataURL 前缀；恒发显式字典——
+        // 契约缺省 / null＝保留旧图，空字典才是清空，不得依赖缺省态。
         const usedKeys = new Set(s.elements.filter((e) => e.type === 'Image' && e.key).map((e) => (e as ImageElement).key))
         const images: Record<string, string> = {}
         for (const [key, asset] of Object.entries(imageAssetsRef.current)) {
@@ -810,8 +769,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         }
         await biz.saveTemplate(pkg)
         app.setStatus(t('status.saved', { name: finalName }))
-        // 「保存并离开」成功后执行挂起的离开动作（保存成功自然复位 dirty——组件随离开卸载）
-        // 普通保存无挂起动作，维持既有 onClose 回工作台
+        // 「保存并离开」成功后执行挂起的离开动作；普通保存维持 onClose 回工作台
         const leave = pendingLeaveRef.current
         pendingLeaveRef.current = null
         if (leave) leave()
@@ -850,9 +808,9 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
   }, [app, biz, doSave, name, request.kind, t])
 
-  // ---------- 离开保护（决议 a：dirty = 历史栈有任一已提交更改） ----------
-  /* * 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗；有则弹三选 Modal 挂起本次离开动作。
-   * 返回 false=已挂起（三选待确认）、true=已直接放行——Shell switchTab 以此决定路由是否 pre-revert（取证修复）。 */
+  // ---------- 离开保护（dirty = 历史栈有任一已提交更改） ----------
+  /* * 请求离开：无已提交更改（undoCount=0）直接离开不弹窗；有则弹三选 Modal 挂起离开动作。
+   * 返回 false=已挂起、true=已放行——Shell 以此决定路由是否 pre-revert（非 dirty 放行不得回退，否则浏览器后退失效）。 */
   const requestLeave = useCallback((leave: () => void): boolean => {
     if ((historyRef.current?.undoCount ?? 0) > 0) {
       pendingLeaveRef.current = leave
@@ -893,7 +851,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     pendingLeaveRef.current = null
   }, [])
 
-  // Shell 导航 tab 切换拦截：挂载注册 / 卸载注销（设计器随切 tab 卸载后 Shell 侧不再拦截）
+  // Shell 导航 tab 切换拦截：挂载注册 / 卸载注销
   useEffect(() => {
     if (!registerLeaveGuard) return
     registerLeaveGuard(requestLeave)
@@ -902,9 +860,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
 
   const fields = useMemo(() => (state ? deriveFieldInfos(state.elements) : []), [state])
 
-  // 演示视图：override 只合并进「渲染视图」state——画布（预览值本就画布渲染）与属性面板
-  // 实时反映示例值；SidePanel 图层列表与「测试默认值」页签保持原始 state（有意边界：演示不影响
-  // 派生链路，防注入值写入 previewDefaults 相关链路破坏零落库论断—— 方案评审明示）。
+  // 演示视图：override 只合并进渲染视图——图层列表与「测试默认值」页签保持原始 state；
+  // 注入值不得进 previewDefaults 等派生链路（零落库保证）。
   const viewState = useMemo<DesignState | null>(() => {
     if (!state || !demoPatch) return state
     const targetId = selectedRef.current[0]
@@ -924,7 +881,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     return m
   }, [state])
 
-  // 字段显示名：与推导一致取首个非空，显示处 `displayName || key` 回退
   const displayNameByKey = useMemo(() => {
     const m = new Map<string, string>()
     if (!state) return m
@@ -1035,8 +991,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
 
       {state && viewState && (
         <div className="designer-body">
-          {/* 演示期间（demoActive）左栏与画布编辑全禁用：回调整体换 no-op（写入侧结构性兜底，
-              拍板 4 方案 A）；图层列表仍显示原始 elements（演示有意边界，见 viewState 注释） */}
+          {/* 演示期间左栏 / 画布 / 属性面板回调整体换 no-op（写入侧结构性兜底）；
+              图层列表仍显示原始 elements（见 viewState 注释） */}
           <SidePanel
             elements={state.elements}
             selected={selected}

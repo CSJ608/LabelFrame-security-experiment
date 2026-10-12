@@ -4,10 +4,10 @@ using LabelFrame.Core.Transport;
 namespace LabelFrame.Core.Transport.Plugins;
 
 /// <summary>
-/// 传输插件注册表实现：注册（内置 / 外部）→ 按 ID 装配。插件 ID 忽略大小写。
-/// 外部插件的 AssemblyLoadContext 根随注册强持有：collectible ALC 被丢弃后 GC 发起卸载会破坏
-/// 其状态机（此后惰性解析 LoadFromStream 抛 VerifyIsAlive），注册表在宿主生命周期内
-/// 保持插件 ALC 存活；同 id 重新注册时旧根随旧条目释放（GC 可回收）。
+/// 传输插件注册表实现：注册（内置 / 外部）→ 按 ID 装配（ID 忽略大小写）。
+/// 外部插件的 AssemblyLoadContext 根随注册强持有（宿主生命周期内保持插件 ALC 存活）——
+/// collectible ALC 被丢弃后 GC 发起卸载会破坏其状态机，此后惰性解析 LoadFromStream 抛 VerifyIsAlive；
+/// 同 id 重新注册时旧根随旧条目释放。
 /// </summary>
 public sealed class TransportPluginRegistry : ITransportPluginRegistry
 {
@@ -26,7 +26,7 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
             throw new ArgumentException("插件 ID 不能为空。", nameof(plugin));
         }
 
-        _plugins[plugin.Id] = (
+            _plugins[plugin.Id] = (
             new TransportPluginDescriptor(
                 plugin.Id,
                 plugin.DisplayName,
@@ -34,7 +34,6 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
                 plugin.Parameters,
                 isExternal,
                 assemblyPath,
-                // 装配期能力位判定：插件对象实现 ILabelCommandCompiler 即具备文档编译能力
                 plugin is ILabelCommandCompiler),
             plugin);
         if (loadContext is not null)

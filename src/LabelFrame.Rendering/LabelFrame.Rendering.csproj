@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- SkiaSharp 版本下限为兼容义务（决策 #130）：低于 3.119.2 会在 Client MSI 覆盖升级链
+    <!-- SkiaSharp 版本下限为兼容义务：低于 3.119.2 会在 Client MSI 覆盖升级链
          触发 Windows Installer 组件规则拒装降版 keyfile；升版时须同步上调
          scripts/assert-client-deps-baseline.ps1 基线。 -->
     <PackageReference Include="SkiaSharp" Version="3.119.2" />

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>离线布局目录命名约定测试（/ ，DESIGN）——生成与消费共用的单点契约锚定。</summary>
+/// <summary>离线布局目录命名约定测试——生成与消费共用的单点契约锚定。</summary>
 public sealed class OfflineLayoutNamingTests
 {
     private static ManifestComponent Component(string id, params string[] urls) =>

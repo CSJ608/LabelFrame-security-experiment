@@ -3,17 +3,14 @@ using LabelFrame.Core.Layout;
 namespace LabelFrame.TransportPlugin.Zebra;
 
 /// <summary>
-/// QR 码符号度量知识：字节模式数据容量表（ISO/IEC 18004 标准容量）+ 版本 → 模块数换算。
-/// 用途仅限编译期估算放大倍数（^BQ 参数 c）——`^BQ` 的符号物理尺寸 = （矩阵模块数 + 2×静区）× 放大倍数（点），
-/// 无放大倍数之外的尺寸参数，要把模板的二维码边长（毫米）换算为放大倍数必须先估算符号版本。
-/// 估算按字节模式容量取最小可容版本（打印机自动输入模式可能选用更紧凑的数字 / 字母数字模式，
-/// 实际矩阵更小 → 实际尺寸略小于模板框，属 尽力近似口径，不作阻断）。
+/// QR 码符号度量：字节模式数据容量表（ISO/IEC 18004）+ 版本 → 模块数换算，仅供编译期估算 ^BQ 放大倍数
+/// （估算按字节模式取最小可容版本；打印机自动输入模式可能选更紧凑模式致实际略小，属尽力近似不作阻断）。
 /// </summary>
 internal static class ZebraQrCodeMetrics
 {
     /// <summary>
     /// 字节模式数据容量（字节）——按版本 1..40 × ECC（L / M / Q / H，与 <see cref="LabelQrEcc"/> 枚举序一致）；
-    /// ISO/IEC 18004 标准容量表（如 V1-M 14 字节、V40-L 2953 字节）。
+    /// ISO/IEC 18004 标准容量表。
     /// </summary>
     internal static readonly int[,] ByteModeCapacities =
     {
@@ -62,7 +59,7 @@ internal static class ZebraQrCodeMetrics
 
     /// <summary>
     /// 按数据 UTF-8 字节数与纠错级别估算最小可容版本（1..40）；
-    /// 超出 V40 容量的极端长值封顶 V40 估算（打印机自行处理，编译不因此失败——尽力近似口径）。
+    /// 超出 V40 容量的极端长值封顶 V40（打印机自行处理，编译不因此失败）。
     /// </summary>
     internal static int EstimateVersion(int utf8ByteCount, LabelQrEcc ecc)
     {

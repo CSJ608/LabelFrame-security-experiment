@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
-// settings 单测（F2 重写）：serverBase 兜底 = localStorage > 默认 127.0.0.1:53961
-// 移除方案 B 残留检测（比较基准已随 DEFAULT_BASE_URL 变更失效）。
+// settings 单测：serverBase 兜底 = localStorage > 默认 127.0.0.1:53961。
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BASE_URL } from './api/types'
 import { getBaseUrl, setBaseUrl } from './settings'

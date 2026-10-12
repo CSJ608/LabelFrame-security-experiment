@@ -3,19 +3,15 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.TransportPlugin.Fake;
 
-/// <summary>
-/// fake 传输插件（测试 / PDA Spike 用，/）：纯托管轻量档插件——发送内容记录到宿主日志与
-/// 数据目录落盘文件（<c>fake-transport-sent.txt</c>），连接测试恒成功、状态恒在线；
-/// 用于验证外置插件通道「加载 → 发现 → 配置路由 → 测试打印」完整链路（无需真实打印机）。
-/// API 面约束（Spike 实证后拍板方案 A，DESIGN /）：只使用保守 API 面
-/// （近似 netstandard2.0 级老牌 API），禁用 .NET 6+ 新增 BCL API（如 <c>ReplaceLineEndings</c>）——
-/// Release AOT 宿主内 interpreter 对动态加载程序集的 BCL 可解析面不含宿主 AOT 图未引用的新增 API，
-/// 命中即方法体解析期 <c>MissingMethodException</c>（Spike 真机实证）。本插件即「门槛用例」：
-/// 其打印链路跑通 = 插件 API 约束面可用性下限成立。
-/// </summary>
+/// <summary>fake 传输插件（测试 / PDA 通道验证）：发送内容记录到宿主日志与数据目录落盘，连接测试恒成功、状态恒在线。</summary>
+/// <remarks>
+/// 保守 API 面约束：Release AOT 宿主内动态加载程序集走 interpreter 解释执行，其可解析面不含宿主
+/// AOT 图未引用的 .NET 6+ 新增 BCL API——命中即方法体解析期 MissingMethodException（真机实证）。
+/// 故只使用近似 netstandard2.0 级老牌 API；本插件即该约束面的门槛用例（其链路跑通 = 约束面下限成立）。
+/// </remarks>
 public sealed class FakeTransportPlugin : ITransportPlugin
 {
-    /// <summary>发送内容落盘文件名（插件数据目录内；PDA 走查经 adb run-as / pull 取证）。</summary>
+    /// <summary>发送内容落盘文件名（插件数据目录内）。</summary>
     public const string SinkFileName = "fake-transport-sent.txt";
 
     /// <inheritdoc />
@@ -64,8 +60,7 @@ public sealed class FakePrintTransport : IPrintTransport, IPrinterStatusProvider
     /// <inheritdoc />
     public Task SendAsync(string command, CancellationToken cancellationToken = default)
     {
-        // 保守 API 面：空判用构造器抛出（ArgumentNullException.ThrowIfNull 为 .NET 6+
-        // CA1510 建议的形态恰落在约束面外，本地抑制）
+        // 保守 API 面：ArgumentNullException.ThrowIfNull 为 .NET 6+（约束面外）——空判用构造器抛出，CA1510 本地抑制
 #pragma warning disable CA1510 // 使用 ArgumentNullException.ThrowIfNull
         if (command is null)
         {
@@ -76,9 +71,8 @@ public sealed class FakePrintTransport : IPrintTransport, IPrinterStatusProvider
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            // 落盘留痕（走查取证）：一条发送一行「时间 + 字节数 + 内容」；写失败不影响链路（日志仍有记录）。
-            // 换行折叠用链式 Replace 等价实现（ReplaceLineEndings 为 .NET 6+ API，interpreter 可解析面不含——
-            // Spike 真机实证发送段缺口即由此触发， 约束面禁用）
+            // 落盘留痕：一条发送一行「时间 + 字节数 + 内容」，写失败不影响链路（日志仍有记录）。
+            // 换行折叠用链式 Replace 实现——ReplaceLineEndings 为 .NET 6+ API（保守 API 面禁用，勿改写）
             Directory.CreateDirectory(_context.DataDirectory);
             File.AppendAllText(
                 Path.Combine(_context.DataDirectory, FakeTransportPlugin.SinkFileName),

@@ -1,11 +1,8 @@
 namespace LabelFrame.Api;
 
 /// <summary>
-/// API 问题码注册表（Server / WinHost 共用端点的语义化错误码）。
-/// 约定：LF_TPL_xxx（模板）/ LF_TRANSPORT_xxx（连接）/ LF_PLUGIN_xxx（插件）；
-/// 通用请求 / 作业 / IO 错误沿用 Core 的 LF_API_xxx / LF_JOB_xxx / LF_IO_xxx，服务端专属错误沿用 LF_SRV_xxx。
-/// LF_INTERNAL_001（未捕获异常兜底）与 LF_API_BAD_BODY（请求体反序列化失败）也定义于此——
-/// 全仓仅本注册表一处字面量，其余代码一律引用常量。
+/// API 问题码注册表（Server / WinHost 共用端点的语义化错误码；LF_API_* / LF_JOB_* / LF_SRV_* 等在各自工程注册表）。
+/// LF_INTERNAL_001 与 LF_API_BAD_BODY 全仓仅本注册表一处字面量，其余代码一律引用常量。
 /// </summary>
 public static class ApiErrorCodes
 {

@@ -5,7 +5,7 @@ export function normalizeName(s: string): string {
   return s.trim().toLowerCase().replace(/[\s_-]+/g, '')
 }
 
-/* * 参与列映射建议的字段：可直接给键，或带显示名（表头为显示名时可自动匹配，联调修复）。 */
+/* * 参与列映射建议的字段：可直接给键，或带显示名（表头为显示名时可自动匹配）。 */
 export type MappingField = string | { key: string; displayName?: string }
 
 /**

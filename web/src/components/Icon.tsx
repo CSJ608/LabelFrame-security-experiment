@@ -137,8 +137,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 17.2h.01" strokeWidth={2.6} />
     </>
   ),
-  // 书本底问号（帮助页导航与「?」文档点；书本底与「使用引导」的圆圈问号区分
-  // 防两个不同入口同形混淆——拍板评审）
+  // 书本底问号（帮助页导航与「?」文档点；书本底与「使用引导」的圆圈问号区分，防同形混淆）
   help: (
     <>
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -175,7 +174,7 @@ export function Icon({ name, size = 16, ...rest }: IconProps) {
   )
 }
 
-/* * 品牌图形 v02：「剥离 / Peel & Feed」微型几何——深青标签纸 + 珊瑚剥离角。
+/* * 品牌图形 v02「剥离 / Peel & Feed」微型几何——深青标签纸 + 珊瑚剥离角。
  *  几何逐字取自品牌母版 symbol-color-24.svg（assets/brand/），固定填充不随 --accent
  * （--accent 测量蓝是界面语言非品牌标识，Issue 不在范围）。 */
 export function LabelLogo({ size = 24 }: { size?: number }) {

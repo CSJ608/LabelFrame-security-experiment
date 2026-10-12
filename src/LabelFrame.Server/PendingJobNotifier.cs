@@ -1,9 +1,6 @@
 ﻿namespace LabelFrame.Server;
 
-/// <summary>
-/// 设备待领取作业通知：客户端长轮询 /api/devices/{id}/jobs/notify，
-/// 作业到达时 Notify 立即唤醒等待者（等效推送，无 WebSocket 依赖）；超时返回 false。
-/// </summary>
+/// <summary>设备待领取作业通知：长轮询等待者按设备注册，作业到达时 Notify 立即唤醒全部等待者（等效推送，无 WebSocket 依赖）；超时返回 false。</summary>
 public sealed class PendingJobNotifier
 {
     private readonly object _gate = new();

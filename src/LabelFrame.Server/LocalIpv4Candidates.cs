@@ -4,16 +4,10 @@ using System.Net.Sockets;
 
 namespace LabelFrame.Server;
 
-/// <summary>
-/// 本机 IPv4 候选枚举（下载中心「连接信息」卡地址候选来源
-/// 参照 WinHost <see cref="LabelFrame.WinHost.LocalIpAddresses"/> 先例，Server 不引用 WinHost 工程故独立实现）。
-/// </summary>
+/// <summary>本机 IPv4 候选枚举（下载中心「连接信息」卡地址候选来源；参照 WinHost <see cref="LabelFrame.WinHost.LocalIpAddresses"/> 先例，Server 不引用 WinHost 工程故独立实现）。</summary>
 public static class LocalIpv4Candidates
 {
-    /// <summary>
-    /// 枚举本机 IPv4 候选（仅启用网卡的非回环地址，去重）；
-    /// 私网（局域网）地址排在前、其余地址殿后——前端「origin 为 localhost / 无匹配时回退首个局域网 IPv4」的取首依据。
-    /// </summary>
+    /// <summary>枚举本机 IPv4 候选（仅启用网卡的非回环地址，去重）；私网地址排前——前端「origin 为 localhost / 无匹配时回退首个局域网 IPv4」的取首依据。</summary>
     public static IReadOnlyList<string> Enumerate()
     {
         var result = new List<string>();

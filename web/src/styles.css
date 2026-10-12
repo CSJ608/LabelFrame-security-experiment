@@ -23,7 +23,7 @@
   --warn-soft: #fdf0e0;
   --danger: #c2413a;
   --danger-soft: #fdeceb;
-  --danger-strong: #a8352f; /* 实心红 hover 加深（/ ；--danger / --danger-soft 语义不变供非按钮场景复用） */
+  --danger-strong: #a8352f; /* 实心红 hover 加深（--danger / --danger-soft 供非按钮场景复用） */
   --ruler-ink: #9aa6b4;     /* 标尺刻度 */
   --grid-a: #e3e9f0;        /* 网格主线 */
   --grid-b: #eef1f5;        /* 网格细线 */

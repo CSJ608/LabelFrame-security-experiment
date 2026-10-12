@@ -7,10 +7,8 @@ namespace LabelFrame.Bootstrapper.PayloadTool;
 
 /// <summary>
 /// 非 MSI 组件落位工具入口：管理界面 zip → <c>plugins\web-ui</c>；<c>.lfplugin</c> → <c>plugins\&lt;pluginId&gt;\</c>。
-/// 卸载清理：<c>-clean</c> 与落位动作同目标对称（Bundle 卸载 / Modify 改选 / 回滚时机由 Burn 以 UninstallArguments 驱动）。
-/// evergreen 安装：<c>-install-webview2</c> = 下载 / 本地布局文件 → 微软 Authenticode 发布者验签 → 静默安装（退出码透传）
-/// <c>-verify</c> = 同源解析与验签但不执行（诊断 / 沙箱走查载体）。
-/// 中文输出写入 Burn 包日志（引擎捕获进程输出）；退出码契约见工程注释。
+/// 卸载清理 <c>-clean</c> 与落位动作同目标对称；evergreen 安装 <c>-install-webview2</c> = 获取 → 发布者验签 → 静默安装；
+/// <c>-verify</c> = 同源解析与验签但不执行（诊断 / 走查载体）。中文输出写入 Burn 包日志；退出码契约见工程文件注释。
 /// </summary>
 internal static class Program
 {
@@ -48,7 +46,7 @@ internal static class Program
     {
         if (args.Length == 0)
         {
-            // 无参数 = 空操作成功（缺省调用形态的安全兜底；落位包现以 -clean 显式编排卸载清理）
+            // 无参数 = 空操作成功（Burn 对无 UninstallArguments 包的缺省卸载调用形态——安全兜底，不可改为报错）
             Console.WriteLine("未指定落位参数，空操作退出。");
             return ExitSuccess;
         }

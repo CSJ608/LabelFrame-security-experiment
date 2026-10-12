@@ -4,11 +4,9 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.WinHost.Transport;
 
 /// <summary>
-/// 存量升级兼容（DESIGN /）：内置 zebra 已移除——
-/// 启动时检测「已用 zebra 配置」（connection.json 引用官方 id / 旧别名 / 旧 Mode=Zebra，
-/// 或 appsettings / 环境变量 Transport=Zebra）且外置插件未安装时，自动从客户端 MSI 附带的
-/// 官方插件包（安装目录 plugin-packages\labelframe-transport-zebra-*.lfplugin）安装，
-/// 本次启动即完成装配（迁移须先于外部插件目录扫描执行）。
+/// 存量升级兼容：启动时检测「已用 zebra 配置」（connection.json 引用官方 id / 旧别名 / 旧 Mode=Zebra，
+/// 或 appsettings / 环境变量 Transport=Zebra）且外置插件未安装时，自动安装随客户端 MSI 附带的
+/// 官方插件包（plugin-packages\*.lfplugin），本次启动即完成装配。
 /// 无附带包（开发目录裸跑 / 自定义部署）时 host.log 中文提示引导安装，不阻断启动。
 /// </summary>
 public static class ZebraPluginMigration
@@ -58,7 +56,7 @@ public static class ZebraPluginMigration
                 return;
             }
 
-            // 复用 PluginInstaller 三层校验（zip + manifest / 内置 id 拒绝 / 临时 ALC 预检核对插件 id；起下沉 Core）
+            // 复用 PluginInstaller 三层校验（zip + manifest / 内置 id 拒绝 / 临时 ALC 预检核对插件 id）
             var installer = new Core.Transport.Plugins.PluginInstaller(options.PluginsPath, new TransportPluginRegistry(), hostLogWriter);
             using var stream = File.OpenRead(packagePath);
             var view = installer.InstallAsync(stream, Path.GetFileName(packagePath), CancellationToken.None).GetAwaiter().GetResult();

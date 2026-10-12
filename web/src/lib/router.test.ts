@@ -178,7 +178,7 @@ describe('useHashRoute · hook 行为（jsdom history）', () => {
   })
 
   it('守卫取消 pre-revert（back 截断序列回归）：back 放行后再切页截断前向历史，dirty 守卫 back 仍精确回退', async () => {
-    // 评审阻断项 2 复现序列：wb→data→jobs→back 放行回 data→切 designer（pushState 截断 jobs
+    // 复现序列：wb→data→jobs→back 放行回 data→切 designer（pushState 截断 jobs
     // 栈 [戳1,2,4] 戳位错位）→ dirty 守卫 back → 落 data(戳2) → 旧实现 go(4−2) 超栈尾不动、
     // hash 停 '#/data' 而页面仍是设计器。修复后戳位对齐（栈 [戳1,2,3]），go(1) 精确回 designer。
     let page: TabId = 'workbench'

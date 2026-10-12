@@ -7,10 +7,8 @@ using LabelFrame.WinHost.Jobs;
 namespace LabelFrame.WinHost.Routing;
 
 /// <summary>
-/// Server 路由 Worker：周期注册（心跳）→ 领取定向作业 → 投入本地作业队列打印 →
-/// 打印中节流上报进度→ 本地作业终态后回报 Server。未配置 ServerUrl 时不启用。
-/// 回报与进度由独立循环负责：本地作业终态后约 1s 内回报，不被长轮询等待阻塞；
-/// 进度上报失败静默降级（不阻塞打印主链路，下一轮自然重试）。
+/// Server 路由 Worker：周期注册（心跳）→ 长轮询领取定向作业 → 投入本地队列打印 → 终态回报 / 节流上报进度。
+/// 回报与进度由独立循环负责（终态后约 1s 内回报，不被长轮询阻塞）；进度上报失败静默降级。
 /// </summary>
 public sealed class ServerRoutingWorker : BackgroundService
 {
@@ -70,7 +68,7 @@ public sealed class ServerRoutingWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // 回报 / 进度循环与主循环并行：主循环负责注册 / 长轮询 / 领取 / 投入队列，
-        // 回报循环每周期检查本地作业状态——终态立即回报、进行中节流上报进度。
+        // 回报循环每周期检查本地作业状态——终态立即回报、进行中节流上报进度
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         var reportLoop = ReportLoopAsync(linked.Token);
         try

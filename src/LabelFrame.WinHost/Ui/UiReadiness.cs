@@ -1,9 +1,6 @@
 namespace LabelFrame.WinHost.Ui;
 
-/// <summary>
-/// 就绪等待：界面窗口先显示加载态，按固定间隔探测本地 HTTP 服务，就绪后再导航。
-/// 探测委托可注入，测试无需真实端口。
-/// </summary>
+/// <summary>就绪等待：界面窗口先显示加载态，按固定间隔探测本地 HTTP 服务，就绪后再导航。探测委托可注入。</summary>
 public static class UiReadiness
 {
     /// <summary>循环探测直到成功或超时。返回是否就绪；探测异常一律视为未就绪（不中断等待）。</summary>
@@ -48,7 +45,7 @@ public static class UiReadiness
         }
     }
 
-    /// <summary>HTTP GET 探测（任意 2xx/3xx/4xx 响应都算服务已监听；仅连接层失败才算未就绪）。本机探测禁用系统代理。</summary>
+    /// <summary>HTTP GET 探测（任意 HTTP 响应都算服务已监听；仅连接层失败才算未就绪）。本机探测禁用系统代理。</summary>
     public static Func<Task<bool>> HttpProbe(Uri url, TimeSpan perAttemptTimeout)
     {
         return async () =>

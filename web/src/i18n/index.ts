@@ -1,12 +1,10 @@
-// i18n 基座：react-i18next 接入 + 语言状态（localStorage 持久化
-// 首启跟随浏览器语言：`zh*` → zh-CN，其他 → en）+ `index.html` lang 动态化 + Intl 日期 / 数字格式化。
+// i18n 基座：react-i18next 接入 + 语言状态（localStorage 持久化；首启跟随浏览器语言：
+// `zh*` → zh-CN，其他 → en）+ `index.html` lang 动态化 + Intl 日期 / 数字格式化。
 //
-// 语言包组织（待决议-2 结论，供 111/112 沿用）：按域单文件 JSON（`locales/<locale>/<域>.json`），
-// 域 = common（跨页复用）/ shell（应用壳层）/ settings / …（页面迁移迭代按页新增域文件）；
-// zh-CN 为源语言，en 覆盖 zh-CN 全部 key（vitest 断言，缺失即红）。
-// key 惯例：语义 camelCase，按 UI 区域分组前缀（`nav.*` / `statusbar.*` / `clearLogsConfirm.*`）；
-// 插值用 i18next 默认双花括号 `{{name}}`；组件内 `useTranslation('<域>')` 绑定域命名空间，
-// 跨域复用 common 词条经 `fallbackNS` 兜底（无需 `common:` 前缀）。
+// 语言包组织：按域单文件 JSON（`locales/<locale>/<域>.json`），域 = common（跨页复用）/ shell（应用
+// 壳层）/ settings / …（每页一域）；zh-CN 为源语言，en 覆盖 zh-CN 全部 key（vitest 断言，缺失即红）。
+// key 惯例：语义 camelCase，按 UI 区域分组前缀；插值用 i18next 默认双花括号 `{{name}}`；组件内
+// `useTranslation('<域>')` 绑定域命名空间，跨域复用 common 词条经 `fallbackNS` 兜底。
 //
 // 注意：本模块在 import 时即完成 i18next 初始化（main.tsx 首个 import，先于 React 挂载），
 // 语言探测只发生一次；运行期切换统一走 `changeLocale`（持久化 + changeLanguage + lang 属性同步）。
@@ -97,15 +95,15 @@ function syncDocumentLang(lng: string): void {
   document.documentElement.lang = lng
 }
 
-// `index.html` 静态 <title>（LabelFrame 标签打印）随语言切换同步——
-// 108 结项时暂留的壳层残余，用 shell 域 appTitle 词条（zh 值与原静态标题一致，中文态无变化）。
+// `index.html` 静态 <title>（LabelFrame 标签打印）随语言切换同步——用 shell 域 appTitle 词条
+//（zh 值与原静态标题一致）。
 function syncDocumentTitle(lng: string): void {
   if (typeof document === 'undefined') return
   document.title = i18next.t('appTitle', { lng, ns: 'shell' })
 }
 
 // 单例初始化：同步资源（静态 import 打包，无网络请求，client / server 双构建离线可用）；
-// 挂 React 绑定（react-i18next）；fallbackLng = 源语言 zh-CN（空缺词条回退中文不崩， 前提）
+// 挂 React 绑定（react-i18next）；fallbackLng = 源语言 zh-CN（空缺词条回退中文不崩）；
 // useSuspense: false —— 组件树无 Suspense 边界，同步资源下禁用 Suspense 语义即可即时返回。
 void i18next.use(initReactI18next).init({
   resources: {
@@ -169,7 +167,7 @@ export function changeLocale(locale: AppLocale): void {
   void i18next.changeLanguage(locale)
 }
 
-// Intl 格式化（替换硬编码 toLocaleString（'zh-CN'），跟随当前界面语言）
+// Intl 格式化（跟随当前界面语言）
 
 /** 日期时间（含时分秒，24 小时制）——工作台模板更新时间等列表展示用。 */
 export function formatDateTime(locale: AppLocale, date: Date): string {

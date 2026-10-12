@@ -1,8 +1,5 @@
-// 设置页（F2-F4）：服务端地址（机器级配置，保存即生效）+ 连接方式（本机 Client）+ 打印机状态 / 测试打印
-// 新增「更新与安装包」卡片——列出服务端可用客户端安装包（下载指向 {serverBaseUrl}/api/client-packages/{file}）；单机模式提示需先连接服务端。
-// 新增「插件管理」卡片（置于「更新与安装包」之下）——服务端可用插件区（仅 valid 可安装，安装 = 下载 blob → 本机 WinHost multipart）+ 已安装插件区（始终渲染，徽标 + 卸载）。
-// 内容容器改多列自适应网格（决策 B）——宽窗多列、窄窗单列，替代原固定 640 左对齐窄列。
-// 全页文案 key 化（settings 域；zh-CN 值与原硬编码逐字一致）。
+// 设置页：服务端地址（机器级配置，保存即生效）+ 连接方式（本机 Client）+ 打印机状态 / 测试打印
+// + 更新与安装包 + 插件管理（服务端可用插件 / 本机已安装）；内容为多列自适应网格（宽窗多列、窄窗单列）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,14 +22,9 @@ import { isServerUi } from '../lib/uiMode'
 
 export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const app = useApp()
-  // 「语言」项绑定 settings 域——选项名固定各自语言原文（「中文」/「English」不随当前语言翻译）
-  // 其余卡片全部迁入 settings 域
   const { t, i18n } = useTranslation('settings')
-  // 7 张卡片标题挂「?」文档点。：设计器挂点撤门后
-  // 本页保留 !isServerUi——语义改为 client-only 页防御门（settings tab 不在 SERVER_TABS，server
-  // 构建本不可达，门仅防手造 URL 等边缘；断言面与 PropsPanel 分离）。：
-  // 深链信号改路由 sub 段（helpAnchor props）——页内轮询（useHelpDeepLink）锚点常在即刻命中自动
-  // 弹卡片气泡；超时通用降级提示。
+  // 文档点「?」：dot 在 server 构建返回 null——settings 为 client-only 页（server 构建本不可达，
+  // 门仅防手造 URL 等边缘）；深链 helpAnchor 页内轮询（useHelpDeepLink）锚点常在即刻命中。
   const [openDot, setOpenDot] = useState<string | null>(null)
   useHelpDeepLink(helpAnchor, {
     onFound: () => {
@@ -63,7 +55,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const [printer, setPrinter] = useState<PrinterStatus | null>(null)
   const [printerLoading, setPrinterLoading] = useState(false)
   const [testPrinting, setTestPrinting] = useState(false)
-  // 测试打印结果（ok 标志替代原「文案 startsWith」判别——本地化后不再依赖前缀匹配）
+  // 测试打印结果（ok 标志判别——本地化后不得依赖文案前缀匹配）
   const [printResult, setPrintResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   // 更新与安装包——服务端可达时拉取安装包列表；不可达提示需先连接服务端
@@ -84,7 +76,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const [uninstalling, setUninstalling] = useState<string | null>(null)
   const [pluginNotice, setPluginNotice] = useState<string | null>(null)
   const [pluginError, setPluginError] = useState<string | null>(null)
-  // 插件覆盖安装 / 卸载确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
+  // 插件覆盖安装 / 卸载确认（自研 Modal，不用原生 confirm）
   const [confirmOverwrite, setConfirmOverwrite] = useState<PluginPackageInfo | null>(null)
   const [confirmUninstall, setConfirmUninstall] = useState<InstalledPluginInfo | null>(null)
 
@@ -311,11 +303,11 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         </div>
       </div>
 
-      {/* 内容容器与其他页面对齐——flex:1 + overflowY:auto，低屏高可滚动（此前被 .page overflow:hidden 裁剪，小分辨率看不到「打印机」卡片）；minWidth:0 防长文本（%ProgramData% 路径）撑破 */}
-      {/* 布局随可用宽度自适应——多列网格（每列 ≥560px，列数随宽度自动增减），窄窗自动回退单列、不破版 */}
+      {/* 容器须 flex:1 + overflowY:auto（否则被 .page overflow:hidden 裁剪，低屏看不到底部卡片） */}
+      {/* minWidth:0 防长文本（%ProgramData% 路径）撑破网格 */}
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(560px, 1fr))', gap: 14, alignItems: 'start' }}>
-        {/* 界面语言——切换即时生效（i18next changeLanguage，订阅组件重渲染）、
-            localStorage 持久化、首启默认跟随浏览器语言（zh* → zh-CN，其他 → en，AC-01/02） */}
+        {/* 界面语言——切换即时生效 + localStorage 持久化；
+            首启默认跟随浏览器语言（zh* → zh-CN，其他 → en） */}
         <section className="panel" data-testid="language-panel">
           <div className="panel-head">
             {t('language.title')}
@@ -377,7 +369,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         </section>
 
         <section className="panel">
-          {/* 默认折叠——面板头即当前连接摘要（Describe / displayText 数据源），点击整行展开编辑区 */}
+          {/* 默认折叠：面板头即连接摘要，点击整行展开编辑区 */}
           <div
             className="panel-head"
             style={{ cursor: 'pointer' }}
@@ -385,7 +377,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             title={transportOpen ? t('transport.collapseTitle') : t('transport.expandTitle')}
           >
             {t('transport.title')}
-            {/* 「?」点击 stopPropagation（评审建议）：防冒泡连带触发展开 / 收起 */}
+            {/* 「?」点击 stopPropagation——防冒泡连带触发展开 / 收起 */}
             {dot('settings.transport')}
             <span className="hint" style={{ marginLeft: 6 }}>{t('transport.current')}</span>
             <span

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 下载中心页（改版）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问
-// tab 状态经路由 sub 段进 URL—— 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原
-// 旧 #dc= 链接经 parseHash 兼容映射直达）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
+// 下载中心页：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问
+// tab 状态经路由 sub 段进 URL（#dc= 旧形态迁至 #/packages/<sub>，旧链接经 parseHash 兼容映射直达；
+// 刷新 / 直链还原）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
 // 第一条的货架语义：文件名 / 大小 / 上传时间 / 下载二维码（origin + 下载路径）/ 下载按钮 /「全部版本 →」跳
 // 管理卡、空态引导跳转上传）+ 下区块「服务端信息」卡（大二维码 = 选中裸地址 URL + 地址文本与复制 +
 // 多网卡候选切换 / localhost 回退）；管理 tab（client-packages / pda-packages）上传 / 下载 / 删除（确认

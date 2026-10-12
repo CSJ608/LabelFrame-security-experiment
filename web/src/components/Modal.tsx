@@ -1,5 +1,5 @@
-// 通用模态框（确认 / 表单）
-// 关闭按钮 aria-label key 化（common 域）；本文件已圈入 lint 防线（裸中文 JSX 拦截）。
+// 通用模态框（确认 / 表单）。关闭按钮 aria-label key 化（common 域）；
+// 本文件已圈入 oxlint 裸中文 JSX 防线（新增文案必须走 t() 词条）。
 
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'

@@ -42,9 +42,6 @@ public static class TemplateEndpoints
                 return Results.BadRequest(new ErrorView(options.InvalidRequestCode, "缺少模板 name / contract / layout。"));
             }
 
-            // 三态图片语义（DESIGN）：缺省 / 显式 null＝保留存量（先读存量再并入
-            // 与 TemplateStore 的 testData 读-改-写先例同构——两步非同事务存在竞态窗口，单设计器场景可接受）；
-            // 空字典＝清空；非空＝全量覆盖（SaveAsync 先删后插既有语义）
             IReadOnlyDictionary<string, byte[]> images;
             try
             {
@@ -82,9 +79,8 @@ public static class TemplateEndpoints
                 return Results.Ok(package);
             }
 
-            // 模板化消息：渲染结果与旧内插文案逐字一致（冒号后无空格为既有文案形态）
-            // 参数键 templateName（单码单参数键集——与 ServerService 作业提交链的同码变体统一
-            // 否则 en 码表 {{templateName}} 词条对不上 name 变体会回退中文）
+            // 模板化消息须与旧内插文案逐字一致（冒号后无空格为既有形态）；
+            // 参数键固定 templateName——同码参数键集不一致会使 en 码表词条插值失配回退中文
             var parameters = new Dictionary<string, string> { ["templateName"] = name };
             return Results.NotFound(new ErrorView(
                 options.TemplateNotFoundCode,
@@ -134,7 +130,6 @@ public static class TemplateEndpoints
             }
         }).DisableAntiforgery();
 
-        // 预览与打印同源（Skia 整版渲染，DPI 取宿主配置）；请求数据缺省时回退模板 testData
         app.MapPost("/api/templates/{name}/preview", async (string name, PreviewRequest? request, CancellationToken ct) =>
         {
             var package = await options.Store.GetAsync(name, ct);
@@ -170,9 +165,8 @@ public static class TemplateEndpoints
     }
 
     /// <summary>
-    /// 保存请求图片解析（三态）：images 为 null（缺省或显式 null，反序列化不可区分）＝读存量并入＝保留
-    /// 显式字典＝解码 + 硬校验（空字典自然产出空集＝清空，非空＝覆盖，落库走 SaveAsync 先删后插）。
-    /// 校验失败抛 <see cref="FormatException"/>（坏 base64，消息为键名）或 <see cref="InvalidOperationException"/>（上限 / 格式，中文消息含键名）。
+    /// 保存请求图片三态解析与硬校验：null＝读存量并入＝保留；显式字典＝解码校验（空字典自然产出空集＝清空）。
+    /// 失败抛 <see cref="FormatException"/>（坏 base64，消息为键名）或 <see cref="InvalidOperationException"/>（上限 / 格式，中文消息含键名）。
     /// </summary>
     private static async Task<IReadOnlyDictionary<string, byte[]>> ResolvePostedImagesAsync(
         TemplateApiOptions options,

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// AC 双语冒烟：第一批迁移页面（工作台 / 作业历史 / 数据与打印）中英两语言渲染——
+// 双语冒烟：第一批迁移页面（工作台 / 作业历史 / 数据与打印）中英两语言渲染——
 // zh-CN（vitest.setup 钉住首启语言）断言中文文案；changeLocale('en') 切换后断言英文文案且页面文本
-// 不再含 CJK（模板名 / 分组等业务数据用 ASCII，避免数据噪声）；再切回中文恢复（108 惯例：
+// 不再含 CJK（模板名 / 分组等业务数据用 ASCII，避免数据噪声）；再切回中文恢复（惯例：
 // en 行为用 changeLocale 显式切换）。另覆盖壳层残余：document.title 与状态栏初始消息随语言。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

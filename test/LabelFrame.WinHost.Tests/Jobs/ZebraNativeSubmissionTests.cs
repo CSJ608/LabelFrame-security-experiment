@@ -11,10 +11,9 @@ using LabelFrame.WinHost.Tests.Transport;
 namespace LabelFrame.WinHost.Tests.Jobs;
 
 /// <summary>
-/// 宿主集成（+ ，；DESIGN）：native 分派走真实 Zebra 编译器——
-/// 本地作业指令字段（LabelJobItem.Zpl）为品牌原生指令（文本 / 条码 / 二维码元素，^A0 / ^BC / ^BQ / ^FD，非 ^GF 位图）；
-/// image / 缺省路径经真实 Zebra 插件连接零回归（仍整版渲染 ^GF）。
-/// 与的 JobSubmissionCompileTests（fake 编译器）互补：此处为真实品牌编译器锚定。
+/// 宿主集成（真实 Zebra 编译器）：native 分派下本地作业指令字段为品牌原生指令
+/// （^A0 / ^BC / ^BQ / ^FD，非 ^GF 位图）；image / 缺省路径经真实插件连接零回归（仍整版 ^GF）。
+/// 与 JobSubmissionCompileTests（fake 编译器）互补：此处为真实品牌编译器锚定。
 /// </summary>
 public class ZebraNativeSubmissionTests
 {
@@ -107,7 +106,7 @@ public class ZebraNativeSubmissionTests
     private const string ImageConnection =
         """{ "pluginId": "labelframe-transport-zebra", "params": { "kind": "Tcp", "host": "127.0.0.1" } }""";
 
-    // ── ：native 分派走真实 Zebra 编译器（作业指令字段为原生指令）──
+    // ──native 分派走真实 Zebra 编译器（作业指令字段为原生指令）──
 
     [Fact]
     public async Task Native_mode_should_dispatch_to_real_zebra_compiler()
@@ -134,7 +133,7 @@ public class ZebraNativeSubmissionTests
         Assert.DoesNotContain("^GF", first);
     }
 
-    // ── ：image / 缺省路径零回归（经真实 Zebra 插件连接，无 printMode → 既有整版渲染）──
+    // ──image / 缺省路径零回归（经真实 Zebra 插件连接，无 printMode → 既有整版渲染）──
 
     [Fact]
     public async Task Image_mode_with_real_plugin_should_render_bitmap_as_before()

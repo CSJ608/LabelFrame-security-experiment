@@ -9,7 +9,7 @@ namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
 /// SkiaTypefaceLookup 回退策略单测：
-/// 非中文字符按实际字符匹配（假名 / 韩文样本，存在性探测 + 缺失跳过，不假绿）
+/// 非中文字符按实际字符匹配（假名 / 韩文样本，存在性探测 + 缺失跳过，不假绿）；
 /// 中文样本与修复前基线（硬编码 MatchCharacter（'中'））渲染逐字节一致（位图哈希对比防回归）。
 /// </summary>
 public class SkiaTypefaceLookupTests
@@ -22,7 +22,7 @@ public class SkiaTypefaceLookupTests
     public void Chinese_sample_typeface_should_match_pre_fix_fallback()
     {
         var sample = ChineseSample;
-        // 修复前基线逻辑（前）：任一非 ASCII → 固定以『中』匹配系统回退字体
+        // 修复前基线逻辑：任一非 ASCII → 固定以『中』匹配系统回退字体
         using var legacy = LegacyChineseTypeface();
         using var current = SkiaTypefaceLookup.CreateTypeface(null!, sample);
 
@@ -124,7 +124,7 @@ public class SkiaTypefaceLookupTests
         Assert.Equal(preferred.FamilyName, actual.FamilyName);
     }
 
-    /// <summary>复刻修复前（前）的中文回退路径：任一非 ASCII 固定以『中』匹配。</summary>
+    /// <summary>复刻修复前的中文回退路径：任一非 ASCII 固定以『中』匹配。</summary>
     private static SKTypeface LegacyChineseTypeface()
         => SKFontManager.Default.MatchCharacter('中')
             ?? SKTypeface.FromFamilyName(LabelTextElement.DefaultFontFamily)

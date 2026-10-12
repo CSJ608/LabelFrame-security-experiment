@@ -3,7 +3,7 @@ using System.Runtime.Loader;
 
 namespace LabelFrame.Core.Transport.Plugins;
 
-/// <summary>发现的插件：插件实例 + 来源 DLL 路径 + 所在 AssemblyLoadContext（生命周期根，调用方须强持有——见）。</summary>
+/// <summary>发现的插件：插件实例 + 来源 DLL 路径 + 所在 AssemblyLoadContext（生命周期根，调用方必须强持有）。</summary>
 public sealed record DiscoveredPlugin(ITransportPlugin Plugin, string AssemblyPath, AssemblyLoadContext LoadContext);
 
 /// <summary>目录加载结果：成功发现的插件 + 逐 DLL 加载失败信息（loadError 结构化透出）。</summary>
@@ -12,21 +12,19 @@ public sealed record PluginDirectoryLoadResult(
     IReadOnlyList<(string AssemblyPath, string Error)> Errors);
 
 /// <summary>
-/// 外部传输插件目录加载器（加载生命周期口径 = ，DESIGN 「加载生命周期」）：
-/// 安装包子目录按「包目录单 collectible ALC 整体加载」——目录内全部 DLL 字节加载（LoadFromStream）进同一 ALC
-/// 并预载全部伴生依赖（首用零惰性解析窗口），跨程序集发现 <see cref="ITransportPlugin"/>；
-/// 无插件产出的目录显式 <see cref="AssemblyLoadContext.Unload"/> 丢弃（确定性释放）。
-/// 平铺手动 DLL 维持逐 DLL 独立 ALC（同居目录多插件互不污染），伴生依赖经 Resolving 惰性解析。
-/// 两条路径的 ALC 根都随发现结果返回——<b>调用方（注册表）必须显式强持有</b>：collectible ALC 被丢弃后
-/// GC 会发起卸载破坏其状态机，此后任何 LoadFromStream（含惰性解析）抛 VerifyIsAlive。
-/// 字节加载不锁插件文件（Windows LoadFromAssemblyPath 会锁 DLL）——卸载 = 删除插件文件 / 目录即可立即删除、
-/// 覆盖安装可直接替换，运行中进程继续使用内存镜像，重启后按新文件装配。
+/// 外部传输插件目录加载器。平铺手动 DLL：逐 DLL 独立 collectible ALC（同居目录多插件互不污染），
+/// 伴生依赖经 Resolving 惰性解析；安装包子目录：包目录单 ALC 整体加载——全部 DLL 字节加载并预载全部
+/// 伴生依赖（首用零惰性解析窗口），跨程序集发现 <see cref="ITransportPlugin"/>；无插件产出的目录显式 Unload 丢弃。
+/// ALC 根随发现结果返回，<b>调用方（注册表）必须显式强持有</b>：collectible ALC 被丢弃后 GC 会发起卸载破坏其
+/// 状态机，此后任何 LoadFromStream（含惰性解析）抛 VerifyIsAlive。字节加载（LoadFromStream）不锁插件文件
+/// （Windows LoadFromAssemblyPath 会锁 DLL）——卸载 = 删除文件 / 目录即可、覆盖安装可直接替换，运行中进程
+/// 继续使用内存镜像，重启后按新文件装配。
 /// </summary>
 public static class PluginDirectoryLoader
 {
     /// <summary>
-    /// 加载目录下所有可发现的传输插件（等价于 <see cref="LoadWithErrors"/> 的 Plugins 部分，兼容旧调用；
-    /// 返回含 ALC 生命周期根，勿丢弃——交由注册表强持有）。
+    /// 加载目录下所有可发现的传输插件（等价于 <see cref="LoadWithErrors"/> 的 Plugins 部分，兼容旧调用）。
+    /// 返回含 ALC 生命周期根，勿丢弃——交由注册表强持有。
     /// </summary>
     /// <param name="directory">插件目录（不存在 / 为空返回空列表）。</param>
     /// <param name="hostLog">宿主日志写入器（加载失败记录用）。</param>
@@ -35,8 +33,8 @@ public static class PluginDirectoryLoader
         => LoadWithErrors(directory, hostLog).Plugins;
 
     /// <summary>
-    /// 加载目录下所有可发现的传输插件，并返回逐 DLL 加载失败信息（loadError 结构化透出，
-    /// 供「已安装插件」列表展示加载失败原因；单插件失败仍不阻断宿主启动）。
+    /// 加载目录下所有可发现的传输插件，并返回逐 DLL 加载失败信息（供「已安装插件」列表展示原因；
+    /// 单插件失败不阻断宿主启动）。
     /// </summary>
     /// <param name="directory">插件目录（不存在 / 为空返回空结果）。</param>
     /// <param name="hostLog">宿主日志写入器（加载失败记录用，与失败信息同时保留）。</param>
@@ -50,13 +48,13 @@ public static class PluginDirectoryLoader
             return new PluginDirectoryLoadResult(plugins, errors);
         }
 
-        // 平铺手动 DLL：逐 DLL 独立 collectible ALC（同居目录多插件互不污染，向后兼容）
+        // 平铺手动 DLL
         foreach (var dll in Directory.GetFiles(directory, "*.dll"))
         {
             LoadFlatDll(dll, directory, plugins, errors, hostLog);
         }
 
-        // 子目录安装包：包目录单 ALC 整体加载（原子单元——全部 DLL 同一 ALC，预载消灭惰性窗口）
+        // 子目录安装包
         foreach (var packageDir in Directory.GetDirectories(directory))
         {
             LoadPackageDirectory(packageDir, plugins, errors, hostLog);
@@ -89,7 +87,7 @@ public static class PluginDirectoryLoader
         {
             if (plugins.Count == before)
             {
-                // 无插件产出（含加载失败 / 部分发现后中断）：抛弃型上下文显式卸载（确定性释放，不等 GC）
+                // 无插件产出（含加载失败 / 部分发现后中断）：显式卸载（确定性释放，不等 GC）
                 alc.Unload();
             }
         }
@@ -97,8 +95,7 @@ public static class PluginDirectoryLoader
 
     /// <summary>
     /// 包目录整体加载：单 collectible ALC + 全部 DLL 预载 + 跨程序集发现插件；
-    /// 单个 DLL 加载 / 类型发现失败只记逐 DLL error，不阻断包内其他程序集；
-    /// 无插件产出显式 Unload 丢弃。
+    /// 单个 DLL 加载 / 类型发现失败只记逐 DLL error，不阻断包内其他程序集。
     /// </summary>
     private static void LoadPackageDirectory(
         string packageDir,
@@ -135,7 +132,7 @@ public static class PluginDirectoryLoader
         {
             if (plugins.Count == before)
             {
-                // 无插件产出（含加载失败 / 部分发现后中断）：抛弃型上下文显式卸载（确定性释放，不等 GC）
+                // 无插件产出（含加载失败 / 部分发现后中断）：显式卸载（确定性释放，不等 GC）
                 alc.Unload();
             }
         }

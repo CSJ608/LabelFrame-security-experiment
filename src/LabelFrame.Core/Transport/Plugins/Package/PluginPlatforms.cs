@@ -1,10 +1,9 @@
 namespace LabelFrame.Core.Transport.Plugins.Package;
 
 /// <summary>
-/// 插件包平台标记（DESIGN 「跨端格式与 PDA 通道」）：
-/// manifest 可选字段 <c>platforms</c> 的平台 id 常量与判定——单包单端起步，
+/// 插件包平台标记：manifest 可选字段 <c>platforms</c> 的平台 id 常量与判定；
 /// 无该字段的既有包按 Windows 端解释（存量包零迁移，向后兼容）。
-/// 平台 id 用平台名而非 RID；包内程序集目标框架由插件作者按端选择（加载按字节进 ALC，不依赖 RID 元数据）。
+/// 平台 id 用平台名而非 RID——加载按字节进 ALC，不依赖 RID 元数据。
 /// </summary>
 public static class PluginPlatforms
 {

@@ -3,15 +3,10 @@ using LabelFrame.Core.Errors;
 
 namespace LabelFrame.AndroidHost.Errors;
 
-/// <summary>
-/// LF_* 错误码 PDA 侧码表（语义对齐的 web 端实现）。
-/// 宿主本地 HTTP 与 Server 的错误响应为「码 + 可选 params + 中文兜底 message」，展示端持码表翻译：
-/// 已知码用码表模板插值（占位 <c>{key}</c>，键名与后端 params 一致，插值复用
-/// <see cref="ErrorMessageTemplates.Format"/> 的单遍替换语义），未知码或模板所需参数不全回退后端中文 message
-/// ——任何输入都不出现裸占位符。zh 态直接采用后端 message（中文权威在后端，zh 份是注册表镜像，
-/// 供覆盖断言与对齐参考）。模板内容与 web 端 <c>errorCodes.json</c> 逐码对齐（占位语法按端各自惯例：
-/// web 用 i18next 双花括号，PDA 用单花括号）。
-/// </summary>
+/// <summary>LF_* 错误码 PDA 侧码表（与 web 端 errorCodes.json 逐码对齐，占位 {key} 单花括号）。
+/// 展示规则：en 态已知码按码表模板插值（复用 <see cref="ErrorMessageTemplates.Format"/> 单遍替换），
+/// 未知码或模板所需参数不全回退后端中文 message——任何输入都不出现裸占位符；zh 态直用后端 message
+/// （中文权威在后端，zh 份是注册表镜像，供覆盖断言用）。</summary>
 public static partial class LfErrorCatalog
 {
     /// <summary>zh 码表（注册表镜像：覆盖断言用，zh 态展示不走本表）。</summary>
@@ -86,10 +81,8 @@ public static partial class LfErrorCatalog
         ["LF_SRV_013"] = "Invalid callbackUrl (only http/https URLs are allowed): {callbackUrl}.",
     };
 
-    /// <summary>
-    /// 解析错误展示文案：en 态已知码按码表模板插值（模板所需参数不全或未知码回退后端中文 message）；
-    /// 非 en 态（zh 缺省与其他回退 zh 的系统语言）直接采用后端 message。
-    /// </summary>
+    /// <summary>解析错误展示文案：en 态已知码按码表模板插值（模板所需参数不全或未知码回退后端中文 message）；
+    /// 非 en 态（zh 缺省与回退 zh 的系统语言）直接采用后端 message。</summary>
     /// <param name="code">后端 ErrorView.code（null / 空走回退）。</param>
     /// <param name="parameters">后端 ErrorView.params（扁平字符串键值对象）。</param>
     /// <param name="backendMessage">后端中文 message（兜底展示）。</param>
@@ -114,7 +107,7 @@ public static partial class LfErrorCatalog
         if (needed.Count > 0
             && (parameters is null || needed.Any(key => !parameters.ContainsKey(key))))
         {
-            // 模板带参但后端未提供（多消息变体同码共用代表性模板）：回退后端原文，不输出插值残缺
+            // 模板带参但后端未提供：回退后端原文，不输出插值残缺
             return backendMessage;
         }
 

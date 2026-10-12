@@ -115,7 +115,7 @@ describe('插件管理页（迭代 23 §5.4）', () => {
     await screen.findByText('示例插件')
 
     fireEvent.click(screen.getAllByRole('button', { name: /删除/ })[0])
-    // 自研 Modal 确认（替代原生 confirm 弹窗）——确认后删除 + 刷新
+    // 自研 Modal 确认——确认后删除 + 刷新
     expect(await screen.findByText('删除插件包')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
     await waitFor(() => expect(mocks.server.deletePluginPackage).toHaveBeenCalledWith('sample-1.0.0.lfplugin'))

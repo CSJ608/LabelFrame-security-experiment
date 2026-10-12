@@ -12,9 +12,7 @@ public sealed record SubmitJobRequest(
     TemplateDto? Template,
     IReadOnlyList<LabelDto>? Labels);
 
-/// <summary>自包含模板。Images（键 → base64，可选）为模板图片资源——补入：
-/// 路由模式 Server 投递链本就附带图片 base64，此前 PDA DTO 丢弃致嵌入图无法渲染（契约把 PDA 锁死）；
-/// PDA 选图 UI 仍不在该迭代范围。</summary>
+/// <summary>自包含模板；Images（键 → base64，可选）为模板图片资源，渲染前经 ImagePayloadDecoder 解码传入。</summary>
 public sealed record TemplateDto(
     LabelContract? Contract,
     LabelLayout? Layout,
@@ -35,10 +33,9 @@ public sealed record JobView(
 /// <summary>单张标签视图。</summary>
 public sealed record JobItemView(int Index, string Status, string? ErrorCode, string? ErrorMessage);
 
-/// <summary>错误响应：问题码 + 中文消息（可选字段键、可选模板参数）。
-/// params（定契约、PDA 副本对齐）：扁平字符串键值对象
-/// 键名与展示端码表模板占位符 <c>{key}</c> 同名，供 PDA / web 按码翻译插值；后端 message 永远为渲染后中文兜底。
-/// 缺省 / null 时序列化与旧形态逐字节等价（<see cref="JsonIgnoreAttribute"/> WhenWritingNull）。</summary>
+/// <summary>错误响应：问题码 + 中文兜底消息（可选字段键、可选模板参数）。
+/// params 键名与展示端码表模板占位符 {key} 同名（按码翻译插值用）；
+/// 缺省 / null 时序列化须与旧形态逐字节等价（WhenWritingNull）。</summary>
 public sealed record ErrorView(
     string Code,
     string Message,

@@ -16,21 +16,13 @@ public sealed record CacheRetryDecision(
 }
 
 /// <summary>
-/// 缓存重试策略：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 Retry
-/// 载荷获取 <c>CacheAcquireComplete</c> Retry / 校验 <c>CacheVerifyComplete</c> RetryAcquisition）共用每包预算。
+/// 缓存重试策略：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 / 载荷获取 <c>CacheAcquireComplete</c> /
+/// 校验 <c>CacheVerifyComplete</c>）共用每包预算——指数退避 + 连续无进展终止。
 /// </summary>
 /// <remarks>
-/// <para>
-/// 机制根源（真机实测）：包级兜底重试只判「清单内有无未试源」、不判「重试间是否推进」——内嵌容器载荷的获取失败
-/// （如 <c>WixAttachedContainer 0x80070002</c>）无源可换、不进多源回退失败计数，未试源集合永不消耗 →
-/// 无退避无终止热循环（5 分钟 92,993 次重试、Burn 日志 219–240MB、向导滞留进度页永不出现失败页）。
-/// </para>
-/// <para>
-/// 判定语义：**指数退避**（基值 500ms × 2^(已授予次数-1)，上限 30s）+ **连续无进展终止**（默认上限 3 次）。
-/// 「进展」= 多源回退失败计数（<see cref="CacheSourceFallback.FailureCount"/>）自上次判定以来前进——
-/// 合法换源重试（获取 / 校验失败已记录、源游标推进）不衰减预算；纯热循环（无源可换类失败）连续三次即终止。
-/// 计数仅在新建 Apply（进度页「重试」按钮 = 全新 Plan + Apply）时整体复位（<see cref="Reset"/>）。
-/// </para>
+/// <para>防回归：终止判定不可移除——只判「有无未试源」不判「是否推进」的兜底重试，对无源可换类失败（如内嵌容器获取
+/// <c>WixAttachedContainer 0x80070002</c>，不进多源回退失败计数）会形成无退避无终止热循环（真机实测 5 分钟 92,993 次重试、
+/// 日志 219–240MB、向导滞留进度页永不出现失败页）。「进展」= <see cref="CacheSourceFallback.FailureCount"/> 前进。</para>
 /// <para>引擎事件回调线程独占访问（Burn 回调单线程），无需加锁——与 <see cref="CacheSourceFallback"/> 同口径。</para>
 /// </remarks>
 public sealed class CacheRetryPolicy
@@ -76,7 +68,7 @@ public sealed class CacheRetryPolicy
         return new CacheRetryDecision(true, DelayFor(state.GrantedRetries), state.GrantedRetries, state.StalledRetries);
     }
 
-    /// <summary>第 N 次授予的重试的退避等待（500ms × 2^()，上限 30s）。</summary>
+    /// <summary>第 N 次授予的重试的退避等待（基值 × 2^(n-1)，上限 30s）。</summary>
     public static TimeSpan DelayFor(int grantedRetryCount) =>
         grantedRetryCount <= 0
             ? TimeSpan.Zero

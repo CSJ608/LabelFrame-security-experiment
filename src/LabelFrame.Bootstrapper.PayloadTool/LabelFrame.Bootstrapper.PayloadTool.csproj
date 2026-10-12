@@ -1,13 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- 非 MSI 组件落位工具（迭代 62，决策 #124 机制 A：ExePackage 包装解压工具，DESIGN §6.9）：
-       net48 控制台 EXE，随 bundle 压缩内嵌（Compressed="yes"）；被落位的 webui zip / .lfplugin 作为其子 Payload
-       远程下载（Compressed="no"），Burn 将包与伴生 Payload 缓存于同一包缓存目录——本工具以 -archive 文件名
-       定位伴生包并解压到 -target 绝对路径（来自 Burn 落位目标变量）。
-       evergreen 安装模式（决策 #151，#173）：-install-webview2 = 源解析（本地布局文件优先 / urls 逐源 / 官方 fwlink 兜底）
-       → 微软 Authenticode 发布者验签 → 静默安装（退出码透传）；-verify = 同流程不执行（诊断 / 走查载体）。
-       退出码：0 = 成功 / 同版本幂等跳过；20 = 降级拒绝（#123）；30 = 包损坏；40 = 验签拒绝；41 = evergreen 全源
-       获取失败（决策 #151）；90 = 未预期错误；其余非零 = 安装器退出码透传。
+  <!-- 非 MSI 组件落位工具：net48 控制台 EXE，随 bundle 压缩内嵌（Compressed="yes"）；被落位的 webui zip / .lfplugin
+       作为其子 Payload 远程下载（Compressed="no"），Burn 将包与伴生 Payload 缓存于同一包缓存目录——本工具以
+       -archive 文件名定位伴生包并解压到 -target 绝对路径（来自 Burn 落位目标变量）。
+       evergreen 安装模式：-install-webview2 = 源解析 → 微软 Authenticode 发布者验签 → 静默安装（退出码透传）；
+       -verify = 同流程不执行（诊断 / 走查载体）。
+       退出码契约（Bundle.wxs 与走查脚本依赖，不可随意改动）：0 = 成功 / 同版本幂等跳过；20 = 降级拒绝；
+       30 = 包损坏；40 = 验签拒绝；41 = evergreen 全源获取失败；90 = 未预期错误；其余非零 = 安装器退出码透传。
        无参数调用 = 空操作退出 0（Burn 对无 UninstallArguments 包的缺省卸载调用形态，安全兜底）。 -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

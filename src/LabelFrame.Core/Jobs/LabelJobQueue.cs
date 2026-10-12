@@ -2,11 +2,7 @@
 
 namespace LabelFrame.Core.Jobs;
 
-/// <summary>
-/// 作业队列：幂等提交、逐张状态、挂起 / 恢复 / 取消、批内顺序。
-/// 由单个打印 Worker 调用 <see cref="ClaimNextItemAsync"/> 取下一张并按序打印；
-/// 新待打项产生（提交 / 恢复 / 重打 / 启动恢复）时经 <see cref="WaitForPendingWakeAsync"/> 即时唤醒 Worker。
-/// </summary>
+/// <summary>作业队列：幂等提交、逐张状态、挂起 / 恢复 / 取消、批内顺序。</summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1711:类型名不应以后缀结尾",
     Justification = "域类型语义即打印队列，命名直白优先")]
 public sealed class LabelJobQueue : IDisposable
@@ -17,7 +13,7 @@ public sealed class LabelJobQueue : IDisposable
     private bool _shutdownPrepared;
     private int _activeSends;
 
-    /// <summary>模板化领域异常构造：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>模板化领域异常构造：模板 + 参数，参数随异常透传 ErrorView.params。</summary>
     private static LabelJobException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 
@@ -100,9 +96,8 @@ public sealed class LabelJobQueue : IDisposable
     }
 
     /// <summary>
-    /// 等待「出现新待打项」的唤醒信号：提交 / 恢复 / 重打 / 启动恢复产生 Pending 项时立即返回；
-    /// 超时返回仅作兜底（防信号遗漏时仍按 <paramref name="safetyPollDelay"/> 周期轮询，正常路径不触发）。
-    /// 调用方返回后仍需自行探测 / 领取——信号语义是「可能有变化」，不是「一定可领取」。
+    /// 等待「出现新待打项」的唤醒信号；超时返回仅作兜底轮询（正常路径不触发）。
+    /// 信号语义是「可能有变化」而非「一定可领取」——调用方返回后仍需自行探测 / 领取。
     /// </summary>
     public Task<bool> WaitForPendingWakeAsync(TimeSpan safetyPollDelay, CancellationToken cancellationToken = default)
         => _pendingWake.WaitAsync(safetyPollDelay, cancellationToken);
@@ -111,21 +106,18 @@ public sealed class LabelJobQueue : IDisposable
     public Task<LabelJob?> GetAsync(string jobId, CancellationToken cancellationToken = default)
         => _store.GetJobAsync(jobId, cancellationToken);
 
-    /// <summary>按幂等键查询既有作业（原生指令路径提交前短路用——重放不重新编译，；不存在返回 null）。</summary>
+    /// <summary>按幂等键查询既有作业（不存在返回 null）。</summary>
     public Task<LabelJob?> GetByRequestIdAsync(string requestId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestId);
         return _store.GetJobByRequestIdAsync(requestId, cancellationToken);
     }
 
-    /// <summary>是否存在待打 Item（轻量探测，不加载作业；Worker 空转时先探测再走完整领取）。</summary>
+    /// <summary>是否存在待打 Item（轻量探测，不加载作业与指令）。</summary>
     public Task<bool> HasPendingItemsAsync(CancellationToken cancellationToken = default)
         => _store.HasPendingItemsAsync(cancellationToken);
 
-    /// <summary>
-    /// 取下一个待打 Item：最旧 Pending 作业中序号最小的 Pending Item，
-    /// 并置为 Printing；无待打作业时返回 null。
-    /// </summary>
+    /// <summary>取下一个待打 Item：最旧 Pending 作业中序号最小的 Pending Item，并置为 Printing；无待打时返回 null。</summary>
     public async Task<(string JobId, LabelJobItem Item)?> ClaimNextItemAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
@@ -136,7 +128,6 @@ public sealed class LabelJobQueue : IDisposable
                 return null;
             }
 
-            // 一个批内可连续领取：同时扫描 Pending 与在途 Printing 作业（最旧优先）
             var activeJobs = new List<LabelJob>();
             activeJobs.AddRange(await _store.ListJobsByStatusAsync(LabelJobStatus.Pending, cancellationToken));
             activeJobs.AddRange(await _store.ListJobsByStatusAsync(LabelJobStatus.Printing, cancellationToken));
@@ -243,7 +234,6 @@ public sealed class LabelJobQueue : IDisposable
 
             if (!job.Items.Any(i => i.Status == LabelJobItemStatus.Pending) && job.Status is LabelJobStatus.Pending or LabelJobStatus.Printing)
             {
-                // 无剩余 Pending 且非全部完成（存在 Failed）→ 作业结束为 Failed
                 return await _store.SetJobStatusAsync(jobId, LabelJobStatus.Failed, cancellationToken) ?? job;
             }
 
@@ -372,26 +362,25 @@ public sealed class LabelJobQueue : IDisposable
 
             if (itemIndex < 0 || itemIndex >= job.Items.Count)
             {
-                // 条目级越界与「作业状态不允许」（LF_JOB_002 {status}）语义不同——拆码 LF_JOB_003
+                // 条目级越界与「作业状态不允许」（LF_JOB_002 {status}）语义不同，用独立问题码与参数集
                 throw Templated(JobErrorCodes.ItemNotFound, "作业没有第 {itemIndex} 张标签。", new() { ["itemIndex"] = itemIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) });
             }
 
             var item = job.Items[itemIndex];
             if (item.Status != LabelJobItemStatus.Failed)
             {
-                // 条目状态不可重打拆码 LF_JOB_004（{itemIndex} + {itemStatus}），保持单码单参数键集
+                // 与 LF_JOB_002（{status}）区分：单码单参数键集（{itemIndex} + {itemStatus}）
                 throw Templated(JobErrorCodes.ItemNotRetriable, "第 {itemIndex} 张状态为 {itemStatus}，仅 Failed 可重打。", new() { ["itemIndex"] = itemIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), ["itemStatus"] = item.Status.ToString() });
             }
 
             await _store.SetItemStatusAsync(job.Id, item.Id, LabelJobItemStatus.Pending, null, null, cancellationToken);
             if (job.Status == LabelJobStatus.Failed)
             {
-                // 整批无待打且含失败项时作业为 Failed；重打后恢复可打
                 await _store.SetJobStatusAsync(job.Id, LabelJobStatus.Pending, cancellationToken);
             }
             else if (job.Status == LabelJobStatus.Suspended)
             {
-                // 挂起作业重打后保持挂起，由调用方决定是否恢复；若其它 Item 已在打则无需改动
+                // 挂起作业重打后保持挂起（由调用方决定是否恢复），状态无需改动
             }
 
             SignalPendingWake();
@@ -403,10 +392,7 @@ public sealed class LabelJobQueue : IDisposable
         }
     }
 
-    /// <summary>
-    /// 服务启动时调用：把 in-flight（Printing）作业置 Suspended，
-    /// 并把在途（Printing）Item 重置为 Pending，恢复后续打优先保证不漏打。
-    /// </summary>
+    /// <summary>服务启动时调用：把 in-flight（Printing）作业置 Suspended、在途 Item 重置为 Pending（恢复后续打优先保证不漏打）。</summary>
     public async Task MarkInterruptedJobsSuspendedAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);

@@ -8,9 +8,9 @@ using LabelFrame.TransportPlugin.Sample;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// fake 插件跨端单测矩阵（/ ，对齐 fake 编译器矩阵模式）：
-/// manifest platforms 契约（解析 / 向后兼容语义）＋ 三层校验平台门（windows / android 双向）＋
-/// 安装（含坏包拒绝：损坏 zip / manifest 缺失 / 内置 id 冲突 / pluginId 不一致 / 无 DLL）＋
+/// fake 插件跨端单测矩阵：
+/// manifest platforms 契约（解析 / 向后兼容语义）＋ 平台门（windows / android 双向）＋
+/// 坏包拒绝（损坏 zip / manifest 缺失 / 内置 id 冲突 / pluginId 不一致 / 无 DLL）＋
 /// 官方插件版本比较（android 宿主路径）＋ 加载 / 发现 / 装配 / 发送（fake 插件全链路）。
 /// </summary>
 public class PluginInstallerCrossPlatformTests
@@ -120,7 +120,7 @@ public class PluginInstallerCrossPlatformTests
         Assert.Contains("空白平台 id", ex.Message);
     }
 
-    // 平台门（三层校验 b：宿主平台不在声明集合内拒绝）
+    // 平台门：宿主平台不在声明集合内拒绝
 
     [Fact]
     public async Task Install_android_package_on_android_host_should_succeed()
@@ -270,7 +270,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_non_assembly_dll_should_reject()
     {
-        // 三层校验第 层（ALC 预检）：DLL 不是有效 .NET 程序集 → 可行动中文提示
+        // ALC 预检：DLL 不是有效 .NET 程序集 → 可行动中文提示
         var (installer, _, pluginsDir) = Create(PluginPlatforms.Android);
         try
         {
@@ -308,7 +308,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_manifest_id_mismatch_should_reject()
     {
-        // 三层校验第 层：ALC 预检发现的真实插件 id 与 manifest.pluginId 不一致拒绝
+        // ALC 预检发现的真实插件 id 与 manifest.pluginId 不一致拒绝
         var (installer, _, pluginsDir) = Create(PluginPlatforms.Android);
         try
         {
@@ -348,7 +348,7 @@ public class PluginInstallerCrossPlatformTests
         }
     }
 
-    // ---- 加载 / 发现 / 装配 / 发送（fake 插件全链路——Spike 的单测面代理） ----
+    // ---- 加载 / 发现 / 装配 / 发送（fake 插件全链路） ----
 
     [Fact]
     public async Task Installed_fake_package_should_load_discover_assemble_and_send()

@@ -1,8 +1,6 @@
 namespace LabelFrame.Core.Transport.Plugins;
 
-/// <summary>
-/// 传输插件上下文：宿主提供日志写入器与数据目录（插件可读写自己的状态文件）。
-/// </summary>
+/// <summary>传输插件上下文：宿主提供日志写入器与数据目录（插件可读写自己的状态文件）。</summary>
 public interface ITransportPluginContext
 {
     /// <summary>宿主日志写入器（与主机同一 host.log）。</summary>

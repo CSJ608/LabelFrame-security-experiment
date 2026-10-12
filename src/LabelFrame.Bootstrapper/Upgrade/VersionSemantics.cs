@@ -3,9 +3,8 @@ namespace LabelFrame.Bootstrapper.Upgrade;
 using LabelFrame.Bootstrapper.Prerequisites;
 
 /// <summary>
-/// 统一版本比较（DESIGN）：双方可解析 <see cref="Version"/>（容忍 "v" 前缀、<b>缺失段视为 0</b>——
-/// 1.0 == 1.0.0）则按其比较；任一不可解析则字符串 Ordinal。与 插件版本比较同源——
-/// <c>PayloadPlacer.ComparePluginVersions</c> 委托本实现，全系统单一语义（/ 两处消费零漂移）。
+/// 统一版本比较：双方可解析 <see cref="Version"/>（容忍 "v" 前缀、<b>缺失段视为 0</b>——1.0 == 1.0.0）则按其比较；
+/// 任一不可解析则字符串 Ordinal。<c>PayloadPlacer.ComparePluginVersions</c> 委托本实现——全系统版本比较单一语义，不得另起实现。
 /// </summary>
 public static class VersionSemantics
 {

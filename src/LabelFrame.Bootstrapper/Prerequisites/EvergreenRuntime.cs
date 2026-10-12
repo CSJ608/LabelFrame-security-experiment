@@ -13,9 +13,8 @@ public sealed record EvergreenSource(string? LocalPath, IReadOnlyList<string> Ur
 }
 
 /// <summary>
-/// evergreen runtime（恒变直链，无可钉哈希）获取编排（DESIGN 「evergreen 获取与验签机制」）：
-/// 源解析（本地布局文件优先 → urls 逐源）与「下载 / 取本地 → Authenticode 发布者验签」的通用流程；
-/// 由 PayloadTool 在包执行期（引擎提权上下文）消费。
+/// evergreen runtime（恒变直链，无可钉哈希）获取编排：源解析（本地布局文件优先 → urls 逐源）与
+/// 「下载 / 取本地 → Authenticode 发布者验签」的通用流程；由 PayloadTool 在包执行期（引擎提权上下文）消费。
 /// </summary>
 public static class EvergreenRuntime
 {
@@ -74,7 +73,7 @@ public static class EvergreenRuntime
 
     /// <summary>
     /// BA 侧 <c>[WebView2Source]</c> 变量值（纯函数）：布局目录本地文件在位 → 本地路径；否则清单 urls 顺序拼接；
-    /// 清单缺 evergreen 条目 → 空串（工具按官方 fwlink 兜底）。源序契约 = （[布局文件] ++ urls）。
+    /// 清单缺 evergreen 条目 → 空串（工具按官方 fwlink 兜底）。
     /// </summary>
     /// <param name="manifest">当轮加载的安装清单（null 视为缺条目）。</param>
     /// <param name="localSourceDirectory">布局目录（清单来源为本地路径时非空；null = 无布局）。</param>

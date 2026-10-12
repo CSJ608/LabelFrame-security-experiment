@@ -1,8 +1,7 @@
-// LF_* 错误码 PDA 侧码表测试（语义对齐的 web 端测试）：
-// 覆盖断言：解析后端错误码注册表源码提取码字面量
-//    断言 zh + en 两份码表全覆盖且无多余死码——新增码漏表即红（与 web errorCodes.test.ts 同一道防线）；
-// 展示端翻译行为：en 已知码按码表插值渲染、未知码 / 参数不全回退后端中文、zh 直用后端 message。
-// 取证说明：本断言的失败形态 = 逐条列出缺失 / 多余码后 Assert 失败。
+// LF_* 错误码 PDA 侧码表测试：
+// 覆盖断言——解析后端错误码注册表源码提取码字面量，断言 zh + en 两份码表全覆盖且无多余死码
+//    （新增码漏表即红，与 web errorCodes.test.ts 同一道防线；失败形态 = 逐条列出缺失 / 多余码）；
+// 展示端翻译行为——en 已知码按码表插值渲染、未知码 / 参数不全回退后端中文、zh 直用后端 message。
 
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -13,7 +12,7 @@ namespace LabelFrame.AndroidHost.Tests;
 
 public class LfErrorCatalogTests
 {
-    /// <summary>错误码注册表（后端源码即权威，；新增码须同步两份码表）。</summary>
+    /// <summary>错误码注册表（后端源码即权威；新增码须同步两份码表）。</summary>
     private static readonly (string Name, string File)[] Registries =
     [
         ("ApiErrorCodes（LabelFrame.Api）", "src/LabelFrame.Api/ApiErrorCodes.cs"),

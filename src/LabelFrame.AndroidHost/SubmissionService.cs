@@ -54,7 +54,7 @@ public sealed class SubmissionService
             try
             {
                 var document = new LabelDocument { Layout = request.Template.Layout, Data = data };
-                // 作业载荷附带图片 base64 解码后传入渲染器（此前 PDA 丢弃致嵌入图无法渲染）
+                // Template.Images 须解码后传入渲染器——此前 PDA DTO 丢弃图片致嵌入图无法渲染
                 var bitmap = AndroidLabelRenderer.RenderLabelBitmap(document, _dpi, ImagePayloadDecoder.Decode(request.Template.Images));
                 commandLabels.Add(_encoder.EncodeImage(bitmap, document.Layout.WidthMm, document.Layout.HeightMm, _dpi));
             }
@@ -68,7 +68,7 @@ public sealed class SubmissionService
             }
             catch (MissingImageResourceException ex)
             {
-                // 缺资源＝打印侧显式报错（不静默灰占位照打），消息含键名
+                // 缺资源＝显式报错（不灰占位照打），消息含键名
                 return SubmitResult.Failure(JobErrorCodes.InvalidRequest, ex.Message);
             }
         }

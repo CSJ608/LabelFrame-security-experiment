@@ -1,10 +1,9 @@
-// 连接方式（恢复，F3）：设置页完整面板。
-// 传输插件化——后端 availablePlugins（spec 驱动）存在时按插件目录动态渲染参数表单
+// 连接方式：设置页完整面板。
+// 传输插件化——后端 availablePlugins（spec 驱动）存在时按插件目录动态渲染参数表单；
 // 旧后端（无 availablePlugins）回退内置 4 模式（Log / Tcp / WindowsDriver / Zebra）。
 // 交互：先测试后生效（非 testOnly 后端先测试再切换持久化）；失败返回当前连接、前端全局状态不动。
-// 全部走 localApi（本机 Client 127.0.0.1:53960 / 页面来源）。连接徽标优先后端 displayText。
-// 删除全仓零引用的 DataPrint 顶部快速切换组件。
-// 面板其余文案 key 化（settings 域 transportForm.* + common.transport.mode/zebraKind）。
+// 全部走 localApi（本机 Client）；连接徽标优先后端 displayText。
+// 面板文案 key 化（settings 域 transportForm.* + common.transport.mode/zebraKind）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +28,7 @@ import {
 import { useApp } from '../state/AppContext'
 import { Icon } from './Icon'
 
-/* * 原生指令模式提示（DESIGN）：原生指令无指令级预览，界面以文案说明效果口径。
+/* * 原生指令模式提示：原生指令无指令级预览，界面以文案说明效果口径。
  * 随数据与打印页迁移 key 化（common.transport.*——该徽标同时用于本面板表单）。 */
 export function NativePrintModeHint() {
   const { t } = useTranslation()

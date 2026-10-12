@@ -4,9 +4,9 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 服务端地址页（+ D1）：仅含客户端的角色出现——「仅打印客户端」必填（已装机从 settings.json 预填）
-/// 「服务端 + 同机客户端」预填本机默认 <c>127.0.0.1:53961</c> 可改；规范化见 <see cref="ServerUrlInput.Normalize"/>，
-/// 装后由 BA 写入 settings.json（装完即连上，无需进客户端设置页）。
+/// 服务端地址页：仅含客户端的角色出现——「仅打印客户端」必填（已装机从 settings.json 预填）；
+/// 「服务端 + 同机客户端」预填本机默认可改；规范化见 <see cref="ServerUrlInput.Normalize"/>，
+/// 装后由 BA 写入 settings.json（装完即连上）。
 /// </summary>
 internal sealed class ServerAddressPage : UserControl, IWizardPage
 {
@@ -54,7 +54,7 @@ internal sealed class ServerAddressPage : UserControl, IWizardPage
 
     public void OnEnter()
     {
-        // 预填（D1）：同机角色 → 本机默认；已装机器 → settings.json 已配地址；其余留空必填
+        // 预填：同机角色 → 本机默认；已装机器 → settings.json 已配地址；其余留空必填
         if (!_userEdited)
         {
             _addressTextBox.Text = _session.Preset == TopologyPreset.Standalone

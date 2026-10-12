@@ -1,9 +1,9 @@
 namespace LabelFrame.Bootstrapper.Placement;
 
 /// <summary>
-/// 落位凭据（DESIGN 「落位凭据」）：<c>.labelframe-bundle-placement</c> 文件（内容 = Bundle 版本）。
-/// 「Bundle 落位清单」的凭据形态——只有 Bundle 落位的目录携带该文件；用户经客户端「插件管理」（<c>PluginInstaller</c> 通道）
-/// 安装的官方插件与一切手动放置资产无此文件，永不被 Bundle 卸载清理（清理边界的技术保证）。凭据随目录消亡（清理 = 删目录）。
+/// 落位凭据：<c>.labelframe-bundle-placement</c> 文件（内容 = Bundle 版本）——卸载清理边界的技术保证。
+/// 只有 Bundle 落位的目录携带该文件；用户经客户端「插件管理」安装的官方插件与一切手动放置资产无此文件，
+/// 永不被 Bundle 卸载清理。凭据随目录消亡（清理 = 删目录）。
 /// </summary>
 public static class PlacementMarker
 {

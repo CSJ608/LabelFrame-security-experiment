@@ -1,6 +1,5 @@
-// 设置持久化（sessionStorage 之外的浏览器存储）：服务端地址 localStorage 兜底。
-// （F2）：serverBase 优先级 = 机器级配置（GET /api/host/config）> localStorage 兜底 > 默认 127.0.0.1:53961
-// 移除方案 B 残留检测（比较基准已随 DEFAULT_BASE_URL 变更失效）。
+// 设置持久化（sessionStorage 之外的浏览器存储）：服务端地址 localStorage 兜底
+//（serverBase 优先级 = 机器级配置 > localStorage > 默认 127.0.0.1:53961）。
 // 显式 window.localStorage + typeof 守卫：Node 26 实验性全局 localStorage 会遮蔽 jsdom 注入版。
 
 import { DEFAULT_BASE_URL } from './api/types'

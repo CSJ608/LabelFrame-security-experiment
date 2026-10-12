@@ -3,8 +3,7 @@
 namespace LabelFrame.Core.Transport.Plugins.Package;
 
 /// <summary>
-/// 插件包 zip 读取：根 manifest.json + 插件 DLL；
-/// zip-slip 防护（拒绝绝对路径 / 盘符 / .. 段）；不落地解压（服务端列表 / 上传校验用）。
+/// 插件包 zip 读取：根 manifest.json + 插件 DLL；zip-slip 防护（拒绝绝对路径 / 盘符 / .. 段）。
 /// 校验失败抛 <see cref="PluginPackageException"/>（中文可行动消息）；
 /// 框架 zip 解析抛出的英文异常在此归类转译（非 zip / zip 损坏），不外泄英文原话。
 /// </summary>

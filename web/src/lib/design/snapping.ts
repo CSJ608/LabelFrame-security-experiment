@@ -1,5 +1,5 @@
 // 智能参考线吸附（纯函数）：候选线 = 画布边缘/中心 + 内容区边缘/中心 + 其它元素边缘/中心；
-// 无目标时网格吸附兜底（贴最近 1mm 网格）。与原型 snapNode 逻辑一致。
+// 无目标时网格吸附兜底（贴最近 1mm 网格）。
 
 import { pxv } from './geometry'
 import type { DesignElement } from './types'
@@ -41,7 +41,7 @@ export function elementModelRect(e: DesignElement, ox: number, oy: number): Snap
 }
 
 /**
- * 选中元素联合包围盒（返工 ——用户拍板「整体刚性」）：多选拖动的吸附单位。
+ * 选中元素联合包围盒：多选拖动的吸附单位（整体刚性——组作为单一吸附主体）。
  * 各元素 elementModelRect 的 min/max 包络；空集返回 {0,0,0,0}（调用方保证非空，防御性退化）。
  */
 export function unionModelRect(els: readonly DesignElement[], ox: number, oy: number): SnapRect {
@@ -61,7 +61,7 @@ export function unionModelRect(els: readonly DesignElement[], ox: number, oy: nu
 }
 
 /**
- * 参考线候选盒构造（返工）：排除 excludeIds 后的元素模型盒列表。
+ * 参考线候选盒构造：排除 excludeIds 后的元素模型盒列表。
  * 单选 = 仅排除被拖元素自身；多选 = 排除全部选中元素（组内零参与——不作被拖盒也不作候选）。
  * 单选 snapNode 与多选联合盒吸附共用本算式，组件与单测共用真实代码路径。
  */

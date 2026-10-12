@@ -5,7 +5,7 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// 文档编译能力契约锚定（DESIGN /）：
+/// 文档编译能力契约锚定：
 /// 装配期能力位判定（plugin is ILabelCommandCompiler）+ 注册表编译器取用 + printMode 读取口径。
 /// </summary>
 public class LabelCommandCompilerCapabilityTests

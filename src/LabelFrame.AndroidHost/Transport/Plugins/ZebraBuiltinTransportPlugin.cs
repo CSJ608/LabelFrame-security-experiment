@@ -4,11 +4,8 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.AndroidHost.Transport.Plugins;
 
-/// <summary>
-/// 内置 Zebra 传输插件（SDK 档，/ 双档模型的内置侧）：Link-OS SDK 编译进 APK 不外置——
-/// 注册进插件注册表作 brand = zebra 的路由锚点与「外部包占用内置 id」三层校验拒绝锚点；
-/// 参数模型即 PDA 配置的 { brand, connectionType, host, port } 结构（零变更）。
-/// </summary>
+/// <summary>内置 Zebra 传输插件（SDK 档）：Link-OS SDK 编译进 APK 不外置；注册进插件注册表作
+/// brand = zebra 的路由锚点与「外部包占用内置 id」拒绝锚点；参数模型即 PDA 配置结构（零变更）。</summary>
 public sealed class ZebraBuiltinTransportPlugin : ITransportPlugin
 {
     /// <summary>内置插件 id（= 配置 printer_brand 的 zebra 值；外部包占用此 id 会被三层校验拒绝）。</summary>

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>「角色 + 开关 → 组件集合」全矩阵（对照 DESIGN 映射表；含 场景。/ 问卷收敛为本机角色三选，server-docker / server-linux 用例移除）。</summary>
+/// <summary>「角色 + 开关 → 组件集合」全矩阵（问卷收敛为本机角色三选；含离线布局场景 fixture）。</summary>
 public sealed class TopologyResolverTests
 {
     private readonly TopologyResolver _resolver = new();
@@ -22,7 +22,7 @@ public sealed class TopologyResolverTests
     private static void AssertIds(TopologyPlan plan, params string[] expected) =>
         Assert.Equal(expected.ToList(), plan.Components.Select(item => item.Component.Id).ToList());
 
-    // ---- ：当前清单形态（起产物：plugin-zebra 官方插件条目已收录）----
+    // ---- 当前清单形态（plugin-zebra 官方插件条目已收录）----
 
     [Fact]
     public void Resolve_current_manifest_standalone_zebra_webui_should_be_server_client_webui_plugin()
@@ -46,7 +46,7 @@ public sealed class TopologyResolverTests
         AssertIds(plan, "server-msi", "client-msi");
     }
 
-    // ---- ：全矩阵（full fixture：含 runtime 条目 + dependsOn 闭包 + plugin-zebra 条目）----
+    // ---- 全矩阵（full fixture：含 runtime 条目 + dependsOn 闭包 + plugin-zebra 条目）----
 
     [Fact]
     public void Resolve_standalone_default_should_include_core_with_dependency_closure()
@@ -148,7 +148,7 @@ public sealed class TopologyResolverTests
         Assert.Contains("WebView2", Assert.Single(plan.Components, item => item.Component.Id == "runtime-webview2").InstallTarget, StringComparison.Ordinal);
     }
 
-    // ---- 角色适用性（/ 两层问卷：打印机 / 地址 / 管理界面页跳过依据）----
+    // ---- 角色适用性（两层问卷：打印机 / 地址 / 管理界面页跳过依据）----
 
     [Fact]
     public void Role_applicability_should_cover_three_questionnaire_roles()

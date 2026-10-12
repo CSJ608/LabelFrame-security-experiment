@@ -3,12 +3,9 @@ using Android.Util;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 轻量静态日志门面：logcat（tag 前缀 <c>LabelFrame.</c>）+ 应用私有目录本地滚动文件。
-/// 仅关键路径埋点，不引入重量级依赖；写失败一律静默——日志设施自身绝不影响业务。
-/// 本地文件：<c>{FilesDir}/logs/host-yyyyMMdd-NNN.log</c>，单文件超出上限滚动到下一序号，
-/// 目录内只保留最近若干个文件（名字按日期 + 序号排序即时间序）。
-/// </summary>
+/// <summary>轻量静态日志门面：logcat（tag 前缀 LabelFrame.）+ 应用私有目录本地滚动文件
+/// （{FilesDir}/logs/host-yyyyMMdd-NNN.log，按日期 + 序号滚动限量保留）；
+/// 写失败一律静默——日志设施自身绝不影响业务。</summary>
 public static class HostLog
 {
     /// <summary>埋点区域短名（完整 tag = <c>LabelFrame.</c> 前缀 + 区域名）。</summary>
@@ -67,7 +64,7 @@ public static class HostLog
         }
         catch
         {
-            // logcat 写入失败（理论不可能）：忽略
+            // 写失败一律静默：日志设施绝不影响业务
         }
 
         try
@@ -76,7 +73,7 @@ public static class HostLog
         }
         catch
         {
-            // 文件写入失败（磁盘满等）：忽略，只剩 logcat 通道
+            // 同上：静默
         }
     }
 
@@ -85,14 +82,13 @@ public static class HostLog
         var fullTag = TagPrefix + tag;
         var text = stack is null ? message : message + "\n" + stack;
 
-        // 单条直接写（绝大多数日志走此路径）
         if (text.Length <= MaxLogcatChunk)
         {
             Log.WriteLine(priority, fullTag, text);
             return;
         }
 
-        // 长堆栈分片：每片独立成行，序号供拼接还原
+        // logcat 单行上限内分片，序号 [i/N] 供拼接还原长堆栈
         var chunks = (text.Length + MaxLogcatChunk - 1) / MaxLogcatChunk;
         for (var i = 0; i < chunks; i++)
         {
@@ -177,7 +173,7 @@ public static class HostLog
             }
             catch
             {
-                // 单个删除失败不影响后续写日志
+                // 删除失败不影响写日志
             }
         }
     }

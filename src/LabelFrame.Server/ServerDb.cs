@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 
 namespace LabelFrame.Server;
 
-/// <summary>Server 的 SQLite 存储：设备目录 + 作业表。</summary>
+/// <summary>Server 的 SQLite 存储：设备目录 + 作业表 + 回调投递表。</summary>
 public sealed class ServerDb
 {
     private const string CreateTablesSql = """
@@ -255,12 +255,7 @@ public sealed class ServerDb
         return devices;
     }
 
-    /// <summary>
-    /// 按 last_ip 精确查找设备（忽略大小写；未找到返回 null）。
-    /// 同 IP 多行并存（设备号变更后新行插入、旧行 last_ip 无人清除）时按
-    /// 最近活跃优先（last_seen_at DESC，注册时间与 id 作确定性平手序）——旧行 stale、新行活跃必命中新行；
-    /// 同 IP 多设备且都活跃（如 NAT 共网出口）时跟随最近一次心跳的设备。
-    /// </summary>
+    /// <summary>按 last_ip 精确查找设备（忽略大小写；未找到 null）。同 IP 多行取最近活跃（last_seen_at DESC）——设备号变更后旧行 stale 必命中新行；同 IP 多设备都活跃（NAT 共网出口）时跟随最近心跳。</summary>
     public async Task<Device?> FindDeviceByIpAsync(string ip, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);
@@ -324,12 +319,7 @@ public sealed class ServerDb
         => GetJobCoreAsync(requestId, byRequestId: true, cancellationToken);
 
     /// <summary>领取：同一事务内刷新心跳 + 把目标设备的未过期 Pending 作业置为 Claimed，返回 (心跳受影响行数, 载荷)。</summary>
-    /// <remarks>
-    /// 写事务合批：原「Touch + Claim」为两个独立自动提交写事务，20 设备并发下各排队一次
-    /// SQLite 单写锁；合并为一个事务后每轮领取少一次锁竞争。并发安全不变——圈定仍由单条
-    /// UPDATE ... RETURNING 原子完成，多实例 / 并发下不会重复领取同一作业。
-    /// <paramref name="ttlCutoff"/> 非 null 时按 created_at 过滤超期作业（正确性兜底，不依赖过期扫描周期）；null = 不过滤（TTL 关闭）。
-    /// </remarks>
+    /// <remarks>心跳与圈定须同一写事务；圈定为单条 UPDATE ... RETURNING 原子完成，多实例 / 并发不会重复领取。<paramref name="ttlCutoff"/> 非 null 时按 created_at 过滤超期作业（正确性兜底，不依赖过期扫描周期）；null = 不过滤（TTL 关闭）。</remarks>
     public async Task<(int Touched, IReadOnlyList<ServerJob> Jobs)> TouchAndClaimPendingJobsAsync(
         string deviceId,
         DateTimeOffset now,
@@ -426,15 +416,10 @@ public sealed class ServerDb
             return null;
         }
 
-        // UPDATE 已受影响说明行存在，直接同连接回读（省去原先的冗余 id 探测查询）
         return await LoadJobCoreAsync(connection, jobId, cancellationToken);
     }
 
-    /// <summary>
-    /// 进度增量更新：仅 Claimed 作业接受，计数按字段取 max 单调递增（乱序 / 迟到 / 重复上报不回退）。
-    /// 只更新两个计数字段——不改 status / finished_at / error_message，也不刷新 claimed_at（不干预超时回收计龄）。
-    /// 返回受影响行数（0 = 作业已非 Claimed，调用方按竞态重读处理）。
-    /// </summary>
+    /// <summary>进度增量更新：仅 Claimed 接受，计数按字段取 max 单调递增（乱序 / 重复上报不回退）；不刷新 claimed_at（超时回收按其计龄）。返回受影响行数（0 = 已非 Claimed，调用方按竞态重读）。</summary>
     public async Task<int> UpdateJobProgressAsync(
         string jobId,
         int completedItems,
@@ -479,7 +464,6 @@ public sealed class ServerDb
             }
         }
 
-        // Reader 关闭后在同一连接逐个加载（消除原 1+N 次连接的 N+1）
         var jobs = new List<ServerJob>(ids.Count);
         foreach (var id in ids)
         {
@@ -530,11 +514,7 @@ public sealed class ServerDb
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// 把失联 Claimed 作业批量回收为 Failed 终态（原因由调用方给出，含错误码与超时时长；原因码 LF_SRV_009 落 error_code）；返回回收条数。
-    /// 与回报的竞态由「status = Claimed」条件收敛：回报先落库（Completed / Failed）则本 UPDATE 不命中；
-    /// 回收先落库则回报走幂等重放返回既有终态——两个方向都不会互相覆盖。
-    /// </summary>
+    /// <summary>把失联 Claimed 批量回收为 Failed 终态（原因码 LF_SRV_009 落 error_code）；返回回收条数。与回报的竞态由「status = Claimed」条件收敛：回报先落库则本 UPDATE 不命中，回收先落库则回报幂等重放返回既有终态——互不覆盖。</summary>
     public async Task<int> MarkTimedOutClaimedJobsAsync(DateTimeOffset now, DateTimeOffset timeoutCutoff, string reason, string? errorCode, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);
@@ -553,10 +533,7 @@ public sealed class ServerDb
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// 删除终态（Completed / Failed / Expired）且结束 / 创建时间早于截止时间的作业（历史清理用）；
-    /// 投递行（job_callbacks）随作业一并删除（先删投递行再删作业行，同一判定口径）。
-    /// </summary>
+    /// <summary>删除早于截止时间的终态作业（历史清理用）；投递行（job_callbacks）随作业一并删除（同一判定口径）。</summary>
     public async Task<int> DeleteTerminalJobsBeforeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);
@@ -584,12 +561,7 @@ public sealed class ServerDb
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// 终态回调登记统一出口（幂等）：把已到终态且带 callback_url、尚未登记的作业写入投递表
-    /// （job_id 主键 + INSERT OR IGNORE，并发 / 重复登记安全）。三处终态转移点（宿主回报、失联回收、
-    /// 超 TTL 过期）都经此登记；<paramref name="jobId"/> 非 null 时只处理该作业（回报路径单作业精准登记）。
-    /// 返回新登记条数。
-    /// </summary>
+    /// <summary>终态回调登记统一出口（幂等：job_id 主键 + INSERT OR IGNORE，并发 / 重复登记安全）。三处终态转移点（宿主回报、失联回收、超 TTL 过期）都经此登记，漏一处即回调漏报；<paramref name="jobId"/> 非 null 时只处理该作业（回报路径单作业精准登记）。返回新登记条数。</summary>
     public async Task<int> EnqueueJobCallbacksAsync(DateTimeOffset now, string? jobId = null, CancellationToken cancellationToken = default)
     {
         await using var connection = await OpenAsync(cancellationToken);

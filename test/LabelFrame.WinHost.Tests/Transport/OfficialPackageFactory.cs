@@ -7,7 +7,7 @@ namespace LabelFrame.WinHost.Tests.Transport;
 /// <summary>
 /// 测试用官方 Zebra 插件包工厂：镜像 scripts/build-zebra-plugin.ps1 的产物形态——
 /// 真实插件程序集 + Zebra SDK 全套伴生依赖（取自测试 bin 的完整闭包），排除「宿主必带」程序集，
-/// 使安装 / 装配用例与生产 .lfplugin 同构（CI 内验证生产包形状， 装配面代理）。
+/// 使安装 / 装配用例与生产 .lfplugin 同构。
 /// </summary>
 internal static class OfficialPackageFactory
 {
@@ -62,7 +62,7 @@ internal static class OfficialPackageFactory
         return ms.ToArray();
     }
 
-    /// <summary>是否属插件依赖闭包（测试 bin 混入测试 / 宿主程序集——按打包脚本同款白名单语义筛 SDK 闭包与基础库）。</summary>
+    /// <summary>是否属插件依赖闭包（测试 bin 混入测试 / 宿主程序集——按打包脚本同款白名单语义筛 SDK 闭包）。</summary>
     private static bool IsPluginClosure(string fileName, string pluginDir)
     {
         if (fileName.Equals("LabelFrame.TransportPlugin.Zebra.dll", StringComparison.OrdinalIgnoreCase))
@@ -70,7 +70,7 @@ internal static class OfficialPackageFactory
             return true;
         }
 
-        // Zebra SDK 伴生闭包（打包脚本产出的确定性集合；测试 bin 中同名的才是伴生，宿主 / 测试自有程序集不带这些名）
+        // Zebra SDK 伴生闭包（打包脚本产出的确定性集合；测试 bin 中同名的才是伴生）
         string[] sdkClosure =
         [
             "ZebraPrinterSdk.dll", "SdkApi.Core.dll", "SdkApi.Desktop.dll", "SdkApi.Desktop.Usb.dll",

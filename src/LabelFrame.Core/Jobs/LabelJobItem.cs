@@ -15,7 +15,7 @@ public sealed class LabelJobItem
     /// <summary>逐张状态。</summary>
     public LabelJobItemStatus Status { get; set; } = LabelJobItemStatus.Pending;
 
-    /// <summary>持久化的打印机指令（字段与 DB 列名沿用 zpl，不改名：图片模式 = ^GF 位图 ZPL；原生指令模式 = 插件编译的品牌原生指令；不可变，重启后可续打且不重打）。</summary>
+    /// <summary>持久化的打印机指令（字段与 DB 列名沿用 zpl 不改名——存量库兼容；图片模式 = ^GF 位图 ZPL，原生指令模式 = 插件编译的品牌原生指令；不可变，重启后可续打且不重打）。</summary>
     public required string Zpl { get; init; }
 
     /// <summary>失败问题码。</summary>

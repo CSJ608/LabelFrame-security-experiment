@@ -1,5 +1,5 @@
-// 轻量锚定弹出菜单（/ ，仓库首个下拉菜单组件）。
-// 关键实现约束：必须 createPortal 到 body ＋ position:fixed 锚定
+// 轻量锚定弹出菜单。
+// 关键实现约束：必须 createPortal 到 body ＋ position:fixed 锚定——
 // 工作台卡片 .wb-card 为 overflow:hidden，普通绝对定位菜单会被卡片裁剪（实施已知坑）。
 // 关闭语义：点击菜单外区域 / Esc / 页面滚动均关闭；菜单项点击由调用方关闭。
 

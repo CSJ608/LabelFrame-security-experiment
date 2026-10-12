@@ -4,7 +4,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>多源回退决策结果（BA 消费引擎获取解析事件，按清单 urls 顺序提供下一源；/ 补本地源形态）。</summary>
+/// <summary>多源回退决策结果（BA 消费引擎获取解析事件，按有效源序提供下一源）。</summary>
 /// <param name="Decision">决策：提供源（覆写引擎下载 URL / 本地源）或保持引擎当前源。</param>
 /// <param name="Url">决策为 <see cref="SourceFallbackDecision.UseSource"/> 且为远程源时的目标 URL（本地源 / 其余为 null）。</param>
 /// <param name="LocalPath">决策为 <see cref="SourceFallbackDecision.UseSource"/> 且为本地源时的布局目录文件路径（远程源 / 其余为 null）。</param>
@@ -34,31 +34,15 @@ public enum SourceFallbackDecision
 }
 
 /// <summary>
-/// 多源回退状态机（/ Issue 「范围修订 v2」；UI 无关，BA 事件层薄接线，本类承载全部决策逻辑供 net10 测试锚定）。
+/// 多源回退状态机（UI 无关，BA 事件层薄接线，本类承载全部决策逻辑）：清单组件 <c>urls</c> 顺序即优先级、逐源回退；
+/// 离线布局目录（本地清单所在目录）为隐式优先源目录，布局文件在位时有效源序 = [本地文件] ++ urls（manifest schema 零修改）。
 /// </summary>
 /// <remarks>
-/// <para>
-/// 契约（DESIGN + + 本地源扩展）：清单组件 <c>urls</c> 数组<b>顺序即优先级、逐源回退</b>
-/// 离线布局目录（本地清单所在目录）作为<b>隐式优先源目录</b>——布局文件在位时有效源序 = [本地文件] ++ urls
-/// （第 0 次获取解析提供本地文件，失败后按既有推进语义落到 urls[0]…），manifest schema 零修改。
-/// </para>
-/// <para>
-/// 推进语义：每个链包维护<b>失败计数</b>（获取失败与获取后校验失败各计一次）——第 N 次获取解析时提供有效源序
-/// min(N, count-1) 处的源（第 0 次即首源，通常与 Bundle 构建期 DownloadUrl 相同）；计数达到有效源总数即<b>源耗尽</b>
-/// （不再覆写、不再驱动重试）。计数仅在新建 Apply（重试按钮）时复位；包级 / 引擎自身的获取重试不复位
-/// （换源正是在重试轮次间发生）。事件线程调用（Burn 引擎回调单线程），无需加锁。
-/// </para>
-/// <para>
-/// sha256 口径：本地源与远程源同样强制——本地文件由 BA 经 <c>IEngine.SetLocalSource</c> 交给引擎
-/// 引擎按包内嵌摘要（构建期实测 = manifest sha256）校验，篡改即获取 / 校验失败按序换源，全源耗尽 fail-closed。
-/// 布局文件不在位 / 清单来源为 URL → 有效源序退化为纯 urls（无布局目录在线安装行为与现状一致）。
-/// </para>
-/// <para>
-/// WiX 版本对应：Burn v3 的 <c>ResolveSource</c> 事件（BA 以 <c>DownloadSource</c> 提供备选源）在 v4+（本仓 v7）
-/// 演进为「<c>CacheAcquireBegin</c> / <c>CacheAcquireComplete</c> 事件内调用 <c>IEngine.SetDownloadSource</c> +
-/// 失败时事件返回 <c>Retry</c> 动作」（引擎源码 <c>AcquireContainerOrPayload</c> 的获取 / 重试循环）——
-/// 本类即该回退链路的决策核心；本地源为同事件入口的 <c>SetLocalSource</c> 对应。
-/// </para>
+/// <para>本地源与远程源 sha256 同样强制：引擎对 <c>SetLocalSource</c> 交入的本地副本同样按包内嵌摘要校验，篡改即按序换源、
+/// 全源耗尽 fail-closed——不可为「离线可用」放宽。</para>
+/// <para>WiX 版本坑：Burn v3 的 <c>ResolveSource</c> 事件在 v4+（本仓 v7）已演进为「<c>CacheAcquireBegin</c> /
+/// <c>CacheAcquireComplete</c> 内调用 <c>IEngine.SetDownloadSource</c> / <c>SetLocalSource</c> + 失败时事件返回
+/// <c>Retry</c>」——不存在 v3 形态的备选源事件可挂。事件线程调用（Burn 回调单线程），无需加锁。</para>
 /// </remarks>
 public sealed class CacheSourceFallback
 {
@@ -102,7 +86,7 @@ public sealed class CacheSourceFallback
 
             urlsByPackage[packageId] = component.Urls;
 
-            // 本地源登记：仅当布局目录给定且组件布局文件实际在位（Apply 开始时静态判定，全程一致）
+            // 本地源登记在 Apply 开始时静态判定、全程一致——不可改为获取期动态探测
             if (!string.IsNullOrWhiteSpace(layoutDirectory))
             {
                 var fileName = OfflineLayoutNaming.TryDeriveFileName(component);
@@ -143,7 +127,6 @@ public sealed class CacheSourceFallback
 
         if (hasLocal && failures == 0)
         {
-            // 首选 = 布局目录本地文件（隐式优先源， 源解析顺序契约）
             return new SourceFallbackOutcome(SourceFallbackDecision.UseSource, null, localPath, 0, effectiveCount, Rotated: false);
         }
 

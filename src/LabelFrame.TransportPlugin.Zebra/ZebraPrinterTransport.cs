@@ -6,11 +6,7 @@ using Zebra.Sdk.Printer.Discovery;
 
 namespace LabelFrame.TransportPlugin.Zebra;
 
-/// <summary>
-/// Zebra 官方 Link-OS SDK 传输：统一处理 TCP / USB / Windows 驱动连接，
-/// 发送 ZPL 指令；异常统一转换为中文 InvalidOperationException。
-/// 自 WinHost 迁移（外置化，行为与内置版本等价—— 口径）。
-/// </summary>
+/// <summary>Zebra Link-OS SDK 传输：TCP / USB / Windows 驱动统一连接发送 ZPL；异常统一转中文 InvalidOperationException。</summary>
 public sealed class ZebraPrinterTransport : IPrintTransport, IPrinterStatusProvider, ITestableTransport
 {
     private readonly ZebraTransportKind _kind;
@@ -106,13 +102,13 @@ public sealed class ZebraPrinterTransport : IPrintTransport, IPrinterStatusProvi
         return printers[0].GetConnection();
     }
 
-    /// <summary>ITestableTransport：连接测试失败消息含打印目标与提示（对齐 不泛化）。</summary>
+    /// <summary>ITestableTransport：连接测试，失败消息含打印目标与排查提示。</summary>
     public Task<string?> TestAsync(CancellationToken cancellationToken = default)
         => TestConnectionAsync(cancellationToken).ContinueWith(
             t => t.Result ? null : $"连接测试失败：Zebra 打印机不可达（{DescribeTarget()}，请检查连接方式与地址）。",
             cancellationToken);
 
-    /// <summary>连接测试：建立连接 + `~HS` 主机状态探测（SDK SendAndWaitForResponse）——收到打印机响应才算成功。</summary>
+    /// <summary>连接测试：~HS 主机状态探测——收到打印机响应才算就绪（能连端口 ≠ 打印机）。</summary>
     public Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -123,7 +119,6 @@ public sealed class ZebraPrinterTransport : IPrintTransport, IPrinterStatusProvi
             {
                 connection = CreateConnection();
                 connection.Open();
-                // ~HS 探测：2 秒内收到非空响应视为打印机就绪（能连端口 ≠ 打印机）
                 var response = connection.SendAndWaitForResponse(
                     System.Text.Encoding.UTF8.GetBytes("~HS"),
                     2000,
@@ -153,10 +148,6 @@ public sealed class ZebraPrinterTransport : IPrintTransport, IPrinterStatusProvi
     }
 
     /// <inheritdoc />
-    /// <remarks>
-    /// 通过 Zebra 官方 SDK `GetCurrentStatus()` 查询细状态（isPaperOut / isPaused / isReadyToPrint 等
-    /// 官方布尔属性，字段映射由 SDK 维护，落地）；winspool 驱动路径设计上无法读回状态，维持「默认在线」。
-    /// </remarks>
     public Task<PrinterStatusInfo> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -172,11 +163,11 @@ public sealed class ZebraPrinterTransport : IPrintTransport, IPrinterStatusProvi
             connection.Open();
             if (_kind == ZebraTransportKind.Driver)
             {
-                // 驱动（winspool）路径设计上无法读回打印机状态，维持「默认在线」（不在本轮范围，见 DESIGN）
+                // 驱动（winspool）路径设计上无法读回打印机状态，维持「默认在线」（设计裁剪非缺陷）
                 return new PrinterStatusInfo(true, IsPaperOut: false, IsPaused: false, "驱动模式无法读回打印机状态（默认在线）。");
             }
 
-            // 官方 GetCurrentStatus：消除自猜 ~HS 字段环节；Message 最小口径只报缺纸 / 暂停
+            // Message 最小口径只报缺纸 / 暂停，不扩充
             var printer = ZebraPrinterFactory.GetInstance(connection);
             var status = printer.GetCurrentStatus();
             var paperOut = status.isPaperOut;

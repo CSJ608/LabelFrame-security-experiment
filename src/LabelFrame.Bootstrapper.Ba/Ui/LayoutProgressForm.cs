@@ -5,12 +5,11 @@ using LabelFrame.Bootstrapper.OfflineLayout;
 using LabelFrame.Bootstrapper.Wizard;
 
 /// <summary>
-/// 离线布局目录生成进度窗：<c>--layout</c> 模式的轻量单窗呈现——
-/// 总进度（组件 i/N）+ 当前组件行（下载字节数 / 复用 / 校验中）+ 取消（取消即中止下载、非零退出）。
+/// 离线布局目录生成进度窗：<c>--layout</c> 模式的轻量单窗呈现——总进度（组件 i/N）+ 当前组件行 + 取消（中止下载、非零退出）。
 /// </summary>
 /// <remarks>
-/// 生成完成（成功 / 失败 / 取消）后由 <see cref="AttachCompletion"/> 自动关闭消息循环；
-/// 结果对话框与退出码由 BA 统一呈现（本窗只承载过程）。线程约定：<see cref="Report"/> 可从任意线程调用（封送 UI 线程）。
+/// 生成完成后由 <see cref="AttachCompletion"/> 自动关闭消息循环；结果对话框与退出码由 BA 统一呈现（本窗只承载过程）。
+/// <see cref="Report"/> 可从任意线程调用（封送 UI 线程）。
 /// </remarks>
 internal sealed class LayoutProgressForm : Form
 {

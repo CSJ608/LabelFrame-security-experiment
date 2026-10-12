@@ -4,12 +4,8 @@ using System.Text.Json.Serialization;
 namespace LabelFrame.Core.Layout;
 
 /// <summary>
-/// 版式元素 JSON 转换器：按 "type" 判别子类型（text / barcode / qrcode / image / line / region），
-/// 然后委托具体类型的默认反序列化；不依赖 JsonPolymorphic 属性，
-/// 保证在 ASP.NET Core HttpJsonOptions 等环境中稳定反序列化。
-/// 写方向遵循「非默认才写」省略风格（padding/border &gt;0、wrap=true、displayValue=false、
-/// verticalAlign 非 Middle、fitMode 非 Shrink、lineHeight 非 1.2、fontFamily 非默认、
-/// qrEcc 非 M、qrMargin 非 2），与前端 convert.ts 写方向一致。
+/// 版式元素 JSON 转换器：按 "type" 判别子类型后委托具体类型默认反序列化（不依赖 JsonPolymorphic，
+/// ASP.NET Core HttpJsonOptions 等环境稳定）；写方向「非默认才写」省略风格，与前端 convert.ts 一致。
 /// </summary>
 public sealed class LabelElementJsonConverter : JsonConverter<LabelElement>
 {
@@ -124,7 +120,6 @@ public sealed class LabelElementJsonConverter : JsonConverter<LabelElement>
                     writer.WriteString("textAlign", text.TextAlign.ToString());
                 }
 
-                // 决策 A：默认 Middle，非 Middle（Top / Bottom）才写
                 if (text.VerticalAlign != LabelVerticalAlign.Middle)
                 {
                     writer.WriteString("verticalAlign", text.VerticalAlign.ToString());
@@ -147,7 +142,7 @@ public sealed class LabelElementJsonConverter : JsonConverter<LabelElement>
 
                 if (text.FitMode != LabelFitMode.Shrink)
                 {
-                    // 前端枚举为小写 shrink / overflow
+                    // 前端契约枚举值为小写 shrink / overflow，不得直写 ToString()
                     writer.WriteString("fitMode", text.FitMode == LabelFitMode.Overflow ? "overflow" : "shrink");
                 }
 

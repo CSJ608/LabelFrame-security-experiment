@@ -59,7 +59,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
         }
     }
 
-    /// <summary>ITestableTransport：连接测试（~HS 探测），成功返回 null，失败返回含具体原因的中文错误消息（不再泛化失败）。</summary>
+    /// <summary>ITestableTransport：连接测试（~HS 探测），成功返回 null，失败返回含具体原因的中文错误消息。</summary>
     public async Task<string?> TestAsync(CancellationToken cancellationToken = default)
     {
         var (_, failureReason) = await TestConnectionCoreAsync(cancellationToken);
@@ -88,7 +88,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
                 await client.ConnectAsync(_host, _port, timeoutCts.Token);
             }
 
-            // 打印机探测：发送 ~HS 主机状态查询，收到非空响应才算可达
+            // 打印机探测：收到非空响应才算可达（能连端口 ≠ 打印机就绪）
             await using var stream = client.GetStream();
             var probe = System.Text.Encoding.UTF8.GetBytes("~HS");
             await stream.WriteAsync(probe, timeoutCts.Token);
@@ -123,8 +123,8 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
     /// <inheritdoc />
     /// <remarks>
     /// Zebra ~HS 主机状态响应为三行逗号分隔字段（每行以 STX 开头、ETX+CR+LF 结尾）；
-    /// 缺纸 / 暂停位均在首行：第 2 字段 = 缺纸、第 3 字段 = 暂停（官方 ZPL 指南 ~HS 字段表，修正）。
-    /// 官方声明缺纸 / 耗材用尽 / 打印头打开 / 回卷器满 / 打印头过热等状态下打印机可能完全不响应 ~HS——
+    /// 缺纸 / 暂停位均在首行：第 2 字段 = 缺纸、第 3 字段 = 暂停（官方 ZPL 指南 ~HS 字段表）。
+    /// 官方声明缺纸 / 耗材用尽 / 打印头打开等状态下打印机可能完全不响应 ~HS——
     /// 「无响应 / 超时 / 响应不完整」按异常态处理（离线 + 原因），绝不映射为正常。
     /// </remarks>
     public async Task<PrinterStatusInfo> GetStatusAsync(CancellationToken cancellationToken = default)
@@ -190,7 +190,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
     {
         ArgumentNullException.ThrowIfNull(rawResponse);
 
-        // 取第一个非空行（剥离行首 STX 与行尾 ETX / CR 等控制字符）；缺纸 / 暂停位均在首行
+        // 取第一个非空行（剥离行首 STX 与行尾 ETX / CR 等控制字符）
         var firstLine = rawResponse
             .Split('\n')
             .Select(line => line.Trim('\r', '\x02', '\x03', ' ', '\t'))

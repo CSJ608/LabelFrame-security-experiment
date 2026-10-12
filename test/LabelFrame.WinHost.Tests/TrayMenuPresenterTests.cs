@@ -4,10 +4,8 @@ using Xunit;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// TrayMenuPresenter（托盘右键菜单显示器）单元测试：
-/// Win32 通知图标菜单标准前置模式调用时序——SetForegroundWindow(owner) 先于 TrackPopupMenu、
-/// PostMessage(owner, WM_NULL) 后于菜单关闭（TrackPopupMenu 返回）；菜单模态期间重入早退不嵌套；
-/// 菜单关闭后可再次弹出。
+/// TrayMenuPresenter 单元测试：标准前置模式调用时序——SetForegroundWindow(owner) 先于 TrackPopupMenu、
+/// PostMessage(owner, WM_NULL) 后于菜单关闭；菜单模态期间重入早退不嵌套；关闭后可再次弹出。
 /// </summary>
 public sealed class TrayMenuPresenterTests
 {

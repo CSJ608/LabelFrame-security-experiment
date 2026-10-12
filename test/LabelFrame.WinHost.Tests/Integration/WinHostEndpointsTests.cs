@@ -20,9 +20,9 @@ using static LabelFrame.WinHost.Integration.WinHostIntegrationTestBase;
 namespace LabelFrame.WinHost.Integration;
 
 /// <summary>
-/// WinHost 端点 HTTP 集成测试：用与生产完全相同的 WinHostApp 装配（DI + 全部端点）拉起 TestServer。
-/// 移除后台打印 Worker（作业状态全程确定性 Pending / Suspended / Cancelled）；
-/// 经 X-Test-Remote-IP 中间件模拟回环 / 非回环来源（仅测试装配注入，生产行为不受影响）。
+/// WinHost 端点 HTTP 集成测试：用与生产完全相同的 WinHostApp 装配拉起 TestServer；
+/// 移除后台打印 Worker（作业状态全程确定性）；经 X-Test-Remote-IP 中间件模拟回环 / 非回环来源
+/// （仅测试装配注入，生产行为不受影响）。
 /// </summary>
 public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
 {

@@ -13,7 +13,7 @@ public class LogPrintTransportTests
         await transport.SendAsync(new string('A', 4096));
 
         var output = writer.ToString();
-        // Log 只记录摘要（^GF 数据量大，内容省略），不再写完整指令
+        // Log 只记录摘要不写完整指令（^GF 数据量大）
         Assert.StartsWith("=== LabelFrame 模拟打印机（Log）", output);
         Assert.Contains("4096", output);
         Assert.DoesNotContain("AAAA", output);

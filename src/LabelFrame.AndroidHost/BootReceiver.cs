@@ -15,7 +15,6 @@ public sealed class BootReceiver : BroadcastReceiver
             return;
         }
 
-        // 开机自启是保活链路的第一环，动作本身入日志（排障时确认系统事件是否送达）
         HostLog.Info(HostLog.Tags.Host, $"收到自启广播（{intent?.Action ?? "未知"}），拉起打印服务");
 
         var service = new Intent(context, typeof(PrintHostService));

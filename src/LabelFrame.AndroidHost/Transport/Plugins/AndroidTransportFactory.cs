@@ -4,12 +4,8 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.AndroidHost.Transport.Plugins;
 
-/// <summary>
-/// 打印传输品牌路由（/ 预埋兑现）：
-/// brand = zebra（或空）→ 内置 SDK 档 <see cref="ZebraSdkTransport"/>（既有路径原样，零回归）；
-/// brand = 外部插件 id → 注册表装配插件传输（参数 = 配置的 host / port，连接类型固定 tcp 起步）；
-/// 配置引用未安装插件 → 回退内置 Zebra + HostLog 中文留痕（对齐 Windows「彻底外置」回退语义，不崩溃）。
-/// </summary>
+/// <summary>打印传输品牌路由：brand = zebra（或空）→ 内置 SDK 档 <see cref="ZebraSdkTransport"/>；
+/// brand = 外部插件 id → 注册表装配插件传输；配置引用未安装插件 → 回退内置 Zebra + 中文留痕（不崩溃）。</summary>
 public static class AndroidTransportFactory
 {
     /// <summary>按配置品牌创建打印传输。</summary>

@@ -9,12 +9,11 @@ namespace LabelFrame.Api.Endpoints;
 /// <summary>导入端点选项。</summary>
 public sealed record ImportApiOptions(string InvalidRequestCode);
 
-/// <summary>数据导入端点（Server 与 WinHost 共用）：Excel 模板生成 + xlsx 解析（前端做列映射）。</summary>
+/// <summary>数据导入端点（共享实现；当前仅 Server 接线）：Excel 模板生成 + xlsx 解析（前端做列映射）。</summary>
 public static class ImportEndpoints
 {
     public static IEndpointRouteBuilder MapImportApi(this IEndpointRouteBuilder app, ImportApiOptions options)
     {
-        // 契约字段 + testData 生成 xlsx，直接套用 Excel 导入做打印测试
         app.MapPost("/api/import/excel-template", (ExcelTemplateRequest? request) =>
         {
             if (request is null || request.Columns is null || request.Columns.Count == 0)
@@ -50,7 +49,6 @@ public static class ImportEndpoints
             }
             catch (Exception ex)
             {
-                // 模板化消息：detail 为解析异常原因（动态数据，展示端插值原样呈现）
                 var parameters = new Dictionary<string, string> { ["detail"] = ex.Message };
                 return Results.BadRequest(new ErrorView(
                     options.InvalidRequestCode,

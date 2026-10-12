@@ -4,7 +4,7 @@ using LabelFrame.Core.Transport.Plugins.Package;
 
 namespace LabelFrame.Server;
 
-/// <summary>插件包视图（GET /api/plugin-packages 列表项；invalid 条目元数据字段缺失，仅文件信息有效；platforms 为增量可选字段——/ 跨端标记，未标记 = Windows 端既有包）。</summary>
+/// <summary>插件包视图（GET /api/plugin-packages 列表项；invalid 条目元数据字段缺失、仅文件信息有效；platforms 为可选跨端标记，未标记 = Windows 端既有包）。</summary>
 public sealed record PluginPackageView(
     string FileName,
     string? PluginId,
@@ -18,11 +18,7 @@ public sealed record PluginPackageView(
     string? InvalidReason,
     IReadOnlyList<string>? Platforms = null);
 
-/// <summary>
-/// 服务端插件包目录服务：独立 plugin-packages 目录 + /api/plugin-packages——
-/// 上传 / 列表时只读 zip 根 manifest.json 展示插件元数据（不解压不加载）；zip / manifest 解析失败 → valid:false + 原因，仍列出便于管理删除；
-/// 文件名一律拒绝路径分隔符 / .. / 非法字符（路径穿越防护，共享 Core <see cref="SafeFileName"/>）。
-/// </summary>
+/// <summary>服务端插件包目录服务：上传 / 列表只读 zip 根 manifest.json 展示元数据（不解压不加载）；解析失败 → valid:false + 原因、仍列出便于删除；文件名一律经 <see cref="SafeFileName"/> 规范化（路径穿越防护）。</summary>
 public sealed class PluginPackagesService : FilePackageService<PluginPackageView>
 {
     /// <summary>创建服务（目录不存在自动创建）。</summary>
@@ -31,10 +27,7 @@ public sealed class PluginPackagesService : FilePackageService<PluginPackageView
     {
     }
 
-    /// <summary>
-    /// 保存上传的插件包：先读入内存（64MB 上限）并校验 zip + 根 manifest + 必填字段（zip-slip），
-    /// 校验通过才落盘（覆盖同名文件）；非法包直接拒绝（400），不留下 invalid 文件。
-    /// </summary>
+    /// <summary>保存上传的插件包：先读入内存并校验大小上限（64MB）+ zip + 根 manifest + 必填字段，校验通过才落盘（覆盖同名）；非法包拒绝（400），不留下 invalid 文件。</summary>
     public async Task<PluginPackageView> SaveAsync(string? fileName, Stream content, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -56,9 +49,8 @@ public sealed class PluginPackagesService : FilePackageService<PluginPackageView
         var bytes = buffer.ToArray();
         var packageContent = PluginPackageReader.Read(bytes); // 非法抛 PluginPackageException（中文原因）
 
-        // 内置传输保留 id 拒绝：log / tcp9100 / winspool 为内置插件 id
-        // 上传此类包会让客户端安装时与内置冲突——与客户端安装侧「注册表内置即拒绝」互为纵深；
-        // 官方插件 id（labelframe- 前缀，如 labelframe-transport-zebra）放行，官方插件经本通道集中分发。
+        // 内置传输保留 id（log / tcp9100 / winspool）拒绝上传：会让客户端安装时与内置冲突（与客户端安装侧校验互为纵深）；
+        // labelframe- 前缀官方插件 id 放行（官方插件经本通道集中分发）。
         if (TransportPluginIdPolicy.IsReservedBuiltin(packageContent.Manifest.PluginId))
         {
             throw new PluginPackageException($"插件 ID「{packageContent.Manifest.PluginId}」与内置传输插件冲突，禁止上传。");

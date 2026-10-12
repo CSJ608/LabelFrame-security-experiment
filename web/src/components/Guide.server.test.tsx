@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // server 构建分支（VITE_UI_MODE=server）引导不渲染守门：
-// 引导组件与状态栏「使用引导」重看入口均以 !isServerUi 条件挂载——V1 范围仅 client 模式，
-// server 模式（web/dist-server）菜单结构不同，需单独裁剪（Issue「不在范围」显式化）。
+// 引导组件与状态栏「使用引导」重看入口均以 !isServerUi 条件挂载——引导仅 client 模式，
+// server 模式（web/dist-server）菜单结构不同，需单独裁剪。
 // 拆分独立文件与 App.server.test.tsx 同款双跑机制（vi.mock uiMode 注入分支，uiMode.ts:3 注释明示）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

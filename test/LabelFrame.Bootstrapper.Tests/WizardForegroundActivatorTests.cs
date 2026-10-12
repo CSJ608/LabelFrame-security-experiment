@@ -4,7 +4,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// WizardForegroundActivator（向导首显主动置前器）单元测试（单测部分）：
+/// WizardForegroundActivator（向导首显主动置前器）单元测试：
 /// 组合置前调用时序——已在前台零扰动；未在前台时「线程挂接 → 最小化 → 还原 → 会话切换 → 前置请求 → 解除挂接」，
 /// 置前被拒转任务栏强闪烁兜底（FLASHW_ALL | FLASHW_TIMERNOFG）；同线程 / 挂接失败 / 无前台窗口的防御分支。
 /// 断言形态对齐 WinHost TrayMenuPresenterTests 先例：全 Win32 调用点注入替身，录制调用序列逐条比对。

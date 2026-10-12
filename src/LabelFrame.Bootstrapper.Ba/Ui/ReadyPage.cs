@@ -4,9 +4,8 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 就绪页：进入即自动加载安装清单（邻接布局清单 → 本地；否则稳定通道 URL——打开向导即联网的口径变化已记决策表）
-/// 成功自动进问卷（基础模式默认角色 = 仅打印客户端）；失败给一句可行动提示并展开手动来源区（浏览本地清单 / 重试）。
-/// 「高级选项」角落按钮（D3）：置位 <see cref="WizardSession.AdvancedMode"/> 后前进进入角色页与技术细节。
+/// 就绪页：进入即自动加载安装清单（邻接布局清单优先，否则稳定通道 URL），成功自动进问卷（基础模式默认角色 = 仅打印客户端）；
+/// 失败给可行动提示并展开手动来源区（浏览本地清单 / 重试）。「高级选项」角落按钮置位 <see cref="WizardSession.AdvancedMode"/>。
 /// </summary>
 internal sealed class ReadyPage : UserControl, IWizardPage
 {
@@ -68,7 +67,7 @@ internal sealed class ReadyPage : UserControl, IWizardPage
         _manualPanel.Controls.Add(_browseButton);
         _manualPanel.Controls.Add(_retryButton);
 
-        // 高级选项（D3：就绪页角落入口；链式样式按钮保证 Win32 UI 自动化可 BM_CLICK）
+        // 高级选项（链式样式按钮保证 Win32 UI 自动化可 BM_CLICK）
         _advancedButton.Text = "高级选项";
         _advancedButton.FlatStyle = FlatStyle.Flat;
         _advancedButton.ForeColor = Color.FromArgb(22, 84, 160);

@@ -8,11 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LabelFrame.Api;
 
-/// <summary>
-/// 全局异常处理：统一 ErrorView（问题码 + 中文提示），不向客户端透出堆栈与内部路径。
-/// 分类：请求体反序列化失败属调用方错误 → 400 + LF_API_BAD_BODY
-/// 其余未捕获异常 → 500 + LF_INTERNAL_001。
-/// </summary>
+/// <summary>全局异常处理：统一 ErrorView（问题码 + 中文提示），不向客户端透出堆栈与内部路径。请求体反序列化失败（调用方错误）→ 400 + LF_API_BAD_BODY；其余未捕获异常 → 500 + LF_INTERNAL_001。</summary>
 public sealed partial class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -37,9 +33,8 @@ public sealed partial class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
-        // 请求绑定失败（非法 JSON / 非 UTF-8 / 类型不匹配 / 简单参数解析失败）：minimal API 模型绑定包装为
-        // BadHttpRequestException（StatusCode=400 语义），属调用方错误——不再落入 500 兜底误导业务方排查服务端；
-        // 原始异常详情（含 JsonException 位置）只进日志，不透出客户端。
+        // 请求绑定失败：minimal API 模型绑定把非法 JSON / 非 UTF-8 / 类型不匹配包装为
+        // BadHttpRequestException（400 语义，属调用方错误）；原始异常详情只进日志、不透出客户端
         if (exception is BadHttpRequestException or JsonException)
         {
             LogRequestBodyRejected(_logger, exception, httpContext.Request.Method, httpContext.Request.Path.Value ?? string.Empty,

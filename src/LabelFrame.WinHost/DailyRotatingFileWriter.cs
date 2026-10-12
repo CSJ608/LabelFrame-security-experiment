@@ -3,12 +3,9 @@ using System.Text;
 namespace LabelFrame.WinHost;
 
 /// <summary>
-/// host.log 按日轮转写入器：基准路径 host.log，实际写入 host-&lt;yyyyMMdd&gt;.log
-/// （与 app-*.log / server-*.log 口径一致）；超期文件自动清理（默认保留 31 个，0 或负值 = 不清理，
-/// 清理在启动与每日轮转时执行；历史单名 host.log 不迁移不删除）。
-/// 失败防护：构造时目录 / 文件不可打开由调用方捕获回退（沿用 TextWriter.Null 降级）；
-/// 运行中轮转开新文件失败继续写旧文件（下次写入再试），实际写入失败自我禁用（不抛出，
-/// 控制台告警一次）——宿主日志失效不能影响启动与请求路径。
+/// host.log 按日轮转写入器：实际写入 host-&lt;yyyyMMdd&gt;.log，超期自动清理（默认保留 31 个，≤0 = 不清理）。
+/// 失败防护：轮转失败退回旧文件继续写；写入失败自我禁用（不抛出，控制台告警一次）——
+/// 宿主日志失效不能影响启动与请求路径。
 /// </summary>
 public sealed class DailyRotatingFileWriter : TextWriter
 {

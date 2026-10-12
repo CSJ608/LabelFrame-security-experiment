@@ -2,8 +2,8 @@
 
 namespace LabelFrame.WinHost.Api;
 
-// 通用契约（SubmitJobRequest / TemplateDto / LabelDto / ErrorView / 模板与 Excel DTO）在 LabelFrame.Api 共享库，
-// 本文件只保留宿主专属类型（作业视图 / 提交结果 / 连接与插件 / 机器级配置）。
+// 通用契约（SubmitJobRequest / TemplateDto / LabelDto / ErrorView 等）在 LabelFrame.Api 共享库，
+// 本文件只保留宿主专属类型。
 
 /// <summary>作业视图（API 响应；CreatedAt / FailedItems / ErrorMessage / TargetDeviceId 为作业历史列表列）。</summary>
 public sealed record JobView(
@@ -68,7 +68,7 @@ public sealed record TransportPluginParameterDto(
 /// <summary>Select 参数枚举项。</summary>
 public sealed record TransportParameterOptionDto(string Value, string? Label);
 
-/// <summary>已装配传输插件描述（GET /api/transport.availablePlugins 与 /api/transport/plugins；supportsDocumentCompile 为文档编译能力位，向后兼容增量）。</summary>
+/// <summary>已装配传输插件描述（GET /api/transport.availablePlugins 与 /api/transport/plugins；supportsDocumentCompile 为文档编译能力位）。</summary>
 public sealed record TransportPluginDescriptorDto(
     string Id,
     string DisplayName,
@@ -78,7 +78,7 @@ public sealed record TransportPluginDescriptorDto(
     string? AssemblyPath = null,
     bool SupportsDocumentCompile = false);
 
-/// <summary>连接状态（GET /api/transport 与 POST 响应共用；pluginId + params 字典 + displayText + availablePlugins，旧字段 mode / availableModes 保留兼容）。</summary>
+/// <summary>连接状态（GET /api/transport 与 POST 响应共用；旧字段 mode / availableModes 保留兼容旧前端）。</summary>
 public sealed record TransportConfigDto(
     string PluginId,
     string DisplayName,
@@ -103,7 +103,7 @@ public sealed record TransportApplyRequest(
 /// <summary>连接切换 / 测试响应：ok + 中文消息 + 当前生效连接（失败时 config = 未变前的连接）。</summary>
 public sealed record TransportApplyResponse(bool Ok, string Message, TransportConfigDto Config);
 
-/// <summary>机器级配置响应（GET /api/host/config；Ips 为本机枚举 IPv4，状态栏展示用；Version 为只读产品版本——「检查更新」比较口径， ，POST 忽略）。</summary>
+/// <summary>机器级配置响应（GET /api/host/config；Ips 为本机枚举 IPv4 状态栏展示用；Version 为只读产品版本——「检查更新」比较口径，POST 忽略）。</summary>
 public sealed record HostConfigDto(string ServerUrl, string DeviceId, string DeviceName, IReadOnlyList<string>? Ips = null, string? Version = null);
 
 /// <summary>机器级配置请求（POST /api/host/config；仅 serverUrl 可写）。</summary>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// （K1）：getServerBaseUrl 双构建分支——client 构建保持现状（默认 53961 / localStorage 兜底 / setServerBaseUrl 内存更新）
+// getServerBaseUrl 双构建分支——client 构建保持现状（默认 53961 / localStorage 兜底 / setServerBaseUrl 内存更新）
 // server 构建恒同源相对路径 ''（不读 localStorage / 机器级配置，避免局域网访问时回环错连 / 残留地址错连）。
 // 两分支均用 vi.doMock('../lib/uiMode') 显式注入（不依赖进程 env），任何 VITE_UI_MODE 环境下结果稳定。
 
@@ -145,7 +145,7 @@ describe('previewTemplate 请求形态（迭代 46 真机验收回归：旧版 S
   })
 })
 
-// ── （/ a 案决议）：业务请求超时分档 + 导出错误通道同构 ──
+// ── 业务请求超时分档 + 导出错误通道同构 ──
 
 /** 挂起端点：不 resolve，仅在收到中止信号时拒绝（模拟后端「接了不回」——超时分支的唯一触发路径）。 */
 function hangingFetch() {
@@ -321,8 +321,8 @@ describe('exportTemplate 错误通道与 fetchBlob 同构（迭代 91 F-09）', 
   })
 })
 
-// ── ：Content-Disposition 文件名解析优先 filename*（RFC 5987）──
-// 后端 ASP.NET Core 对非 ASCII 文件名按 RFC 6266/5987 同时发两个参数（实测形态见 Issue 「目标与依据」）：
+// ── Content-Disposition 文件名解析优先 filename*（RFC 5987）──
+// 后端 ASP.NET Core 对非 ASCII 文件名按 RFC 6266/5987 同时发两个参数（实测形态）：
 // filename=____.lfpkg（ASCII 回退值，非 ASCII 替换为 _）在前、filename*=UTF-8''%E4%B8%AD...（百分号编码，无损）在后。
 
 describe('Content-Disposition 文件名解析：filename*（RFC 5987）优先还原中文（迭代 102 · #220）', () => {
@@ -428,7 +428,7 @@ describe('Content-Disposition 文件名解析：filename*（RFC 5987）优先还
   })
 })
 
-// ── ：ErrorView.params 展示链路——已知码按码表渲染、未知码回退后端中文 ──
+// ── ErrorView.params 展示链路——已知码按码表渲染、未知码回退后端中文 ──
 
 describe('错误响应文案解析（迭代 109：LF_* 码表 + params 插值）', () => {
   /** 加载 client（resetModules 后的新模块图）→ 切语言（与 client.ts 绑定同一 i18n 实例）→ 打一个 404 ErrorView，返回抛出的 ApiError。 */

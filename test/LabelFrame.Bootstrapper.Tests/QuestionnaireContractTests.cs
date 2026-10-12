@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>问卷只读契约断言（起源； 修订为「确认前只读」——执行边界 = 确认页「安装」后 Engine.Plan + Apply）。</summary>
+/// <summary>问卷只读契约断言（「确认前只读」——执行边界 = 确认页「安装」后 Engine.Plan + Apply）。</summary>
 /// <remarks>执行能力不在会话层：会话（问卷）保持零下载 / 零安装 / 零系统改动；真装由 BA 调 Burn 引擎承担。</remarks>
 public sealed class QuestionnaireContractTests
 {

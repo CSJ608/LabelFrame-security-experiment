@@ -1,11 +1,9 @@
 namespace LabelFrame.TransportPlugin.Zebra;
 
 /// <summary>
-/// Zebra 打印机内置字体度量（DESIGN 「SDK 内置字体度量接 ITextWidthMeasurer」）。
-/// 用途仅限区域锚定 / 对齐的起始坐标编译期换算（功能裁剪原则——对齐为尽力近似）
-/// 不追求与打印机实际字形位级一致：
-/// 位图字体按 ZPL II 编程指南 203 dpi 基准设计点阵（字符高 × 宽，点）取单元格宽度；
-/// 缩放字体 0（Swiss 721 家族）按 Helvetica 同度量的比例字宽表估算（1/1000 字高）。
+/// Zebra 打印机内置字体度量：仅供区域锚定 / 对齐起始坐标的编译期换算（尽力近似），
+/// 不追求与打印机实际字形位级一致。位图字体按 ZPL II 编程指南 203 dpi 基准设计点阵取单元格宽度；
+/// 缩放字体 0 按 Helvetica 同度量的比例字宽表估算。
 /// </summary>
 internal static class ZebraBuiltInFontMetrics
 {
@@ -16,15 +14,15 @@ internal static class ZebraBuiltInFontMetrics
     internal static readonly IReadOnlyDictionary<char, (int HeightDots, int WidthDots)> BitmapFonts =
         new Dictionary<char, (int, int)>
         {
-            ['A'] = (9, 5),    // 大写字母与数字
-            ['B'] = (11, 7),   // 大小写（含下伸部）
-            ['C'] = (18, 10),  // 大小写（含下伸部）
-            ['D'] = (18, 10),  // 大小写（压缩）
+            ['A'] = (9, 5),
+            ['B'] = (11, 7),
+            ['C'] = (18, 10),
+            ['D'] = (18, 10),
         };
 
     /// <summary>
     /// 缩放字体 0 的比例字宽（1/1000 字高，Helvetica 同度量；索引 0 = U+0020 起的可打印 ASCII，共 95 项）。
-    /// Swiss 721 与 Helvetica 度量兼容；此表仅服务锚定近似的确定性换算，非打印机官方数据文件。
+    /// 此表仅服务锚定近似的确定性换算，非打印机官方数据文件——勿据其校准为「精确度量」。
     /// </summary>
     internal static readonly int[] ScalableCharWidths1000 =
     [

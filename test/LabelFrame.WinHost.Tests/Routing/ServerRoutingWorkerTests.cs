@@ -239,7 +239,7 @@ public class ServerRoutingWorkerTests
                     new LabelDto(new Dictionary<string, string> { ["zone"] = "C", ["locationCode"] = "C-1" }),
                 ]));
 
-            // CI 慢机上 SQLite 初始化 + 队列操作可超 20s（本地 ~2s），放宽避免环境性超时（run 35214442497 两 attempt 均于此取消）
+            // CI 慢机上 SQLite 初始化 + 队列操作可超 20s（本地 ~2s），放宽避免环境性超时
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             var worker = new ServerRoutingWorker(
                 poller, submission, queue, TimeSpan.FromMilliseconds(100),

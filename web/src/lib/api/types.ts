@@ -1,9 +1,9 @@
-// API 契约 DTO（docs/FRONTEND-SPEC.md §4，与后端实现对齐）
-// （F1）：双 base——serverApi（服务端地址）/ localApi（页面来源 = 本机 LabelFrame Client）。
+// API 契约 DTO（docs/FRONTEND-SPEC.md §4，与后端实现对齐）。
+// 双 base：serverApi（服务端地址）/ localApi（页面来源 = 本机 LabelFrame Client）。
 
 import type { BackendContract, BackendElement, BackendLayout } from '../design/convert'
 
-/* * 服务端地址默认值（语义改为「服务端地址」，默认 127.0.0.1:53961）。 */
+/* * 服务端地址默认值（127.0.0.1:53961）。 */
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:53961'
 
 /** 本机客户端（WinHost）默认地址：localApi 无 window（Node 环境）时的回退。 */
@@ -54,7 +54,7 @@ export interface JobView {
   /** Server：失败张数与错误消息（无逐张明细）。 */
   failedItems?: number
   errorMessage?: string
-  /* * （B10）：WinHost 扩展 JobView 与 Server 对齐——创建时间（作业历史「时间」列；防御性声明为可选）。 */
+  /** WinHost 扩展 JobView 与 Server 对齐——创建时间（作业历史「时间」列；防御性声明为可选）。 */
   createdAt?: string
   /** WinHost：逐张明细（Server 不返回）。 */
   items?: JobItem[]
@@ -71,7 +71,7 @@ export interface DeviceView {
   registeredAt: string
   lastSeenAt: string
   status: string
-  /* * ：服务端记录的服务端所见来源 IP（注册 / 心跳刷新，IPv4 文本；旧设备可能为空）。 */
+  /* * 服务端记录的该设备来源 IP（注册 / 心跳刷新，IPv4 文本；旧设备可能为空）。 */
   lastIp?: string | null
 }
 
@@ -106,7 +106,7 @@ export interface SubmitJobRequest {
   labels: { data: Record<string, string> }[]
 }
 
-// ── 连接管理（恢复，：全部走 localApi，接口 0.14 已在未删）──
+// ── 连接管理（全部走 localApi）──
 // 传输插件化——连接方式抽象为插件（统一接口 + 参数模型 + 注册表）
 // GET /api/transport 响应扩展 availablePlugins（spec 驱动表单）/ displayText（徽标），旧字段 mode / availableModes 保留兼容。
 
@@ -122,7 +122,7 @@ export interface TransportParams {
   zebraUsbName?: string
 }
 
-// ── ：插件参数模型（后端 TransportParameterSpec / TransportPluginParameters）──
+// ── 插件参数模型（后端 TransportParameterSpec / TransportPluginParameters）──
 
 export type TransportParameterType = 'String' | 'Int' | 'Bool' | 'Select'
 
@@ -166,13 +166,13 @@ export type PluginParamValue = string | number | boolean
 export type PluginParams = Record<string, PluginParamValue>
 
 export interface TransportConfig {
-  /* * ：当前生效插件 ID（log / tcp9100 / winspool / zebra / 外部插件）；旧后端为 undefined。 */
+  /* * 当前生效插件 ID（log / tcp9100 / winspool / zebra / 外部插件）；旧后端为 undefined。 */
   pluginId?: string
-  /* * ：当前插件展示名（后端提供）。 */
+  /* * 当前插件展示名（后端提供）。 */
   displayName?: string
-  /* * ：连接徽标文本（后端 displayText，如「TCP 192.168.1.50:9100」）；前端优先展示，旧后端回退本地格式化。 */
+  /* * 连接徽标文本（后端 displayText，如「TCP 192.168.1.50:9100」）；前端优先展示，旧后端回退本地格式化。 */
   displayText?: string
-  /* * ：已装配插件目录（spec 驱动参数表单）；旧后端无此字段 → 前端回退内置 4 模式。 */
+  /* * 已装配插件目录（spec 驱动参数表单）；旧后端无此字段 → 前端回退内置 4 模式。 */
   availablePlugins?: TransportPluginInfo[]
   /* * 插件参数（弱类型字典）；旧后端为平铺 TransportParams。 */
   params: TransportParams | PluginParams
@@ -183,9 +183,9 @@ export interface TransportConfig {
 
 /* * POST /api/transport 请求体（pluginId + params 字典，testOnly 由测试连接填充；旧字段保留兼容）。 */
 export interface TransportApplyRequest {
-  /* * ：目标插件 ID（如 tcp9100）。 */
+  /* * 目标插件 ID（如 tcp9100）。 */
   pluginId?: string
-  /* * ：插件参数字典。 */
+  /* * 插件参数字典。 */
   params?: PluginParams
   testOnly?: boolean
   // ── 旧字段（0.14 兼容，后端仍接受）──
@@ -233,7 +233,7 @@ export interface Ipv4Candidates {
   candidates: string[]
 }
 
-// ── ：客户端插件分发（服务端 plugin-packages + 客户端 /api/plugins 安装 / 卸载）──
+// ── 客户端插件分发（服务端 plugin-packages + 客户端 /api/plugins 安装 / 卸载）──
 
 /** 服务端插件包列表项（GET /api/plugin-packages；invalid 条目元数据字段缺失，仅文件信息有效）。 */
 export interface PluginPackageInfo {
@@ -282,17 +282,17 @@ export interface PluginUninstallResult {
   message: string
 }
 
-// ── 本机客户端（F1/F2：GET/POST /api/host/config，机器级持久化）──
+// ── 本机客户端（GET/POST /api/host/config，机器级持久化）──
 
-/** 机器级配置（B6：settings.json 缺失 / 损坏时 GET 返回 200 + 默认 serverUrl）。
+/** 机器级配置：settings.json 缺失 / 损坏时 GET 返回 200 + 默认 serverUrl。
  *  GET 响应含 deviceId / deviceName；POST 只更新 serverUrl（deviceId / deviceName 由客户端自身提供，后端忽略请求体中的值）。 */
 export interface HostConfig {
   serverUrl: string
   deviceId?: string
   deviceName?: string
-  /* * ：本机 IPv4 列表（枚举网卡、过滤回环；多 IP 状态栏逗号分隔显示全部）。 */
+  /* * 本机 IPv4 列表（枚举网卡、过滤回环；多 IP 状态栏逗号分隔显示全部）。 */
   ips?: string[]
-  /* * ：客户端产品版本（只读；旧客户端无此字段——「检查更新」比较口径）。 */
+  /* * 客户端产品版本（只读；旧客户端无此字段——「检查更新」比较口径）。 */
   version?: string
 }
 
@@ -309,7 +309,7 @@ export interface PrintSettings {
   batchIntervalMs: number
 }
 
-/* * GET /api/printer/status（恢复，F4）。 */
+/* * GET /api/printer/status。 */
 export interface PrinterStatus {
   isOnline: boolean
   isPaperOut: boolean
@@ -323,7 +323,7 @@ export interface PrinterTestResult {
   bytes: number
 }
 
-/* * 后端错误响应（ErrorView；params 为 / 新增可选字段）。 */
+/* * 后端错误响应（ErrorView；params 为错误码模板插值参数，可选）。 */
 export interface ApiErrorBody {
   code: string
   message: string

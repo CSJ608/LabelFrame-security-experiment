@@ -12,9 +12,9 @@ using LabelFrame.WinHost.Tests.Transport;
 namespace LabelFrame.WinHost.Tests.Jobs;
 
 /// <summary>
-/// 提交链路编译分派（DESIGN /）：fake 编译器插件全链路锚定——
-/// native 逐张编译入 LabelJobItem.Zpl / 编译失败整体拒绝 / 无能力显式失败（LF_ENC_003）/
-/// 缺失与非法回退 image / 幂等不重编译。fake 插件仅测试工程使用，不进产品装配。
+/// 提交链路编译分派（fake 编译器插件全链路锚定）：native 逐张编译入 LabelJobItem.Zpl /
+/// 编译失败整体拒绝 / 无能力显式失败 / 缺失与非法回退 image / 幂等不重编译。
+/// fake 插件仅测试工程使用，不进产品装配。
 /// </summary>
 public class JobSubmissionCompileTests
 {
@@ -62,7 +62,7 @@ public class JobSubmissionCompileTests
 
     private const string NativeConnection = """{ "pluginId": "fakecompile", "params": { "printMode": "native" } }""";
 
-    // ── ：native 逐张编译，产物入 LabelJobItem.Zpl（字段 / 列不改名）──
+    // ──native 逐张编译，产物入 LabelJobItem.Zpl（字段 / 列不改名）──
 
     [Fact]
     public async Task Native_mode_should_compile_each_label_into_job_item_zpl()
@@ -83,7 +83,7 @@ public class JobSubmissionCompileTests
         Assert.Equal(2, plugin.CompileCallCount);
     }
 
-    // ── ：编译失败整体拒绝（直连不建作业 + 码 / 中文原因 / fieldKey）──
+    // ──编译失败整体拒绝（直连不建作业 + 码 / 中文原因 / fieldKey）──
 
     [Fact]
     public async Task Native_compile_failure_should_reject_whole_job_with_code_and_fieldkey()
@@ -123,7 +123,7 @@ public class JobSubmissionCompileTests
         Assert.Null(await store.GetJobByRequestIdAsync("req-native-exception"));
     }
 
-    // ── ：native + 无能力插件 = 存量异常配置兜底，显式失败不静默按图片 ──
+    // ──native + 无能力插件 = 存量异常配置兜底，显式失败不静默按图片 ──
 
     [Fact]
     public async Task Native_mode_without_capability_should_fail_explicitly()
@@ -142,7 +142,7 @@ public class JobSubmissionCompileTests
         Assert.Equal(0, plugin.CompileCallCount);
     }
 
-    // ── ：printMode 缺失 / 非法值回退 image（默认值语义， 兼容演进风格）──
+    // ── printMode 缺失 / 非法值回退 image（默认值语义，兼容演进风格）──
 
     [Fact]
     public async Task Missing_print_mode_should_fall_back_to_image_path()
@@ -170,7 +170,7 @@ public class JobSubmissionCompileTests
         Assert.Equal(0, plugin.CompileCallCount);
     }
 
-    // ── ：幂等不重编译（同 requestId 重放返回既有作业，编译调用计数不增加）──
+    // ──幂等不重编译（同 requestId 重放返回既有作业，编译调用计数不增加）──
 
     [Fact]
     public async Task Duplicate_request_should_not_recompile()

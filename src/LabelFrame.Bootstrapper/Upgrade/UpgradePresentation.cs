@@ -3,12 +3,12 @@ using LabelFrame.Bootstrapper.Manifest;
 namespace LabelFrame.Bootstrapper.Upgrade;
 
 /// <summary>
-/// 升级评估的呈现文案（DESIGN ，纯函数——BA 欢迎页 / 确认页与测试共用，文案口径单一）：
-/// 组件显示名、可升级清单行（组件、现版本 → 新版本）、「已是最新」与「清单非最新」提示。
+/// 升级评估的呈现文案（纯函数——BA 页面与测试共用，文案口径单一）：组件显示名、可升级清单行、
+/// 「已是最新」与「清单非最新」提示。
 /// </summary>
 public static class UpgradePresentation
 {
-    /// <summary>组件显示名（/ 约定；未知 id 原样返回）。</summary>
+    /// <summary>组件显示名（未知 id 原样返回）。</summary>
     public static string DisplayName(string componentId) => componentId switch
     {
         "server-msi" => "服务端",
@@ -22,7 +22,7 @@ public static class UpgradePresentation
         _ => componentId.StartsWith("plugin-", StringComparison.Ordinal) ? componentId.Remove(0, "plugin-".Length) + " 插件" : componentId,
     };
 
-    /// <summary>欢迎页升级摘要（一行式；<paramref name="entries"/> 为呈现范围——欢迎页全清单、确认页按拓扑计划过滤）。</summary>
+    /// <summary>升级摘要（一行式；<paramref name="entries"/> 为呈现范围——全清单或按拓扑计划过滤）。</summary>
     public static string Summarize(IReadOnlyList<ComponentUpgradeEntry> entries)
     {
 #if NET10_0_OR_GREATER
@@ -57,7 +57,7 @@ public static class UpgradePresentation
             : $"检测到已安装：{installedText}——已是最新版本，无需重复安装。";
     }
 
-    /// <summary>清单新鲜度提示（manifest 版本落后于 latest.json 通道最新时非空； latest.json 消费）。</summary>
+    /// <summary>清单新鲜度提示（manifest 版本落后于 latest.json 通道最新时非空）。</summary>
     public static string? DescribeFreshness(InstallManifest manifest, LatestPointer? latest)
     {
         if (latest is null)

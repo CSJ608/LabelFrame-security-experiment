@@ -56,16 +56,10 @@ public sealed record OfflineLayoutResult(
     string? BootstrapperFileName);
 
 /// <summary>
-/// 离线布局目录生成器（/ ，DESIGN）——把当版全部组件 + 官方 manifest / latest 原样字节 +
-/// 引导 EXE 汇集到目标目录；逐组件按 <c>urls</c> 顺序下载、按策略校验一致才落位（fail-closed）：
-/// 常规条目 = sha256 与 manifest 逐字节一致；evergreen 条目（version = <c>evergreen</c>）= 微软 Authenticode
-/// 发布者验签（——微软轮换直链文件后重新生成不再因哈希漂移失败）。
+/// 离线布局目录生成器：把当版全部组件 + 官方 manifest / latest 原样字节 + 引导 EXE 汇集到目标目录。
+/// 逐组件按 <c>urls</c> 顺序下载、按策略校验一致才落位（fail-closed）：常规条目 = sha256 逐字节一致；
+/// evergreen 条目（version = <c>evergreen</c>）= 微软 Authenticode 发布者验签（对厂商轮换免疫）。
 /// </summary>
-/// <remarks>
-/// 与 <c>scripts/make-offline-layout.ps1</c>（IT 脚本形态）语义一致：命名约定共用 <see cref="OfflineLayoutNaming"/>；
-/// 重复生成幂等（已存在且校验一致跳过下载；不符 = 篡改 / 旧版残留，重新下载）。
-/// UI 无关（net48 / net10 双腿，net10 测试锚定——验签器可注入）；BA 仅承担进度呈现与 EXE 源定位（<c>WixBundleOriginalSource</c>）。
-/// </remarks>
 public static class OfflineLayoutBuilder
 {
     /// <summary>生成布局目录。<paramref name="http"/> / <paramref name="authenticodeVerifier"/> 可注入用于测试（注入时归调用方释放）。</summary>
@@ -150,7 +144,7 @@ public static class OfflineLayoutBuilder
 
             var targetPath = Path.Combine(targetDirectory, fileName);
 
-            // 幂等复用：已存在且按策略校验一致（sha256 / evergreen 发布者验签——生成机重复生成 / 局部续传场景零下载）
+            // 幂等复用：已存在且按策略校验一致即跳过下载（重复生成 / 局部续传零下载；不符 = 篡改 / 旧版残留重新下载）
             if (File.Exists(targetPath))
             {
                 progress?.Report(new OfflineLayoutProgress(OfflineLayoutPhase.Verifying, component.Id, index, total, null, 0, component.SizeBytes));
@@ -174,7 +168,7 @@ public static class OfflineLayoutBuilder
             WriteAllText(Path.Combine(targetDirectory, OfflineLayoutNaming.LatestFileName), latestJson);
         }
 
-        // 引导 EXE：复制入目录（目标机「拷目录 + 双击 EXE」即离线首装）；运行中的 EXE 可读复制
+        // 引导 EXE：复制入目录（运行中的 EXE 可读复制——File.Copy 不加写锁）
         string? bootstrapperFileName = null;
         if (!string.IsNullOrWhiteSpace(bootstrapperSourcePath))
         {

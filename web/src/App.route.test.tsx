@@ -268,7 +268,7 @@ describe('client 构建 · AC-02：历史栈导航与设计器离开守卫', () 
   })
 
   it('dirty 设计器按后退（back 截断序列回归）：back 放行后再切设计器截断前向历史，守卫取消仍回 #/designer（PR #313 修复轮回归）', async () => {
-    // 评审阻断项 2 高频序列：wb→data→jobs→back 回 data→切设计器（pushState 截断 jobs）→ dirty 守卫 back
+    // 高频序列：wb→data→jobs→back 回 data→切设计器（pushState 截断 jobs）→ dirty 守卫 back
     render(<App />)
     await screen.findByText(PAGE_MARKER.workbench)
 
@@ -388,10 +388,10 @@ describe('client 构建 · 帮助深链 sub 段（#316 · 决策 #178）', () =>
     expect(screen.queryByText(PAGE_MARKER.designer)).toBeNull()
     // 示例元素入基线并选中：属性面板头显示文本元素键名 location（fill 预设 = 演示同款示例值）
     expect(screen.getByText('location')).toBeTruthy()
-    // 页内轮询锚点入 DOM → 自动弹填充组文档点气泡（无可见标题、正文直出—— 联动）
+    // 页内轮询锚点入 DOM → 自动弹填充组文档点气泡（无可见标题、正文直出）
     const dialog = await screen.findByRole('dialog')
     expect(dialog.getAttribute('aria-label')).toBe('填充：固定值或字段填充')
-    // draftOpened 终态提示驻留状态栏（pending 一闪被覆盖， 口径）
+    // draftOpened 终态提示驻留状态栏（pending 一闪被覆盖属预期）
     expect(screen.getByText(/帮助打开的是临时示例草稿/)).toBeTruthy()
 
     // 未编辑（undoCount=0）退出：不弹三选、静默弃、回工作台（守卫语义与普通草稿一致）

@@ -4,11 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace LabelFrame.Core.Jobs;
 
-/// <summary>
-/// SQLite 作业存储：表 jobs / job_items，request_id 唯一索引实现幂等，
-/// Item 持久化打印机指令（列名沿用 zpl：图片模式 = ^GF 位图 ZPL，原生指令模式 = 品牌原生指令），
-/// 服务重启不丢作业。
-/// </summary>
+/// <summary>SQLite 作业存储：表 jobs / job_items，request_id 唯一索引实现幂等，服务重启不丢作业。</summary>
 public sealed class SqliteLabelJobStore : ILabelJobStore
 {
     private const string CreateTablesSql = """
@@ -75,7 +71,6 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
             if (inserted == 0)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                // 模板化消息：渲染结果与旧内插文案等价
                 var requestIdParams = new Dictionary<string, string> { ["requestId"] = job.RequestId };
                 return await GetJobByRequestIdCoreAsync(connection, job.RequestId, cancellationToken)
                     ?? throw new LabelJobException(
@@ -179,10 +174,8 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
     }
 
     /// <inheritdoc />
-    /// <inheritdoc />
     public async Task<bool> HasPendingItemsAsync(CancellationToken cancellationToken = default)
     {
-        // 轻量探测：EXISTS 只扫 job_items 状态行，不加载作业与 ZPL（打印 Worker 唤醒后先探测再完整领取）
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();

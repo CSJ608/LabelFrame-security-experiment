@@ -1,13 +1,10 @@
-// 帮助页 V3.1（观感返工拍板）：左目录树＋受限宽正文的文档站版式
-//（Stripe / GitHub 口径）——左栏两级目录（根「功能索引」＋页节点；当前文章页展开小节、其余收起
-// 的手风琴形态，拍板），点击页节点进文章、小节节点跳转对应 section；主区滚动时当前节高亮跟随
-// 正文阅读宽度受限（~760px）；窄窗（≤960px，拍板对齐 .grid-2 断点）左栏收起、page-head 目录
-// 按钮展开为浮层。主区保留既有两种视图：功能索引卡（根节点选中态）/ 分界面文章。
-// 文章小节与界面内「?」文档点共用同一词条（lib/help.ts 单源双视图）；有文档点的小节提供
-// 「去界面查看」深链——回调注入方（App Shell）以 hash 赋值导航（#/目标页/<锚点>， 机制迁移）。
-// server 管理界面纳入——页集按构建经 lib/help.ts BUILD_HELP_PAGES
-// 过滤（client 五页、server 七页：四共用页复用、settings 不出现、devices/packages/pluginPackages
-// 三页仅 server），副标题按构建取 page.subtitle / page.subtitleServer 双词条。
+// 帮助页：左目录树＋受限宽正文的文档站版式——左栏两级目录（手风琴：当前文章页展开小节、其余收起），
+// 点击页节点进文章、小节节点跳 section，主区滚动时当前节高亮跟随；正文阅读宽度 ~760px；
+// 窄窗（≤960px，与 styles.css .grid-2 断点一致）左栏收起、page-head 目录按钮展开浮层。
+// 主区两种视图：功能索引卡 / 分界面文章。文章小节与界面内「?」文档点共用同一词条（lib/help.ts 单源双视图）；
+// 有文档点的小节提供「去界面查看」深链（Shell 以 hash 赋值导航，继承离开守卫）。
+// 页集按构建经 lib/help.ts BUILD_HELP_PAGES 过滤（client 五页、server 七页：四共用页复用、settings 不出现、
+// devices/packages/pluginPackages 三页仅 server），副标题按构建取双词条。
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,7 +19,7 @@ interface HelpProps {
   onOpenInUi: (tab: TabId, anchor: string) => void
 }
 
-/* * 窄窗阈值（px， 拍板）：与 styles.css .grid-2 断点一致——窗口不宽于该值时左栏默认收起。 */
+/* * 窄窗阈值（px）：与 styles.css .grid-2 断点须保持一致——窗口不宽于该值时左栏默认收起。 */
 const TOC_NARROW_WIDTH = 960
 
 /** 平滑滚动受 prefers-reduced-motion 约束（jsdom 未实现 matchMedia——typeof 守卫防炸）。 */
@@ -32,8 +29,7 @@ function prefersReducedMotion(): boolean {
 
 export function Help({ onOpenInUi }: HelpProps) {
   const { t } = useTranslation('help')
-  // 当前构建的帮助页集（client 五页 / server 七页）——构建期折叠出口（见
-  // lib/help.ts BUILD_HELP_PAGES 注记：形参形态会破坏特征串折叠，生产消费点必须走本常量）
+  // 当前构建的帮助页集——构建期折叠出口（形参形态会破坏特征串折叠，生产消费点必须走本常量，见 lib/help.ts 注记）
   const pages = BUILD_HELP_PAGES
   // 页内两级视图：null = 功能索引；否则显示该页文章
   const [article, setArticle] = useState<HelpPageId | null>(null)
@@ -57,8 +53,7 @@ export function Help({ onOpenInUi }: HelpProps) {
     }
   })
 
-  // 文章切换重置高亮（新文章首节由下方 onScroll 夹逼逻辑兜底为第一节）；目录小节点击驱动的
-  // 跳转自带高亮（pendingScrollRef 置位），不被本重置清掉
+  // 文章切换重置高亮（新文章首节由 onScroll 夹逼兜底）；目录小节点击自带高亮（pendingScrollRef 置位），不被本重置清掉
   useEffect(() => {
     if (pendingScrollRef.current) return
     setActiveTopic('')
@@ -175,7 +170,7 @@ export function Help({ onOpenInUi }: HelpProps) {
               {page?.topics.map((topic) => (
                 <section key={topic.id} className="help-topic" data-topic-id={topic.id}>
                   <h3>{t(`topic.${article}.${topic.id}.title`)}</h3>
-                  {/* 正文按换行分段（陪验反馈）：与文档点气泡同一 \n 段落口径 */}
+                  {/* 正文按换行分段：与文档点气泡同一 \n 段落口径 */}
                   {String(t(`topic.${article}.${topic.id}.body`)).split('\n').map((para, i) => (
                     <p key={i}>{para}</p>
                   ))}

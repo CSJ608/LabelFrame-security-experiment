@@ -3,13 +3,9 @@ using Xunit;
 
 namespace LabelFrame.AndroidHost.Tests;
 
-/// <summary>
-/// 作业载荷图片 base64 解码：SubmissionService 渲染前经
-/// ImagePayloadDecoder.Decode 把 Template.Images 解码为 templateImages 传入 AndroidLabelRenderer
-/// （此前 PDA DTO 丢弃图片致嵌入图无法渲染）。纯托管解码器按文件链接编译进本测试工程
-/// （AndroidHost 整工程 net10.0-android 不可引用）；渲染传参本身依赖 Android Graphics，
-/// 由 CI Android 构建 + 路由模式真机冒烟覆盖（本工程不可挂载，如实记录）。
-/// </summary>
+/// <summary>ImagePayloadDecoder（纯托管，按文件链接编译进本工程——AndroidHost 整工程
+/// net10.0-android 不可被 net10.0 测试工程引用）的 base64 解码行为测试；
+/// 渲染传参链路依赖 Android Graphics，由 CI Android 构建 + 真机冒烟覆盖（本工程不可挂载）。</summary>
 public class ImagePayloadDecoderTests
 {
     [Fact]

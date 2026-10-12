@@ -11,12 +11,8 @@ using LabelFrame.Core.Transport;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 前台打印宿主服务：本地 HTTP + 打印 Worker + Server 路由轮询。
-/// 前台服务常驻，开机由 BootReceiver 拉起；运行状态经 <see cref="HostStatus"/> 快照供配置页 / 状态页读取。
-/// 打印传输自走 Zebra 官方 SDK（tcp 默认 / bluetooth / usb，见 <see cref="ZebraSdkTransport"/>）
-/// 自按品牌路由：zebra 走内置 SDK 档，外置插件品牌走轻量档插件传输（<see cref="AndroidTransportFactory"/>）。
-/// </summary>
+/// <summary>前台打印宿主服务：本地 HTTP + 打印 Worker + Server 路由轮询，开机由 BootReceiver 拉起常驻；
+/// 运行状态经 <see cref="HostStatus"/> 快照供配置页 / 状态页读取，传输按品牌路由（<see cref="AndroidTransportFactory"/>）。</summary>
 [Service(Exported = true, ForegroundServiceType = Android.Content.PM.ForegroundService.TypeDataSync)]
 public sealed class PrintHostService : Service
 {
@@ -37,8 +33,7 @@ public sealed class PrintHostService : Service
     {
         base.OnCreate();
 
-        // 崩溃捕获兜底注册（幂等；进程创建时 HostApplication 已注册，防应用对象被绕过的极端情况）；
-        // 顺带检测上次运行是否留有崩溃摘要（下次启动可读的取证入口）
+        // 崩溃捕获兜底注册（幂等；进程创建时 HostApplication 已注册）；顺带检测上次运行的崩溃摘要
         CrashGuard.Register();
         CrashGuard.NotePreviousRunCrash();
 
@@ -49,12 +44,9 @@ public sealed class PrintHostService : Service
         Java.Lang.JavaSystem.LoadLibrary("e_sqlite3");
 
         var config = LabelHostConfig.Load(this);
-        // 外置插件通道装配：内置 zebra 注册 + {FilesDir}/plugins 目录扫描（失败留痕不阻断）
         var pluginHost = PluginHost.Load(this);
-        // 打印传输品牌路由：zebra → 内置 SDK（既有路径原样）；外置插件品牌 → 插件传输；未安装 → 回退 zebra + 留痕
         _transport = AndroidTransportFactory.Create(config, pluginHost.Registry, pluginHost.PluginContext, this);
-        // 摘要经资源取值：HostStatus 与通知随系统语言；本行日志为诊断内容维持中文
-        // 摘要主体是地址 / 端口等技术值，仅连接方式词随语言
+        // 打印机摘要随系统语言（资源取值）；本行日志为诊断内容维持中文，摘要主体是地址 / 端口技术值
         var printerTarget = config.PrinterDisplay(this);
         HostStatus.NoteServiceStarted(config.ServerUrl, printerTarget);
         HostLog.Info(
@@ -104,7 +96,7 @@ public sealed class PrintHostService : Service
     {
         if (OperatingSystem.IsAndroidVersionAtLeast(26))
         {
-            // 渠道名不双语化：Android 渠道创建后不可改名，维持中文现状——范围显式排除
+            // 渠道名不双语化：Android 渠道创建后不可改名，维持中文现状
             var channel = new NotificationChannel(ChannelId, "LabelFrame 打印服务", NotificationImportance.Low);
             var manager = (NotificationManager?)GetSystemService(NotificationService);
             manager?.CreateNotificationChannel(channel);
@@ -144,8 +136,7 @@ public sealed class PrintHostService : Service
             .Build();
     }
 
-    /// <summary>通知文案（面向仓库用户的人话）：服务器状态 + 打印机连接方式，一句话说完。
-    /// 文案经资源 id 引用（values 缺省中文 / values-en 英文，跟随系统语言）。</summary>
+    /// <summary>通知文案（服务器状态 + 打印机连接方式，一句话）：经资源 id 引用随系统语言。</summary>
     private string BuildStatusText()
     {
         var s = HostStatus.Current;
@@ -167,7 +158,7 @@ public sealed class PrintHostService : Service
             server = HostStrings.L(this, Resource.String.notify_server_connecting);
         }
 
-        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要（网口 IP / 蓝牙地址 / USB 数据线）
+        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要
         var printer = s.LastPrintError is not null
             ? HostStrings.L(this, Resource.String.notify_printer_error, s.ActivePrinterEndpoint)
             : HostStrings.L(this, Resource.String.notify_printer, s.ActivePrinterEndpoint);
@@ -216,7 +207,7 @@ public sealed class PrintHostService : Service
         }
         catch (Exception ex)
         {
-            // 忽略启动恢复异常（作业仍可手动失败项重打），但留痕
+            // 启动恢复失败不阻断（作业仍可手动失败项重打），但留痕
             HostLog.Warn(HostLog.Tags.Print, $"启动恢复中断作业失败：{ex.Message}");
         }
 
@@ -280,8 +271,8 @@ public sealed class PrintHostService : Service
         LabelJobQueue queue,
         CancellationToken cancellationToken)
     {
-        // 与 WinHost ServerRoutingWorker 同构：主循环负责注册 / 长轮询 / 领取 / 投入队列，
-        // 回报循环每 1s 检查本地作业——终态立即回报、进行中节流上报进度（计数有变化才发）。
+        // 与 WinHost ServerRoutingWorker 同构：主循环注册 / 长轮询 / 领取 / 投入队列，
+        // 回报循环终态立即回报、进行中按计数变化节流上报。
         var localToServer = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
         var lastReported = new System.Collections.Concurrent.ConcurrentDictionary<string, (int Completed, int Failed)>();
         var interval = TimeSpan.FromSeconds(Math.Max(1, LabelHostConfig.PollIntervalSeconds));
@@ -297,7 +288,6 @@ public sealed class PrintHostService : Service
                 {
                     await poller.RegisterAsync(cancellationToken);
                     HostStatus.NoteServerContact();
-                    // 长轮询等待通知：作业到达立即返回，随后立刻领取（等效推送）；超时也照常领取一次兜底
                     while (!cancellationToken.IsCancellationRequested)
                     {
                         var signaled = await poller.WaitForJobAsync(notifyTimeout, cancellationToken);
@@ -327,7 +317,7 @@ public sealed class PrintHostService : Service
 
                         if (!signaled)
                         {
-                            // 超时：继续下一轮等待（连续挂起，设备在线由 notify 端点心跳维持）
+                            // 超时：继续下一轮等待（设备在线由 notify 端点心跳维持）
                             continue;
                         }
                     }
@@ -339,7 +329,7 @@ public sealed class PrintHostService : Service
                 catch (Exception ex)
                 {
                     HostStatus.NoteServerError(ex.Message);
-                    // 网络异常下一轮重试（周期 Warn 含原因与目标，现场可循迹）
+                    // 网络异常下一轮重试（Warn 含原因与目标，现场可循迹）
                     HostLog.Warn(HostLog.Tags.Server, $"服务器通讯失败：目标 {poller.ServerUrl}：{ex.Message}");
                     try
                     {
@@ -404,8 +394,8 @@ public sealed class PrintHostService : Service
                         continue;
                     }
 
-                    // 打印中：计数有变化才上报（回报循环 1s 周期即节流间隔）；
-                    // 失败静默降级——Server 不可达不阻塞打印主链路，下一轮携带最新计数自然重试
+                    // 打印中：计数有变化才上报（1s 周期即节流间隔）；失败静默降级——
+                    // Server 不可达不阻塞打印主链路，下一轮携带最新计数自然重试
                     if (lastReported.GetOrAdd(localJobId, (0, 0)) == (completed, failed))
                     {
                         continue;

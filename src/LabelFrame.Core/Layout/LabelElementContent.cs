@@ -1,9 +1,6 @@
 namespace LabelFrame.Core.Layout;
 
-/// <summary>
-/// 元素内容取值：优先固定值（Literal），否则按 SourceKey 从数据取；两者皆无返回空。
-/// ZPL 编码与预览渲染共用，保证一致。
-/// </summary>
+/// <summary>元素内容取值：优先固定值（Literal），否则按 SourceKey 从数据取；两者皆无返回空。各消费方共用保证一致。</summary>
 public static class LabelElementContent
 {
     /// <summary>取元素显示内容。</summary>

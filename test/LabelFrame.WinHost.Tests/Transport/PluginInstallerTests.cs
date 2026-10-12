@@ -488,7 +488,7 @@ public class PluginInstallerTests
     [Fact]
     public async Task Install_thirdparty_same_version_should_still_overwrite()
     {
-        // 第三方插件维持「覆盖安装不做版本比较」（4A）：同版本重装仍替换目录（marker 消失）
+        // 第三方插件维持「覆盖安装不做版本比较」：同版本重装仍替换目录（marker 消失）
         var (installer, _, pluginsDir) = Create();
         try
         {

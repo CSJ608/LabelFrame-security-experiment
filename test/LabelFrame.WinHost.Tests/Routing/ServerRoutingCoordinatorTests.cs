@@ -137,7 +137,7 @@ public class ServerRoutingCoordinatorTests
     public async Task Apply_should_start_route_and_register_when_initially_unconfigured()
     {
         // 启动未配置地址 → 空转；保存后首次开启路由（worker 未在启动期创建也能热开启）
-        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时（同 run 35222612255 取消形态）
+        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await using var fixture = new Fixture();
         var coordinator = fixture.CreateCoordinator(Options());
@@ -155,7 +155,7 @@ public class ServerRoutingCoordinatorTests
     public async Task Apply_new_url_should_rebuild_worker_register_new_and_clean_old_connection()
     {
         // 机制核心：切换后新 poller 向新地址注册、旧 worker 停止（长轮询取消）、旧 HttpClient 释放
-        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时（同 run 35222612255 取消形态）
+        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await using var fixture = new Fixture();
         var coordinator = fixture.CreateCoordinator(Options());
@@ -185,7 +185,7 @@ public class ServerRoutingCoordinatorTests
         // 保存同一地址（仅尾斜杠差异）不打断进行中的注册 / 长轮询：
         // 热切换的重建 + 旧 worker 停止在 ApplyServerUrlAsync 返回前同步完成——
         // 返回后无新 poller、旧 poller 未被取消即为「未重建」的确定性证据
-        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时（同 run 35222612255 取消形态）
+        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await using var fixture = new Fixture();
         var coordinator = fixture.CreateCoordinator(Options());
@@ -206,7 +206,7 @@ public class ServerRoutingCoordinatorTests
     public async Task Start_with_configured_url_should_enable_route_and_stop_should_clean_up()
     {
         // 启动接线（WinHostApp 路径）与停机清理（Bind → StopAsync）
-        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时（同 run 35222612255 取消形态）
+        // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await using var fixture = new Fixture();
         var options = Options();

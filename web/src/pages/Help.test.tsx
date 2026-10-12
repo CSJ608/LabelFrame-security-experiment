@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 帮助页 V3.1：左目录树版式测试——两级目录树（根＋五页＋当前页小节手风琴）
+// 帮助页：左目录树版式测试——两级目录树（根＋五页＋当前页小节手风琴）
 // 目录点击导航（页节点进文章 / 小节节点 scrollIntoView 跳转）、滚动高亮（rect mock 驱动）、窄窗目录
-// 收起 / 展开；深链回调改 hash 断言形态（机制迁移：onOpenInUi 由 Shell 以 hash 赋值实现）
+// 收起 / 展开；深链回调为 hash 断言形态（onOpenInUi 由 Shell 以 hash 赋值实现）。
 // 功能索引 / 五界面文章 / 词条单源 / 数据自洽（HELP_LINK_ELEMENTS 登记校验）维持。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -70,11 +70,11 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     // 词条与文档点气泡同源（单源双视图）：正文与 help.topic.designer.fill 一致
     expect(screen.getByText(/「来源」决定打印内容：固定值立即按所填内容渲染/)).toBeTruthy()
-    // 纯文章 4 节无深链；文档点 11 节有深链（增 designer.image）
+    // 纯文章 4 节无深链；文档点 11 节有深链（含 designer.image）
     const openButtons = screen.getAllByRole('button', { name: /去界面查看/ })
     expect(openButtons.length).toBe(11)
     fireEvent.click(openButtons[0])
-    // 机制迁移：深链 = hash 赋值 #/<page>/<anchor>（Shell openHelpInUi 现实现同法）
+    // 深链 = hash 赋值 #/<page>/<anchor>（Shell openHelpInUi 实现同法）
     expect(window.location.hash).toBe('#/designer/designer.position')
   })
 
@@ -140,7 +140,7 @@ describe('帮助页左目录树（AC-02 新版式）', () => {
     // 索引视图：任何页的小节都不展开
     expect(toc.querySelector('.help-toc-sections')).toBeNull()
 
-    // 进设计器文章：仅设计器页展开 15 个小节（词条与正文 /「?」气泡同源； 增图片小节）
+    // 进设计器文章：仅设计器页展开 15 个小节（词条与正文 /「?」气泡同源，含图片小节）
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     const sections = toc.querySelectorAll('.help-toc-item.section')
     expect(sections.length).toBe(15)

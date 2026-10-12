@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- English strings (iteration 110 / #244, decision #164-5). Keys mirror values/strings.xml
-       (default locale = Chinese); zh remains the fallback for any other system locale. -->
+  <!-- English strings. Keys mirror values/strings.xml (default locale = Chinese);
+       zh remains the fallback for any other system locale. -->
 
   <!-- Language sentinel: which resource table is in effect (used by the LF_* error-code translator) -->
   <string name="current_language">en</string>

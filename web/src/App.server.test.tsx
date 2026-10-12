@@ -2,7 +2,7 @@
 // server 构建（VITE_UI_MODE=server）菜单裁剪——含 在线设备，移除 设置 与一切
 // 打印机相关入口；：「设备日志 / PDA 日志」页下线（导航入口移除，回传链路不存在前
 // 的界面收敛）；状态栏显示服务端地址（页面 origin /「同源」）与 UI 模式；
-// K2 守门：跳过 localApi 探测（getHostConfig / getTransport 不被调用）。
+// 守门：跳过 localApi 探测（getHostConfig / getTransport 不被调用）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -110,7 +110,7 @@ describe('server 构建：菜单裁剪（迭代 20 §2.2 / Y5）', () => {
     expect(screen.getByRole('button', { name: '设计器' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '数据与打印' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '作业历史' })).toBeTruthy()
-    // Server UI 统一「下载中心」页入口（原「客户端下载」页升级）
+    // Server UI 统一「下载中心」页入口
     expect(screen.getByRole('button', { name: '下载中心' })).toBeTruthy()
     // Server UI「插件管理」页入口（与「下载中心」并列）
     expect(screen.getByRole('button', { name: '插件管理' })).toBeTruthy()
@@ -160,7 +160,7 @@ describe('server 构建：下载中心页入口（迭代 22 §2.3；迭代 59 �
     ])
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: '下载中心' }))
-    // 默认快速访问：两平台「最新上传」卡 + 连接信息卡（/02）
+    // 默认快速访问：两平台「最新上传」卡 + 连接信息卡
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(screen.getByText('服务端信息')).toBeTruthy()

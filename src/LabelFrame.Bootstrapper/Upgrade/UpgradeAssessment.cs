@@ -2,7 +2,7 @@ using LabelFrame.Bootstrapper.Manifest;
 
 namespace LabelFrame.Bootstrapper.Upgrade;
 
-/// <summary>组件级升级动作（DESIGN 组件级口径表）。</summary>
+/// <summary>组件级升级动作。</summary>
 public enum ComponentUpgradeAction
 {
     /// <summary>本机未装（全新安装）。</summary>
@@ -48,12 +48,12 @@ public sealed record UpgradeAssessment(
 }
 
 /// <summary>
-/// 升级评估（DESIGN ，，纯函数）：当轮 manifest 组件条目版本（目标）× 本机已装快照（现状）→ 逐组件动作 + 整体判定。
-/// 「已是最新」只看已装组件（未装组件属新装不参与判定）；呈现按调用方过滤（欢迎页全清单摘要 / 确认页按拓扑计划过滤）。
+/// 升级评估（纯函数）：当轮 manifest 组件条目版本（目标）× 本机已装快照（现状）→ 逐组件动作 + 整体判定。
+/// 「已是最新」只看已装组件（未装组件属新装不参与判定）；呈现按调用方过滤（确认页按拓扑计划过滤）。
 /// </summary>
 public static class UpgradeAssessor
 {
-    /// <summary>按 组件级口径表评估。</summary>
+    /// <summary>逐组件评估并汇总整体判定。</summary>
     public static UpgradeAssessment Assess(InstallManifest manifest, LocalInstallSnapshot local)
     {
 #if NET10_0_OR_GREATER

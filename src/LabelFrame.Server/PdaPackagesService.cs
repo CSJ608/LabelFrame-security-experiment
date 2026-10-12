@@ -3,11 +3,7 @@
 /// <summary>PDA（Android 宿主）安装包视图（GET /api/pda-packages 列表项）。</summary>
 public sealed record PdaPackageView(string FileName, long SizeBytes, DateTimeOffset ModifiedAt, string Url);
 
-/// <summary>
-/// PDA（Android 宿主）安装包目录服务（与 <see cref="ClientPackagesService"/> 模式对称）：
-/// 服务端统一分发 PDA 的 APK——目录直放文件与页面上传都支持；文件名一律拒绝路径分隔符 / .. / 非法字符（路径穿越防护），
-/// 只允许普通文件名（无子目录）。**页面上传仅接受 .apk 扩展名**（目录直放不限制，列表照常列出——服务端不对文件内容做格式断言）。
-/// </summary>
+/// <summary>PDA（Android 宿主）APK 目录服务（与 <see cref="ClientPackagesService"/> 对称）：目录直放不限格式照常列出；页面上传仅接受 .apk（服务端不对文件内容做格式断言）；文件名一律经 <see cref="SafeFileName"/> 规范化（路径穿越防护）。</summary>
 public sealed class PdaPackagesService : FilePackageService<PdaPackageView>
 {
     /// <summary>APK 下载响应的 MIME 类型（Android 浏览器据此识别为安装包并拉起安装流程）。</summary>

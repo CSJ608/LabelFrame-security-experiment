@@ -1,6 +1,5 @@
-// 自研 hash 路由：URL hash（#/<page>/<sub> 两级形态）成为页面位置的
-// 权威载体——page 段取既有 TabId 按构建白名单裁剪（旧 #dc= 链接先折算为正典形走同一裁剪，无旁路），
-// sub 段为页内次级不透明短串（V3.1 帮助深链 designer.fill 形锚点串预留，本轮由下载中心页内 tab 首用）。
+// 自研 hash 路由：URL hash（#/<page>/<sub> 两级形态）为页面位置权威载体——page 段取 TabId 按构建
+// 白名单裁剪（旧 #dc= 链接先折算为正典形走同一裁剪，无旁路），sub 段为页内次级不透明短串。
 // 历史栈语义：切页 pushState 入栈（state 写序号戳且戳与栈位置严格对齐——入栈戳＝来点条目戳＋1，
 // back 截断前向历史后重推不跳号，戳差恒等于步数差，供守卫取消 pre-revert 按戳差精确回退）；
 // sub 变更 replaceState 不入栈；守卫挂起（requestPage 返回 false）时页面与 hash 均不前进、不入栈；
@@ -15,7 +14,7 @@ export interface RouteLocation {
   sub: string
 }
 
-/** sub 段词法：字母 / 数字 / 点 / 下划线 / 连字符（V3.1 锚点串含点，收窄会挡深链）。 */
+/** sub 段词法：字母 / 数字 / 点 / 下划线 / 连字符（帮助深链锚点串含点，收窄会挡深链）。 */
 const SUB_PATTERN = /^[A-Za-z0-9._-]+$/
 
 /** history.state 内的路由序号戳键名（pre-revert 按戳差算步数）。 */
@@ -164,7 +163,7 @@ export function useHashRoute({ allowed, page, requestPage }: HashRouteOptions): 
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // sub 写入：replaceState 不入栈（循下载中心 switchTo 先例）；保留既有 state（戳不丢）
+  // sub 写入：replaceState 不入栈；保留既有 state（戳不丢）
   const setSub = useCallback((next: string) => {
     setSubState(next)
     window.history.replaceState(window.history.state, '', formatHash(pageRef.current, next))

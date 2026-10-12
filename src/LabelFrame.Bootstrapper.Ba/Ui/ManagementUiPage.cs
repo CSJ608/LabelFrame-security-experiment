@@ -3,7 +3,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>管理界面开关页（仅服务端角色出现，/）：webui 组件落位服务端 plugins/web-ui——服务端 + 同机客户端默认关（客户端本机界面已完整），独立服务端建议开。</summary>
+/// <summary>管理界面开关页（仅服务端角色出现）：webui 组件落位服务端 plugins/web-ui——服务端 + 同机客户端默认关（客户端本机界面已完整），独立服务端建议开。</summary>
 internal sealed class ManagementUiPage : UserControl, IWizardPage
 {
     private readonly WizardSession _session;

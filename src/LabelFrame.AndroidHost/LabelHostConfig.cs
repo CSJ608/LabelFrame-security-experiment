@@ -3,10 +3,8 @@ using Android.Provider;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 宿主配置：服务端地址 + 打印机通讯参数（品牌 / 连接类型 / TCP 地址端口），SharedPreferences 持久化。
-/// 设备号由系统唯一码自动生成，不接受配置（避免多台设备互相领作业）。
-/// </summary>
+/// <summary>宿主配置：服务端地址 + 打印机通讯参数（品牌 / 连接类型 / TCP 地址端口），SharedPreferences 持久化；
+/// 设备号由系统唯一码自动生成不接受配置（避免多台设备互相领作业）。</summary>
 public sealed class LabelHostConfig
 {
     /// <summary>本地 HTTP 端口（状态页与 JS 桥）。</summary>
@@ -36,7 +34,7 @@ public sealed class LabelHostConfig
     /// <summary>打印机品牌（当前仅 Zebra，等未来插件机制扩展）。</summary>
     public string PrinterBrand { get; set; } = DefaultPrinterBrand;
 
-    /// <summary>打印机连接类型（tcp 网口 / bluetooth 蓝牙 / usb USB 数据线，；未识别值按 tcp）。</summary>
+    /// <summary>打印机连接类型（tcp 网口 / bluetooth 蓝牙 / usb USB 数据线；未识别值按 tcp）。</summary>
     public string ConnectionType { get; set; } = DefaultConnectionType;
 
     /// <summary>打印机 IP。</summary>
@@ -45,7 +43,7 @@ public sealed class LabelHostConfig
     /// <summary>打印机端口。</summary>
     public int TcpPort { get; set; } = DefaultTcpPort;
 
-    /// <summary>蓝牙打印机 MAC 地址（SPP 手输，预授权；连接类型为 bluetooth 时使用）。</summary>
+    /// <summary>蓝牙打印机 MAC 地址（SPP 手输；连接类型为 bluetooth 时使用）。</summary>
     public string BluetoothMac { get; set; } = string.Empty;
 
     /// <summary>设备号（系统唯一码自动生成）。</summary>
@@ -57,14 +55,10 @@ public sealed class LabelHostConfig
     /// <summary>数据库路径（宿主私有目录）。</summary>
     public required string DatabasePath { get; set; }
 
-    /// <summary>
-    /// 外置插件根目录：{FilesDir}/plugins，一插件一子目录
-    /// （语义对齐 Windows %ProgramData%\LabelFrame\Client\plugins——卸载 = 删目录 + 重启生效）。
-    /// </summary>
+    /// <summary>外置插件根目录（{FilesDir}/plugins，一插件一子目录；卸载 = 删目录 + 重启生效）。</summary>
     public required string PluginsPath { get; set; }
 
-    /// <summary>从 SharedPreferences 加载（旧装机数据自动迁移：tcp_host 键沿用，端口与品牌缺失取默认值；
-    /// 存量 tcp 配置零迁移直入 SDK TCP 路径）。</summary>
+    /// <summary>从 SharedPreferences 加载（存量装机数据零迁移直入：tcp_host / tcp_port 键沿用，缺省取默认值）。</summary>
     public static LabelHostConfig Load(Context context)
     {
         var prefs = context.GetSharedPreferences("labelframe", FileCreationMode.Private)!;
@@ -85,10 +79,8 @@ public sealed class LabelHostConfig
         };
     }
 
-    /// <summary>
-    /// 持久化到 SharedPreferences（null / 空白 / 越界字段保持原值；设备号始终自动生成，不在此传入）。
-    /// 注意：传输 / 路由实例在服务启动时创建，保存后需重启宿主服务生效。
-    /// </summary>
+    /// <summary>持久化到 SharedPreferences（null / 空白 / 越界字段保持原值；设备号始终自动生成不在此传入）。
+    /// 传输 / 路由实例在服务启动时创建——保存后需重启宿主服务生效。</summary>
     public void Persist(
         Context context,
         string? serverUrl = null,
@@ -127,9 +119,7 @@ public sealed class LabelHostConfig
         }
     }
 
-    /// <summary>打印机连接方式的用户可读摘要（主页状态卡 / 通知 / 状态页共用，按连接类型给一句话）。
-    /// 外置插件品牌（brand ≠ zebra）统一显示「IP:端口」——插件品牌连接类型固定网口 tcp 起步。
-    /// 连接方式词经资源 id 引用，随系统语言（values 缺省中文与原字面量等价）。</summary>
+    /// <summary>打印机连接方式的用户可读摘要（主页 / 通知 / 状态页共用；外置插件品牌固定网口，统一显示「IP:端口」）。</summary>
     public string PrinterDisplay(Android.Content.Context context)
     {
         var brand = PrinterBrand.Trim();
@@ -153,10 +143,8 @@ public sealed class LabelHostConfig
         };
     }
 
-    /// <summary>
-    /// 设备号取系统唯一码 ANDROID_ID 原值（每台设备唯一、卸载重装不变、恢复出厂后变化——重置后的设备视为新设备）。
-    /// Android 8 之前部分设备会重复返回 9774d56d682e25f8，按取不到处理，本地生成随机码兜底。
-    /// </summary>
+    /// <summary>设备号取 ANDROID_ID 原值（卸载重装不变、恢复出厂后变化＝新设备）；
+    /// Android 8 前部分设备重复返回坏值 9774d56d682e25f8，按取不到处理，本地 UUID 兜底。</summary>
     private static string ResolveDeviceId(Context context, ISharedPreferences prefs)
     {
         var androidId = Settings.Secure.GetString(context.ContentResolver!, Settings.Secure.AndroidId);

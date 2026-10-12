@@ -4,12 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LabelFrame.Server;
 
-/// <summary>
-/// Server 业务服务：设备注册 / 心跳、作业定向投递（宿主轮询领取）、结果回报、集中查询。
-/// 设备离线时作业在 Server 暂存（Pending），上线轮询即领取。
-/// 业务事件日志：作业创建 / 认领 / 回报终态各一条 INFO（作业粒度，含标识字段）
-/// 默认 INFO，可经标准 Logging:LogLevel 按类别 LabelFrame.Server.ServerService 降级。
-/// </summary>
+/// <summary>Server 业务服务：设备注册 / 心跳、作业定向投递（设备离线时暂存 Pending，上线轮询即领取）、结果回报、集中查询；业务事件日志默认 INFO、可按类别降级。</summary>
 public sealed partial class ServerService : IDisposable
 {
     /// <summary>在线窗口：超过该时长未心跳视为离线。</summary>
@@ -62,7 +57,7 @@ public sealed partial class ServerService : IDisposable
     private DateTimeOffset? PendingTtlCutoff(DateTimeOffset now)
         => _options?.PendingJobTtl is { } ttl ? now - ttl : null;
 
-    /// <summary>模板化领域异常构造：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>构造模板化领域异常（参数随异常透传 ErrorView.params）。</summary>
     private static ServerException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 
@@ -126,8 +121,7 @@ public sealed partial class ServerService : IDisposable
             throw new ServerException(ServerErrorCodes.InvalidRequest, "缺少 requestId（幂等键）。");
         }
 
-        // 终态回调地址校验：scheme 白名单仅 http/https，提交即拒（作业不入队）——
-        // 空串 / 纯空白 / 裸字符串 / file:// 等一律拒绝（从 LF_SRV_002 拆出专属码 LF_SRV_013，参数键 callbackUrl 单码单键集）
+        // 终态回调地址校验：scheme 白名单仅 http/https，提交即拒（作业不入队）
         if (request.CallbackUrl is not null && !JobCallbackUrl.IsAllowed(request.CallbackUrl))
         {
             throw Templated(
@@ -138,7 +132,6 @@ public sealed partial class ServerService : IDisposable
 
         var callbackUrl = string.IsNullOrWhiteSpace(request.CallbackUrl) ? null : request.CallbackUrl.Trim();
 
-        // 目标设备解析：targetDeviceId 优先；未提供时按 targetIp 查找（找不到 404）。
         var targetDeviceId = request.TargetDeviceId;
         if (string.IsNullOrWhiteSpace(targetDeviceId))
         {
@@ -151,7 +144,6 @@ public sealed partial class ServerService : IDisposable
             var byIp = await _db.FindDeviceByIpAsync(normalizedIp, cancellationToken);
             if (byIp is null)
             {
-                // 按 IP 未找到与「设备未注册（LF_SRV_001 {deviceId}）」语义不同——拆码 LF_SRV_012，各自单参数键集
                 throw Templated(ServerErrorCodes.DeviceNotFoundByIp, "按 IP 未找到设备：{ip}。", new() { ["ip"] = request.TargetIp });
             }
 
@@ -169,8 +161,8 @@ public sealed partial class ServerService : IDisposable
             throw new ServerException(ServerErrorCodes.InvalidRequest, "缺少 labels（至少一张）。");
         }
 
-        // 门只覆盖提交路径：幂等 requestId 为「查询-再插入」两步，进程内串行化避免并发重放双双插入
-        //（DB 层 request_id UNIQUE 兜底跨进程重复）；注册 / 领取 / 回报路径无 check-then-act，已不再串行化
+        // 提交幂等为「查询-再插入」两步：进程内 _gate 串行化防并发重放双双插入，DB 层 request_id UNIQUE 兜底跨进程；
+        // 门只覆盖提交路径——注册 / 领取 / 回报无 check-then-act，勿再扩门串行化
         await _gate.WaitAsync(cancellationToken);
         try
         {
@@ -213,8 +205,7 @@ public sealed partial class ServerService : IDisposable
     /// <summary>设备领取作业：同一事务内刷新心跳并把该设备的未过期 Pending 作业置为 Claimed（超期作业不下发，正确性兜底不依赖过期扫描周期）。</summary>
     public async Task<IReadOnlyList<ClaimedJob>> ClaimPendingJobsAsync(string deviceId, string? lastIp = null, CancellationToken cancellationToken = default)
     {
-        // 并发安全由 DB 层保证（圈定为单条 UPDATE ... RETURNING 原子操作），无需进程内串行化；
-        // 心跳与圈定合并为单个写事务（写合批，减少一次单写锁排队）
+        // 并发安全由 DB 层保证（圈定为单条 UPDATE ... RETURNING 原子操作），无需进程内串行化
         var now = _time.GetUtcNow();
         var (touched, jobs) = await _db.TouchAndClaimPendingJobsAsync(
             deviceId, now, NormalizeIpText(lastIp), limit: 10, PendingTtlCutoff(now), cancellationToken);
@@ -252,7 +243,6 @@ public sealed partial class ServerService : IDisposable
                     new() { ["deviceId"] = deviceId, ["jobId"] = jobId });
         }
 
-        // 幂等重放：终态作业直接返回
         if (job.Status is ServerJobStatus.Completed or ServerJobStatus.Failed)
         {
                 return await ToJobViewAsync(job, cancellationToken);
@@ -278,8 +268,7 @@ public sealed partial class ServerService : IDisposable
                 cancellationToken);
         LogJobFinished(jobId, deviceId, job.RequestId, updated!.Status.ToString(), report.CompletedItems ?? 0, report.FailedItems ?? 0, report.ErrorMessage);
 
-        // 终态回调登记（三处终态转移点之一）：异步投递，不内联在回报路径中——
-        // 外部端点慢 / 挂不影响宿主回报；幂等登记，重复到达安全
+        // 终态回调登记（三处终态转移点之一）：异步投递不内联回报路径——外部端点慢 / 挂不影响宿主回报
         if (updated.CallbackUrl is not null)
         {
             await _db.EnqueueJobCallbacksAsync(_time.GetUtcNow(), jobId, cancellationToken);
@@ -288,10 +277,7 @@ public sealed partial class ServerService : IDisposable
         return await ToJobViewAsync(updated!, cancellationToken);
     }
 
-    /// <summary>
-    /// 设备进度增量上报：仅 Claimed 接受，计数按字段取 max 单调递增；只描述过程——
-    /// 不改终态字段、不刷新 claimed_at（不干预超时回收计龄）。终态作业幂等 no-op 返回当前视图。
-    /// </summary>
+    /// <summary>设备进度增量上报：仅 Claimed 接受、计数 max 单调递增；不改终态字段、不刷新 claimed_at（不干预超时回收计龄）；终态幂等 no-op。</summary>
     public async Task<ServerJobView> ReportProgressAsync(string deviceId, string jobId, ReportProgressRequest progress, CancellationToken cancellationToken = default)
     {
         var job = await _db.GetJobAsync(jobId, cancellationToken)
@@ -304,7 +290,6 @@ public sealed partial class ServerService : IDisposable
                     new() { ["deviceId"] = deviceId, ["jobId"] = jobId });
         }
 
-        // 幂等 no-op：终态作业（含已被超时回收的 Failed）直接返回既有视图，计数不再变化
         if (job.Status is ServerJobStatus.Completed or ServerJobStatus.Failed or ServerJobStatus.Expired)
         {
             return await ToJobViewAsync(job, cancellationToken);
@@ -364,7 +349,6 @@ public sealed partial class ServerService : IDisposable
             ? DeviceStatus.Offline
             : IsOnline(device, _time.GetUtcNow()) ? DeviceStatus.Online : DeviceStatus.Offline;
 
-        // 终态回调投递状态：无回调地址的作业不查投递表（绝大多数作业零开销）
         JobCallbackTask? callback = job.CallbackUrl is null ? null : await _db.GetJobCallbackAsync(job.Id, cancellationToken);
         return new ServerJobView(
             job.Id,

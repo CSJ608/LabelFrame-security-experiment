@@ -4,8 +4,8 @@ namespace LabelFrame.Core.Transport.Plugins;
 
 /// <summary>
 /// 传输插件：描述 + 参数模型 + 工厂。第三方插件 DLL 实现并导出此接口；
-/// 返回的传输实例继续使用现有 <see cref="IPrintTransport"/>（发送）+ 可选
-/// <see cref="IPrinterStatusProvider"/>（状态）+ 可选 <see cref="ITestableTransport"/>（连接测试）。
+/// 返回的传输实例为 <see cref="IPrintTransport"/>（发送）+ 可选 <see cref="IPrinterStatusProvider"/>（状态）
+/// + 可选 <see cref="ITestableTransport"/>（连接测试）。
 /// </summary>
 public interface ITransportPlugin
 {

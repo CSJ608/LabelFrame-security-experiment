@@ -1,9 +1,8 @@
 namespace LabelFrame.WinHost.Ui;
 
 /// <summary>
-/// 单实例守卫：进程级互斥锁 + 跨进程「激活」事件。
-/// 第二实例拿不到锁时发激活事件（已有实例收到后显示并前置界面窗口）随即退出，
-/// 不再走到 HTTP 监听，避免出现端口占用启动失败。
+/// 单实例守卫：进程级互斥锁 + 跨进程「激活」事件。第二实例拿不到锁时发激活事件
+/// （已有实例收到后显示并前置窗口）随即退出，不再走到 HTTP 监听（避免端口占用启动失败）。
 /// </summary>
 public sealed class SingleInstanceGuard : IDisposable
 {

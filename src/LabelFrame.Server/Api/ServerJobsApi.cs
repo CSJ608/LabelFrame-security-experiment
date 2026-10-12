@@ -28,7 +28,7 @@ app.MapPost("/api/jobs", async (SubmitJobRequest? request, ServerService svc, Ca
     }
     catch (ServerException ex)
     {
-        // 设备未注册 / 按 IP 未找到设备均 404（by-ip 拆码 LF_SRV_012 后两码都映射 404，HTTP 语义不变）
+        // 设备未注册 / 按 IP 未找到设备均 404
         return ex.Code is ServerErrorCodes.DeviceNotFound or ServerErrorCodes.DeviceNotFoundByIp
             ? Results.NotFound(new ErrorView(ex.Code, ex.Message, Params: ex.Parameters))
             : Results.BadRequest(new ErrorView(ex.Code, ex.Message, Params: ex.Parameters));
@@ -58,8 +58,8 @@ app.MapGet("/api/devices/{deviceId}/jobs/notify", async (string deviceId, int? t
     {
         var seconds = Math.Clamp(timeout ?? 20, 1, 30);
         await svc.TouchDeviceAsync(deviceId, DateTimeOffset.UtcNow, ServerService.NormalizeRemoteIp(context.Connection.RemoteIpAddress), ct);
-        // 挂起前先查一次未过期 Pending（积压预检）：提交脉冲早于本请求到达时已空放，
-        // 不预检会导致纯积压清空场景每批空等满超时；有积压立即返回，不进入长轮询。
+        // 挂起前积压预检：有未过期 Pending 立即返回——提交脉冲早于本请求到达时已空放，
+        // 不预检则纯积压清空场景每批空等满长轮询超时。
         if (await svc.HasDeliverablePendingJobsAsync(deviceId, ct))
         {
             return Results.Ok(new { hasPending = true });

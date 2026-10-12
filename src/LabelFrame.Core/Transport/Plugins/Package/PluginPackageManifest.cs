@@ -5,8 +5,7 @@ namespace LabelFrame.Core.Transport.Plugins.Package;
 /// <summary>
 /// 插件包 manifest（zip 根 manifest.json）：
 /// pluginId / name / version 必填；description / author / minHostVersion 可选
-/// （minHostVersion 本轮仅展示、暂不校验，有厂商插件接入需求时再评估）；
-/// platforms 可选——字符串数组小写平台 id（windows / android），单包单端起步
+/// （minHostVersion 仅展示、暂不校验）；platforms 可选——字符串数组小写平台 id（windows / android），
 /// 无该字段的既有包按 Windows 端解释（<see cref="SupportsPlatform"/>）。
 /// </summary>
 public sealed record PluginPackageManifest(
@@ -95,7 +94,7 @@ public sealed record PluginPackageManifest(
     }
 
     /// <summary>
-    /// 包是否面向指定宿主平台（忽略大小写）：无 platforms 字段的既有包按 Windows 端解释（向后兼容）
+    /// 包是否面向指定宿主平台（忽略大小写）：无 platforms 字段的既有包按 Windows 端解释（向后兼容）；
     /// 有声明则按集合包含判断（未列入的平台 = 不支持，安装端平台门据此拒绝）。
     /// </summary>
     public bool SupportsPlatform(string platform)

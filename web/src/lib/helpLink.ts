@@ -1,12 +1,10 @@
-// 帮助深链页内轮询 hook（机制迁移）：深链信号从旧 Shell 两段
-// state（helpAnchorPending / Ready）迁至路由 sub 段（#/designer/<anchor> 形）后，「等锚点
+// 帮助深链页内轮询 hook：深链信号由路由 sub 段（#/designer/<anchor> 形）承载，「等锚点
 // 入 DOM」的页内等待收敛为本 hook——Designer / Settings 共用：锚点出现即回调 onFound（调用方
 // 经既有 openDot / autoOpenAnchor 链自动弹出文档点气泡），80ms/4s 轮询超时回调 onTimeout
-//（通用降级口径保留：目标锚点运行时不可见的一切触发——未开模板 / 未选中元素 / 类型不含目标
-// 分组 / 对齐组需多选 / 预览锁定——统一走 deepLink.timeout 词条）；等待期 onPending 可选
-//（状态栏提示 deepLink.pending）。
+//（目标锚点运行时不可见的一切触发——未开模板 / 未选中元素 / 类型不含目标分组 / 对齐组需多选 /
+// 预览锁定——统一走 deepLink.timeout 词条降级）；等待期 onPending 可选（状态栏提示）。
 // 轮询口径复用 lib/help.ts 的 HELP_ANCHOR_POLL_*（Guide.tsx 同源）；本文件引 react（hook），
-// help.ts 保持纯数据——循 lib/router.ts「hook 与纯数据分离」先例。
+// help.ts 保持纯数据。
 
 import { useEffect, useRef } from 'react'
 import { HELP_ANCHOR_POLL_MAX_MS, HELP_ANCHOR_POLL_MS, helpAnchorSelector } from './help'

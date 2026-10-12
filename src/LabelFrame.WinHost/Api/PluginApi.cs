@@ -20,7 +20,7 @@ internal static class PluginApi
 {
     public static IEndpointRouteBuilder MapPluginApi(this IEndpointRouteBuilder app)
     {
-    // ---- 插件安装 / 卸载（插件包上传服务端 → 客户端下载安装 / 卸载；安装 / 卸载 = 写文件 + 重启生效）----
+    // 插件安装 / 卸载（安装 / 卸载 = 写文件 + 重启生效）
     app.MapGet("/api/plugins/installed", (PluginInstaller installer) => Results.Ok(installer.ListInstalled()));
 
     app.MapPost("/api/plugins/install", async (IFormFile file, PluginInstaller installer, CancellationToken ct) =>
@@ -41,7 +41,7 @@ internal static class PluginApi
         }
         catch (PluginPackageException ex)
         {
-            // 业务性失败（非 zip / zip 损坏 / manifest 缺失或非法 / DLL 无效等）：消息已是中文可行动提示
+            // 业务性失败（非 zip / zip 损坏 / manifest 非法 / DLL 无效等）：消息已是中文可行动提示
             return Results.BadRequest(new ErrorView(ApiErrorCodes.PluginInvalid, ex.Message));
         }
         catch (InvalidDataException)
@@ -51,7 +51,7 @@ internal static class PluginApi
                 ApiErrorCodes.PluginInvalid,
                 "插件包无效，无法完成安装。请使用「导出插件包」生成的 .zip 文件重试；问题持续请联系插件提供方。"));
         }
-        // 其余意外异常（解压 / 写入故障等）交给全局异常处理器 → 500，不再误报 400 或透出内部信息
+        // 其余意外异常交给全局异常处理器 → 500，不误报 400 或透出内部信息
     }).DisableAntiforgery();
 
     app.MapPost("/api/plugins/uninstall", (Api.UninstallPluginRequest? request, PluginInstaller installer) =>

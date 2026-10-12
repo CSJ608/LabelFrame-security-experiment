@@ -2,13 +2,12 @@
 // 后端吐结构化错误（码 + 模板参数 params + 中文兜底 message），展示端持码表（errorCodes 命名空间）
 // 翻译——已知码用码表模板渲染（{{key}} 插值，键名与后端 params 一致），未知码回退后端中文 message。
 //
-// 渲染规则（详见 DESIGN §5 /）：
-// - zh-CN：直接采用后端 message——中文权威在后端（码表 zh 份是注册表镜像，供覆盖断言与后续端参考），
-//   避免码表镜像在多消息变体同码时失真；
+// 渲染规则：
+// - zh-CN：直接采用后端 message——中文权威在后端（码表 zh 份是注册表镜像，避免码表镜像在
+//   多消息变体同码时失真）；
 // - en：已知码用 en 码表模板插值；模板所需参数不全（后端未带 params 的消息变体）或未知码
 //   回退后端中文 message——保证任何输入都不出现裸 {{key}} 插值残缺。
-// 前端自造码（TIMEOUT / NETWORK_ERROR / HTTP_xxx）不在码表内，自然走回退（维持现状中文文案，
-//   归后续页面迁移迭代处理）。
+// 前端自造码（TIMEOUT / NETWORK_ERROR / HTTP_xxx）不在码表内，自然走回退。
 
 import i18next, { currentLocale } from './index'
 

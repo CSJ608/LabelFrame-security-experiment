@@ -2,15 +2,12 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>向导壳：分步导航（就绪 →（角色 高级）→ 打印机 → 服务端地址 →（管理界面 服务端角色）→ 确认 → 安装进度 → 完成 / 失败报告；不适用页自动越过，/）。</summary>
+/// <summary>向导壳：分步导航（就绪 →（角色，高级）→ 打印机 → 服务端地址 →（管理界面，服务端角色）→ 确认 → 安装进度 → 完成 / 失败报告；不适用页自动越过）。</summary>
 /// <remarks>
-/// 导航索引 / 惰性装配 / 越界防御由 <see cref="WizardNavigator{TPage}"/> 承担（可单测）
-/// 本类只做 WinForms 呈现与按钮接线——<see cref="NavigateTo"/> 为<b>绝对</b>页索引（原增量 Navigate(delta)
-/// 的 Navigate（0） 会被越界守卫静默吞掉，即验收回流缺陷，见 Issue）。
-/// 两层问卷：<see cref="NavigateTo"/> 先以 <see cref="IWizardPage.ShouldSkip"/> 越过不适用页
-/// （基础模式角色页 / 服务端角色打印机与地址页 / 客户端角色管理界面页），前进向后找、后退向前找。
-/// 确认页「下一步」语义 = 开始安装（进入进度页由进度页驱动 <c>Engine.Apply</c>）
-/// 执行期间「上一步 / 取消」禁用（中断由引擎 Quit 承担，不自造取消语义）。
+/// 导航索引 / 惰性装配 / 越界防御由 <see cref="WizardNavigator{TPage}"/> 承担（可单测），本类只做 WinForms 呈现与按钮接线。
+/// <see cref="NavigateTo"/> 为<b>绝对</b>页索引（增量语义曾致首页装配被越界守卫静默吞掉——验收回流缺陷，不可回退）。
+/// 两层问卷：先以 <see cref="IWizardPage.ShouldSkip"/> 越过不适用页（前进向后找、后退向前找）。
+/// 确认页「下一步」= 开始安装；执行期间「上一步 / 取消」禁用（中断由引擎 Quit 承担，不自造取消语义）。
 /// </remarks>
 internal sealed class WizardForm : Form
 {
@@ -30,7 +27,7 @@ internal sealed class WizardForm : Form
     /// <summary>首显主动置前器：启动链无前台权时向导静默不前置——用户以为安装无响应。</summary>
     private readonly WizardForegroundActivator _foregroundActivator = new();
 
-    /// <summary>会话由 BA 创建注入（起）：布局目录隐式检测后 BA 已改写默认清单来源，本类不再自建会话。</summary>
+    /// <summary>会话由 BA 创建注入：布局目录隐式检测后 BA 已改写默认清单来源，本类不自建会话。</summary>
     public WizardForm(LabelFrameBootstrapperBa ba, WizardSession session)
     {
         _ba = ba;
@@ -38,13 +35,12 @@ internal sealed class WizardForm : Form
 
         Text = "LabelFrame 安装引导";
         StartPosition = FormStartPosition.CenterScreen;
-        // 品牌 v02：顶部新增 44px 品牌条，高度 560 → 604 保持内容区不变（页面布局不回归）
+        // 顶部 44px 品牌条占位——高度 560 → 604 保持既有内容区不变（页面布局不回归）
         MinimumSize = new Size(760, 604);
         Size = new Size(760, 604);
 
-        // 品牌 v02：窗体图标取 BA EXE 内嵌 Win32 图标（csproj ApplicationIcon）——与 WinHost
-        // WindowShell 同口径（net48 无 Environment.ProcessPath，用 Application.ExecutablePath）；
-        // 提取失败降级默认图标，品牌缺失不阻断安装。
+        // 窗体图标取 BA EXE 内嵌 Win32 图标（csproj ApplicationIcon；net48 无 Environment.ProcessPath，
+        // 用 Application.ExecutablePath）；提取失败降级默认图标，品牌缺失不阻断安装。
         try
         {
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -66,7 +62,7 @@ internal sealed class WizardForm : Form
             () => new CompletePage(_session, _ba),
         ]);
 
-        // 品牌 v02：顶部品牌条（lockup 母版 1480×280 等比缩至 169×32，左缘 16px 对齐步骤条）
+        // 顶部品牌条（lockup 母版 1480×280 等比缩至 169×32，左缘 16px 对齐步骤条）
         var brandBand = new Panel { Dock = DockStyle.Top, Height = 44 };
         var brandLockup = LoadBrandLockup();
         if (brandLockup is not null)
@@ -136,8 +132,8 @@ internal sealed class WizardForm : Form
     internal bool InstallInProgress { get; private set; }
 
     /// <summary>
-    /// 品牌 v02：头部 lockup 从嵌入资源装载（csproj LogicalName = bootstrapper-lockup.png）。
-    /// 资源缺失 / 解码失败一律降级返回 null（无品牌条，不影响安装功能）——安装器不因品牌资产异常而失败。
+    /// 头部 lockup 从嵌入资源装载（csproj LogicalName = bootstrapper-lockup.png）。
+    /// 资源缺失 / 解码失败一律降级返回 null（无品牌条）——安装器不因品牌资产异常而失败。
     /// </summary>
     private static Bitmap? LoadBrandLockup()
     {
@@ -153,10 +149,8 @@ internal sealed class WizardForm : Form
     }
 
     /// <summary>
-    /// 首显主动置前：向导此前完全依赖系统默认前台授予链，启动者无前台权
-    /// （计划任务 / 后台进程 / Explorer 未持前台 / 下载后立即切走）时静默不前置。已在前台则零调用零扰动
-    /// （正常双击链不回归）；否则组合置前（挂接 + 最小化还原 + 切换 + 前置请求），被拒时任务栏强闪烁兜底。
-    /// 结果写 Burn 日志（无前台权场景的机器可读证据行）。
+    /// 首显主动置前（机制见 <see cref="WizardForegroundActivator"/>）：已在前台零扰动（正常双击链不回归），
+    /// 被拒时任务栏强闪烁兜底；结果写 Burn 日志（无前台权场景的机器可读证据行）。
     /// </summary>
     protected override void OnShown(EventArgs e)
     {
@@ -216,7 +210,7 @@ internal sealed class WizardForm : Form
 
     /// <summary>
     /// 导航到<b>绝对</b>页索引（0 = 首页）；先按 <see cref="IWizardPage.ShouldSkip"/> 越过不适用页
-    /// （前进向后找、后退向前找， 两层问卷），越界 / 非法索引静默拒绝（保持当前页，状态机负责防御）。
+    /// （前进向后找、后退向前找），越界 / 非法索引静默拒绝（保持当前页，状态机负责防御）。
     /// </summary>
     private void NavigateTo(int pageIndex, bool forward = true)
     {

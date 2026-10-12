@@ -128,7 +128,7 @@ describe('在线设备页：5s 轮询（G2，在线状态翻转时效最坏约 3
     vi.useFakeTimers()
     render(<Harness />)
     // 首次拉取立即执行（无定时器延迟）；挂载链（healthz → serverMode → 列表加载）有界多轮冲洗至落定
-    // （React 调度走真实宏任务，固定单轮冲洗在高负载 runner 上可能残留未落定代际—— 同类时序敏感）
+    // （React 调度走真实宏任务，固定单轮冲洗在高负载 runner 上可能残留未落定代际——同类时序敏感）
     for (let i = 0; i < 15 && mocks.server.listDevices.mock.calls.length < 1; i++) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)

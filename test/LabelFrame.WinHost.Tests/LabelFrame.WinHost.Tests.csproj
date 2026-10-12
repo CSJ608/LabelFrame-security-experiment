@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
-    <!-- 迭代 113（#243）：AC-01 假名 / 韩文样本测试需运行时跳过（存在性探测 + 缺失跳过，不假绿），
+    <!-- 假名 / 韩文样本测试需运行时跳过（存在性探测 + 缺失跳过，不假绿），
          xunit v2 需官方 SkippableFact 扩展实现运行时 Skip（仅测试依赖，不进发布闭包）。 -->
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
   </ItemGroup>
@@ -28,7 +28,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <!-- 毒丸引用清单（自插件工程迁移而来，迭代 63）：引用 LabelFrame.TransportPlugin.Zebra 后其 Zebra SDK 传递的
+  <!-- 毒丸引用清单（自插件工程迁移而来）：引用 LabelFrame.TransportPlugin.Zebra 后其 Zebra SDK 传递的
        MAUI / WinUI 链需要在消费侧同样显式排除——否则 WindowsAppSDK 的版本特定 RID 图触发 NETSDK1206 告警。 -->
   <ItemGroup>
     <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" ExcludeAssets="all" />
@@ -54,7 +54,7 @@
     <ProjectReference Include="..\..\src\LabelFrame.WinHost\LabelFrame.WinHost.csproj" />
     <ProjectReference Include="..\..\src\LabelFrame.Rendering\LabelFrame.Rendering.csproj" />
     <ProjectReference Include="..\LabelFrame.TransportPlugin.Sample\LabelFrame.TransportPlugin.Sample.csproj" />
-    <!-- Zebra 官方插件工程（迭代 63 外置化）：迁移后的传输行为测试（#49 AC-08 回归）与官方包安装 / 版本比较用例的程序集来源 -->
+    <!-- Zebra 官方插件工程：迁移后的传输行为测试与官方包安装 / 版本比较用例的程序集来源 -->
     <ProjectReference Include="..\..\src\LabelFrame.TransportPlugin.Zebra\LabelFrame.TransportPlugin.Zebra.csproj" />
   </ItemGroup>
 

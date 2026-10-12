@@ -2,16 +2,9 @@ namespace LabelFrame.Bootstrapper.OfflineLayout;
 
 /// <summary>引导程序布局生成参数：<c>--layout &lt;目录&gt;</c> 进入布局生成模式，<c>--manifest &lt;路径|URL&gt;</c> 覆写生成用清单来源。</summary>
 /// <remarks>
-/// <para>
-/// **双横线与引擎原生开关区分**：Burn 引擎自身解析单横线 <c>-layout [目录]</c>（<c>LaunchAction.Layout</c> +
-/// <c>WixBundleLayoutDirectory</c>，引擎级「下载全部载荷」语义）；双横线 <c>--layout</c> 按引擎单前缀剥离后为未知参数，
-/// 经 <c>IBootstrapperCommand.CommandLine</c> 透传 BA——本类只认双横线形态（单横线路径由 BA 侧按
-/// <c>LaunchAction.Layout</c> 路由，两者进入同一生成流程）。
-/// </para>
-/// <para>
-/// 支持空格分隔（<c>--layout D:\dir</c>）与等号（<c>--layout=D:\dir</c>）两种形态；其余参数（变量赋值等）忽略不报错；
-/// <c>--layout</c> 缺值记录入 <see cref="Errors"/>（fail-fast 由调用方决定呈现）。
-/// </para>
+/// <para>平台坑：必须用<b>双横线</b>——Burn 引擎自身解析单横线 <c>-layout</c>（引擎级「下载全部载荷」语义），双横线才经
+/// <c>IBootstrapperCommand.CommandLine</c> 透传 BA；单横线路径由 BA 按 <c>LaunchAction.Layout</c> 路由，两者须进同一生成流程。</para>
+/// <para>支持空格分隔与等号两种形态；其余参数忽略不报错；<c>--layout</c> 缺值记录入 <see cref="Errors"/>。</para>
 /// </remarks>
 public sealed record LayoutModeArguments
 {

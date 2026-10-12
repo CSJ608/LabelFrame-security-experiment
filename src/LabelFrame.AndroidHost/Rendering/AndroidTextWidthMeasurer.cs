@@ -3,11 +3,8 @@ using LabelFrame.Core.Layout;
 
 namespace LabelFrame.AndroidHost.Rendering;
 
-/// <summary>
-/// 字宽度量 Android 实现：Android.Graphics Paint 与 AndroidLabelRenderer 同一文本渲染管线
-/// （TextSize / FakeBoldText），在参考比例下度量后换算毫米——结果与渲染 DPI 无关（线性缩放）。
-/// 无状态，进程内单例复用。
-/// </summary>
+/// <summary>字宽度量 Android 实现：与 AndroidLabelRenderer 同一 Paint 管线（TextSize / FakeBoldText），
+/// 参考比例下度量后线性换算毫米（结果与渲染 DPI 无关）；无状态单例。</summary>
 public sealed class AndroidTextWidthMeasurer : ITextWidthMeasurer
 {
     /// <summary>度量参考比例（像素 / 毫米）：取较大比例降低舍入误差。</summary>

@@ -19,11 +19,8 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 var serverOptions = new ServerOptions();
 builder.Configuration.GetSection("Server").Bind(serverOptions);
 serverOptions.ApplyEnvironmentOverrides();
-// 文本日志通道（大小上限）：按日 + 单文件大小轮转 + 个数保留上限
-// 路径无效（目录不可创建 / 磁盘不可用）不崩溃——跳过文件通道、控制台输出中文告警（含配置项名与降级事实），宿主正常启动。
 if (!string.IsNullOrWhiteSpace(serverOptions.LogFilePath))
 {
-    // 大小上限接线唯一入口（MB → 字节；0 / 负 = 不限制）
     var maxFileSizeBytes = serverOptions.LogFileMaxSizeMB > 0
         ? (long)serverOptions.LogFileMaxSizeMB * 1024 * 1024
         : 0;
@@ -45,7 +42,7 @@ if (!string.IsNullOrWhiteSpace(serverOptions.LogFilePath))
 builder.WebHost.UseUrls(serverOptions.ListenUrl);
 // 插件包上传端点大小上限 64MB（Kestrel 默认约 30MB，超出会返回 413 且无错误体）
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = PluginPackageLimits.MaxBytes);
-// 缩短停机超时（默认 30s）：避免客户端长轮询请求拖慢服务停止 / 卸载 / 升级。
+// 缩短停机超时（默认 30s）：避免客户端长轮询请求拖慢服务停止 / 卸载 / 升级（安装链依赖 5s 内停机）
 builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(5));
 #if WINDOWS
 // 以 Windows 服务运行（LabelFrameServer）；直接运行 exe 仍是控制台（开发用）。
@@ -60,8 +57,6 @@ var logStore = new SqliteLogStore(serverOptions.LogsDbPath);
 await logStore.InitializeAsync();
 var notifier = new PendingJobNotifier();
 var timeProvider = TimeProvider.System;
-// ServerService 经 DI 工厂构造：注入宿主 ILogger<ServerService>（含文件日志通道），
-// 业务事件日志（作业创建 / 认领 / 终态）与框架日志走同一条管道，级别经标准 Logging:LogLevel 可降级。
 var clientPackages = new ClientPackagesService(serverOptions.ClientPackagesPath);
 var pdaPackages = new PdaPackagesService(serverOptions.PdaPackagesPath);
 var pluginPackages = new PluginPackagesService(serverOptions.PluginPackagesPath);
@@ -93,10 +88,10 @@ builder.Services.AddHostedService(sp => new DataCleanupService(db, logStore, ser
 builder.Services.AddHostedService(sp => new PendingJobExpirationService(db, serverOptions, timeProvider, sp.GetRequiredService<ILogger<PendingJobExpirationService>>()));
 // Claimed 超时回收扫描（超时关闭时任务直接退出）；回收为终态即最终，不重新投递
 builder.Services.AddHostedService(sp => new ClaimedJobTimeoutService(db, serverOptions, timeProvider, sp.GetRequiredService<ILogger<ClaimedJobTimeoutService>>()));
-// 终态回调投递：独立发送器（加固 HttpClient）+ 周期扫描；指数退避至多 5 次、超限死信、状态持久化（重启续投）
+// 终态回调投递：独立发送器 + 周期扫描，投递状态持久化（重启续投）
 builder.Services.AddSingleton<IJobCallbackSender>(_ => new HttpJobCallbackSender());
 builder.Services.AddHostedService(sp => new JobCallbackDeliveryService(db, timeProvider, sp.GetRequiredService<IJobCallbackSender>(), sp.GetRequiredService<ILogger<JobCallbackDeliveryService>>()));
-// Skia 渲染器实例单例：DI 与共享端点（模板预览 / 调试出图）共用同一实例
+// Skia 渲染器单例：DI 与共享端点（模板预览 / 调试出图）共用同一实例（表面池避免重复分配）
 var skiaRenderer = new SkiaLabelRenderer();
 builder.Services.AddSingleton<ILabelBitmapRenderer>(skiaRenderer);
 // 本地工具服务：地址由用户配置（可跨机器 / 跨端口），启用宽松 CORS
@@ -110,12 +105,11 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseCors();
 
-// ---- 服务端管理界面插件：静态前端包目录，目录存在即托管、移除即无头 ----
-// 中间件常驻注册（FileProvider 指向插件目录）；目录出现 / 移除即时生效，无需重启。
+// ---- 服务端管理界面插件：静态前端包目录，目录存在即托管、移除即无头（中间件常驻注册，即时生效） ----
 if (!string.IsNullOrWhiteSpace(serverOptions.WebUiPath))
 {
-    // PhysicalFileProvider 要求根目录存在：启动时确保插件目录存在（空目录仍为无头，放入 index.html 即生效）；
-    // 目录创建失败（如权限不足）降级为无头，不影响 API 启动。
+    // PhysicalFileProvider 要求根目录存在：先确保插件目录存在（空目录仍为无头）；
+    // 创建失败（权限不足等）降级为无头，不影响 API 启动。
     try
     {
         Directory.CreateDirectory(serverOptions.WebUiPath);
@@ -140,8 +134,7 @@ app.MapGet("/api/server/info", (ServerOptions options) =>
         version = ServerOptions.ProductVersion,
     }));
 
-// ---- 本机 IPv4 候选（下载中心「连接信息」卡地址候选；只读枚举
-//      协议与端口由前端按当前 origin 拼装——本接口只给 IP 候选，不拼完整地址）----
+// ---- 本机 IPv4 候选（下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）----
 app.MapGet("/api/server/ipv4-candidates", () => Results.Ok(new { candidates = LocalIpv4Candidates.Enumerate() }));
 
 // ---- 服务端专属端点（分组实现见 Api/ 目录；模板 / 出图 / Excel / 日志与 WinHost 共享，见 LabelFrame.Api.Endpoints）----
@@ -163,8 +156,6 @@ app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, serverOptions
 // ---- Excel 模板生成 / 设备日志 / Excel 数据导入（端点实现与 WinHost 共享，见 LabelFrame.Api.Endpoints）----
 app.MapImportApi(new ImportApiOptions(ServerErrorCodes.InvalidRequest));
 app.MapLogApi(new LogApiOptions(logStore, ServerErrorCodes.InvalidRequest));
-
-// 服务端无头化——不再托管 Web UI / 测试页，仅提供 API 与 /healthz。
 
 // ---- SPA fallback（插件）：仅非 /api/* 与 /healthz 的路径回退 index.html；插件未启用保持 404 ----
 app.MapFallback(async context =>

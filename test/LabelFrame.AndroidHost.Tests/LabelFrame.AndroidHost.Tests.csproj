@@ -18,8 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LabelFrame.Core\LabelFrame.Core.csproj" />
-    <!-- AndroidHost 为 net10.0-android（不可被 net10.0 测试工程整工程引用）：LF_* 码表是纯托管源码
-         （无 Android 依赖），按文件链接编译进本工程——同一份源码零漂移（迭代 110 / #244）。 -->
+    <!-- AndroidHost 为 net10.0-android（不可被 net10.0 测试工程整工程引用）：LF_* 码表与图片解码器
+         是纯托管源码（无 Android 依赖），按文件链接编译进本工程——同一份源码零漂移。 -->
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Errors\LfErrorCatalog.cs" Link="Errors\LfErrorCatalog.cs" />
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Api\ImagePayloadDecoder.cs" Link="Api\ImagePayloadDecoder.cs" />
   </ItemGroup>

@@ -1,9 +1,8 @@
 namespace LabelFrame.Core.Transport.Plugins;
 
 /// <summary>
-/// 传输插件 id 策略（DESIGN）：官方插件 id 前缀与品牌映射、内置保留 id
-/// 旧内置时代 id 别名——客户端（WinHost 配置 / 插件安装）、服务端（plugin-packages 上传校验）
-/// 与官方插件工程共用同一常量来源。
+/// 传输插件 id 策略：官方插件 id 前缀与品牌映射、内置保留 id、旧内置时代 id 读取别名——
+/// 客户端（WinHost 配置 / 插件安装）、服务端（plugin-packages 上传校验）与官方插件工程共用同一常量来源。
 /// </summary>
 public static class TransportPluginIdPolicy
 {

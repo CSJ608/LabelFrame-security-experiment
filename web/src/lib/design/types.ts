@@ -1,6 +1,6 @@
-// 设计器内部元素模型（labelframe-web-design 格式，与原型一致）
-// 文案 key 化（designer 域）——默认元素文本「文本」属 UI 层数据性默认值
-// 跟随当前界面语言（待决议-1 建议项：en 态新建文本元素默认占位英文，存量模板存储值不受影响）；
+// 设计器内部元素模型（labelframe-web-design 格式，与原型一致）。
+// 默认元素文本「文本」属 UI 层数据性默认值，经 designer 域词条跟随当前界面语言
+// （en 态新建文本元素默认占位英文；存量模板存储值不受影响）；
 // typeLabel / layerLabel / elementContent 在调用点（组件渲染期）求值，语言切换后随重渲染更新。
 
 import i18next from '../../i18n'
@@ -44,7 +44,7 @@ export interface TextElement extends ElementBase {
   mode: ContentMode
   /** 字段填充的字段名（打印数据按此匹配） */
   key: string
-  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选；打印页字段标签回退 key）。 */
   displayName?: string
   /** 固定值内容 / 字段填充的预览值（仅画布显示） */
   text: string
@@ -60,7 +60,7 @@ export interface BarcodeElement extends ElementBase {
   type: 'Barcode'
   mode: ContentMode
   key: string
-  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选；打印页字段标签回退 key）。 */
   displayName?: string
   text: string
   paddingH: number
@@ -75,7 +75,7 @@ export interface QrCodeElement extends ElementBase {
   type: 'QrCode'
   mode: ContentMode
   key: string
-  /* * 打印字段显示名（可选，：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选；打印页字段标签回退 key）。 */
   displayName?: string
   text: string
   paddingH: number
@@ -140,7 +140,7 @@ export function defaultElement(type: 'Rect', id?: string): RectElement
 export function defaultElement(type: 'Image', id?: string): ImageElement
 export function defaultElement(type: 'Line', id?: string): LineElement
 export function defaultElement(type: 'Region', id?: string): RegionElement
-/* * 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片—— 起图片入控件栏）。 */
+/* * 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片五类）。 */
 export function defaultElement(type: 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image', id?: string): TextElement | BarcodeElement | QrCodeElement | RectElement | ImageElement
 export function defaultElement(type: ElementType, id = uid()): DesignElement {
   const base = { id, x: 5, y: 5, w: 40, h: 10, border: 0 }

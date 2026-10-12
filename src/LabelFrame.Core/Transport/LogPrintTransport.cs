@@ -1,9 +1,8 @@
 ﻿namespace LabelFrame.Core.Transport;
 
 /// <summary>
-/// 日志传输（模拟打印机）：只记录指令摘要（图片模式 = ^GF 整版位图，原生指令模式 = 品牌原生指令），
-/// 不把指令内容写入日志（数据量过大）；图片模式实际图片由作业层保存 PNG（见 WinHost JobSubmissionService）。
-/// 用于没有真实打印机时的联调验证。
+/// 日志传输（模拟打印机）：只记录指令摘要，不把指令内容写入日志（数据量过大）；
+/// 图片模式的实际图片由作业层保存 PNG。用于没有真实打印机时的验证。
 /// </summary>
 public sealed class LogPrintTransport : IPrintTransport, IPrinterStatusProvider, LabelFrame.Core.Transport.Plugins.ITestableTransport
 {

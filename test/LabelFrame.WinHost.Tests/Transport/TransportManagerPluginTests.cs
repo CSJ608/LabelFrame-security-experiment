@@ -78,7 +78,7 @@ public class TransportManagerPluginTests
         Assert.False(File.Exists(path));
     }
 
-    // ── 打印方式合法性（DESIGN 保存层校验）──
+    // ── 打印方式合法性（保存层校验）──
 
     [Fact]
     public async Task ApplyAsync_native_print_mode_without_capability_should_reject()

@@ -32,15 +32,9 @@ public enum PlacementCleanupOutcome
 }
 
 /// <summary>
-/// 非 MSI 组件落位（机制 A：ExePackage 包装解压工具；本类为工具内核，net48 / net10 双腿可测）。
-/// 目标目录约定对齐 DEPLOY §5 / §6 与 <c>InstallTargets</c>：webui zip → <c>plugins\web-ui</c>；<c>.lfplugin</c> → <c>plugins\&lt;pluginId&gt;\</c>。
+/// 非 MSI 组件落位内核（PayloadTool 复用，net48 / net10 双腿可测）：zip 清空目标目录后整包解压；
+/// <c>.lfplugin</c> 额外执行版本比较（新版本覆盖 / 同版本幂等跳过 / 旧版本拒绝）。
 /// </summary>
-/// <remarks>
-/// zip 均按「清空目标目录后整包解压」执行（目录内容完全由包拥有，避免覆盖残留陈旧文件）；
-/// <c>.lfplugin</c> 额外执行 版本比较——包内 manifest.json.version 与已装目录 manifest.json.version：
-/// 新版本覆盖、相同版本幂等跳过、旧版本拒绝。比较语义对齐（双方可解析 <see cref="Version"/> 按其比较，否则字符串 Ordinal）。
-/// 卸载清理：<see cref="CleanPlacement"/> 与落位动作同目标对称——只清 Bundle 落位目录，父目录已空才移除。
-/// </remarks>
 public static class PayloadPlacer
 {
     /// <summary>webui zip：覆盖落位（无独立版本概念，重跑重写同内容）。</summary>
@@ -87,10 +81,9 @@ public static class PayloadPlacer
     }
 
     /// <summary>
-    /// 卸载清理：删除 Bundle 落位的目标目录——清理边界 = 只清本目录
-    /// <c>plugins</c> 父目录内其余内容（平铺手动 DLL、第三方插件子目录）永不触碰；父目录仅在清理后已空时一并移除
-    /// （非空即保留 = 用户资产在则留）。目录不存在 = 幂等成功；删除失败 = 尽力而为（<see cref="PlacementCleanupOutcome.FailedBestEffort"/>，
-    /// 调用方日志留痕、不视作卸载失败）。凭据文件随目录消亡（无记账漂移）。
+    /// 卸载清理：删除 Bundle 落位的目标目录。清理边界（用户拍板，不可放宽）＝只清本目录——<c>plugins</c> 父目录内
+    /// 其余内容（平铺手动 DLL、第三方插件子目录）永不触碰；父目录仅在清理后已空时一并移除（用户资产在则留）。
+    /// 目录不存在 = 幂等成功；删除失败 = 尽力而为、不阻断卸载主链。
     /// </summary>
     public static PlacementCleanupOutcome CleanPlacement(string targetDir)
     {
@@ -145,11 +138,7 @@ public static class PayloadPlacer
         }
     }
 
-    /// <summary>
-    /// 写落位凭据文件（「落位凭据」）：内容 = Bundle 版本——「Bundle 落位清单」的凭据形态
-    /// 只有 Bundle 落位的目录携带；清理包检测比对凭据与 WixBundleVersion 判定 Present。尽力而为：写入失败日志留痕不阻断落位
-    /// （后续卸载清理退化为不触发，重装覆盖兜底）。
-    /// </summary>
+    /// <summary>写落位凭据文件（内容 = Bundle 版本，清理包 DetectCondition 的比对口径）。尽力而为：写入失败日志留痕不阻断落位（后续卸载清理退化为不触发，重装覆盖兜底）。</summary>
     private static void WritePlacementMarker(string targetDir, string? bundleVersion)
     {
         if (string.IsNullOrWhiteSpace(bundleVersion))
@@ -188,7 +177,7 @@ public static class PayloadPlacer
             : null;
     }
 
-    /// <summary>版本比较（语义；起委托统一实现 <see cref="LabelFrame.Bootstrapper.Upgrade.VersionSemantics"/>—— / 单一语义，签名保留兼容既有调用与测试）。&gt;0 = 左新，&lt;0 = 左旧。</summary>
+    /// <summary>版本比较——委托 <see cref="LabelFrame.Bootstrapper.Upgrade.VersionSemantics"/> 单一实现（全系统比较语义不得分叉）。&gt;0 = 左新，&lt;0 = 左旧。</summary>
     public static int ComparePluginVersions(string left, string right)
         => LabelFrame.Bootstrapper.Upgrade.VersionSemantics.Compare(left, right);
 

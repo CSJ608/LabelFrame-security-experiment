@@ -103,7 +103,7 @@ export function toBackendElement(e: DesignElement): BackendElement {
     case 'Text':
       base.sourceKey = e.key
       if (e.mode === 'literal' && e.text) base.literal = e.text
-      // 边界 A：字段填充且 key 非空才写预览值（未绑定字段的预览值无意义，避免读回时模式推断改变）
+      // 字段填充且 key 非空才写预览值（未绑定字段的预览值无意义，避免读回时模式推断改变）
       if (e.mode === 'field' && e.key && e.text) base.previewValue = e.text
       base.fontName = '0' // ZPL 字体标识（前端字体仅影响画布预览，打印字体由宿主配置）
       base.fontHeightMm = r2(e.fontH)

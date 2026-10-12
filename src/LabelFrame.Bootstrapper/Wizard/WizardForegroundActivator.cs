@@ -16,17 +16,12 @@ public enum WizardForegroundOutcome
 }
 
 /// <summary>
-/// 向导首显主动置前器：安装引导 BA 的窗口此前完全依赖系统默认前台授予链
-/// 启动者无前台权（计划任务 / 后台进程触发、Explorer 未持前台、下载后立即切走）时向导静默不前置，
-/// 用户以为安装无响应（复现 S1 / S3 / S3b；S3c 预试证明单一 <c>SetForegroundWindow</c>——
-/// 即使配合 <see cref="AttachThreadInput"/>——也会被前台锁拒绝）。
-/// 本类实现用户拍板的组合拳（选项）：已在前台则零扰动；否则
-/// <see cref="AttachThreadInput"/>（本 UI 线程挂接当前前台线程输入队列）→
-/// <see cref="ShowWindow"/>(SW_MINIMIZE→SW_RESTORE)（还原动作的前台授予独立于置前配额）→
-/// <see cref="SwitchToThisWindow"/> → <see cref="SetForegroundWindow"/>，仍被拒时
-/// <see cref="FlashWindowEx"/>(FLASHW_ALL | FLASHW_TIMERNOFG) 任务栏强闪烁兜底（闪至前置，自停）。
-/// 线程 / 窗口前置 / 闪烁三类共七个 Win32 调用点全部可注入替身，
-/// 供单元测试断言调用时序（单测部分），对齐 WinHost <c>TrayMenuPresenter</c> 可测性先例。
+/// 向导首显主动置前器（组合拳）：启动者无前台权（计划任务 / 后台进程、下载后立即切走）时向导静默不前置，
+/// 用户以为安装无响应。已在前台则零扰动；否则 <see cref="AttachThreadInput"/>（本 UI 线程挂接前台线程输入队列）→
+/// <see cref="ShowWindow"/>(SW_MINIMIZE→SW_RESTORE) → <see cref="SwitchToThisWindow"/> → <see cref="SetForegroundWindow"/>，
+/// 仍被拒时 <see cref="FlashWindowEx"/>(FLASHW_ALL | FLASHW_TIMERNOFG) 任务栏强闪烁兜底。
+/// 防回归：组合拳不可简化——预试实证单一 <c>SetForegroundWindow</c>（即使配合 <c>AttachThreadInput</c>）会被前台锁拒绝，
+/// 还原动作的前台授予独立于置前配额是取得前台的关键。七个 Win32 调用点全部可注入替身供测试断言调用时序。
 /// </summary>
 public sealed class WizardForegroundActivator
 {
@@ -158,8 +153,8 @@ public sealed class WizardForegroundActivator
         bool requested;
         try
         {
-            // 状态扰动：最小化 → 还原——系统对还原动作的前台授予独立于 SetForegroundWindow 配额
-            //    是无前台权进程取得前台的关键一拳（S3c 证明缺它单靠挂接 + 前置请求会被拒）
+        // 状态扰动：最小化 → 还原——系统对还原动作的前台授予独立于 SetForegroundWindow 配额，
+        // 缺它单靠挂接 + 前置请求会被前台锁拒绝（实测）
             _showWindow(window, SwMinimize);
             _showWindow(window, SwRestore);
             // 会话切换（等效 Alt-Tab 目标）＋ 直接前置请求

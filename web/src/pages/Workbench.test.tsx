@@ -2,10 +2,10 @@
 // 工作台模板名搜索——子串匹配、大小写不敏感，与分组过滤叠加生效；清空恢复完整列表。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链）。
 // 卡片「打印」直达入口——每张卡片均有打印按钮、点击回调携带模板名；双击卡片仍进设计器。
-// 卡片脚收纳回归——「编辑」主色列首＋「打印」常驻＋⋯ 溢出菜单（导出 / 删除）
-// 删除仍走确认 Modal（含「不可恢复」）。 视觉裁剪（196px 最窄轨道下无按钮被裁）以结构断言＋样式走查自证：
-//   卡片脚恒 3 枚按钮（两常驻 flex:1 ＋ ⋯ 图标按钮 .wb-more 不占弹性宽度）、菜单 portal 挂 body 直下且 fixed
-// （脱离 .wb-card overflow:hidden）——浏览器实测（逐级缩窗）留待 验收走查，本文件不伪装视觉验证。
+// 卡片脚收纳回归——「编辑」主色列首＋「打印」常驻＋⋯ 溢出菜单（导出 / 删除），删除仍走确认 Modal（含「不可恢复」）。
+// 视觉裁剪（196px 最窄轨道下无按钮被裁）以结构断言＋样式走查自证：卡片脚恒 3 枚按钮（两常驻 flex:1 ＋
+// ⋯ 图标按钮 .wb-more 不占弹性宽度）、菜单 portal 挂 body 直下且 fixed（脱离 .wb-card overflow:hidden）——
+// 浏览器实测（逐级缩窗）留待验收走查，本文件不伪装视觉验证。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -170,7 +170,7 @@ describe('模板卡片打印直达（迭代 85 · #133 C-4）', () => {
   })
 })
 
-// 卡片脚收纳——「编辑」升主操作（修订），导出 / 删除收进 ⋯ 溢出菜单
+// 卡片脚收纳——「编辑」升主操作，导出 / 删除收进 ⋯ 溢出菜单
 // 修复四按钮平铺（最小需宽约 216px）超出最窄卡片可用宽度 176px 致「删除」被 .wb-card overflow:hidden
 // 裁剪不可见不可点的回归。
 describe('卡片脚操作收纳（迭代 104 · #225）', () => {
@@ -181,7 +181,7 @@ describe('卡片脚操作收纳（迭代 104 · #225）', () => {
     const editBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '编辑' }) as HTMLButtonElement
     const printBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '打印' }) as HTMLButtonElement
     const moreBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: /更多操作/ }) as HTMLButtonElement
-    // 主操作归属（修订）：编辑 = primary；打印 = 普通按钮
+    // 主操作归属：编辑 = primary；打印 = 普通按钮
     expect(editBtn.className).toContain('primary')
     expect(printBtn.className).not.toContain('primary')
     expect(moreBtn.getAttribute('aria-haspopup')).toBe('menu')

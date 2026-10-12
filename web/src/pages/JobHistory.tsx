@@ -1,12 +1,7 @@
-// 作业历史页（F6）：服务端 / 本机作业列表（GET /api/jobs?limit=100），终态 / 进行中徽标。
-// 单机降级：指向本机时显示本机作业列表（localBase GET /api/jobs，后端 B10 新增）；空态文案按模式区分。
-// （用户定稿建议组合）：自动轮询——存在进行中（非终态）作业时 1.5s 轮询，列表全终态即停
-// 页面隐藏时暂停，恢复可见立即拉取一次；轮询失败保留既有列表、2s 退避重试；手动「刷新」保留。
-// （评审 /）：「目标设备」列显示设备名（无可解析名称回退设备 ID，与在线设备页 /
-// 目标设备下拉同源）；编号收敛——仅「作业编号」可见且可一键复制，「请求编号」收进悬停提示。
-// 行可展开明细——本机直连作业（WinHost 返回逐张 items）显示每张状态 / 失败原因
-// 服务端下发作业（无 items）显示汇总（状态 / 失败原因完整）并如实注明「逐张明细仅本机直接打印的作业提供」。
-// 页面文案 key 化（jobHistory 域；jobStatus / column 等 common 词条经 fallbackNS 兜底）。
+// 作业历史页：服务端 / 本机作业列表（GET /api/jobs?limit=100），终态 / 进行中徽标；单机降级显示本机作业列表，空态文案按模式区分。
+// 自动轮询：存在进行中作业时 1.5s 轮询，列表全终态即停；页面隐藏暂停、恢复可见立即拉取；失败保留既有列表 2s 退避。
+// 「目标设备」列显示设备名（无可解析名称回退设备 ID）；编号收敛——仅「作业编号」可见可复制，「请求编号」收进悬停提示。
+// 行可展开明细：本机直连作业逐张明细；服务端下发作业（无 items）显示汇总并如实注明。
 
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -40,14 +35,10 @@ function statusBadgeClass(status: string): string {
   return 'badge ' + (status === 'Completed' ? 'ok' : status === 'Failed' ? 'err' : isTerminal(status) ? 'neutral' : 'info')
 }
 
-/**
- * 行展开明细：
- * - 本机直连作业（WinHost 列表即返回逐张 items，数据已有）：逐张表——每张状态 / 失败原因
- *   （errorMessage 回退 errorCode）；Log 模拟打印附出图目录与张数（信息展示——图片在线查看需文件服务端点，不在本轮范围）；
- * - 服务端下发作业（Server 不返回 items）：汇总呈现（状态 / 完成失败张数 / 失败原因全文）＋如实占位说明。
+/** 行展开明细：本机直连作业（WinHost 返回逐张 items）逐张表（每张状态 / 失败原因，errorMessage 回退
+ * errorCode；Log 模拟打印附出图目录与张数）；服务端下发作业（无 items）汇总呈现＋如实占位说明。
  */
 function JobDetail({ job }: { job: JobView }) {
-  // 明细文案 key 化（jobHistory 域 detail.*；状态 / 失败原因等 common 词条兜底）
   const { t } = useTranslation('jobHistory')
   const jobLabel = useJobStatusLabel()
   if (job.items && job.items.length > 0) {
@@ -103,7 +94,7 @@ function JobDetail({ job }: { job: JobView }) {
           <span className="hint">{t('detail.noError')}</span>
         )}
       </div>
-      {/* 如实占位，不伪装有逐张数据（设备侧出图回传属未来能力，不在本迭代范围） */}
+      {/* 如实占位，不伪装有逐张数据（设备侧出图回传属未来能力） */}
       <div className="hint">{t('detail.serverJobNote')}</div>
     </div>
   )
@@ -130,10 +121,9 @@ export function JobHistory() {
   // 服务端构建不传（看全部）；单机降级看本机历史本就不传。
   const deviceFilter = isServerUi || serverMode !== 'server' ? undefined : (app.hostDeviceId ?? undefined)
 
-  /* * ：设备名解析表（deviceId → name，GET /api/devices 与在线设备页 / 目标设备下拉同源）。
-   *  服务端模式拉取一次（设备名稳定，作业列表轮询不重复拉）；失败静默——名称解析属辅助显示，
-   *  回退显示设备 ID，不阻断作业列表、不出错误横幅。单机降级（localApi 无 /api/devices）不拉取，
-   *  本机历史作业本就无 targetDeviceId（显示「本机」）。 */
+  /* * 设备名解析表（deviceId → name，与在线设备页 / 目标设备下拉同源）：服务端模式拉取一次
+   *  （设备名稳定，轮询不重复拉）；失败静默回退设备 ID（辅助显示，不阻断列表、不出横幅）；
+   *  单机降级不拉取（本机历史作业无 targetDeviceId，显示「本机」）。 */
   const [deviceNames, setDeviceNames] = useState<Record<string, string>>({})
   useEffect(() => {
     if (serverMode !== 'server') return
@@ -274,8 +264,8 @@ export function JobHistory() {
                         </button>
                       </td>
                       <td className="mono">{formatTime(j.createdAt)}</td>
-                      {/* 编号收敛：仅「作业编号」可见 + 一键复制（报障口径统一为作业编号）；
-                          「请求编号」不再单列，收进悬停提示（title 携带两个完整编号）需要时仍可达。 */}
+                      {/* 编号收敛：仅「作业编号」可见 + 一键复制（报障口径统一）；
+                          「请求编号」收进悬停提示（title 携带两个完整编号）。 */}
                       <td>
                         <button
                           type="button"

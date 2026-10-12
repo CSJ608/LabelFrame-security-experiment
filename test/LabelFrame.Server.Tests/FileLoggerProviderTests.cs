@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// FileLoggerProvider 启动防护与轮转 / 保留测试（大小上限轮转与（日期,序号）序清理为 /）：
-/// 路径无效不抛异常（宿主可正常启动）、按日文件写入、单文件大小超限切序号文件、单日多次轮转总文件数受限、
-/// 清理按（日期,序号）元组序删最旧（写入中文件不被选中）、轮转失败回退旧文件、通道停用后写入不抛异常。
+/// FileLoggerProvider 启动防护与轮转 / 保留测试：路径无效不抛异常（宿主可正常启动）、按日文件写入、
+/// 单文件大小超限切序号文件、单日多次轮转总文件数受限、清理按（日期,序号）元组序删最旧（写入中文件不被选中）、
+/// 轮转失败回退旧文件、通道停用后写入不抛异常。
 /// </summary>
 public class FileLoggerProviderTests : IDisposable
 {

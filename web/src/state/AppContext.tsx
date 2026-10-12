@@ -1,11 +1,8 @@
 // 全局 UI 状态：连接状态（服务端 healthz + serverMode）、本机打印服务可达性（localServiceUp）、
-// 本机连接（transportConfig）、机器级配置、DataPrint 会话草稿、状态栏消息、日志
-// （F2）：serverBase 优先级 = 机器级配置（GET /api/host/config）> localStorage 兜底 > 默认 127.0.0.1:53961
-// 启动加载机器级配置后立即生效；保存服务端地址 = setHostConfig + 内存更新 + 重新探测（无需重启）。
-// 「三名义」口径：「本机打印服务」（localServiceUp，状态栏）与「服务端地址」连通性（connected
-// 设置页）各自独立探测——此前状态栏用 connected 兼指本机后台服务可达，一词三义。
-// （a 案）：serverUrl 为空 = 未配置服务端——不做网络探测，直接判「服务端未连接（单机模式可用）」
-// 探测按配置就绪串行化——client 构建机器级配置加载完成前不探测（消除初始化探测与配置加载后探测的竞态双态）。
+// 本机连接（transportConfig）、机器级配置、DataPrint 会话草稿、状态栏消息、日志。
+// baseUrl 优先级 = 机器级配置（GET /api/host/config）> localStorage 兜底 > 默认 127.0.0.1:53961。
+// 「本机打印服务」（localServiceUp）与「服务端地址」连通性（connected）各自独立探测（一词三义口径：
+// 「服务端」不得兼指本机后台服务）。
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -23,13 +20,12 @@ export interface LogLine {
   msg: string
 }
 
-/** 业务 API 模式：server = 服务端（模板 / 作业中心）；standalone = 单机降级（本机 WinHost 全套 API）。
- * （K2）：server 构建下恒为 'server'，无 standalone 分支。 */
+/** 业务 API 模式：server = 服务端（模板 / 作业中心）；standalone = 单机降级（本机 WinHost 全套 API）。server 构建下恒为 'server'。 */
 export type ServerMode = 'unknown' | 'server' | 'standalone'
 
 interface AppContextValue {
   connected: boolean
-  /* * 本机打印服务（WinHost）是否可达（「三名义」之一：页面来源 /healthz 探测；状态栏「本机打印服务」数据源）。 */
+  /* * 本机打印服务（WinHost）是否可达（页面来源 /healthz 探测；状态栏「本机打印服务」数据源）。 */
   localServiceUp: boolean
   /** 生效中的服务端地址（机器级配置 / localStorage 兜底 / 默认）。 */
   baseUrl: string
@@ -37,13 +33,13 @@ interface AppContextValue {
   serverMode: ServerMode
   /** 本机 Client 的 deviceId（机器级配置；旧客户端为 null，F5 回退第一台在线；server 构建恒 null）。 */
   hostDeviceId: string | null
-  /* * ：本机设备名称（机器级配置 deviceName，客户端状态栏 / DataPrint 目标标签显示；server 构建恒 null）。 */
+  /** 本机设备名称（机器级配置 deviceName；server 构建恒 null）。 */
   hostDeviceName: string | null
-  /* * ：本机 Client 枚举的 IPv4 列表（/api/host/config.ips，客户端状态栏显示；server 构建恒空）。 */
+  /** 本机 Client 枚举的 IPv4 列表（/api/host/config.ips；server 构建恒空）。 */
   hostIps: string[]
-  /* * ：本机客户端版本（/api/host/config.version，「检查更新」比较口径；旧客户端为 null）。 */
+  /** 本机客户端版本（/api/host/config.version，「检查更新」比较口径；旧客户端为 null）。 */
   hostVersion: string | null
-  /* * （Y2）：数据与打印「默认目标设备」（在线设备页点选，localStorage 持久化，跨页联动；client 构建不消费）。 */
+  /** 数据与打印「默认目标设备」（在线设备页点选，localStorage 持久化，跨页联动；client 构建不消费）。 */
   defaultTargetDeviceId: string | null
   /** healthz 的传输模式（旧字段，兼容展示兜底）。 */
   transport: string | null
@@ -52,12 +48,12 @@ interface AppContextValue {
   statusMsg: string
   logs: LogLine[]
   drawerOpen: boolean
-  /* * DataPrint 会话草稿（切页 / 刷新保留，sessionStorage 持久化）。 */
+  /** DataPrint 会话草稿（切页 / 刷新保留，sessionStorage 持久化）。 */
   printDraft: PrintDraft
   setDrawerOpen: (open: boolean) => void
   log: (msg: string) => void
   setStatus: (msg: string) => void
-  /* * ：设置数据与打印默认目标设备（localStorage 持久化；仅 server 构建使用）。 */
+  /** 设置数据与打印默认目标设备（localStorage 持久化；仅 server 构建使用）。 */
   setDefaultTargetDeviceId: (id: string | null) => void
   /** 探测服务端连接（healthz，5s 超时）。 */
   checkConnection: () => Promise<boolean>
@@ -80,7 +76,7 @@ const AppContext = createContext<AppContextValue | null>(null)
 
 const MAX_LOGS = 300
 
-/* * （Y2）：数据与打印「默认目标设备」localStorage 键（在线设备页点选持久化，跨页联动）。 */
+/** 数据与打印「默认目标设备」localStorage 键（在线设备页点选持久化，跨页联动）。 */
 const DEFAULT_TARGET_KEY = 'labelframe.defaultTargetDeviceId'
 
 function readDefaultTargetDevice(): string | null {
@@ -126,31 +122,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [defaultTargetDeviceId, setDefaultTargetDeviceIdState] = useState<string | null>(() => (isServerUi ? readDefaultTargetDevice() : null))
   const [transport, setTransport] = useState<string | null>(null)
   const [transportConfig, setTransportConfig] = useState<TransportConfig | null>(null)
-  // 状态栏初始消息 key 化（shell.statusbar.ready；zh 值与原硬编码一致）——
-  // 惰性初值读 i18next 当前语言；后续消息由各页 setStatus 写入（语言切换后旧消息不回译，属既有语义）
+  // 状态栏初始消息读 i18next 当前语言；后续消息由各页 setStatus 写入（语言切换后旧消息不回译，属既有语义）
   const [statusMsg, setStatusMsg] = useState(() => i18next.t('shell:statusbar.ready'))
   const [logs, setLogs] = useState<LogLine[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [printDraft, setPrintDraft] = useState<PrintDraft>(() => loadPrintDraft(getSessionStorage()))
   const pendingRef = useRef<Promise<boolean> | null>(null)
-  // 探测串行化与终态一致性三件套——
-  // - configReadyRef：client 构建下机器级配置（GET /api/host/config）加载完成前不探测服务端（首次探测在配置
-  //   就绪后串行发起），消除「模块初始化探测（默认地址 127.0.0.1:53961）与配置加载后探测（实际地址）交错」
-  //   的竞态（同一状态先后显示已连接 / 未连接）；server 构建无本机配置可读，恒为就绪。
-  // - baseUrlRef：生效服务端地址的同步镜像（state 更新异步，探测路径需读到保存 / 加载后的最新值）。
-  // - probeSeqRef：探测序号（后发优先）——地址切换或判空后，在途旧探测的结果按序号作废，不覆盖新终态。
+  // 探测串行化与终态一致性三件套：
+  // - configReadyRef：client 构建机器级配置加载完成前不探测服务端（消除初始化探测与配置加载后探测交错的竞态双态）；
+  // - baseUrlRef：生效服务端地址的同步镜像（state 更新异步，探测路径需读到最新值）；
+  // - probeSeqRef：探测序号（后发优先）——地址切换或判空后，在途旧探测的结果按序号作废。
   const configReadyRef = useRef(isServerUi)
   const baseUrlRef = useRef(isServerUi ? '' : getBaseUrl())
   const probeSeqRef = useRef(0)
 
-  // 草稿变更即持久化（sessionStorage，刷新保留、标签页天然隔离；不用 localStorage）
+  // 草稿变更即持久化（sessionStorage：刷新保留、标签页天然隔离）
   useEffect(() => {
     savePrintDraft(getSessionStorage(), printDraft)
   }, [printDraft])
 
   const log = useCallback((msg: string) => {
-    // 日志行时间戳跟随当前界面语言（原硬编码 toLocaleTimeString（'zh-CN'））——
-    // 调用期读取 i18next 单例，语言切换后新日志行即按新 locale 格式化（存量行保留落盘时格式）
+    // 日志行时间戳跟随当前界面语言（读 i18next 单例；存量行保留落盘时格式）
     const time = formatLogTime(currentLocale(), new Date())
     setLogs((prev) => [...prev.slice(-(MAX_LOGS - 1)), { time, msg }])
   }, [])
@@ -164,13 +156,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 
   const checkConnection = useCallback(async (): Promise<boolean> => {
-    // 机器级配置就绪前不探测（探测按配置就绪串行化）——此间不写终态（connected / serverMode 维持初值）
+    // 机器级配置就绪前不探测（此间不写终态，connected / serverMode 维持初值）
     if (!configReadyRef.current) return false
-    // （a 案）：client 构建下服务端地址为空 = 未配置服务端——不做网络探测（空地址无目标可探
-    // 且空串 base 落同源会打到本机 WinHost /healthz 200，谎报「服务端已连接」），直接判「服务端未连接（单机模式可用）」。
+    // client 构建下服务端地址为空 = 未配置服务端——不做网络探测（空串 base 落同源会打到本机
+    // WinHost /healthz 200，谎报「服务端已连接」），直接判「服务端未连接（单机模式可用）」；
     // server 构建不适用：base 恒为 '' 且同源即服务端自身，探测语义正确。
     if (!isServerUi && baseUrlRef.current === '') {
-      probeSeqRef.current += 1 // 作废在途旧探测（其结果按序号丢弃、不再清理去重占用）
+      probeSeqRef.current += 1 // 作废在途旧探测
       pendingRef.current = null
       setConnected(false)
       setServerMode('standalone')
@@ -189,12 +181,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch {
         if (seq === probeSeqRef.current) {
           setConnected(false)
-          // （K2）：server 构建无单机降级——探测失败仍保持 server 模式（页面用 serverApi 拉数据），仅置未连接。
+          // server 构建无单机降级：探测失败仍保持 server 模式，仅置未连接
           setServerMode(isServerUi ? 'server' : 'standalone')
         }
         return false
       } finally {
-        // 序号仍为最新时清理去重占用；已被新探测 / 判空接替（序号前移）时占用由接替方处理
+        // 序号仍为最新时清理去重占用；已被接替（序号前移）时占用由接替方处理
         if (seq === probeSeqRef.current) pendingRef.current = null
       }
     })()
@@ -204,8 +196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const checkUrl = useCallback((url: string): Promise<boolean> => probeHealthz(url), [])
 
-  // 本机打印服务探测（「三名义」意义）：页面来源 /healthz——client 构建页面由本机 WinHost 托管
-  // 探测结果即「本机打印服务：运行中 / 未运行」；server 构建不调用（状态栏不呈现该项）
+  // 本机打印服务探测：页面来源 /healthz（client 构建页面由本机 WinHost 托管）；server 构建不调用
   const checkLocalService = useCallback(async (): Promise<boolean> => {
     try {
       await localApi.healthz()
@@ -217,9 +208,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // 启动：读机器级配置（serverUrl 优先）→ 本机连接配置 → 探测服务端
-  // （K2）：server 构建由服务端托管、无本机 Client——跳过 localApi 探测（getHostConfig / getTransport）
-  // 直接探测服务端 healthz；serverMode 恒 'server'、无 standalone 分支。client 构建保持现状。
+  // 启动：读机器级配置（serverUrl 优先）→ 本机连接配置 → 探测服务端。
+  // server 构建由服务端托管、无本机 Client——跳过 localApi 探测直接探测服务端 healthz
   useEffect(() => {
     let on = true
     if (isServerUi) {
@@ -243,12 +233,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (!on) return
-        // 旧客户端（0.14 无 /api/host/config）：回退 localStorage 兜底（getBaseUrl 已含默认值）
+        // 旧客户端（无 /api/host/config）：回退 localStorage 兜底（getBaseUrl 已含默认值）
         setStatus(i18next.t('shell:startup.hostConfigFallback'))
       })
       .finally(() => {
-        // 配置加载完成（成功读取，或旧客户端回退 localStorage 兜底）后才放行探测——
-        // 首次探测在此串行发起，此前任何 checkConnection 调用（App 挂载即探测等）均为无探测空转
+        // 配置加载完成（或旧客户端回退兜底）后才放行探测——首次探测在此串行发起，
+        // 此前任何 checkConnection 调用均为无探测空转
         if (on) {
           configReadyRef.current = true
           void checkConnection()
@@ -274,7 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cleaned = url.trim().replace(/\/+$/, '')
       try {
         await localApi.setHostConfig({ serverUrl: cleaned })
-        // 立即生效：内存更新（机器级配置为唯一事实来源；localStorage 仅兜底）→ 重新探测 → 页面随 baseUrl 重拉
+        // 立即生效：内存更新（机器级配置为唯一事实来源，localStorage 仅兜底）→ 重新探测 → 页面随 baseUrl 重拉
         setServerBaseUrl(cleaned)
         baseUrlRef.current = cleaned
         setBaseUrlState(cleaned)
@@ -306,7 +296,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearLogs = useCallback(() => setLogs([]), [])
 
-  /* * （Y2）：设置默认目标设备（localStorage 持久化；在线设备页点选，数据与打印初始化消费）。 */
+  /** 设置默认目标设备（localStorage 持久化；在线设备页点选，数据与打印初始化消费）。 */
   const setDefaultTargetDeviceId = useCallback((id: string | null) => {
     persistDefaultTargetDevice(id)
     setDefaultTargetDeviceIdState(id)
@@ -395,8 +385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
 
-// 显式豁免 only-export-components——React Context 标准模式
-// Provider 组件与配套 useApp 钩子同文件导出是社区惯例，拆文件无收益。
+// Provider 组件与配套 useApp 钩子同文件导出是 React Context 社区惯例（显式豁免 only-export-components）
 // eslint-disable-next-line react/only-export-components
 export function useApp(): AppContextValue {
   const ctx = useContext(AppContext)

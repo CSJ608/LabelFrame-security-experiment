@@ -6,9 +6,8 @@ using SkiaSharp;
 namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
-/// 图片元素渲染：预览 PNG 与打印 1bpp 输出统一单色
-/// （DrawImage 解码后 luma 阈值 128 单色化——彩色像素存在即红：红 luma≈76→黑、蓝 luma≈29→黑、白→白，
-/// 未单色化的旧口径会在 PNG 中留下 R≠G≠B 的彩色像素）；缺资源显式报错（不再灰占位照打）。
+/// 图片元素渲染：预览 PNG 与打印 1bpp 输出统一单色（解码后 luma 阈值 128 单色化——
+/// 彩色像素存在即证伪：红 luma≈76→黑、蓝 luma≈29→黑、白→白）；缺资源显式报错（不灰占位照打）。
 /// </summary>
 public class SkiaRendererImageTests
 {

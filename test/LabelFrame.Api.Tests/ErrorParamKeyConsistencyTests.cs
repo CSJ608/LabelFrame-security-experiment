@@ -1,9 +1,7 @@
 // 防复发断言（「单码单参数键集」）：
-// 解析 src 全部 C# 源码中「携带 params 的错误构造调用点」——两种既有惯用法：
-// Templated(码, "模板{key}", new() { ["key"] = … })（ServerService / LabelJobQueue 私有助手）
-// new Dictionary<string, string> { ["key"] = … } + 邻近 ErrorView / LabelJobException 构造（端点层 / AndroidHost）。
+// 扫描 src 全部 C# 源码中「携带 params 的错误构造调用点」（Templated(...) 与邻近字典两种惯用法），
 // 按错误码分组断言：同码所有调用点的参数键集一致；并把键集与 web 端 zh-CN / en 两份码表词条占位符对齐
-// （带占位符的词条必须与键集逐键相等——否则该变体在 en 态触发「参数不全」守卫回退中文，即验收失败项 1a 的缺陷形态）。
+// （带占位符的词条必须与键集逐键相等——否则该变体在 en 态触发「参数不全」守卫回退中文）。
 // 防假绿：站点数下限锚定；注册表 / 接线解析不完整、存在无法解析码表达式的站点 → 直接失败（宁可红不可静默漏检）。
 
 using System.Runtime.CompilerServices;
@@ -134,7 +132,6 @@ public sealed class ErrorParamKeyConsistencyTests
 
                 if (codeExpr.StartsWith("options.", StringComparison.Ordinal))
                 {
-                    // 共享端点伪码：按所在文件映射接线类型，展开为每个接线码一条站点记录（Server / WinHost 各自的码）
                     if (!EndpointsFileToOptionsType.TryGetValue(fileName, out var optionsType)
                         || !OptionsWiring.TryGetValue($"{optionsType}:{codeExpr["options.".Length..]}", out var wiredCodes))
                     {
@@ -297,7 +294,7 @@ public sealed class ErrorParamKeyConsistencyTests
     {
         var byCode = ExtractSites().GroupBy(s => s.Code).ToDictionary(g => g.Key, g => g.ToList());
 
-        // 验收失败项 1a：LF_SRV_006 模板库端点变体（TemplateEndpoints ×3，经 Server 接线展开）+ 作业提交链 ×1，统一 templateName
+        // LF_SRV_006 模板库端点变体（TemplateEndpoints ×3，经 Server 接线展开）+ 作业提交链 ×1，统一 templateName
         Assert.True(byCode.TryGetValue("LF_SRV_006", out var srv006) && srv006.Count >= 4,
             "LF_SRV_006 调用点不足 4 处（扫描器失配？）");
         Assert.All(srv006, s => Assert.True(s.Keys.SetEquals(["templateName"]),

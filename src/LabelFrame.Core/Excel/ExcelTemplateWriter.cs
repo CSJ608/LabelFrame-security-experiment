@@ -5,10 +5,7 @@ namespace LabelFrame.Core.Excel;
 /// <summary>Excel 模板列：key（契约字段键）+ displayName（表头显示名）。</summary>
 public sealed record ExcelTemplateColumn(string Key, string DisplayName);
 
-/// <summary>
-/// Excel 模板生成：按契约字段生成「表头 + 示例行」的 .xlsx，
-/// 用户拿到后直接套用 Excel 导入做打印测试。复用 TemplateFrame.Excel.Simple 的写能力。
-/// </summary>
+/// <summary>Excel 模板生成：按契约字段生成「表头 + 示例行」的 .xlsx，供用户套用 Excel 导入做打印测试。</summary>
 public static class ExcelTemplateWriter
 {
     /// <summary>生成 Excel 模板字节。</summary>

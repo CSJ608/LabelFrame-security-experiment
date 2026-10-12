@@ -49,7 +49,7 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
 
         using var downloaded = await _client.GetAsync("/api/pda-packages/LabelFrame-AndroidHost-0.26.0.apk");
         Assert.Equal(HttpStatusCode.OK, downloaded.StatusCode);
-        // APK 专用 MIME（的服务端半边）：Android 浏览器据此拉起安装
+        // APK 专用 MIME：Android 浏览器据此拉起安装
         Assert.Equal(ApkContentType, downloaded.Content.Headers.ContentType?.MediaType);
         var bytes = await downloaded.Content.ReadAsByteArrayAsync();
         Assert.Equal(6, bytes.Length);

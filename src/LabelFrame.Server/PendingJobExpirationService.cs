@@ -1,10 +1,9 @@
 ﻿namespace LabelFrame.Server;
 
 /// <summary>
-/// Pending 作业过期扫描：把超过暂存 TTL 仍未投递的 Pending 作业标记为 Expired 终态，
-/// 保证作业历史可见（不永久显示 Pending）。与 DataCleanupService 分离——清理是删除历史数据
-/// （周期小时级），过期是状态转移（周期分钟级即可及时可见）；正确性由领取查询的 TTL 过滤兜底，
-/// 不依赖本扫描周期。
+/// Pending 作业过期扫描：把超过暂存 TTL 仍未投递的 Pending 标记为 Expired 终态（历史可见）。
+/// 正确性由领取查询的 TTL 过滤兜底，不依赖本扫描周期；与 DataCleanupService 分离——
+/// 过期是状态转移（分钟级），清理是删除历史（小时级）。
 /// </summary>
 public sealed partial class PendingJobExpirationService : BackgroundService
 {
@@ -29,14 +28,13 @@ public sealed partial class PendingJobExpirationService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // TTL 关闭（0 / 负值）= 不做过期（行为与现状一致），任务直接退出
+        // TTL 关闭（0 / 负值）= 不做过期，任务直接退出
         if (_options.PendingJobTtl is not { } ttl)
         {
             return;
         }
 
-        // 启动后延迟 30 秒执行首次扫描（覆盖停机期间超期的作业），之后按扫描周期执行；
-        // 延迟本身不参与过期判定（判定时钟在 ScanOnceAsync 内取 TimeProvider），用系统延迟即可
+        // 启动后延迟 30 秒首扫（覆盖停机期间超期的作业），之后按扫描周期执行；延迟不参与过期判定（判定时钟在 ScanOnceAsync 内取 TimeProvider）
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
@@ -77,7 +75,7 @@ public sealed partial class PendingJobExpirationService : BackgroundService
         // error_code 落库：终态放弃原因可按码追溯（error_message 中文文案维持不变）
         var count = await _db.MarkExpiredJobsAsync(now, now - ttl, reason, ServerErrorCodes.PendingExpired, cancellationToken);
 
-        // 终态回调登记（三处终态转移点之一）：Expired 同样通知调用方（不漏报），幂等登记
+        // 终态回调登记（三处终态转移点之一）：Expired 同样通知调用方，不漏报
         await _db.EnqueueJobCallbacksAsync(now, cancellationToken: cancellationToken);
         LogScanCompleted(_logger, count);
         return count;

@@ -3,7 +3,7 @@ using LabelFrame.Core.Transport.Plugins.Package;
 
 namespace LabelFrame.Core.Tests.Transport;
 
-/// <summary>传输插件 id 策略（DESIGN）：官方前缀 / 保留 id / 别名归一。</summary>
+/// <summary>传输插件 id 策略：官方前缀 / 保留 id / 别名归一。</summary>
 public class TransportPluginIdPolicyTests
 {
     [Theory]
@@ -23,7 +23,7 @@ public class TransportPluginIdPolicyTests
     [InlineData("tcp9100", true)]
     [InlineData("winspool", true)]
     [InlineData("LOG", true)] // 忽略大小写（注册表语义一致）
-    [InlineData("zebra", false)]  // 起不再是内置 id（已外置为官方插件）
+    [InlineData("zebra", false)]  // zebra 已外置为官方插件，不再是内置 id
     [InlineData("labelframe-transport-zebra", false)] // 官方插件 id 不属保留名单（放行）
     [InlineData("sample", false)]
     public void IsReservedBuiltin_should_cover_builtin_transport_ids(string pluginId, bool expected)

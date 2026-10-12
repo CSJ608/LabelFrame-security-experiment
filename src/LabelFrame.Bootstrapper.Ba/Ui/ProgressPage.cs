@@ -3,14 +3,13 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 安装进度页（DESIGN）：引擎事件映射（CacheAcquireProgress / ExecuteProgress → 总进度
-/// Cache/Execute Package Begin/Complete → 分包状态）；失败时切换为失败报告（失败步骤 / Burn 日志位置 / 建议动作 + 重试）。
-/// 下载侧细化（/ ，DESIGN）：单包下载百分比、下载源序号与换源提示、缓存命中标注
-/// 失败分类（源不可达 / 网络中断 / 校验失败）差异化提示。
+/// 安装进度页：引擎事件映射（CacheAcquireProgress / ExecuteProgress → 总进度；Cache/Execute Package Begin/Complete → 分包状态）；
+/// 失败时切换为失败报告（失败步骤 / Burn 日志位置 / 建议动作 + 重试）。下载侧细化：单包下载百分比、
+/// 下载源序号与换源提示、缓存命中标注、失败分类差异化提示。
 /// </summary>
 internal sealed class ProgressPage : UserControl, IWizardPage
 {
-    /// <summary>链序展示（DESIGN 链序表；与 Bundle.wxs Chain 一致）。</summary>
+    /// <summary>链序展示（与 Bundle.wxs Chain 一致，两侧同步）。</summary>
     private static readonly string[] ChainOrder =
     [
         "DotNetDesktopRuntime",
@@ -165,7 +164,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
         }
     }
 
-    /// <summary>失败报告（DESIGN /）：失败步骤 + 引擎消息、下载侧失败分类差异化提示、Burn 日志位置、建议动作。</summary>
+    /// <summary>失败报告：失败步骤 + 引擎消息、下载侧失败分类差异化提示、Burn 日志位置、建议动作。</summary>
     private void ShowFailure(InstallState state)
     {
         _listView.Visible = false;
@@ -241,7 +240,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
         _listView.EndUpdate();
     }
 
-    /// <summary>下载阶段当前组件描述（单包百分比 + 源序号， 下载侧细化）。</summary>
+    /// <summary>下载阶段当前组件描述（单包百分比 + 源序号）。</summary>
     private string DescribeCurrentPackage(InstallState state)
     {
         if (state.CurrentPackageId is null)

@@ -24,7 +24,7 @@
     <ProjectReference Include="..\LabelFrame.Rendering\LabelFrame.Rendering.csproj" />
   </ItemGroup>
 
-  <!-- 私网（RFC1918）优先排序判定 internal 供集成测试直接断言（迭代 118 · #272） -->
+  <!-- 私网（RFC1918）优先排序判定 internal 供集成测试直接断言 -->
   <ItemGroup>
     <InternalsVisibleTo Include="LabelFrame.Server.Tests" />
   </ItemGroup>

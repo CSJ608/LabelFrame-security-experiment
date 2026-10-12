@@ -4,9 +4,9 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 缓存重试策略测试：指数退避调度、连续无进展终止
+/// 缓存重试策略测试：指数退避调度、连续无进展终止、
 /// 合法换源（源游标推进）不衰减预算、每轮 Apply 复位、未知包不可重试——
-/// 机制锚点：包级兜底重试对无源可换类失败（附加容器获取 0x80070002，失败不进多源回退计数）
+/// 防回归锚点：裸兜底重试对无源可换类失败（附加容器获取 0x80070002，不进多源回退计数）
 /// 曾形成无退避无终止热循环（真机实测 5 分钟 92,993 次重试）。
 /// </summary>
 public sealed class CacheRetryPolicyTests
@@ -30,7 +30,7 @@ public sealed class CacheRetryPolicyTests
         Assert.False(fourth.AllowRetry);
         Assert.True(fourth.Exhausted);
 
-        // 退避调度：500ms → 1s → 2s（基值 × 2^()）
+        // 退避调度：500ms → 1s → 2s（基值 × 2^(n-1)）
         Assert.Equal(TimeSpan.FromMilliseconds(500), first.Delay);
         Assert.Equal(TimeSpan.FromSeconds(1), second.Delay);
         Assert.Equal(TimeSpan.FromSeconds(2), third.Delay);

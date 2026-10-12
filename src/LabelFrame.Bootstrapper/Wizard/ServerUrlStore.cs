@@ -2,8 +2,8 @@ using System.Text.Json;
 
 namespace LabelFrame.Bootstrapper.Wizard;
 
-/// <summary>客户端服务端地址存取：与 WinHost <c>HostConfigStore</c> 同一事实源——<c>%ProgramData%\LabelFrame\Client\settings.json</c> 的 <c>{"serverUrl": …}</c>。
-/// 问卷侧只读（<see cref="WizardSession"/> 只读契约：探测已配地址用于预填）；装后写入归 BA（Apply 成功后调用 <see cref="Save"/>）。</summary>
+/// <summary>客户端服务端地址存取：与 WinHost <c>HostConfigStore</c> 同一事实源——<c>%ProgramData%\LabelFrame\Client\settings.json</c> 的 <c>{"serverUrl": …}</c>（两侧写同一文件，路径 / 结构变更必须同步）。
+/// 问卷侧只读（预填已配地址）；装后写入归 BA（Apply 成功后调用 <see cref="Save"/>）。</summary>
 public sealed class ServerUrlStore
 {
     /// <summary>默认存取路径（%ProgramData%\LabelFrame\Client\settings.json，与 WinHost HostConfigStore 一致）。</summary>
@@ -40,7 +40,7 @@ public sealed class ServerUrlStore
         }
     }
 
-    /// <summary>写入服务端地址（先建目录再原子替换，目录 / 文件 ACL 与 WinHost 运行期写入同一语义：ProgramData 下用户可创建）。</summary>
+    /// <summary>写入服务端地址（先建目录再经临时文件原子替换；ProgramData 下用户可创建，与 WinHost 运行期写入同语义）。</summary>
     public void Save(string serverUrl)
     {
         var directory = Path.GetDirectoryName(_path);

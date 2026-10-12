@@ -1,9 +1,6 @@
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 宿主运行状态快照：配置页 / 状态页 / 通知文案共用的轻量视图。
-/// 不可变快照整体原子替换，读侧永远看到一致的一帧。
-/// </summary>
+/// <summary>宿主运行状态快照（配置页 / 状态页 / 通知共用）：不可变快照整体原子替换，读侧永远看到一致的一帧。</summary>
 public static class HostStatus
 {
     /// <summary>某一时刻的宿主状态。</summary>

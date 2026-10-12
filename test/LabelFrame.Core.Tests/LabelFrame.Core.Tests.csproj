@@ -12,8 +12,7 @@
   <ItemGroup>
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <!-- Excel 回归测试用 OpenXml 直接构造 / 续填 xlsx（第三方表格形态）；与 Core 侧 TemplateFrame.Excel.Simple
-         传递依赖同钉 3.3.0，防版本漂移（迭代 100 / #210）。 -->
+    <!-- Excel 回归测试用 OpenXml 直接构造 / 续填 xlsx（第三方表格形态）；与 Core 侧 TemplateFrame.Excel.Simple 传递依赖同钉 3.3.0，防版本漂移。 -->
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.1" />
@@ -23,7 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\LabelFrame.Core\LabelFrame.Core.csproj" />
     <ProjectReference Include="..\LabelFrame.TransportPlugin.Sample\LabelFrame.TransportPlugin.Sample.csproj" />
-    <!-- fake 传输插件（迭代 96 / #185）：platforms:android 声明包的测试程序集源（跨端平台门 / 安装 / 装配矩阵） -->
+    <!-- fake 传输插件：platforms:android 声明包的测试程序集源（跨端平台门 / 安装 / 装配矩阵） -->
     <ProjectReference Include="..\LabelFrame.TransportPlugin.Fake\LabelFrame.TransportPlugin.Fake.csproj" />
   </ItemGroup>
 

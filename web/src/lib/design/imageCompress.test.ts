@@ -178,7 +178,7 @@ describe('compressImageIfNeeded（压缩管道分支）', () => {
     expect(result.compressed).toBe(false)
   })
 
-  // PNG 超 maxBytes 的 alpha 感知兜底（复陪验反馈 2-：LOGO_2 类大 PNG 压不进 2MB）
+  // PNG 超 maxBytes 的 alpha 感知兜底（LOGO_2 类大 PNG 压不进 2MB——踩过）
 
   it('PNG 重编码后仍超 maxBytes 且无透明：转 JPEG q0.85 兜底（采用更小的 JPEG 产物）', async () => {
     const pngBytes = new Uint8Array(2.2 * 1024 * 1024) // 2.2MB：>2MB 上限

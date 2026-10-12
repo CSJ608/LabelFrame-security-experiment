@@ -10,8 +10,8 @@ namespace LabelFrame.Server.Tests;
 
 /// <summary>
 /// 日志基础设施加固端点级测试：
-/// ——LABELFRAME_SERVER_LOG_FILE 指向无效路径时宿主正常启动（/healthz 可用）
-/// ——提交 → 认领 → 回报全流程在按日文件 server-yyyyMMdd.log 留下创建 / 认领 / 终态三条业务行（含 jobId / requestId / deviceId）。
+/// ① LABELFRAME_SERVER_LOG_FILE 指向无效路径时宿主正常启动（/healthz 可用）；
+/// ② 提交 → 认领 → 回报全流程在按日文件 server-yyyyMMdd.log 留下创建 / 认领 / 终态三条业务行（含 jobId / requestId / deviceId）。
 /// </summary>
 public sealed class ServerLoggingHardeningTests : IDisposable
 {

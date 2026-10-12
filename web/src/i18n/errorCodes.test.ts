@@ -1,7 +1,6 @@
 // LF_* 错误码码表测试：
 // 覆盖断言：解析后端错误码注册表源码
-//    提取码字面量，断言 zh-CN + en 两份码表全覆盖且无多余死码——新增码漏表即红（删一条码表本测试同样变红，
-//    失败形态证据见 PR 描述「本地注入-取证-还原」摘录）；
+//    提取码字面量，断言 zh-CN + en 两份码表全覆盖且无多余死码——新增码漏表即红（删一条码表本测试同样变红）；
 // 展示端翻译行为：en 已知码按码表插值渲染、未知码 / 参数不全回退后端中文、zh-CN 直用后端 message。
 // 取证说明：本断言的失败形态 = 逐条列出缺失 / 多余码后 expect 失败。
 
@@ -12,7 +11,7 @@ import enErrorCodes from './locales/en/errorCodes.json'
 import { changeLocale, currentLocale } from './index'
 import { resolveApiErrorMessage } from './errorMessages'
 
-/* * 错误码注册表（后端源码即权威，；新增码须同步两份码表）。 */
+/* * 错误码注册表（后端源码即权威；新增码须同步两份码表）。 */
 const REGISTRIES: { name: string; file: string }[] = [
   { name: 'ApiErrorCodes（LabelFrame.Api）', file: '../../../src/LabelFrame.Api/ApiErrorCodes.cs' },
   { name: 'ServerErrorCodes（LabelFrame.Server）', file: '../../../src/LabelFrame.Server/ServerErrorCodes.cs' },

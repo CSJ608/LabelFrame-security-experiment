@@ -5,9 +5,9 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// 测试专用 fake 编译器插件：同一对象实现 ITransportPlugin + ILabelCommandCompiler（可选能力模式）
-/// 用于锚定宿主提交链路的编译分派（~）。仅测试工程使用，不进产品装配
-/// 声明 printMode Select 参数（与 口径一致），传输实例复用 Log 模拟发送。
+/// 测试专用 fake 编译器插件：同一对象实现 ITransportPlugin + ILabelCommandCompiler（可选能力模式），
+/// 用于锚定宿主提交链路的编译分派。仅测试工程使用，不进产品装配；
+/// 声明 printMode Select 参数，传输实例复用 Log 模拟发送。
 /// </summary>
 public sealed class FakeCompilerTransportPlugin : ITransportPlugin, ILabelCommandCompiler
 {

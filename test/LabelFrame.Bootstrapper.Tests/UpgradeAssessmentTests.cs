@@ -124,7 +124,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Desktop_runtime_newer_than_manifest_is_up_to_date()
     {
-        // 共享系统组件：本机更新即满足（执行侧 DetectCondition 只判 ≥ 10.0.0， 表）
+        // 共享系统组件：本机更新即满足（执行侧 DetectCondition 只判 ≥ 10.0.0）
         var manifest = ManifestOf(Component("runtime-desktop", "runtime", "10.0.12"));
         var runtime = new RuntimeProbeResult(true, "10.0.13", false, null, false);
 
@@ -223,7 +223,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Plugin_version_compare_delegates_to_unified_semantics()
     {
-        // 既有签名委托统一实现（/ 单一语义）：行为不变
+        // 既有签名委托统一实现（单一语义）：行为不变
         Assert.Equal(0, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("1.0", "1.0.0")));
         Assert.Equal(1, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("1.0.1", "1.0.0")));
         Assert.Equal(-1, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("2.0.0", "10.0.0")));

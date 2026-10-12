@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace LabelFrame.WinHost.Api;
 
-/// <summary>连接管理端点（/22）：查询 / 切换 / 测试；单一连接生效，先测试后生效。</summary>
+/// <summary>连接管理端点：查询 / 切换 / 测试；单一连接生效，先测试后生效。</summary>
 internal static class TransportApi
 {
     // 旧字段 availableModes 的固定取值（兼容旧前端；新代码用 availablePlugins）
@@ -26,7 +26,7 @@ internal static class TransportApi
         app.MapGet("/api/transport", (ITransportManager transportManager, ITransportPluginRegistry registry) =>
         Results.Ok(ToTransportConfigDto(transportManager.CurrentConfig, registry)));
 
-    // 已装配传输插件列表（含来源：内置 / 外部 DLL；排障用）
+    // 已装配传输插件列表（含来源：内置 / 外部 DLL）
     app.MapGet("/api/transport/plugins", (ITransportPluginRegistry registry) =>
         Results.Ok(registry.ListPlugins().Select(ToTransportPluginDescriptorDto)));
 

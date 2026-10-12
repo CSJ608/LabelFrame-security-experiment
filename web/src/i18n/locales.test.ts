@@ -1,8 +1,7 @@
 // 语言包 key 覆盖断言（「CI 防线」）：
 // en 语言包必须覆盖 zh-CN（源语言）的全部 key——缺失即红，防翻译欠账静默回落中文。
 // 反向（en 多出的 key）同样报错——死词条应随 key 下线一并清理。
-// 取证说明：本断言的失败形态 = 逐条列出缺失 / 多余 key 路径后 expect 失败；
-// PR 内证据为本地演示（删一条 en 词条 → 本测试变红 → 恢复）的输出摘录。
+// 失败形态 = 逐条列出缺失 / 多余 key 路径后 expect 失败。
 
 import { describe, expect, it } from 'vitest'
 import zhCNCommon from './locales/zh-CN/common.json'

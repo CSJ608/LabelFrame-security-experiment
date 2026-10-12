@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>下载侧失败分类（/ Issue ：差异化提示口径，DESIGN）。</summary>
+/// <summary>下载侧失败分类（差异化提示口径）。</summary>
 public enum DownloadFailureCategory
 {
     /// <summary>无失败（成功态）。</summary>
@@ -21,7 +21,7 @@ public enum DownloadFailureCategory
 
 /// <summary>
 /// 下载侧失败分类器：引擎 HRESULT → <see cref="DownloadFailureCategory"/> + 差异化中文提示（含可操作建议）。
-/// 纯函数（net10 测试锚定）；wininet 错误码经 HRESULT_FROM_WIN32 映射为 0x8007xxxx / INET_E_* 为 0x800Cxxxx。
+/// wininet 错误码经 HRESULT_FROM_WIN32 映射为 0x8007xxxx / INET_E_* 为 0x800Cxxxx。
 /// </summary>
 public static class DownloadFailureClassifier
 {

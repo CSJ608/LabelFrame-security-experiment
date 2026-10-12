@@ -24,7 +24,7 @@ public sealed class JobCallbackTests : IDisposable
         _delivery = new JobCallbackDeliveryService(_temp.Db, _time, _sender, NullLogger<JobCallbackDeliveryService>.Instance);
     }
 
-    // ---- ：投递成功 + 载荷 schema ----
+    // ---- 投递成功 + 载荷 schema ----
 
     [Fact]
     public async Task Completed_job_should_be_delivered_with_payload_schema()
@@ -58,7 +58,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Null(view.CallbackLastError);
     }
 
-    // ---- ：三种终态无漏报 ----
+    // ---- 三种终态无漏报 ----
 
     [Fact]
     public async Task Failed_job_should_deliver_with_status_and_error()
@@ -115,7 +115,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Equal(claimed.JobId, root.GetProperty("jobId").GetString());
     }
 
-    // ---- ：失败退避重试与死信 ----
+    // ---- 失败退避重试与死信 ----
 
     [Fact]
     public async Task Failed_delivery_should_backoff_exponentially()
@@ -184,7 +184,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Equal("DeadLetter", view.CallbackStatus);
     }
 
-    // ---- ：重启恢复（投递状态持久化，重启后继续投递） ----
+    // ---- 重启恢复（投递状态持久化，重启后继续投递） ----
 
     [Fact]
     public async Task Pending_delivery_should_survive_service_restart()
@@ -210,7 +210,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Contains("req-restart", sender2.Sent[0].Payload);
     }
 
-    // ---- ：非法 scheme 提交即拒（作业不入队） ----
+    // ---- 非法 scheme 提交即拒（作业不入队） ----
 
     [Theory]
     [InlineData("file:///etc/passwd")]

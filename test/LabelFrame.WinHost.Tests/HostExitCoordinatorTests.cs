@@ -6,9 +6,8 @@ using Xunit;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// HostExitCoordinator（统一退出路径）单元测试（/ ；Issue 事件驱动提前退出）：
-/// 「优雅停止 + 稳定窗提前退出 + 限时兜底强退」序列的记账日志（收到退出请求（来源）→ StopApplication 发起 →
-/// 宿主停止与否 → 稳定窗观察 / 提前退出 / 宽限超时 → 清理执行 → 最终退出方式）、时序断言
+/// HostExitCoordinator（统一退出路径）单元测试：
+/// 「优雅停止 + 稳定窗提前退出 + 限时兜底强退」序列的记账日志与时序断言
 /// （ApplicationStopped 后主流程未返回时 ≤ 稳定窗内清理 + 强退）、订阅时已停止竞态、幂等与异常兜底。
 /// 强退动作注入替身（不真正 Environment.Exit），进程内可断言。
 /// </summary>
@@ -149,7 +148,7 @@ public sealed class HostExitCoordinatorTests
     [Fact]
     public async Task Request_shutdown_should_force_exit_within_stabilization_window_when_host_stopped_but_main_flow_hung()
     {
-        // Issue （时序断言）：宿主停止信号（ApplicationStopped）到来而主流程未返回——
+        // 时序断言：宿主停止信号（ApplicationStopped）到来而主流程未返回——
         // 协调器应在稳定窗（默认 500 毫秒）观察期满即进入清理 + 强退，不再烧满宽限兜底。
         // 宽限取 10 秒（远大于稳定窗）作判别尺：若事件驱动路径失效（退化为干等宽限），将出现
         // 「优雅等待超时」记账且耗时 ≈10 秒——路径归属以记账日志互斥判定（「稳定窗提前退出」与

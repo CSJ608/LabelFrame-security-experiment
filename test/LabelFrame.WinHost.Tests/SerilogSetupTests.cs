@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// Serilog 文件日志装配回归测试：同一装配路径（WinHostApp.BuildAsync 的
-/// configureBuilder → SerilogSetup.Apply）构建应用后写事件，断言 app-*.log 创建且含事件——
-/// 结构性锚定「配置必须挂在被 Build 的真实 builder 上」，防止装配抽取类重构再次把配置挂死。
+/// Serilog 文件日志装配回归测试：同一装配路径（WinHostApp.BuildAsync 的 configureBuilder →
+/// SerilogSetup.Apply）构建应用后写事件，断言 app-*.log 创建且含事件——结构性锚定
+/// 「配置必须挂在被 Build 的真实 builder 上」，防止重构再次把配置挂死。
 /// </summary>
 public class SerilogSetupTests
 {

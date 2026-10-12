@@ -1,6 +1,5 @@
 // 作业状态展示文案：JobHistory 与 DataPrint 共用（common.jobStatus.* 词条）
-// 未知状态回退后端原始英文值——与迁移前 `JOB_STATUS_LABEL[s] ?? s` 口径一致。
-// 以 hook 形式提供：文案在渲染期经 useTranslation 订阅当前语言（切换即时生效）。
+// 未知状态回退后端原始英文值。以 hook 形式提供：文案在渲染期经 useTranslation 订阅当前语言。
 
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'

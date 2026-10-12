@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- WiX Burn 托管 BA（Bootstrapper Application，DESIGN §6.1 决策 #122）：
-       WiX v5.4+ out-of-proc 模型——独立 EXE 进程，经 WixToolset.BootstrapperApplicationApi 与 Burn 引擎握手。
-       目标框架 net48：.NET Framework 4.8 是 Win10 1809+ / Win11 的 OS 组件，裸机免装运行时（BA 载荷 MB 级）。
+  <!-- WiX Burn 托管 BA（out-of-proc 模型）：独立 EXE 进程，经 WixToolset.BootstrapperApplicationApi 与 Burn 引擎握手。
+       net48 不可升——.NET Framework 4.8 是 Win10 1809+ / Win11 的 OS 组件，裸机免装运行时（首个 EXE 不得依赖新版 .NET）。
        RuntimeIdentifier 使 mbanative.dll（包内 runtimes 资产）复制到输出，随 Bundle 打包为 BA 载荷。 -->
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
@@ -13,12 +12,10 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- 品牌 v02（#288）：BA EXE 图标（窗体 / 任务栏）——与 WinHost / Server 同一 ICO 源 -->
     <ApplicationIcon>..\..\assets\labelframe.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- WiX v7 OSMF EULA 接受（WIX7015，MSBuild 集成消费点要求）：与本仓既有 v7 接受口径一致
-       （build-msi.ps1 / CI msi-verify job 均已执行 `wix eula accept wix7`）；费用阈值评估见 https://wixtoolset.org/osmf/ -->
+  <!-- WiX v7 OSMF EULA 接受（WIX7015，MSBuild 集成消费点要求）；费用阈值评估见 https://wixtoolset.org/osmf/ -->
   <PropertyGroup>
     <AcceptEula>wix7</AcceptEula>
   </PropertyGroup>
@@ -37,8 +34,8 @@
     <ProjectReference Include="..\LabelFrame.Bootstrapper\LabelFrame.Bootstrapper.csproj" />
   </ItemGroup>
 
-  <!-- 品牌 v02（#288）：向导头部 lockup 以嵌入资源随 BA EXE 携带（LogicalName 钉死清单名，
-       不依赖安装期外部文件路径；载荷约 21KB，随 Burn BA 载荷整体打包） -->
+  <!-- 向导头部 lockup 以嵌入资源随 BA EXE 携带（LogicalName 钉死清单名，不依赖安装期外部文件路径；
+       资源缺失时 UI 侧降级为无品牌条，不阻断安装） -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\assets\brand\bootstrapper-lockup.png" LogicalName="bootstrapper-lockup.png" />
   </ItemGroup>

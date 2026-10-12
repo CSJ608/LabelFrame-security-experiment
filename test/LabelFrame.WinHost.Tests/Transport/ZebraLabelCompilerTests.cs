@@ -7,13 +7,11 @@ using LabelFrame.TransportPlugin.Zebra;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// Zebra 原生指令编译器单测（文本 + 条码与二维码 ；DESIGN）：
-/// 能力与参数声明（能力位真 / printMode Select / 原生模式 QR 中文说明文案锚定）+
-/// 文本编译正确性（整页自包含结构 / ^A 字体与字高 DPI 换算 /
-/// 超长文本不换行不缩放直接输出 / 锚定与对齐起始坐标换算路径 / 中文 LF_ENC_002 显式拒绝）+
-/// Code 128 条码编译（^BC 结构 / 模块宽与高度 DPI 换算 / displayValue 映射 / 中文 LF_ENC_001 既有语义零回归）+
-/// QR 二维码编译（^BQ 结构 / ECC 与边距映射 / 放大倍数尺寸换算 / UTF-8 中文 / 混合模板整页自包含）。
-/// 编译输出为确定性文本，不依赖真机（单测口径）；真机扫码效果验收归 （转待验收）。
+/// Zebra 原生指令编译器单测：能力与参数声明（能力位 / printMode Select / 原生模式 QR 中文说明文案锚定）+
+/// 文本编译（整页自包含结构 / ^A 字体与字高 DPI 换算 / 超长文本不换行不缩放 / 锚定与对齐坐标换算 / 中文 LF_ENC_002 拒绝）+
+/// Code 128 条码（^BC 结构 / 模块宽与高度换算 / displayValue 映射 / 中文 LF_ENC_001 零回归）+
+/// QR 二维码（^BQ 结构 / ECC 与边距映射 / 放大倍数换算 / UTF-8 中文 / 混合模板自包含）。
+/// 编译输出为确定性文本，不依赖真机；真机扫码效果验收转待验收。
 /// </summary>
 public class ZebraLabelCompilerTests
 {
@@ -128,7 +126,7 @@ public class ZebraLabelCompilerTests
     private static LabelCommandCompileResult CompilePlugin(LabelDocument document, int dpi = 203)
         => new ZebraTransportPlugin().CompileAsync(document, Options(dpi)).GetAwaiter().GetResult();
 
-    // ── ：能力与参数声明 ──
+    // ──能力与参数声明──
 
     [Fact]
     public void Plugin_should_implement_compiler_and_registry_capability_should_be_true()
@@ -162,10 +160,9 @@ public class ZebraLabelCompilerTests
     [Fact]
     public void Plugin_description_and_print_mode_hint_should_note_native_qr_chinese_limit()
     {
-        // （a 案仅说明文案）：原生指令模式下二维码（QR）数据不支持中文（仅 ASCII）——真机实证见 
-        // （原生 ^CI28 下中文被打印机静默过滤），中文走文本框（图片模式 / 原生 LF_ENC_002 既有拒绝口径）；
-        // GET /api/transport 的 Description / Hint 为 descriptor 字段透传（WinHostEndpointsTests 已锚定映射）
-        // 此处锚定源头（插件声明 + 注册表 descriptor——API availablePlugins 的数据来源）。
+        // 原生指令模式下二维码（QR）数据不支持中文（仅 ASCII，真机实证：原生 ^CI28 下中文被打印机静默过滤），
+        // 中文走文本框（图片模式 / 原生 LF_ENC_002 拒绝口径）；此处锚定声明源头（插件 + 注册表 descriptor——
+        // API 透传映射由 WinHostEndpointsTests 锚定）。
         var plugin = new ZebraTransportPlugin();
 
         // 说明文（Description）：含该说明且限定「原生指令模式」，句读完整（文案风格）
@@ -190,7 +187,7 @@ public class ZebraLabelCompilerTests
         Assert.Contains("二维码（QR）数据不支持中文（仅 ASCII）", descriptorSpec.Hint);
     }
 
-    // ── ：整页自包含结构（^XA / ^XZ / ^PW / ^LL）与文本指令 ──
+    // ──整页自包含结构（^XA / ^XZ / ^PW / ^LL）与文本指令 ──
 
     [Fact]
     public void Compile_should_produce_self_contained_page_structure()
@@ -227,7 +224,7 @@ public class ZebraLabelCompilerTests
         Assert.Contains("^FO16,16^ABN,40,40^FH^FDA-01^FS", Compile(Document(textElement: Text(fontName: "B", fontWidthMm: 5))).Command);
         Assert.Contains("^FO16,16^A0N,40^FH^FDA-01^FS", Compile(Document()).Command);
 
-        // 加粗近似（方案 A）：粗体字体变体映射 0 → 1
+        // 加粗近似：粗体字体变体映射 0 → 1
         Assert.Contains("^A1N,40", Compile(Document(textElement: Text(bold: true))).Command);
         // 无粗体变体映射的字体：加粗忽略（尽力项，效果以真机验收为准）
         Assert.Contains("^AAN,40", Compile(Document(textElement: Text(fontName: "A", bold: true))).Command);
@@ -260,7 +257,7 @@ public class ZebraLabelCompilerTests
         Assert.DoesNotContain("^FD", result.Command);
     }
 
-    // ── ：超长文本不换行不缩放直接输出（排版降级——溢出为预期常态）──
+    // ──超长文本不换行不缩放直接输出（排版降级——溢出为预期常态）──
 
     [Fact]
     public void Compile_should_output_overlong_text_as_single_line_without_scaling()
@@ -274,7 +271,7 @@ public class ZebraLabelCompilerTests
         Assert.Equal(1, CountOccurrences(result.Command!, "^FD"));
     }
 
-    // ── ：锚定 / 对齐的起始坐标换算路径（尽力近似：近似路径存在即可，不要求与图片模式等价）──
+    // ──锚定 / 对齐的起始坐标换算路径（尽力近似：近似路径存在即可，不要求与图片模式等价）──
 
     [Fact]
     public void Compile_should_shift_origin_by_region_anchor_alignment_with_builtin_metrics()
@@ -318,7 +315,7 @@ public class ZebraLabelCompilerTests
         Assert.Equal(1, CountOccurrences(result.Command!, "^FD"));
     }
 
-    // ── ：中文（无字库）→ LF_ENC_002 显式拒绝──
+    // ──中文（无字库）→ LF_ENC_002 显式拒绝──
 
     [Fact]
     public void Chinese_text_should_be_rejected_with_lf_enc_002_and_field_key()
@@ -353,7 +350,7 @@ public class ZebraLabelCompilerTests
         Assert.Equal(JobErrorCodes.CommandCompileFailed, result.ErrorCode);
     }
 
-    // ── ：Code 128 条码编译（^BC / ^BY 结构 / 模块宽与高度 DPI 换算 / displayValue 映射）──
+    // ──Code 128 条码编译（^BC / ^BY 结构 / 模块宽与高度 DPI 换算 / displayValue 映射）──
 
     [Fact]
     public void Barcode_should_compile_code128_structure_with_by_and_bc()
@@ -410,7 +407,7 @@ public class ZebraLabelCompilerTests
         Assert.DoesNotContain("^BC", Compile(Document(text: "   ", textElement: Text(yMm: 1), extraElements: Barcode())).Command);
     }
 
-    // ── ：Code 128 中文值 → LF_ENC_001 编码拒绝（既有语义零回归，DESIGN §7）──
+    // ──Code 128 中文值 → LF_ENC_001 编码拒绝（既有语义零回归，DESIGN §7）──
 
     [Fact]
     public void Barcode_chinese_value_should_be_rejected_with_lf_enc_001_and_field_key()
@@ -444,7 +441,7 @@ public class ZebraLabelCompilerTests
         Assert.Equal(JobErrorCodes.EncodeFailed, result.ErrorCode);
     }
 
-    // ── ：QR 二维码编译（^BQ 结构 / ECC 与边距映射 / 放大倍数按尺寸与 DPI 换算）──
+    // ──QR 二维码编译（^BQ 结构 / ECC 与边距映射 / 放大倍数按尺寸与 DPI 换算）──
 
     [Fact]
     public void Qrcode_should_compile_bq_structure_with_magnification_from_size()
@@ -530,7 +527,7 @@ public class ZebraLabelCompilerTests
         Assert.DoesNotContain("^BQ", Compile(Document(text: "  ", textElement: Text(yMm: 1), extraElements: Qr())).Command);
     }
 
-    // ── ：混合模板（文本 + 条码 + 二维码）整页指令完整自包含 ──
+    // ──混合模板（文本 + 条码 + 二维码）整页指令完整自包含 ──
 
     [Fact]
     public void Mixed_template_should_compile_self_contained_page_with_all_element_types()
@@ -550,7 +547,7 @@ public class ZebraLabelCompilerTests
         Assert.Equal(3, CountOccurrences(result.Command, "^FD")); // 每元素恰好一个数据字段
     }
 
-    // ── 范围外元素：显式失败（图片 / 线元素按裁剪拒绝，条码 / 二维码自起编译支持）──
+    // ── 范围外元素：显式失败（图片 / 线元素按裁剪拒绝，条码 / 二维码已有编译支持）──
 
     [Fact]
     public void Image_element_should_fail_explicitly()

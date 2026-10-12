@@ -38,7 +38,7 @@ public sealed class ServerJobErrorCodeTests
     [Fact]
     public async Task Initialize_should_migrate_legacy_server_jobs_without_error_code()
     {
-        // 旧版本库：server_jobs 无 error_code 列（含 error_message / callback_url，即 形态）
+        // 旧版本库：server_jobs 无 error_code 列（含 error_message / callback_url 的更早形态）
         var path = TempDbPath("mig");
         try
         {

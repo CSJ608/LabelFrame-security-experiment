@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- 安装引导核心逻辑库（DESIGN §6，决策 #114 → #122 形态修订）：
-       net48 腿供 WiX Burn 托管 BA（src/LabelFrame.Bootstrapper.Ba）复用——.NET Framework 4.8 是
-       Win10 1809+ / Win11 的 OS 组件，裸机免装运行时；net10.0-windows 腿供测试与专项 5/8+（#54 / #55）复用。 -->
+  <!-- 安装引导核心逻辑库（UI 无关，设计见 docs/design/bootstrapper.md）：
+       net48 腿供 WiX Burn 托管 BA 复用（.NET Framework 4.8 是 Win10 1809+ / Win11 的 OS 组件，
+       裸机免装运行时——BA 不得改为依赖新版 .NET）；net10.0-windows 腿供测试复用。 -->
   <PropertyGroup>
     <TargetFrameworks>net48;net10.0-windows</TargetFrameworks>
     <RootNamespace>LabelFrame.Bootstrapper</RootNamespace>

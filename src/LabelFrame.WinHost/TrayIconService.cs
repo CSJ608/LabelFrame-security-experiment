@@ -3,11 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace LabelFrame.WinHost;
 
-/// <summary>
-/// 系统托盘图标（原生 P/Invoke 实现，无 WinForms 依赖）。
-/// 隐藏窗口接收 Shell_NotifyIcon 回调：右键菜单（打开界面 / 退出）、双击打开界面。
-/// 图标用程序集内嵌的白色托盘变体（深色任务栏可辨；加载失败回退 exe 应用图标）。
-/// </summary>
+/// <summary>系统托盘图标（原生 P/Invoke，无 WinForms 依赖）：隐藏窗口接收回调，双击 / 右键菜单（打开界面 / 退出）；图标用内嵌白色托盘变体（深色任务栏可辨）。</summary>
 public sealed class TrayIconService : IDisposable
 {
     private const uint NIM_ADD = 0;
@@ -159,7 +155,6 @@ public sealed class TrayIconService : IDisposable
             var instance = GetModuleHandle(null);
             _wndProc = (hWnd, msg, wParam, lParam) => WndProc(hWnd, msg, wParam, lParam, openUi, shutdown);
 
-            // 注册窗口类并创建隐藏消息窗口
             var wc = new WNDCLASS
             {
                 lpfnWndProc = Marshal.GetFunctionPointerForDelegate(_wndProc),
@@ -218,10 +213,7 @@ public sealed class TrayIconService : IDisposable
         }
     }
 
-    /// <summary>
-    /// 加载内嵌托盘变体图标：按系统托盘槽尺寸（SM_CXSMICON，随 DPI）让 GDI+ 选最接近帧。
-    /// 资源缺失 / 解析失败返回 null（调用方回退应用图标），任何异常不外抛。
-    /// </summary>
+    /// <summary>加载内嵌托盘变体图标：按托盘槽尺寸（SM_CXSMICON，随 DPI）选最接近帧；资源缺失 / 失败返回 null（调用方回退应用图标）。</summary>
     internal static Icon? TryLoadTrayIcon(Action<string>? log = null)
     {
         try
@@ -294,8 +286,6 @@ public sealed class TrayIconService : IDisposable
 
     private void ShowMenu(Action openUi, Func<Task> shutdown)
     {
-        // 弹出与标准前置模式（SetForegroundWindow → TrackPopupMenu → PostMessage WM_NULL）由
-        // TrayMenuPresenter 执行，本方法只按返回命令分发动作。
         var cmd = _menuPresenter.ShowMenu(_hwnd);
 
         if (cmd == TrayMenuPresenter.CmdOpen)
@@ -340,10 +330,9 @@ public sealed class TrayIconService : IDisposable
 }
 
 /// <summary>
-/// 托盘消息循环线程的退出信号器。
-/// 托盘线程启动并添加图标后登记自身；<see cref="Dispose"/> 向该线程投递 WM_QUIT——
-/// 消息循环退出后在托盘线程内执行 Shell_NotifyIcon(NIM_DELETE)（消除幽灵图标）——并限时 Join 等待。
-/// 线程消息投递函数可注入，供单元测试替代 Win32 调用（消息循环交互可抽象可测）。
+/// 托盘消息循环线程的退出信号器：向登记线程投递 WM_QUIT 并限时 Join——
+/// 消息循环退出后在托盘线程内执行 NIM_DELETE（消除幽灵图标）。
+/// 线程消息投递函数可注入，供单元测试替代 Win32 调用。
 /// </summary>
 public sealed class TrayQuitSignaler : IDisposable
 {

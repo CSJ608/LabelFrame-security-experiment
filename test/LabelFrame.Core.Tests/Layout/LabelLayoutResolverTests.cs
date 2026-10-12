@@ -3,9 +3,8 @@ using LabelFrame.Core.Layout;
 namespace LabelFrame.Core.Tests.Layout;
 
 /// <summary>
-/// 版式解析区域锚定测试（方案 A； 补垂直锚定框语义断言）：
-/// 自动宽度文本水平锚定按实测文本宽度计算（块宽仍为区域全宽、块内 TextAlign 语义不变）；
-/// 显式宽度路径 / 垂直锚定 / 无度量器回退行为防回归。
+/// 版式解析区域锚定测试：自动宽度文本水平锚定按实测文本宽度计算（块宽仍为区域全宽、块内 TextAlign 语义不变）；
+/// 显式宽度路径 / 垂直锚定框语义 / 无度量器回退行为防回归。
 /// </summary>
 public class LabelLayoutResolverTests
 {

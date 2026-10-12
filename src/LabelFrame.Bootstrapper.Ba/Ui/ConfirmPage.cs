@@ -5,8 +5,8 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 确认页（+ D2）：默认视图只保留用户做决定必需的三要素——装什么（角色摘要 + 体积）、执行边界一行（语义不变）
-/// 升级 / 新鲜度状态行；「显示明细」折叠区承载技术细节（组件全表含来源 URL 与本机版本、清单来源覆写入口、离线安装说明）。
+/// 确认页：默认视图只保留决策三要素——装什么（角色摘要 + 体积）、执行边界一行、升级 / 新鲜度状态行；
+/// 「显示明细」折叠区承载技术细节（组件全表含来源 URL 与本机版本、清单来源覆写入口、离线安装说明）。
 /// 「下一步」= 开始安装（进入进度页触发引擎 Plan + Apply，执行边界契约）。
 /// </summary>
 internal sealed class ConfirmPage : UserControl, IWizardPage
@@ -46,7 +46,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _summaryLabel.Location = new Point(8, 36);
         _summaryLabel.MaximumSize = new Size(680, 0);
 
-        // 执行边界一行（语义、 精简表述）
+        // 执行边界一行（见 ExecuteBoundaryNotice）
         _banner.Text = ExecuteBoundaryNotice.Banner;
         _banner.AutoSize = false;
         _banner.Height = 30;
@@ -57,7 +57,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _banner.TextAlign = ContentAlignment.MiddleLeft;
         _banner.Padding = new Padding(8, 0, 0, 0);
 
-        // 升级 / 已是最新状态行（起由欢迎页移到确认页——自动加载后用户不再停留就绪页）
+        // 升级 / 已是最新状态行
         _upgradeLabel.AutoSize = false;
         _upgradeLabel.Height = 30;
         _upgradeLabel.Width = 680;
@@ -78,7 +78,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _freshnessLabel.ForeColor = Color.FromArgb(154, 84, 0);
         _freshnessLabel.Visible = false;
 
-        // 「显示明细」折叠区（D2：按钮名用户拍板）
+        // 「显示明细」折叠区
         _detailToggle.Text = "显示明细";
         _detailToggle.AutoSize = true;
         _detailToggle.Location = new Point(8, 164);

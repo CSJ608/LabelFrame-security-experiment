@@ -18,14 +18,14 @@
 | 模块 | 文档 | 覆盖范围 | 状态 |
 |---|---|---|---|
 | LabelFrame.Rendering | [rendering.md](rendering.md) | Skia 整版位图渲染（5 文件） | ✅ 试点首篇 |
-| LabelFrame.Core | core.md | 契约 / 版式模型 / 校验 / ZPL 编码 / 作业队列 / 模板库 / 插件接口（共享内核，72 文件） | 随迭代 138 全量铺开补齐 |
-| LabelFrame.Api | api.md | Server / WinHost 共享 HTTP 契约与端点 | 同上 |
-| LabelFrame.Server | server.md | 无头服务端（模板库 / 作业中心 / 投递 / 出图 / 日志） | 同上 |
-| LabelFrame.WinHost | winhost.md | Client Host（Windows 完整客户端 + Linux 无头 Log 客户端） | 同上 |
-| LabelFrame.AndroidHost | androidhost.md | Android / PDA 打印宿主 | 同上 |
-| LabelFrame.TransportPlugin.Zebra | transport-plugin-zebra.md | Zebra 官方外置传输插件（插件 ABI 面） | 同上 |
-| LabelFrame.Bootstrapper（三件） | bootstrapper.md | 安装引导（共享库 / BA / PayloadTool，三件合一） | 同上 |
-| web 前端 | web-frontend.md | `web/src/`（pages / lib / components / i18n / state） | 同上 |
+| LabelFrame.Core | [core.md](core.md) | 契约 / 版式模型 / 校验 / ZPL 编码 / 作业队列 / 模板库 / 插件接口（共享内核，72 文件） | ✅ |
+| LabelFrame.Api | [api.md](api.md) | Server / WinHost 共享 HTTP 契约与端点 | ✅ |
+| LabelFrame.Server | [server.md](server.md) | 无头服务端（模板库 / 作业中心 / 投递 / 出图 / 日志） | ✅ |
+| LabelFrame.WinHost | [winhost.md](winhost.md) | Client Host（Windows 完整客户端 + Linux 无头 Log 客户端） | ✅ |
+| LabelFrame.AndroidHost | [androidhost.md](androidhost.md) | Android / PDA 打印宿主 | ✅ |
+| LabelFrame.TransportPlugin.Zebra | [transport-plugin-zebra.md](transport-plugin-zebra.md) | Zebra 官方外置传输插件（插件 ABI 面） | ✅ |
+| LabelFrame.Bootstrapper（三件） | [bootstrapper.md](bootstrapper.md) | 安装引导（共享库 / BA / PayloadTool，三件合一） | ✅ |
+| web 前端 | [web-frontend.md](web-frontend.md) | `web/src/`（pages / lib / components / i18n / state） | ✅ |
 
 ## 六节结构模板（每篇固定）
 

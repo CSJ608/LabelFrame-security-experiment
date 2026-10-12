@@ -25,7 +25,7 @@ public sealed class HostOptions
     /// <summary>默认监听地址（仅本机）。</summary>
     public const string DefaultListenUrl = "http://127.0.0.1:53960";
 
-    /// <summary>产品版本（与打包脚本 -Version 保持一致；随发版与 ServerOptions.ProductVersion 同步更新——客户端「检查更新」比较口径）。</summary>
+    /// <summary>产品版本（与打包脚本 -Version、ServerOptions.ProductVersion 同步更新——客户端「检查更新」比较口径）。</summary>
     public const string ProductVersion = "0.35.0";
 
     /// <summary>默认数据库目录（%LOCALAPPDATA%\LabelFrame）。</summary>
@@ -154,7 +154,7 @@ public sealed class HostOptions
     /// <summary>host-*.log 按日文件保留上限（默认 31；0 或负值 = 不清理；LABELFRAME_HOST_LOG_RETENTION_DAYS 优先）。</summary>
     public int HostLogRetentionDays { get; set; } = 31;
 
-    /// <summary>启动时显示界面（起语义演进：默认开 = 显示应用窗口，WebView2 运行时不可用时回退打开默认浏览器；LABELFRAME_OPEN_BROWSER=0 关闭）。--autostart 强制关闭（仅托盘常驻）。</summary>
+    /// <summary>启动时显示界面（默认开＝显示应用窗口，WebView2 不可用回退浏览器；LABELFRAME_OPEN_BROWSER=0 关闭）。--autostart 强制关闭（仅托盘常驻）。</summary>
     public bool OpenBrowser { get; set; } = true;
 
     /// <summary>系统托盘图标（默认开启，可用 LABELFRAME_TRAY=0 关闭）。</summary>

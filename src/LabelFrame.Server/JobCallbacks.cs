@@ -41,7 +41,7 @@ public sealed class JobCallbackTask
     public DateTimeOffset CreatedAt { get; init; }
 }
 
-/// <summary>回调投递策略集中常量（默认值经用户确认，集中一处便于后续调参）。</summary>
+/// <summary>回调投递策略集中常量（集中一处便于调参）。</summary>
 public static class JobCallbackDeliveryPolicy
 {
     /// <summary>至多尝试 5 次，超限转死信。</summary>
@@ -64,7 +64,7 @@ public static class JobCallbackDeliveryPolicy
         => now + InitialRetryDelay * (1 << Math.Min(Math.Max(failedAttempts - 1, 0), 10));
 }
 
-/// <summary>回调 URL 校验（提交即拒，：仅 http/https 绝对地址）。</summary>
+/// <summary>回调 URL 校验：仅 http/https 绝对地址（提交即拒）。</summary>
 public static class JobCallbackUrl
 {
     /// <summary>是否为允许的回调地址：绝对 URI 且 scheme 为 http / https（大小写不敏感）。</summary>

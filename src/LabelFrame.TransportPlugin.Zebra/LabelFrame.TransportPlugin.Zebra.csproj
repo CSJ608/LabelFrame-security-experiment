@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Zebra 品牌传输官方插件工程（迭代 63，决策 #123，DESIGN §6.8）：
-       从 WinHost 内置拆出为外置 .lfplugin 官方插件包（scripts/build-zebra-plugin.ps1 构建）——
-       WinHost 客户端核心不再引用 Zebra.Printer.SDK（瘦身），SDK 依赖随插件包分发。
-       目标框架与 WinHost windows 腿一致（net10.0-windows10.0.26100）：插件 DLL 由宿主运行时字节加载。 -->
+  <!-- Zebra 品牌传输官方插件工程：外置 .lfplugin 包（scripts/build-zebra-plugin.ps1 构建），SDK 依赖随包分发。
+       目标框架须与 WinHost windows 腿一致——插件 DLL 由宿主运行时字节加载，TFM 越前即破坏装配。 -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.26100</TargetFramework>
     <RootNamespace>LabelFrame.TransportPlugin.Zebra</RootNamespace>
@@ -13,9 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Zebra 官方 Link-OS SDK：USB / TCP / 驱动 / 蓝牙 统一连接与打印机状态。5.0.3685 与 AndroidHost 统一双端版本（迭代 56，决策 #111）。 -->
+    <!-- Zebra 官方 Link-OS SDK：USB / TCP / 驱动 / 蓝牙统一连接与打印机状态；版本须与 AndroidHost 内置统一（双端复用）。 -->
     <PackageReference Include="Zebra.Printer.SDK" Version="5.0.3685" />
-    <!-- 毒丸引用清单（Windows 验证版，全部 ExcludeAssets="all"，迭代 56 实证，自 WinHost csproj 迁移）：
+    <!-- 毒丸引用清单（Windows 验证版，全部 ExcludeAssets="all"）：
          Zebra SDK 5.x 传递依赖 SkiaSharp.Views.Maui.Controls，其 MAUI / WinUI 程序集链会——
          ① 混入编译（Microsoft.Maui.Controls.Label 等 MAUI 类型与宿主 WinForms / WebView2 投影类型冲突）；
          ② WindowsAppSDK 的 buildTransitive 注入 win10-* RID 图（win-x64 framework-dependent 工程不识别，NETSDK1083）。

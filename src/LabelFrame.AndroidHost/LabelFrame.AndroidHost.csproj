@@ -15,9 +15,8 @@
     <AndroidManifest>Properties/AndroidManifest.xml</AndroidManifest>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
-    <!-- 单 arm64 ABI（迭代 56，决策 #111）：引入 Zebra SDK 后 libSkiaSharp.so 与 SDK 依赖按 ABI 复制，
-         多 ABI（arm64/arm/x64）APK 约 53MB，超出 AC-02「不劣于现状量级」；收敛到现役 PDA 的 arm64
-         （UROVO DT50 等）后约 19MB，与预研结论一致。32 位 arm 与 x64 模拟器不再覆盖，如有需要恢复多 ABI。 -->
+    <!-- 单 arm64 ABI：引入 Zebra SDK 后多 ABI（arm64/arm/x64）APK 约 53MB 超出体积量级；收敛到现役
+         PDA 的 arm64（UROVO DT50 等）后约 19MB。32 位 arm 与 x64 模拟器不再覆盖，如有需要恢复多 ABI。 -->
     <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
@@ -26,16 +25,16 @@
          2.1.11 为 NDK 构建（依赖 liblog/libc/libm 等）且 LOAD 段 16KB 对齐，真机验证通过。 -->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3.android" Version="2.1.11" />
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
-    <!-- Zebra 官方 Link-OS SDK 5.0.3685（迭代 56，决策 #111）：android 目标为纯托管 DLL（无 .so / 无 jar，
-         ZebraPrinterSdk.dll 仅引用 Mono.Android）。TCP / 蓝牙 SPP / USB OTG 连接与 PrinterStatus 官方状态语义。 -->
+    <!-- Zebra 官方 Link-OS SDK：android 目标为纯托管 DLL（无 .so / 无 jar，仅引用 Mono.Android）；
+         TCP / 蓝牙 SPP / USB OTG 连接与 PrinterStatus 官方状态语义。 -->
     <PackageReference Include="Zebra.Printer.SDK" Version="5.0.3685" />
-    <!-- 毒丸引用清单（Android 实证版，全部 ExcludeAssets="all"，迭代 56 预研 + 本轮复验）：
-         官方支持矩阵「非 MAUI .NET 10 → Android ✗」的实测成因是依赖链毒化——
-         ① System.Drawing.Common 10.0.7 的 net10.0 lib 夹带 System.Private.Windows.Core.dll，Android AOT 编译失败；
-         ② SkiaSharp.Views.Maui.* 拉入 MAUI 程序集链（Microsoft.Maui.* 8.0.82），其中 Controls.Build.Tasks
-            经 buildTransitive 注入 MAUI AOT profile，非 MAUI 工程打包失败。
-         ExcludeAssets="all" 不裁剪传递闭包，须逐包显式排除。保留 SkiaSharp 本体 + 原生 Android 资产
-         （SDK 图形工具引用；libSkiaSharp.so 已验证 16KB ELF 对齐）。SDK 升级时本清单需复查（决策 #111）。 -->
+    <!-- 毒丸引用清单（Android 实证版，全部 ExcludeAssets="all"）——SDK 官方不支持非 MAUI .NET 10 的
+         Android，实测成因是依赖链毒化：① System.Drawing.Common 10.0.7 的 net10.0 lib 夹带
+         System.Private.Windows.Core.dll，Android AOT 编译失败；② SkiaSharp.Views.Maui.* 拉入 MAUI 程序集链
+         （Microsoft.Maui.* 8.0.82），其中 Controls.Build.Tasks 经 buildTransitive 注入 MAUI AOT profile，
+         非 MAUI 工程打包失败。ExcludeAssets="all" 不裁剪传递闭包，须逐包显式排除。
+         保留 SkiaSharp 本体 + 原生 Android 资产（SDK 图形工具引用；libSkiaSharp.so 已验证 16KB ELF
+         对齐）。SDK 升级时本清单需复查。 -->
     <PackageReference Include="System.Drawing.Common" Version="10.0.7" ExcludeAssets="all" />
     <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" ExcludeAssets="all" />
     <PackageReference Include="SkiaSharp.Views" Version="3.119.2" ExcludeAssets="all" />

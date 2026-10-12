@@ -39,17 +39,17 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Error_response_without_params_should_be_byte_equal_to_legacy_shape()
     {
-        // params 缺省 → HTTP 响应原文与前完全一致（与旧三字段形态快照的序列化输出逐字节相等）
+        // params 缺省 → HTTP 响应原文与旧形态逐字节相等（三字段形态快照的序列化输出）
         using var response = await _client.PostAsync("/api/jobs", Json("""{ "requestId": "" }"""));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var raw = await response.Content.ReadAsStringAsync();
-        // 旧形态快照（前的 ErrorView）以 minimal API Web 默认选项序列化的期望字节
+        // 旧形态快照（引入 params 前的 ErrorView）以 minimal API Web 默认选项序列化的期望字节
         var expected = System.Text.Json.JsonSerializer.Serialize(
             new LegacyErrorViewSnapshot("LF_SRV_002", "缺少 requestId（幂等键）。"), WebDefaults);
         Assert.Equal(expected, raw);
     }
 
-    /// <summary>之前的 ErrorView 形态快照（现状锚点）。</summary>
+    /// <summary>引入 params 前的 ErrorView 形态快照（现状锚点）。</summary>
     private sealed record LegacyErrorViewSnapshot(string Code, string Message, string? FieldKey = null);
 
     [Fact]
@@ -61,9 +61,9 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
 
         // 按 IP 未找到拆码 LF_SRV_012（原 LF_SRV_001 与「设备未注册 {deviceId}」双键变体混用）
         Assert.Equal("LF_SRV_012", body.GetProperty("code").GetString());
-        // 后端中文 message 与改造前内插文案等价（中文兜底）
+        // 后端中文 message 与旧内插文案等价（中文兜底）
         Assert.Equal("按 IP 未找到设备：10.99.99.99。", body.GetProperty("message").GetString());
-        // params：扁平字符串键值对象，键名与模板占位符一致（待决议-1 建议形态）
+        // params：扁平字符串键值对象，键名与模板占位符一致
         var parameters = body.GetProperty("params");
         Assert.Equal(JsonValueKind.Object, parameters.ValueKind);
         Assert.Equal("10.99.99.99", parameters.GetProperty("ip").GetString());

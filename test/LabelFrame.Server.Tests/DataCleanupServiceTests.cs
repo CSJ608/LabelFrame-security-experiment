@@ -97,7 +97,7 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Enforce_size_limit_should_delete_oldest_rows_and_reclaim_disk_space()
     {
-        // / （KB 级阈值直测 store 量闸）：库文件超阈值按大小删最旧直至回到阈值内——
+        // KB 级阈值直测 store 量闸：库文件超阈值按大小删最旧直至回到阈值内——
         // 全部行均为刚写入的新行（远新于 90 天保留期）仍被删除，证明量闸不受保留期下限约束（有意行为）；
         // 度量口径 = logs.db + logs.db-wal 合计（VACUUM + wal_checkpoint(TRUNCATE) 之后取值——DELETE 后主文件不收缩）
         using var logDb = new TempLogDb();
@@ -131,7 +131,7 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Enforce_size_limit_on_empty_db_smaller_than_threshold_should_return_warning()
     {
-        // 留观项锚定：表已空 / 无行可删而库文件仍超阈值（阈值小于空库体积）——返回异常态警告交调用方记录
+        // 表已空 / 无行可删而库文件仍超阈值（阈值小于空库体积）——返回异常态警告交调用方记录，
         // 不抛出、不无限重试；正常收敛路径警告为 null（见上测断言）
         using var logDb = new TempLogDb();
 

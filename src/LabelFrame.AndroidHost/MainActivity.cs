@@ -15,13 +15,8 @@ using System.Text.Json;
 
 namespace LabelFrame.AndroidHost;
 
-/// <summary>
-/// 宿主配置页（唯一 UI）：主页展示运行状态与设置入口，「连接服务器 / 连接打印机 / 插件管理 / 本机信息」
-/// 子页各自编辑并保存（保存即重启宿主服务生效）；设备号由系统唯一码自动生成只读展示。
-/// 文案面向不懂技术的仓库用户：只说「这里填什么 / 点按钮会发生什么 / 状态意味着什么与下一步」。
-/// 全部 UI 文案经 <c>Resources/values</c>（缺省中文）+
-/// <c>values-en</c> 资源 id 引用，语言跟随系统；错误消息经 <see cref="LfErrorCatalog"/> 按码翻译。
-/// </summary>
+/// <summary>宿主配置页（唯一 UI）：主页运行状态 + 四个子页（服务器 / 打印机 / 插件管理 / 本机信息），
+/// 保存即重启宿主服务生效；文案经资源 id 引用随系统语言，错误消息经 <see cref="LfErrorCatalog"/> 按码翻译。</summary>
 [Activity(Label = "@string/app_name", MainLauncher = true, Exported = true, LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.KeyboardHidden)]
 public sealed class MainActivity : Activity
@@ -67,7 +62,7 @@ public sealed class MainActivity : Activity
     private TextView _serverTestText = null!;
     private TextView _serverSaveHint = null!;
 
-    // 打印机子页（/ ：品牌选项由内置 Zebra + 已装外置插件动态扩展）
+    // 打印机子页
     private RadioGroup _brandGroup = null!;
     private readonly Dictionary<int, string> _brandIds = new(); // 单选项 Id → 品牌（zebra 或插件 id）
     private RadioGroup _connectionTypeGroup = null!;
@@ -157,8 +152,8 @@ public sealed class MainActivity : Activity
     }
 
     /// <summary>系统返回键：子页回主页，主页退出。</summary>
-    // API 33 起 OnBackPressed 被标记过时（为预测性返回让路），但应用未启用 enableOnBackInvokedCallback
-    // 时框架仍回调它；为避免引入 AndroidX 依赖，按既有行为保留并屏蔽平台版本分析。
+    // API 33 起 OnBackPressed 被标记过时（为预测性返回让路），但未启用 enableOnBackInvokedCallback
+    // 时框架仍回调它；为避免引入 AndroidX 依赖按既有行为保留，屏蔽平台版本分析。
 #pragma warning disable CA1422
     public override void OnBackPressed()
     {
@@ -271,8 +266,7 @@ public sealed class MainActivity : Activity
     /// <summary>设置入口行：左侧标题 + 当前值摘要，右侧「›」；整行可点、高度 ≥64dp。</summary>
     private LinearLayout EntryRow(string title, Action onClick, out TextView summary)
     {
-        // 行内横向排列：文本列（宽度 0 + weight）+ 箭头。父容器必须是横向，
-        // 竖向容器里宽度 0 的子视图会被压成 0 宽（文字逐字换行、卡片又高又空）。
+        // 文本列必须放在横向父容器里用宽度 0 + weight——竖向容器里宽度 0 的子视图会被压成 0 宽
         var row = Card(Color.White);
         row.Orientation = Orientation.Horizontal;
         row.SetPadding(Dp(16), Dp(12), Dp(12), Dp(12));
@@ -398,7 +392,7 @@ public sealed class MainActivity : Activity
         content.AddView(Header(L(Resource.String.printer_title)));
         content.AddView(Spacing(10));
 
-        // 打印机品牌（/ / 预埋兑现）：Zebra 内置 + 已装外置插件动态扩展
+        // 打印机品牌：Zebra 内置 + 已装外置插件动态扩展
         content.AddView(FieldLabel(L(Resource.String.printer_brand_label)));
         _brandGroup = new RadioGroup(this);
         _brandGroup.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
@@ -415,7 +409,7 @@ public sealed class MainActivity : Activity
         content.AddView(Spacing(10));
         RunAsync(RefreshBrandOptionsAsync);
 
-        // 连接类型（网口默认且一级路径；蓝牙 / USB 为增量类型）——Zebra 专属，插件品牌隐藏整块
+        // 连接类型（Zebra 专属；插件品牌固定网口，隐藏整块）
         _connectionTypeCard = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _connectionTypeCard.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         _connectionTypeCard.AddView(FieldLabel(L(Resource.String.conn_type_label)));
@@ -461,7 +455,7 @@ public sealed class MainActivity : Activity
         _tcpFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         content.AddView(_tcpFields);
 
-        // 蓝牙参数：MAC 地址手输（预授权：首版最简）
+        // 蓝牙参数：MAC 地址手输
         _bluetoothFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _bluetoothFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         _bluetoothFields.AddView(FieldLabel(L(Resource.String.printer_bt_label)));
@@ -471,7 +465,7 @@ public sealed class MainActivity : Activity
         _bluetoothFields.AddView(Subtle(L(Resource.String.printer_bt_note)));
         content.AddView(_bluetoothFields);
 
-        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误，预授权）
+        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误）
         _usbFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _usbFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         var usbNote = TextView(L(Resource.String.printer_usb_note), 12.5f, ColorTextSecondary);
@@ -513,7 +507,7 @@ public sealed class MainActivity : Activity
                 ? id
                 : 0x2001;
 
-    /// <summary>刷新品牌选项（已装外部插件动态扩展，「品牌选项卡由已装插件扩展」兑现）。</summary>
+    /// <summary>刷新品牌选项（已装外部插件动态扩展）。</summary>
     private async Task RefreshBrandOptionsAsync()
     {
         var installed = await FetchInstalledPluginsAsync();
@@ -550,7 +544,7 @@ public sealed class MainActivity : Activity
                 if (!string.Equals(selected, LabelHostConfig.DefaultPrinterBrand, StringComparison.OrdinalIgnoreCase)
                     && BrandRadioOf(selected) == 0x2001)
                 {
-                    // 配置引用的插件品牌当前不可用（已卸载 / 加载失败）：状态栏摘要会显示回退，这里按 Zebra 呈现
+                    // 配置引用的插件品牌当前不可用（已卸载 / 加载失败）：选项按 Zebra 呈现（与宿主路由回退一致）
                     HostLog.Warn(HostLog.Tags.Ui, $"配置的打印机品牌 {selected} 插件未装配，品牌选项回退 Zebra。");
                 }
 
@@ -573,7 +567,7 @@ public sealed class MainActivity : Activity
         return button;
     }
 
-    /// <summary>当前选中连接类型对应的存储值（插件品牌固定 tcp—— 配置结构零变更）。</summary>
+    /// <summary>当前选中连接类型对应的存储值（插件品牌固定 tcp，配置结构零变更）。</summary>
     private string SelectedConnectionType()
         => IsPluginBrandSelected()
             ? LabelFrame.AndroidHost.Transport.ZebraSdkTransport.ConnectionTypeTcp
@@ -627,7 +621,6 @@ public sealed class MainActivity : Activity
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                // 错误码翻译：已知码本地翻译、未知码回退后端中文 message
                 var detail = Truncate(DescribeErrorBody(body));
                 SetResult(_printTestText, L(Resource.String.printer_test_http_error, detail), ColorErr);
                 return;
@@ -660,7 +653,7 @@ public sealed class MainActivity : Activity
                 if (current.Status is "Failed" or "Cancelled")
                 {
                     var failedItem = current.Items?.FirstOrDefault(i2 => i2.ErrorMessage is not null);
-                    // 失败项按码翻译（项级无 params：模板带参的码自然回退中文，语义对齐）
+                    // 项级无 params 通道：模板带参的码自然回退中文
                     var reason = ResolveError(failedItem?.ErrorCode, null, failedItem?.ErrorMessage ?? current.Status);
                     SetResult(_printTestText, PrintFailText(reason), ColorErr);
                     return;
@@ -1004,11 +997,8 @@ public sealed class MainActivity : Activity
         }
     }
 
-    /// <summary>
-    /// 卸载确认（/ ，：销毁类操作必须先确认）——原生 AlertDialog，danger 文案与视觉：
-    /// 标题 + 后果说明（含不可恢复语义与自动重启提示）+ 确认按钮红字；确认后才执行卸载（删插件目录并重启打印服务）。
-    /// 文案双语化，仅换文案来源——danger 视觉（确认红字 / 取消次要色）与确认语义不变。
-    /// </summary>
+    /// <summary>卸载确认——销毁类操作必须先经原生 AlertDialog 确认（标题 + 后果说明 + 确认按钮红字），
+    /// 确认后才执行卸载（删插件目录并重启打印服务）。</summary>
     private void ConfirmUninstallPlugin(string pluginId, string pluginName)
     {
         var builder = new AlertDialog.Builder(this);
@@ -1016,7 +1006,7 @@ public sealed class MainActivity : Activity
         builder.SetMessage(L(Resource.String.plugins_uninstall_dialog_message, pluginName));
         builder.SetNegativeButton(L(Resource.String.dialog_cancel), (_, _) => { });
         builder.SetPositiveButton(L(Resource.String.plugins_uninstall), (_, _) => RunAsync(() => UninstallPluginAsync(pluginId)));
-        // 绑定注解将 Create() 标为可空（Java 契约实际不返回 null），按仓库 0 警口径显式断言非空（与 Typeface.Monospace! 同款）
+        // 绑定注解将 Create() 标为可空（Java 契约实际不返回 null），按 0 警口径显式断言非空
         var dialog = builder.Create()!;
         dialog.Show();
         // danger 视觉：确认（卸载）按钮红字警示；取消为常规次要色
@@ -1042,7 +1032,7 @@ public sealed class MainActivity : Activity
                 return;
             }
 
-            // 配置还指向被卸载品牌时回退 Zebra（宿主路由同样回退，这里同步配置避免界面悬空）
+            // 配置还指向被卸载品牌时回退 Zebra（与宿主路由回退一致，同步配置避免界面悬空）
             if (string.Equals(_config.PrinterBrand.Trim(), pluginId, StringComparison.OrdinalIgnoreCase))
             {
                 _config.Persist(this, printerBrand: LabelHostConfig.DefaultPrinterBrand);
@@ -1080,8 +1070,7 @@ public sealed class MainActivity : Activity
         }
     }
 
-    /// <summary>从错误响应 JSON 里取错误视图（码 + 可选 params + 中文消息；取不到返回 null）。
-    /// 形状对齐本地 HTTP / Server 的 ErrorView（加 params，PDA 侧接入）。</summary>
+    /// <summary>从错误响应 JSON 里取错误视图（码 + 可选 params + 中文消息；取不到返回 null）。</summary>
     private static ErrorViewDto? TryReadErrorView(string body)
     {
         try
@@ -1223,7 +1212,7 @@ public sealed class MainActivity : Activity
 
         _config = LabelHostConfig.Load(this);
         _installedPluginsCache = null;
-        // 品牌选项随插件装配变化：打印机子页缓存失效，重进时重建（品牌选项卡由已装插件扩展）
+        // 品牌选项随插件装配变化：打印机子页缓存须失效，重进时重建
         _printerView = null;
         SyncInputsFromConfig();
         RefreshStatus();
@@ -1335,7 +1324,7 @@ public sealed class MainActivity : Activity
             serverEntry = L(Resource.String.status_server_entry_connecting, UrlHost(s.ActiveServerUrl));
         }
 
-        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要（网口 IP / 蓝牙地址 / USB 数据线）
+        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要
         var printerDisplay = s.ActivePrinterEndpoint;
         var printerError = s.LastPrintError is not null;
         string printerLine, printerEntry;
@@ -1514,7 +1503,7 @@ public sealed class MainActivity : Activity
         return button;
     }
 
-    /// <summary>销毁类操作按钮（卸载，/）：红底白字实心 danger 视觉，高度 ≥48dp。</summary>
+    /// <summary>销毁类操作按钮（卸载）：红底白字实心 danger 视觉，高度 ≥48dp。</summary>
     private Button DangerButton(string text, Action onClick, int? width = null)
     {
         var button = new Button(this) { Text = text };

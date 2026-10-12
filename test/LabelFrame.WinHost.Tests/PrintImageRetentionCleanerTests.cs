@@ -11,8 +11,7 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// 出图目录保留清理测试（Issue ~）：
-/// 超期删除 / 保留期内不删 / 关闭语义（≤0）/ 清理失败降级留痕（含打印主链路不受影响）。
+/// 出图目录保留清理测试：超期删除 / 保留期内不删 / 关闭语义（≤0）/ 清理失败降级留痕（含打印主链路不受影响）。
 /// </summary>
 public class PrintImageRetentionCleanerTests
 {

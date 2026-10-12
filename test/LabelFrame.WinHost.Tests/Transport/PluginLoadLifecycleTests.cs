@@ -5,10 +5,9 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// 外置插件加载生命周期回归（/ DESIGN 「加载生命周期」）：
-/// 锚定缺陷时序「启动扫描（ALC 根只经注册表持有，加载结果即刻弃置）→ 多轮强制 GC + 延迟 →
-/// 首用触发依赖解析」不再抛 FileLoadException(VerifyIsAlive)——官方 Zebra 插件生产同构包
-/// （真实插件 DLL + SDK 全套伴生闭包）经三层校验安装 + 目录装配，首用走 TestAsync
+/// 外置插件加载生命周期回归：锚定缺陷时序「启动扫描（ALC 根只经注册表持有，加载结果即刻弃置）→
+/// 多轮强制 GC + 延迟 → 首用触发依赖解析」不再抛 FileLoadException(VerifyIsAlive)——
+/// 官方 Zebra 插件生产同构包经三层校验安装 + 目录装配，首用走 TestAsync
 /// （加载失败发生在网络动作之前，不可达端口得到干净连接失败即证明加载路径已过）。
 /// </summary>
 public class PluginLoadLifecycleTests

@@ -3,10 +3,6 @@ namespace LabelFrame.Bootstrapper.Manifest;
 using System.Net.Http;
 
 /// <summary>安装清单加载器：来源支持本地路径（含离线全量包内嵌清单场景）或 URL（稳定通道 / 指定版本 Release）。</summary>
-/// <remarks>
-/// dry-run 契约锚点（DESIGN 实现要点、Issue）：清单获取是引导全程唯一的网络访问——
-/// 只读 GET、不带任何写语义；本地路径则零网络访问。下载 / 安装能力归 / ，本轮不存在。
-/// </remarks>
 public static class InstallManifestLoader
 {
     private static readonly HttpClient SharedClient = new();
@@ -34,7 +30,7 @@ public static class InstallManifestLoader
 
     private static async Task<string> DownloadAsync(string url, HttpClient http, CancellationToken cancellationToken)
     {
-        // 只读 GET（无网络写入； 测试断言锚点）
+        // 只读 GET（问卷只读契约：清单获取是问卷阶段唯一的网络访问，不带任何写语义）
         using var response = await http.GetAsync(url, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
