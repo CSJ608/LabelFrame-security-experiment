@@ -1,9 +1,9 @@
 // API 契约 DTO（docs/FRONTEND-SPEC.md §4，与后端实现对齐）
-// 迭代 18（F1）：双 base——serverApi（服务端地址）/ localApi（页面来源 = 本机 LabelFrame Client）。
+// （F1）：双 base——serverApi（服务端地址）/ localApi（页面来源 = 本机 LabelFrame Client）。
 
 import type { BackendContract, BackendElement, BackendLayout } from '../design/convert'
 
-/** 服务端地址默认值（迭代 18：语义改为「服务端地址」，默认 127.0.0.1:53961）。 */
+/* * 服务端地址默认值（语义改为「服务端地址」，默认 127.0.0.1:53961）。 */
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:53961'
 
 /** 本机客户端（WinHost）默认地址：localApi 无 window（Node 环境）时的回退。 */
@@ -28,7 +28,7 @@ export interface TemplatePackage {
   contract: BackendContract
   layout: BackendLayout
   testData?: Record<string, string>
-  /** 图片资源（键 → base64，迭代 132 · #329）：保存请求三态语义（缺省 / null＝保留、空字典＝清空、非空＝覆盖）——
+  /* * 图片资源（键 → base64，·）：保存请求三态语义（缺省 / null＝保留、空字典＝清空、非空＝覆盖）——
    *  设计器恒发显式字典（被引用 key 全集）；GET 详情响应本就携带。 */
   images?: Record<string, string>
 }
@@ -48,13 +48,13 @@ export interface JobView {
   status: string
   totalItems: number
   completedItems: number
-  /** Server（迭代 16）：目标设备 ID 与在线状态（WinHost 不返回）。 */
+  /* * Server：目标设备 ID 与在线状态（WinHost 不返回）。 */
   targetDeviceId?: string
   deviceStatus?: string
   /** Server：失败张数与错误消息（无逐张明细）。 */
   failedItems?: number
   errorMessage?: string
-  /** 迭代 18（B10）：WinHost 扩展 JobView 与 Server 对齐——创建时间（作业历史「时间」列；防御性声明为可选）。 */
+  /* * （B10）：WinHost 扩展 JobView 与 Server 对齐——创建时间（作业历史「时间」列；防御性声明为可选）。 */
   createdAt?: string
   /** WinHost：逐张明细（Server 不返回）。 */
   items?: JobItem[]
@@ -71,7 +71,7 @@ export interface DeviceView {
   registeredAt: string
   lastSeenAt: string
   status: string
-  /** 迭代 20：服务端记录的服务端所见来源 IP（注册 / 心跳刷新，IPv4 文本；旧设备可能为空）。 */
+  /* * ：服务端记录的服务端所见来源 IP（注册 / 心跳刷新，IPv4 文本；旧设备可能为空）。 */
   lastIp?: string | null
 }
 
@@ -87,7 +87,7 @@ export interface LogEntry {
 }
 
 /**
- * 提交作业请求（迭代 16：服务端模式优先 `templateName` 引用模板库 + `targetDeviceId` 定向投递；
+ * 提交作业请求（：服务端模式优先 `templateName` 引用模板库 + `targetDeviceId` 定向投递
  * 自包含 `template` 保留兼容——单机 WinHost / 调试出图使用）。
  */
 export interface SubmitJobRequest {
@@ -106,8 +106,8 @@ export interface SubmitJobRequest {
   labels: { data: Record<string, string> }[]
 }
 
-// ── 连接管理（迭代 15 §6.2 恢复，迭代 18：全部走 localApi，接口 0.14 已在未删）──
-// 迭代 22：传输插件化——连接方式抽象为插件（统一接口 + 参数模型 + 注册表），
+// ── 连接管理（恢复，：全部走 localApi，接口 0.14 已在未删）──
+// 传输插件化——连接方式抽象为插件（统一接口 + 参数模型 + 注册表）
 // GET /api/transport 响应扩展 availablePlugins（spec 驱动表单）/ displayText（徽标），旧字段 mode / availableModes 保留兼容。
 
 export type TransportMode = 'Log' | 'Tcp' | 'WindowsDriver' | 'Zebra'
@@ -122,7 +122,7 @@ export interface TransportParams {
   zebraUsbName?: string
 }
 
-// ── 迭代 22：插件参数模型（后端 TransportParameterSpec / TransportPluginParameters）──
+// ── ：插件参数模型（后端 TransportParameterSpec / TransportPluginParameters）──
 
 export type TransportParameterType = 'String' | 'Int' | 'Bool' | 'Select'
 
@@ -157,7 +157,7 @@ export interface TransportPluginInfo {
   displayName: string
   description?: string
   parameters: TransportParameterSpec[]
-  /** 文档编译能力位（迭代 78，§5.4.2）：true 时插件声明 printMode 参数，native 模式可编译品牌原生指令；旧后端缺省 undefined。 */
+  /* * 文档编译能力位：true 时插件声明 printMode 参数，native 模式可编译品牌原生指令；旧后端缺省 undefined。 */
   supportsDocumentCompile?: boolean
 }
 
@@ -166,26 +166,26 @@ export type PluginParamValue = string | number | boolean
 export type PluginParams = Record<string, PluginParamValue>
 
 export interface TransportConfig {
-  /** 迭代 22：当前生效插件 ID（log / tcp9100 / winspool / zebra / 外部插件）；旧后端为 undefined。 */
+  /* * ：当前生效插件 ID（log / tcp9100 / winspool / zebra / 外部插件）；旧后端为 undefined。 */
   pluginId?: string
-  /** 迭代 22：当前插件展示名（后端提供）。 */
+  /* * ：当前插件展示名（后端提供）。 */
   displayName?: string
-  /** 迭代 22：连接徽标文本（后端 displayText，如「TCP 192.168.1.50:9100」）；前端优先展示，旧后端回退本地格式化。 */
+  /* * ：连接徽标文本（后端 displayText，如「TCP 192.168.1.50:9100」）；前端优先展示，旧后端回退本地格式化。 */
   displayText?: string
-  /** 迭代 22：已装配插件目录（spec 驱动参数表单）；旧后端无此字段 → 前端回退内置 4 模式。 */
+  /* * ：已装配插件目录（spec 驱动参数表单）；旧后端无此字段 → 前端回退内置 4 模式。 */
   availablePlugins?: TransportPluginInfo[]
-  /** 插件参数（迭代 22：弱类型字典）；旧后端为平铺 TransportParams。 */
+  /* * 插件参数（弱类型字典）；旧后端为平铺 TransportParams。 */
   params: TransportParams | PluginParams
   /** 旧字段（0.14 兼容，后端仍返回）。 */
   mode: TransportMode
   availableModes?: TransportMode[]
 }
 
-/** POST /api/transport 请求体（迭代 22：pluginId + params 字典，testOnly 由测试连接填充；旧字段保留兼容）。 */
+/* * POST /api/transport 请求体（pluginId + params 字典，testOnly 由测试连接填充；旧字段保留兼容）。 */
 export interface TransportApplyRequest {
-  /** 迭代 22：目标插件 ID（如 tcp9100）。 */
+  /* * ：目标插件 ID（如 tcp9100）。 */
   pluginId?: string
-  /** 迭代 22：插件参数字典。 */
+  /* * ：插件参数字典。 */
   params?: PluginParams
   testOnly?: boolean
   // ── 旧字段（0.14 兼容，后端仍接受）──
@@ -204,7 +204,7 @@ export interface TransportResult {
   config: TransportConfig
 }
 
-// ── 客户端下载分发（迭代 22：服务端 client-packages 目录 + API）──
+// ── 客户端下载分发（服务端 client-packages 目录 + API）──
 
 /** 服务端可用客户端安装包（GET /api/client-packages）。 */
 export interface ClientPackageInfo {
@@ -215,7 +215,7 @@ export interface ClientPackageInfo {
   url?: string
 }
 
-// ── PDA（Android 宿主）安装包分发（迭代 59 决策 #119：服务端 pda-packages 目录 + API，与 client-packages 对称）──
+// ── PDA（Android 宿主）安装包分发（服务端 pda-packages 目录 + API，与 client-packages 对称）──
 
 /** 服务端可用 PDA 安装包（GET /api/pda-packages；下载 MIME 为 application/vnd.android.package-archive）。 */
 export interface PdaPackageInfo {
@@ -226,14 +226,14 @@ export interface PdaPackageInfo {
   url?: string
 }
 
-// ── 本机 IPv4 候选（迭代 118 · #272：下载中心「连接信息」卡地址候选）──
+// ── 本机 IPv4 候选（· ：下载中心「连接信息」卡地址候选）──
 
 /** 服务端枚举的本机 IPv4 候选（GET /api/server/ipv4-candidates；私网（局域网）地址优先排序）。 */
 export interface Ipv4Candidates {
   candidates: string[]
 }
 
-// ── 迭代 23：客户端插件分发（服务端 plugin-packages + 客户端 /api/plugins 安装 / 卸载）──
+// ── ：客户端插件分发（服务端 plugin-packages + 客户端 /api/plugins 安装 / 卸载）──
 
 /** 服务端插件包列表项（GET /api/plugin-packages；invalid 条目元数据字段缺失，仅文件信息有效）。 */
 export interface PluginPackageInfo {
@@ -282,7 +282,7 @@ export interface PluginUninstallResult {
   message: string
 }
 
-// ── 本机客户端（迭代 18 F1/F2：GET/POST /api/host/config，机器级持久化）──
+// ── 本机客户端（F1/F2：GET/POST /api/host/config，机器级持久化）──
 
 /** 机器级配置（B6：settings.json 缺失 / 损坏时 GET 返回 200 + 默认 serverUrl）。
  *  GET 响应含 deviceId / deviceName；POST 只更新 serverUrl（deviceId / deviceName 由客户端自身提供，后端忽略请求体中的值）。 */
@@ -290,13 +290,13 @@ export interface HostConfig {
   serverUrl: string
   deviceId?: string
   deviceName?: string
-  /** 迭代 20：本机 IPv4 列表（枚举网卡、过滤回环；多 IP 状态栏逗号分隔显示全部）。 */
+  /* * ：本机 IPv4 列表（枚举网卡、过滤回环；多 IP 状态栏逗号分隔显示全部）。 */
   ips?: string[]
-  /** 迭代 64（决策 #126）：客户端产品版本（只读；旧客户端无此字段——「检查更新」比较口径）。 */
+  /* * ：客户端产品版本（只读；旧客户端无此字段——「检查更新」比较口径）。 */
   version?: string
 }
 
-/** 客户端批次作业设置（迭代 24 §4.1：GET/POST /api/host/print-settings，用户级持久化 print-settings.json）。
+/* * 客户端批次作业设置（GET/POST /api/host/print-settings，用户级持久化 print-settings.json）。
  *  后端读取 Normalize：缺失 / 损坏 / 越界统一回默认值（batchSize<1→10、batchIntervalMs<0→500、batchEnabled 非 bool→false），
  *  GET 永不返回非法值；POST 校验 batchSize ≥ 1、batchIntervalMs ≥ 0，非法 400 + 中文原因；保存即生效（无需重启）。
  *  batchEnabled=false 时节流逻辑忽略 batchSize / batchIntervalMs（读取时两者仍参与 Normalize）。 */
@@ -309,7 +309,7 @@ export interface PrintSettings {
   batchIntervalMs: number
 }
 
-/** GET /api/printer/status（迭代 15 恢复，F4）。 */
+/* * GET /api/printer/status（恢复，F4）。 */
 export interface PrinterStatus {
   isOnline: boolean
   isPaperOut: boolean
@@ -323,7 +323,7 @@ export interface PrinterTestResult {
   bytes: number
 }
 
-/** 后端错误响应（ErrorView；params 为迭代 109 · #242 决策 #164 ③ / #166 新增可选字段）。 */
+/* * 后端错误响应（ErrorView；params 为· ③ / 新增可选字段）。 */
 export interface ApiErrorBody {
   code: string
   message: string

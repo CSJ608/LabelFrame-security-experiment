@@ -6,13 +6,13 @@ using Xunit;
 namespace LabelFrame.Api.Tests;
 
 /// <summary>
-/// ErrorView 可选 params 契约测试（迭代 109 · #242，AC-02 / AC-03）：
+/// ErrorView 可选 params 契约测试（· ， /）：
 /// params 缺省 / null 时序列化与旧形态逐字节等价（加法兼容，旧调用方无感）；
 /// params 非空时以 JSON 对象形态追加在字段尾部；模板插值单遍替换、参数缺失占位符原样保留。
 /// </summary>
 public sealed class ErrorViewParamsTests
 {
-    /// <summary>迭代 109 之前的 ErrorView 形态快照（现状锚点）：三字段位置记录。</summary>
+    /// <summary>之前的 ErrorView 形态快照（现状锚点）：三字段位置记录。</summary>
     private sealed record LegacyErrorView(string Code, string Message, string? FieldKey = null);
 
     // minimal API 默认 JSON 选项（Microsoft.AspNetCore.Http.Json → JsonSerializerDefaults.Web：camelCase、null 输出）
@@ -25,7 +25,7 @@ public sealed class ErrorViewParamsTests
     [Fact]
     public void Params_absent_should_serialize_byte_equal_to_legacy_shape()
     {
-        // 现状锚点：与迭代 109 前的三字段形态逐字节一致（minimal API Web 默认：camelCase、null 输出、非 ASCII 转义）
+        // 现状锚点：与前的三字段形态逐字节一致（minimal API Web 默认：camelCase、null 输出、非 ASCII 转义）
         var legacy = JsonSerializer.Serialize(
             new LegacyErrorView("LF_SRV_002", "请求体不能为空。"), WebDefaults);
         var current = JsonSerializer.Serialize(
@@ -82,7 +82,7 @@ public sealed class ErrorViewParamsTests
         Assert.Equal("1.2.3.4", fromCurrent.Params!["ip"]);
     }
 
-    // ---- ErrorMessageTemplates（AC-03：模板 + 参数构造，渲染结果与旧内插文案等价）----
+    // ---- ErrorMessageTemplates（模板 + 参数构造，渲染结果与旧内插文案等价）----
 
     [Fact]
     public void Format_should_render_placeholders_from_parameters()

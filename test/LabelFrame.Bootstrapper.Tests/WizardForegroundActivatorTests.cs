@@ -4,10 +4,10 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// WizardForegroundActivator（向导首显主动置前器）单元测试（迭代 116，#265，AC-02 单测部分）：
+/// WizardForegroundActivator（向导首显主动置前器）单元测试（单测部分）：
 /// 组合置前调用时序——已在前台零扰动；未在前台时「线程挂接 → 最小化 → 还原 → 会话切换 → 前置请求 → 解除挂接」，
 /// 置前被拒转任务栏强闪烁兜底（FLASHW_ALL | FLASHW_TIMERNOFG）；同线程 / 挂接失败 / 无前台窗口的防御分支。
-/// 断言形态对齐 WinHost TrayMenuPresenterTests 先例（#263）：全 Win32 调用点注入替身，录制调用序列逐条比对。
+/// 断言形态对齐 WinHost TrayMenuPresenterTests 先例：全 Win32 调用点注入替身，录制调用序列逐条比对。
 /// </summary>
 public sealed class WizardForegroundActivatorTests
 {
@@ -82,7 +82,7 @@ public sealed class WizardForegroundActivatorTests
     [Fact]
     public void Activate_when_already_foreground_returns_without_disturbance()
     {
-        // AC-04 正例锚点：正常链（双击且未切走）首显即前台——除首次探测外零调用零扰动（不闪烁、不最小化）
+        // 正例锚点：正常链（双击且未切走）首显即前台——除首次探测外零调用零扰动（不闪烁、不最小化）
         var calls = new RecordingCalls();
         var activator = calls.Build(new ForegroundQueue(Window));
 
@@ -95,7 +95,7 @@ public sealed class WizardForegroundActivatorTests
     [Fact]
     public void Activate_runs_combined_strategy_in_order_and_takes_foreground()
     {
-        // 组合拳全序列（AC-02）：挂接 → 最小化 → 还原 → 切换 → 前置请求 → 解除挂接 → 前台复核，无闪烁
+        // 组合拳全序列：挂接 → 最小化 → 还原 → 切换 → 前置请求 → 解除挂接 → 前台复核，无闪烁
         var calls = new RecordingCalls();
         var activator = calls.Build(new ForegroundQueue(Other, Window));
 
@@ -121,7 +121,7 @@ public sealed class WizardForegroundActivatorTests
     [Fact]
     public void Activate_rejected_request_falls_back_to_taskbar_flash()
     {
-        // 兜底形态（AC-02 备选结论）：前置请求被拒且前台复核仍非本窗 → FLASHW_ALL | FLASHW_TIMERNOFG（0x0F）强闪烁；
+        // 兜底形态（备选结论）：前置请求被拒且前台复核仍非本窗 → FLASHW_ALL | FLASHW_TIMERNOFG（0x0F）强闪烁
         // 解除挂接不因失败缺席（finally）
         var calls = new RecordingCalls();
         var activator = calls.Build(new ForegroundQueue(Other, Other), setForegroundResult: false);

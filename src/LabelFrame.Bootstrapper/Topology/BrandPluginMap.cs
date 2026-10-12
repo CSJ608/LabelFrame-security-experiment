@@ -1,13 +1,13 @@
 namespace LabelFrame.Bootstrapper.Topology;
 
 /// <summary>
-/// 品牌 → 官方插件包 pluginId 映射（决策 #123，DESIGN §6.8 品牌映射表；迭代 63 / #56 完整化）。
+/// 品牌 → 官方插件包 pluginId 映射（DESIGN 品牌映射表；/ 完整化）。
 /// manifest 组件 id（plugin-&lt;brand&gt;）与 .lfplugin 实际安装目录（plugins\&lt;pluginId&gt;）是两个 id 命名空间，
 /// 本表是两者的桥；后续新品牌（TSPL / CPCL 等）按同构扩展。
 /// </summary>
 /// <remarks>
 /// 常量与 LabelFrame.Core 的 TransportPluginIdPolicy 保持一致（引导核心库独立于 Core——net48 腿不引用 net10 目标的 Core，
-/// 见 §6.1 多目标约束）；两侧同步演进，变更先改 DESIGN §6.8。
+/// 见 多目标约束）；两侧同步演进，变更先改 DESIGN 。
 /// </remarks>
 public static class BrandPluginMap
 {

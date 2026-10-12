@@ -18,7 +18,7 @@ using Xunit;
 namespace LabelFrame.WinHost.Integration;
 
 /// <summary>
-/// 服务端地址切换「保存即生效」HTTP 集成测试（迭代 80，#128 AC-01 / AC-04）：
+/// 服务端地址切换「保存即生效」HTTP 集成测试（/）：
 /// 用与生产一致的 WinHostApp 装配 + 两个真实 Kestrel stub 服务端模拟运行中切换——
 /// 断言设备在新服务端注册（POST /api/devices 可见）、与旧服务端的长轮询连接被断开（notify 请求中止）。
 /// </summary>
@@ -85,10 +85,10 @@ public sealed class ServerRoutingHotSwitchTests : IDisposable
         var save = await _client.PostAsync("/api/host/config", Json($"{{ \"serverUrl\": \"{_newServer.Url}\" }}"));
         Assert.True(save.IsSuccessStatusCode, await save.Content.ReadAsStringAsync());
 
-        // AC-01：设备在新服务端注册（POST /api/devices 可见）
+        // 设备在新服务端注册（POST /api/devices 可见）
         await UntilAsync(() => _newServer.RegisterCount >= 1);
 
-        // AC-01：与旧服务端的轮询连接断开（旧 notify 长轮询请求被中止，无新轮询建立）
+        // 与旧服务端的轮询连接断开（旧 notify 长轮询请求被中止，无新轮询建立）
         var disconnected = await Task.WhenAny(_oldServer.NotifyAborted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
         Assert.Same(_oldServer.NotifyAborted.Task, disconnected);
         await UntilAsync(() => _oldServer.ActiveNotifyCount == 0);

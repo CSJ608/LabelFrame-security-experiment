@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
-// 迭代 20：server 构建（VITE_UI_MODE=server）菜单裁剪——含 在线设备，移除 设置 与一切
-// 打印机相关入口；迭代 75（#112）：「设备日志 / PDA 日志」页下线（导航入口移除，回传链路不存在前
+// server 构建（VITE_UI_MODE=server）菜单裁剪——含 在线设备，移除 设置 与一切
+// 打印机相关入口；：「设备日志 / PDA 日志」页下线（导航入口移除，回传链路不存在前
 // 的界面收敛）；状态栏显示服务端地址（页面 origin /「同源」）与 UI 模式；
 // K2 守门：跳过 localApi 探测（getHostConfig / getTransport 不被调用）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from './App'
-// 迭代 96（#183）：挂载链（AppContext 启动链 → 模板列表加载）为多段 promise + React 真实宏任务
+// 挂载链（AppContext 启动链 → 模板列表加载）为多段 promise + React 真实宏任务
 // 调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms；统一放宽到 8000ms（与
 // JobHistory / DataPrint / Settings 同口径），单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
@@ -110,13 +110,13 @@ describe('server 构建：菜单裁剪（迭代 20 §2.2 / Y5）', () => {
     expect(screen.getByRole('button', { name: '设计器' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '数据与打印' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '作业历史' })).toBeTruthy()
-    // 迭代 59（决策 #119）：Server UI 统一「下载中心」页入口（原「客户端下载」页升级）
+    // Server UI 统一「下载中心」页入口（原「客户端下载」页升级）
     expect(screen.getByRole('button', { name: '下载中心' })).toBeTruthy()
-    // 迭代 23 §5.4：Server UI「插件管理」页入口（与「下载中心」并列）
+    // Server UI「插件管理」页入口（与「下载中心」并列）
     expect(screen.getByRole('button', { name: '插件管理' })).toBeTruthy()
-    // 迭代 129（#320，决策 #179）：「帮助」页纳入 server 主导航（末位，与 client 对齐）
+    // 「帮助」页纳入 server 主导航（末位，与 client 对齐）
     expect(screen.getByRole('button', { name: '帮助' })).toBeTruthy()
-    // 设置页不存在；「设备日志 / PDA 日志」页已下线（迭代 75，#112——/api/logs 端点与 logs.db 后端保留）
+    // 设置页不存在；「设备日志 / PDA 日志」页已下线（——/api/logs 端点与 logs.db 后端保留）
     expect(screen.queryByRole('button', { name: '设置' })).toBeNull()
     expect(screen.queryByRole('button', { name: '设备日志' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'PDA 日志' })).toBeNull()
@@ -160,7 +160,7 @@ describe('server 构建：下载中心页入口（迭代 22 §2.3；迭代 59 �
     ])
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: '下载中心' }))
-    // 默认快速访问：两平台「最新上传」卡 + 连接信息卡（AC-01/02）
+    // 默认快速访问：两平台「最新上传」卡 + 连接信息卡（/02）
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(screen.getByText('服务端信息')).toBeTruthy()

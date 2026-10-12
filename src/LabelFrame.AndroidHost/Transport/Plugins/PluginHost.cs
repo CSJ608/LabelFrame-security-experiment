@@ -9,7 +9,7 @@ namespace LabelFrame.AndroidHost.Transport.Plugins;
 /// </summary>
 public sealed class PluginHostState
 {
-    /// <summary>传输插件注册表（内置 zebra + 外部插件；外部 ALC 根随注册强持有——决策 #127）。</summary>
+    /// <summary>传输插件注册表（内置 zebra + 外部插件；外部 ALC 根随注册强持有——）。</summary>
     public required TransportPluginRegistry Registry { get; init; }
 
     /// <summary>插件安装 / 卸载服务（本地 HTTP 插件端点用；平台门 = android）。</summary>
@@ -26,14 +26,14 @@ public sealed class PluginHostState
 }
 
 /// <summary>
-/// PDA 外置插件通道装配（迭代 96，决策 #156，DESIGN §6.8「跨端格式与 PDA 通道」）：
+/// PDA 外置插件通道装配（DESIGN 「跨端格式与 PDA 通道」）：
 /// 注册内置 Zebra 插件（SDK 档，id = zebra——外部包与内置 id 冲突的拒绝锚点）后扫描
-/// {FilesDir}/plugins/ 目录加载外部插件（轻量档纯托管，加载生命周期完全继承决策 #127：
+/// {FilesDir}/plugins/ 目录加载外部插件（轻量档纯托管，加载生命周期完全继承：
 /// 包目录单 collectible ALC 整体字节加载 + 注册表强持有 ALC 根；单插件加载失败留痕不阻断宿主）。
 /// </summary>
 public static class PluginHost
 {
-    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins——决策 #156 ⑤，一插件一子目录）。</summary>
+    /// <summary>插件根目录名（应用私有 {FilesDir}/plugins—— ⑤，一插件一子目录）。</summary>
     public const string PluginsDirName = "plugins";
 
     /// <summary>插件数据目录名（插件状态文件根，{FilesDir}/plugins-data）。</summary>
@@ -69,7 +69,7 @@ public static class PluginHost
 
             foreach (var discovered in load.Plugins)
             {
-                // 外部插件不允许覆盖内置 id（zebra 等）；ALC 根随注册强持有（决策 #127）
+                // 外部插件不允许覆盖内置 id（zebra 等）；ALC 根随注册强持有
                 if (registry.RegisterExternal(discovered.Plugin, discovered.AssemblyPath, hostLog, discovered.LoadContext))
                 {
                     externalIds.Add(discovered.Plugin.Id);
@@ -93,7 +93,7 @@ public static class PluginHost
                 registry,
                 hostLog,
                 loadErrors,
-                // 平台门（决策 #156）：PDA 只安装 platforms 含 android 的包；无标记的存量 Windows 包拒绝
+                // 平台门：PDA 只安装 platforms 含 android 的包；无标记的存量 Windows 包拒绝
                 hostPlatform: Core.Transport.Plugins.Package.PluginPlatforms.Android),
             PluginContext = new TransportPluginContext(hostLog, pluginDataDir),
             PluginsPath = pluginsPath,

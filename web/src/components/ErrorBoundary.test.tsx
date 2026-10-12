@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 全局错误兜底（迭代 51，AC-03）：渲染异常 → 错误页（仅文案 + 重新加载按钮）+ console.error 留痕，非白屏；
+// 全局错误兜底：渲染异常 → 错误页（仅文案 + 重新加载按钮）+ console.error 留痕，非白屏
 // window.onerror / unhandledrejection 处理函数 → console.error 留痕（jsdom 手工派发 error 事件不触发
 // window.onerror，故处理函数直接断言 + 安装接线单独验证）。
 

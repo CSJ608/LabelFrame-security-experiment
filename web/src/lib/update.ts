@@ -1,7 +1,7 @@
-// 客户端「检查更新」辅助（迭代 64，决策 #126 / DESIGN §6.11 ⑤）：
+// 客户端「检查更新」辅助（/ DESIGN ⑤）：
 // 从服务端 client-packages 文件名解析客户端 MSI 版本（发版命名事实 LabelFrame-Client-<版本>.msi），
 // 与本机版本（/api/host/config.version）比较——有新版提示获取入口、无新版明确「已是最新」；
-// 不做应用内自动下载安装（决策 #71 / #72 维持）。
+// 不做应用内自动下载安装（/ 维持）。
 
 /** 客户端 MSI 命名（release.yml 产物 / 发版事实）：LabelFrame-Client-<版本>.msi（大小写不敏感）。 */
 const CLIENT_PACKAGE_PATTERN = /^LabelFrame-Client-(\d+(?:\.\d+)*)\.msi$/i
@@ -24,7 +24,7 @@ export function pickLatestPackageVersion(fileNames: string[]): string | null {
   return best
 }
 
-/** 数值段版本比较（§6.11 VersionSemantics 的前端等价实现：段缺失视为 0；>0 = 左新，<0 = 左旧）。 */
+/* * 数值段版本比较（VersionSemantics 的前端等价实现：段缺失视为 0；>0 = 左新，<0 = 左旧）。 */
 export function compareVersions(left: string, right: string): number {
   const leftParts = left.split('.').map((part) => Number.parseInt(part, 10))
   const rightParts = right.split('.').map((part) => Number.parseInt(part, 10))
@@ -38,7 +38,7 @@ export function compareVersions(left: string, right: string): number {
   return 0
 }
 
-/** 「检查更新」结论（§6.11 ⑤：三种形态——有新版 / 已是最新 / 无法比较不显示）。 */
+/* * 「检查更新」结论（⑤：三种形态——有新版 / 已是最新 / 无法比较不显示）。 */
 export type UpdateCheck =
   | { kind: 'update-available'; latestVersion: string; localVersion: string }
   | { kind: 'up-to-date'; localVersion: string }

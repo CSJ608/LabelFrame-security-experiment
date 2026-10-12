@@ -30,7 +30,7 @@ public class TransportConfigTests
     [Fact]
     public void FromJson_legacy_zebra_should_migrate_kind_and_params()
     {
-        // 旧 Mode=Zebra → 外置官方插件 id（迭代 63，决策 #123；连接配置 pluginId 用官方 id）
+        // 旧 Mode=Zebra → 外置官方插件 id（连接配置 pluginId 用官方 id）
         var config = TransportConfig.FromJson("""{"Mode":"Zebra","ZebraKind":"Tcp","TcpHost":"10.0.0.9","TcpPort":9100}""");
 
         Assert.NotNull(config);

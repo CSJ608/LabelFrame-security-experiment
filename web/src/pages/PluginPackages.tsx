@@ -1,7 +1,7 @@
-// 插件管理页（迭代 23 §2.1 / §5.4，Server UI 专用）：服务端 plugin-packages 目录管理——
+// 插件管理页（/ ，Server UI 专用）：服务端 plugin-packages 目录管理——
 // 插件包列表（名称 / 版本 / pluginId / 大小 / 时间 / valid 状态，invalid 红标 + 原因）+ 上传（multipart，64MB 预检）+ 下载 + 删除（确认）。
 // 与客户端设置页「插件管理」卡片共用 GET /api/plugin-packages 与下载 URL。
-// 迭代 112（#246）：文案 key 化（pluginPackages 域；zh-CN 值与原硬编码逐字一致）。
+// 文案 key 化（pluginPackages 域；zh-CN 值与原硬编码逐字一致）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -32,7 +32,7 @@ export function PluginPackages() {
   const [notice, setNotice] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
-  // 迭代 93（#151 F-04）：删除确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
+  // 删除确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
   const [pendingRemove, setPendingRemove] = useState<PluginPackageInfo | null>(null)
 
   const load = useCallback(async () => {

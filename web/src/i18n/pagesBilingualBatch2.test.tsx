@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 112（#246）AC 双语冒烟（第二批迁移页面）：设计器 / 属性面板 / 设置 / 下载中心中英两语言渲染——
+// AC 双语冒烟（第二批迁移页面）：设计器 / 属性面板 / 设置 / 下载中心中英两语言渲染——
 // zh-CN（vitest.setup 钉住首启语言）断言中文文案；changeLocale('en') 切换后断言英文文案且页面文本不再含 CJK
 // （业务数据一律 ASCII，避免数据噪声）；再切回中文恢复（108 惯例：en 行为用 changeLocale 显式切换）。
 // 另锚定待决议-1 建议项：UI 层数据性默认值随 locale（defaultElement 文本「文本」/「Text」、
@@ -225,7 +225,7 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
   })
 
   it('待决议-1 锚定：defaultElement 文本默认值随 locale（zh「文本」/ en「Text」），存量 Literal 不动', () => {
-    // UI 层数据性默认值跟随当前界面语言（Issue #246 待决议-1 建议项）
+    // UI 层数据性默认值跟随当前界面语言（Issue 待决议-1 建议项）
     expect(defaultElement('Text', 'a1').text).toBe('文本')
     changeLocale('en')
     expect(defaultElement('Text', 'b2').text).toBe('Text')

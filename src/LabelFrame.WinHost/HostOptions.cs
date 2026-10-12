@@ -25,7 +25,7 @@ public sealed class HostOptions
     /// <summary>默认监听地址（仅本机）。</summary>
     public const string DefaultListenUrl = "http://127.0.0.1:53960";
 
-    /// <summary>产品版本（与打包脚本 -Version 保持一致；随发版与 ServerOptions.ProductVersion 同步更新——客户端「检查更新」比较口径，决策 #126）。</summary>
+    /// <summary>产品版本（与打包脚本 -Version 保持一致；随发版与 ServerOptions.ProductVersion 同步更新——客户端「检查更新」比较口径）。</summary>
     public const string ProductVersion = "0.35.0";
 
     /// <summary>默认数据库目录（%LOCALAPPDATA%\LabelFrame）。</summary>
@@ -68,10 +68,10 @@ public sealed class HostOptions
     /// <summary>Server 轮询间隔（秒）。</summary>
     public int PollIntervalSeconds { get; set; } = 5;
 
-    /// <summary>进度增量上报节流间隔毫秒（决策 #101；默认 1000，且计数有变化才发；0 或负值取默认）。</summary>
+    /// <summary>进度增量上报节流间隔毫秒（默认 1000，且计数有变化才发；0 或负值取默认）。</summary>
     public int ProgressIntervalMs { get; set; } = 1000;
 
-    /// <summary>Serilog 文件日志级别（决策 #102；Trace/Debug/Information/Warning/Error；默认 Information；LABELFRAME_LOG_LEVEL 优先）。</summary>
+    /// <summary>Serilog 文件日志级别（Trace/Debug/Information/Warning/Error；默认 Information；LABELFRAME_LOG_LEVEL 优先）。</summary>
     public string LogLevel { get; set; } = "Information";
 
     /// <summary>Serilog 文件日志目录（默认 %LOCALAPPDATA%\LabelFrame\logs；测试 / 联调可重定向）。</summary>
@@ -80,7 +80,7 @@ public sealed class HostOptions
         "LabelFrame",
         "logs");
 
-    /// <summary>app-*.log 按日文件保留上限（决策 #108；默认 31；0 或负值 = 不清理；LABELFRAME_APP_LOG_RETENTION_DAYS 优先）。</summary>
+    /// <summary>app-*.log 按日文件保留上限（默认 31；0 或负值 = 不清理；LABELFRAME_APP_LOG_RETENTION_DAYS 优先）。</summary>
     public int AppLogRetentionDays { get; set; } = 31;
 
     /// <summary>TCP 打印机主机 / IP。</summary>
@@ -142,19 +142,19 @@ public sealed class HostOptions
         "LabelFrame",
         "print");
 
-    /// <summary>出图目录（print\&lt;jobId&gt;）按天保留上限（迭代 72，决策 #136；默认 31；0 或负值 = 不清理；LABELFRAME_PRINT_IMAGE_RETENTION_DAYS 优先）。</summary>
+    /// <summary>出图目录（print\&lt;jobId&gt）按天保留上限（默认 31；0 或负值 = 不清理；LABELFRAME_PRINT_IMAGE_RETENTION_DAYS 优先）。</summary>
     public int PrintImageRetentionDays { get; set; } = 31;
 
-    /// <summary>Log 传输 / 宿主日志文件路径（默认 %LOCALAPPDATA%\LabelFrame\host.log）。按日轮转：实际写入 host-yyyyMMdd.log（决策 #108）。</summary>
+    /// <summary>Log 传输 / 宿主日志文件路径（默认 %LOCALAPPDATA%\LabelFrame\host.log）。按日轮转：实际写入 host-yyyyMMdd.log。</summary>
     public string HostLogPath { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "LabelFrame",
         "host.log");
 
-    /// <summary>host-*.log 按日文件保留上限（决策 #108；默认 31；0 或负值 = 不清理；LABELFRAME_HOST_LOG_RETENTION_DAYS 优先）。</summary>
+    /// <summary>host-*.log 按日文件保留上限（默认 31；0 或负值 = 不清理；LABELFRAME_HOST_LOG_RETENTION_DAYS 优先）。</summary>
     public int HostLogRetentionDays { get; set; } = 31;
 
-    /// <summary>启动时显示界面（迭代 44 起语义演进：默认开 = 显示应用窗口，WebView2 运行时不可用时回退打开默认浏览器；LABELFRAME_OPEN_BROWSER=0 关闭）。--autostart 强制关闭（仅托盘常驻）。</summary>
+    /// <summary>启动时显示界面（起语义演进：默认开 = 显示应用窗口，WebView2 运行时不可用时回退打开默认浏览器；LABELFRAME_OPEN_BROWSER=0 关闭）。--autostart 强制关闭（仅托盘常驻）。</summary>
     public bool OpenBrowser { get; set; } = true;
 
     /// <summary>系统托盘图标（默认开启，可用 LABELFRAME_TRAY=0 关闭）。</summary>

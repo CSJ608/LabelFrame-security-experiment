@@ -4,7 +4,7 @@ using Android.Util;
 namespace LabelFrame.AndroidHost;
 
 /// <summary>
-/// 轻量静态日志门面（决策 #105）：logcat（tag 前缀 <c>LabelFrame.</c>）+ 应用私有目录本地滚动文件。
+/// 轻量静态日志门面：logcat（tag 前缀 <c>LabelFrame.</c>）+ 应用私有目录本地滚动文件。
 /// 仅关键路径埋点，不引入重量级依赖；写失败一律静默——日志设施自身绝不影响业务。
 /// 本地文件：<c>{FilesDir}/logs/host-yyyyMMdd-NNN.log</c>，单文件超出上限滚动到下一序号，
 /// 目录内只保留最近若干个文件（名字按日期 + 序号排序即时间序）。
@@ -29,7 +29,7 @@ public static class HostLog
         /// <summary>配置页（Activity）交互。</summary>
         public const string Ui = "Ui";
 
-        /// <summary>外置插件通道（加载 / 安装 / 品牌路由，迭代 96）。</summary>
+        /// <summary>外置插件通道（加载 / 安装 / 品牌路由）。</summary>
         public const string Plugin = "Plugin";
 
         /// <summary>全局崩溃捕获。</summary>

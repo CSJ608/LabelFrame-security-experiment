@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>缓存重试判定结果（#171 返修，决策 #156 ③）。</summary>
+/// <summary>缓存重试判定结果（③）。</summary>
 /// <param name="AllowRetry">是否允许驱动引擎重试（假 = 连续无进展次数超限，应停止重试交引擎失败处置）。</param>
 /// <param name="Delay">本次重试前的指数退避等待（事件回调内阻塞即节流引擎缓存线程）。</param>
 /// <param name="GrantedRetries">该包累计已授予的重试次数（退避指数）。</param>
@@ -16,12 +16,12 @@ public sealed record CacheRetryDecision(
 }
 
 /// <summary>
-/// 缓存重试策略（#171 返修，决策 #156 ③，DESIGN §6.10）：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 Retry /
+/// 缓存重试策略（③，DESIGN）：BA 三个缓存重试点（包级 <c>CachePackageComplete</c> 兜底 Retry /
 /// 载荷获取 <c>CacheAcquireComplete</c> Retry / 校验 <c>CacheVerifyComplete</c> RetryAcquisition）共用每包预算。
 /// </summary>
 /// <remarks>
 /// <para>
-/// 机制根源（#171 真机实测）：包级兜底重试只判「清单内有无未试源」、不判「重试间是否推进」——内嵌容器载荷的获取失败
+/// 机制根源（真机实测）：包级兜底重试只判「清单内有无未试源」、不判「重试间是否推进」——内嵌容器载荷的获取失败
 /// （如 <c>WixAttachedContainer 0x80070002</c>）无源可换、不进多源回退失败计数，未试源集合永不消耗 →
 /// 无退避无终止热循环（5 分钟 92,993 次重试、Burn 日志 219–240MB、向导滞留进度页永不出现失败页）。
 /// </para>

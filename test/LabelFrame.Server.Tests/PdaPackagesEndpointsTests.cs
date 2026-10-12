@@ -8,7 +8,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// PDA（Android 宿主）安装包分发端点 HTTP 集成测试（迭代 59 决策 #119）：
+/// PDA（Android 宿主）安装包分发端点 HTTP 集成测试：
 /// 上传仅接受 .apk；下载响应 MIME = application/vnd.android.package-archive（Android 浏览器识别为安装包）；
 /// 不存在 404 + LF_SRV_010；目录直放文件照常列出。
 /// </summary>
@@ -49,7 +49,7 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
 
         using var downloaded = await _client.GetAsync("/api/pda-packages/LabelFrame-AndroidHost-0.26.0.apk");
         Assert.Equal(HttpStatusCode.OK, downloaded.StatusCode);
-        // APK 专用 MIME（AC-02 的服务端半边）：Android 浏览器据此拉起安装
+        // APK 专用 MIME（的服务端半边）：Android 浏览器据此拉起安装
         Assert.Equal(ApkContentType, downloaded.Content.Headers.ContentType?.MediaType);
         var bytes = await downloaded.Content.ReadAsByteArrayAsync();
         Assert.Equal(6, bytes.Length);

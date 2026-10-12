@@ -5,8 +5,8 @@ namespace LabelFrame.Core.Transport.Plugins;
 
 /// <summary>
 /// 传输插件注册表实现：注册（内置 / 外部）→ 按 ID 装配。插件 ID 忽略大小写。
-/// 外部插件的 AssemblyLoadContext 根随注册强持有（决策 #127）：collectible ALC 被丢弃后 GC 发起卸载会破坏
-/// 其状态机（此后惰性解析 LoadFromStream 抛 VerifyIsAlive——迭代 63 返修根因），注册表在宿主生命周期内
+/// 外部插件的 AssemblyLoadContext 根随注册强持有：collectible ALC 被丢弃后 GC 发起卸载会破坏
+/// 其状态机（此后惰性解析 LoadFromStream 抛 VerifyIsAlive），注册表在宿主生命周期内
 /// 保持插件 ALC 存活；同 id 重新注册时旧根随旧条目释放（GC 可回收）。
 /// </summary>
 public sealed class TransportPluginRegistry : ITransportPluginRegistry
@@ -14,7 +14,7 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
     private readonly Dictionary<string, (TransportPluginDescriptor Descriptor, ITransportPlugin Plugin)> _plugins =
         new(StringComparer.OrdinalIgnoreCase);
 
-    // 外部插件的 ALC 生命周期根（决策 #127；不进 Descriptor——避免泄漏进 API 序列化契约）
+    // 外部插件的 ALC 生命周期根（不进 Descriptor——避免泄漏进 API 序列化契约）
     private readonly Dictionary<string, AssemblyLoadContext> _loadContexts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>注册插件（内置 IsExternal=false；外部 DLL 由目录加载器注册并附来源路径与 ALC 根）。</summary>
@@ -34,7 +34,7 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
                 plugin.Parameters,
                 isExternal,
                 assemblyPath,
-                // 装配期能力位判定（§5.4.2）：插件对象实现 ILabelCommandCompiler 即具备文档编译能力
+                // 装配期能力位判定：插件对象实现 ILabelCommandCompiler 即具备文档编译能力
                 plugin is ILabelCommandCompiler),
             plugin);
         if (loadContext is not null)

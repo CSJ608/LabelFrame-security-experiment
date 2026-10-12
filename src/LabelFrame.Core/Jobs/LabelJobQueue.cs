@@ -17,7 +17,7 @@ public sealed class LabelJobQueue : IDisposable
     private bool _shutdownPrepared;
     private int _activeSends;
 
-    /// <summary>模板化领域异常构造（决策 #164 ③ / #166）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>模板化领域异常构造（③ /）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
     private static LabelJobException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 
@@ -111,7 +111,7 @@ public sealed class LabelJobQueue : IDisposable
     public Task<LabelJob?> GetAsync(string jobId, CancellationToken cancellationToken = default)
         => _store.GetJobAsync(jobId, cancellationToken);
 
-    /// <summary>按幂等键查询既有作业（原生指令路径提交前短路用——重放不重新编译，§5.4.3；不存在返回 null）。</summary>
+    /// <summary>按幂等键查询既有作业（原生指令路径提交前短路用——重放不重新编译，；不存在返回 null）。</summary>
     public Task<LabelJob?> GetByRequestIdAsync(string requestId, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestId);
@@ -372,14 +372,14 @@ public sealed class LabelJobQueue : IDisposable
 
             if (itemIndex < 0 || itemIndex >= job.Items.Count)
             {
-                // #242 返修：条目级越界与「作业状态不允许」（LF_JOB_002 {status}）语义不同——拆码 LF_JOB_003
+                // 条目级越界与「作业状态不允许」（LF_JOB_002 {status}）语义不同——拆码 LF_JOB_003
                 throw Templated(JobErrorCodes.ItemNotFound, "作业没有第 {itemIndex} 张标签。", new() { ["itemIndex"] = itemIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) });
             }
 
             var item = job.Items[itemIndex];
             if (item.Status != LabelJobItemStatus.Failed)
             {
-                // #242 返修：条目状态不可重打拆码 LF_JOB_004（{itemIndex} + {itemStatus}），保持单码单参数键集
+                // 条目状态不可重打拆码 LF_JOB_004（{itemIndex} + {itemStatus}），保持单码单参数键集
                 throw Templated(JobErrorCodes.ItemNotRetriable, "第 {itemIndex} 张状态为 {itemStatus}，仅 Failed 可重打。", new() { ["itemIndex"] = itemIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), ["itemStatus"] = item.Status.ToString() });
             }
 

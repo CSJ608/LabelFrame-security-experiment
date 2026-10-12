@@ -12,7 +12,7 @@ public sealed record SubmitJobRequest(
     TemplateDto? Template,
     IReadOnlyList<LabelDto>? Labels);
 
-/// <summary>自包含模板。Images（键 → base64，可选）为模板图片资源——迭代 132（决策 #184）补入：
+/// <summary>自包含模板。Images（键 → base64，可选）为模板图片资源——补入：
 /// 路由模式 Server 投递链本就附带图片 base64，此前 PDA DTO 丢弃致嵌入图无法渲染（契约把 PDA 锁死）；
 /// PDA 选图 UI 仍不在该迭代范围。</summary>
 public sealed record TemplateDto(
@@ -36,7 +36,7 @@ public sealed record JobView(
 public sealed record JobItemView(int Index, string Status, string? ErrorCode, string? ErrorMessage);
 
 /// <summary>错误响应：问题码 + 中文消息（可选字段键、可选模板参数）。
-/// params（决策 #164 ③ / #166，迭代 109 定契约、迭代 110 PDA 副本对齐）：扁平字符串键值对象，
+/// params（③ / ，定契约、PDA 副本对齐）：扁平字符串键值对象
 /// 键名与展示端码表模板占位符 <c>{key}</c> 同名，供 PDA / web 按码翻译插值；后端 message 永远为渲染后中文兜底。
 /// 缺省 / null 时序列化与旧形态逐字节等价（<see cref="JsonIgnoreAttribute"/> WhenWritingNull）。</summary>
 public sealed record ErrorView(

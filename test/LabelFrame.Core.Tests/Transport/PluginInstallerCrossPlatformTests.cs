@@ -8,7 +8,7 @@ using LabelFrame.TransportPlugin.Sample;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// fake 插件跨端单测矩阵（迭代 96 / #185 AC-03，对齐迭代 77 fake 编译器矩阵模式）：
+/// fake 插件跨端单测矩阵（/ ，对齐fake 编译器矩阵模式）：
 /// manifest platforms 契约（解析 / 向后兼容语义）＋ 三层校验平台门（windows / android 双向）＋
 /// 安装（含坏包拒绝：损坏 zip / manifest 缺失 / 内置 id 冲突 / pluginId 不一致 / 无 DLL）＋
 /// 官方插件版本比较（android 宿主路径）＋ 加载 / 发现 / 装配 / 发送（fake 插件全链路）。
@@ -72,7 +72,7 @@ public class PluginInstallerCrossPlatformTests
         }
     }
 
-    // ---- manifest platforms 契约（决策 #156 ①：可选字段 + 单包单端 + 向后兼容） ----
+    // ---- manifest platforms 契约（①：可选字段 + 单包单端 + 向后兼容） ----
 
     [Fact]
     public void Manifest_without_platforms_should_parse_null_and_mean_windows_only()
@@ -289,7 +289,7 @@ public class PluginInstallerCrossPlatformTests
     [Fact]
     public async Task Install_builtin_id_conflict_should_reject()
     {
-        // 内置 id 拒绝按宿主注册表动态判定（PDA 内置 zebra——决策 #156 ③）
+        // 内置 id 拒绝按宿主注册表动态判定（PDA 内置 zebra—— ③）
         var (installer, registry, pluginsDir) = Create(PluginPlatforms.Android);
         Assert.False(registry.GetPlugin("zebra")!.IsExternal);
         try
@@ -323,7 +323,7 @@ public class PluginInstallerCrossPlatformTests
         }
     }
 
-    // ---- 官方插件版本比较（#123 ④ 语义双端一致——android 宿主路径） ----
+    // ---- 官方插件版本比较（④ 语义双端一致——android 宿主路径） ----
 
     [Fact]
     public async Task Install_official_same_version_should_be_idempotent_and_downgrade_rejected_on_android()
@@ -358,7 +358,7 @@ public class PluginInstallerCrossPlatformTests
         {
             await installer.InstallAsync(new MemoryStream(BuildPackage(FakeManifest(), ("LabelFrame.TransportPlugin.Fake.dll", FakeDllBytes))), "fake.lfplugin", CancellationToken.None);
 
-            // 模拟重启装配：目录扫描（决策 #127 单 ALC 整体加载）→ 注册表（外部 + ALC 根强持有）
+            // 模拟重启装配：目录扫描（单 ALC 整体加载）→ 注册表（外部 + ALC 根强持有）
             var load = PluginDirectoryLoader.LoadWithErrors(pluginsDir, TextWriter.Null);
             Assert.Empty(load.Errors);
             var discovered = Assert.Single(load.Plugins, p => p.Plugin.Id == FakePluginId);

@@ -9,9 +9,9 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 日志基础设施加固端点级测试（决策 #108）：
-/// AC-01——LABELFRAME_SERVER_LOG_FILE 指向无效路径时宿主正常启动（/healthz 可用）；
-/// AC-03——提交 → 认领 → 回报全流程在按日文件 server-yyyyMMdd.log 留下创建 / 认领 / 终态三条业务行（含 jobId / requestId / deviceId）。
+/// 日志基础设施加固端点级测试：
+/// ——LABELFRAME_SERVER_LOG_FILE 指向无效路径时宿主正常启动（/healthz 可用）
+/// ——提交 → 认领 → 回报全流程在按日文件 server-yyyyMMdd.log 留下创建 / 认领 / 终态三条业务行（含 jobId / requestId / deviceId）。
 /// </summary>
 public sealed class ServerLoggingHardeningTests : IDisposable
 {
@@ -50,7 +50,7 @@ public sealed class ServerLoggingHardeningTests : IDisposable
     [Fact]
     public async Task Full_routing_loop_should_write_business_event_lines_to_dated_log_file()
     {
-        // 1) 注册设备 → 建模板 → 提交（AC-03 第一条：创建行，requestId → jobId）
+        // 1) 注册设备 → 建模板 → 提交（第一条：创建行，requestId → jobId）
         await PostOkAsync("/api/devices", """{ "deviceId": "pc-logit", "name": "日志验证机" }""");
         await PostOkAsync("/api/templates", TemplateJson);
         var submit = await _client.PostAsync("/api/jobs", Json("""
@@ -61,11 +61,11 @@ public sealed class ServerLoggingHardeningTests : IDisposable
         var job = await submit.Content.ReadFromJsonAsync<JsonElement>();
         var jobId = job.GetProperty("jobId").GetString();
 
-        // 2) 认领（AC-03 第二条：认领行，含 deviceId）
+        // 2) 认领（第二条：认领行，含 deviceId）
         var claimed = await _client.GetFromJsonAsync<JsonElement>("/api/devices/pc-logit/jobs/pending");
         Assert.Equal(1, claimed.GetArrayLength());
 
-        // 3) 回报终态（AC-03 第三条：终态行，含状态与计数）
+        // 3) 回报终态（第三条：终态行，含状态与计数）
         var report = await _client.PostAsync($"/api/devices/pc-logit/jobs/{jobId}/result",
             Json("""{ "status": "Completed", "completedItems": 1, "failedItems": 0 }"""));
         Assert.Equal(HttpStatusCode.OK, report.StatusCode);
@@ -94,7 +94,7 @@ public sealed class ServerLoggingHardeningTests : IDisposable
     [Fact]
     public async Task Invalid_log_file_path_should_not_break_startup()
     {
-        // AC-01：日志路径无效（父路径是文件）→ 宿主正常启动（/healthz 200），文件通道跳过
+        // 日志路径无效（父路径是文件）→ 宿主正常启动（/healthz 200），文件通道跳过
         var blocker = Path.Combine(_directory, "blocker.txt");
         await File.WriteAllTextAsync(blocker, "占位文件");
         Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOG_FILE", Path.Combine(blocker, "logs", "server.log"));

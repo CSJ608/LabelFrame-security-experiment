@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 帮助页 V3.1（迭代 128 · #316 AC-02）：左目录树版式测试——两级目录树（根＋五页＋当前页小节手风琴）、
+// 帮助页 V3.1（·）：左目录树版式测试——两级目录树（根＋五页＋当前页小节手风琴）
 // 目录点击导航（页节点进文章 / 小节节点 scrollIntoView 跳转）、滚动高亮（rect mock 驱动）、窄窗目录
-// 收起 / 展开；深链回调改 hash 断言形态（#316 机制迁移：onOpenInUi 由 Shell 以 hash 赋值实现）；
+// 收起 / 展开；深链回调改 hash 断言形态（机制迁移：onOpenInUi 由 Shell 以 hash 赋值实现）
 // 功能索引 / 五界面文章 / 词条单源 / 数据自洽（HELP_LINK_ELEMENTS 登记校验）维持。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -13,7 +13,7 @@ import type { TabId } from '../state/types'
 // 组件级单测不经 App 引用链，显式 import 初始化 i18next 单例（语言包资源就位，词条断言可用）
 import '../i18n'
 
-// 迭代 129（#320）：本文件为 client 构建语义用例（五页集 / client 副标题 / settings 卡片），
+// 本文件为 client 构建语义用例（五页集 / client 副标题 / settings 卡片）
 // 显式注入 client 分支——VITE_UI_MODE=server 整仓批次下 BUILD_HELP_PAGES 与副标题词条保持
 // client 折叠（循 Guide.test.tsx / JobHistory.test.tsx 先例）；server 页集纯函数面由本文件
 // 「构建页集过滤」用例覆盖，server 构建挂点守门见 HelpDot.server.test.tsx。
@@ -70,11 +70,11 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     // 词条与文档点气泡同源（单源双视图）：正文与 help.topic.designer.fill 一致
     expect(screen.getByText(/「来源」决定打印内容：固定值立即按所填内容渲染/)).toBeTruthy()
-    // 纯文章 4 节无深链；文档点 11 节有深链（迭代 132 · #329 增 designer.image）
+    // 纯文章 4 节无深链；文档点 11 节有深链（· 增 designer.image）
     const openButtons = screen.getAllByRole('button', { name: /去界面查看/ })
     expect(openButtons.length).toBe(11)
     fireEvent.click(openButtons[0])
-    // 机制迁移（#316）：深链 = hash 赋值 #/<page>/<anchor>（Shell openHelpInUi 现实现同法）
+    // 机制迁移：深链 = hash 赋值 #/<page>/<anchor>（Shell openHelpInUi 现实现同法）
     expect(window.location.hash).toBe('#/designer/designer.position')
   })
 
@@ -110,7 +110,7 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
     for (const key of knownAnchors) {
       if (key.startsWith('designer.')) expect(key in HELP_LINK_ELEMENTS).toBe(true) // 设计器全覆盖
     }
-    // align 双元素（对齐组多选分支渲染）；fill 复用演示预设示例值（#178 两处联动口径）
+    // align 双元素（对齐组多选分支渲染）；fill 复用演示预设示例值（两处联动口径）
     expect(HELP_LINK_ELEMENTS['designer.align'].length).toBe(2)
     expect(HELP_LINK_ELEMENTS['designer.fill'][0].patch).toHaveProperty('key', 'location')
   })
@@ -140,7 +140,7 @@ describe('帮助页左目录树（AC-02 新版式）', () => {
     // 索引视图：任何页的小节都不展开
     expect(toc.querySelector('.help-toc-sections')).toBeNull()
 
-    // 进设计器文章：仅设计器页展开 15 个小节（词条与正文 /「?」气泡同源；#329 增图片小节）
+    // 进设计器文章：仅设计器页展开 15 个小节（词条与正文 /「?」气泡同源； 增图片小节）
     fireEvent.click(screen.getByText('在画布上设计标签版式'))
     const sections = toc.querySelectorAll('.help-toc-item.section')
     expect(sections.length).toBe(15)
@@ -172,7 +172,7 @@ describe('帮助页左目录树（AC-02 新版式）', () => {
 
     // 同文章内小节点击同样滚动（不切换文章）
     scrollIntoView.mockClear()
-    fireEvent.click(within(toc).getByText('容器')) // designer.compat 小节（#329 收敛为仅容器）
+    fireEvent.click(within(toc).getByText('容器'))  // designer.compat 小节（收敛为仅容器）
     expect(scrollIntoView).toHaveBeenCalledTimes(1)
   })
 

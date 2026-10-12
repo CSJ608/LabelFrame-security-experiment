@@ -103,7 +103,7 @@ public sealed record TransportApplyRequest(
 /// <summary>连接切换 / 测试响应：ok + 中文消息 + 当前生效连接（失败时 config = 未变前的连接）。</summary>
 public sealed record TransportApplyResponse(bool Ok, string Message, TransportConfigDto Config);
 
-/// <summary>机器级配置响应（GET /api/host/config；Ips 为本机枚举 IPv4，状态栏展示用；Version 为只读产品版本——「检查更新」比较口径，决策 #126 §6.11，POST 忽略）。</summary>
+/// <summary>机器级配置响应（GET /api/host/config；Ips 为本机枚举 IPv4，状态栏展示用；Version 为只读产品版本——「检查更新」比较口径， ，POST 忽略）。</summary>
 public sealed record HostConfigDto(string ServerUrl, string DeviceId, string DeviceName, IReadOnlyList<string>? Ips = null, string? Version = null);
 
 /// <summary>机器级配置请求（POST /api/host/config；仅 serverUrl 可写）。</summary>

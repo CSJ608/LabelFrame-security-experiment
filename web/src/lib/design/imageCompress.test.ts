@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 上传自动压缩分支单测（迭代 132 返修 · #329 方案 v2）：jsdom 无真实图片解码 / 编码——
+// 上传自动压缩分支单测：jsdom 无真实图片解码 / 编码——
 // 以桩全局 Image（src 赋值即 onload 并给固定像素尺寸）＋桩 HTMLCanvasElement.toBlob（记录
 // 调用参数并回固定 Blob）锚定分支逻辑：阈值直通 / >1MB 触发 / 长边降采样 / JPEG 质量 / PNG
 // 保持 / BMP 转 PNG / 编码失败回退原文件。真实压缩效果（字节降幅、画质）依赖陪验走查。

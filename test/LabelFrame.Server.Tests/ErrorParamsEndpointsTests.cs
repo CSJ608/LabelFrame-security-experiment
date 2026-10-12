@@ -9,9 +9,9 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 错误消息模板化端点集成（迭代 109 · #242，AC-02 / AC-03）：
+/// 错误消息模板化端点集成（· ， /）：
 /// params 缺省时 HTTP 响应原文与旧形态逐字节等价；带参错误（按 IP 查设备 / 作业不存在）透出 params 且中文 message 等价；
-/// WMS 终态回调载荷（决策 #154 schema）字段集零变化（不含 params）。
+/// WMS 终态回调载荷（schema）字段集零变化（不含 params）。
 /// </summary>
 public sealed class ErrorParamsEndpointsTests : IDisposable
 {
@@ -39,17 +39,17 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Error_response_without_params_should_be_byte_equal_to_legacy_shape()
     {
-        // AC-02：params 缺省 → HTTP 响应原文与迭代 109 前完全一致（与旧三字段形态快照的序列化输出逐字节相等）
+        // params 缺省 → HTTP 响应原文与前完全一致（与旧三字段形态快照的序列化输出逐字节相等）
         using var response = await _client.PostAsync("/api/jobs", Json("""{ "requestId": "" }"""));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var raw = await response.Content.ReadAsStringAsync();
-        // 旧形态快照（迭代 109 前的 ErrorView）以 minimal API Web 默认选项序列化的期望字节
+        // 旧形态快照（前的 ErrorView）以 minimal API Web 默认选项序列化的期望字节
         var expected = System.Text.Json.JsonSerializer.Serialize(
             new LegacyErrorViewSnapshot("LF_SRV_002", "缺少 requestId（幂等键）。"), WebDefaults);
         Assert.Equal(expected, raw);
     }
 
-    /// <summary>迭代 109 之前的 ErrorView 形态快照（现状锚点）。</summary>
+    /// <summary>之前的 ErrorView 形态快照（现状锚点）。</summary>
     private sealed record LegacyErrorViewSnapshot(string Code, string Message, string? FieldKey = null);
 
     [Fact]
@@ -59,11 +59,11 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        // #242 返修：按 IP 未找到拆码 LF_SRV_012（原 LF_SRV_001 与「设备未注册 {deviceId}」双键变体混用）
+        // 按 IP 未找到拆码 LF_SRV_012（原 LF_SRV_001 与「设备未注册 {deviceId}」双键变体混用）
         Assert.Equal("LF_SRV_012", body.GetProperty("code").GetString());
-        // 后端中文 message 与改造前内插文案等价（中文兜底，决策 #164 ③）
+        // 后端中文 message 与改造前内插文案等价（中文兜底， ③）
         Assert.Equal("按 IP 未找到设备：10.99.99.99。", body.GetProperty("message").GetString());
-        // params：扁平字符串键值对象，键名与模板占位符一致（#242 待决议-1 建议形态）
+        // params：扁平字符串键值对象，键名与模板占位符一致（待决议-1 建议形态）
         var parameters = body.GetProperty("params");
         Assert.Equal(JsonValueKind.Object, parameters.ValueKind);
         Assert.Equal("10.99.99.99", parameters.GetProperty("ip").GetString());
@@ -88,7 +88,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Submit_with_invalid_callback_url_should_return_dedicated_code_and_params()
     {
-        // #242 返修：callbackUrl 校验从 LF_SRV_002 拆出专属码 LF_SRV_013（单码单参数键集，决策 #166 ⑥）
+        // callbackUrl 校验从 LF_SRV_002 拆出专属码 LF_SRV_013（单码单参数键集， ⑥）
         using var response = await _client.PostAsync(
             "/api/jobs",
             Json("""{ "requestId": "ep-cb", "targetDeviceId": "any", "callbackUrl": "file://x", "template": { "contract": { "name": "t", "version": "1", "fields": [] }, "layout": { "name": "l", "contractName": "t", "contractVersion": "1", "widthMm": 40, "heightMm": 20, "elements": [] } }, "labels": [ { "data": {} } ] }"""));
@@ -104,7 +104,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Get_unknown_template_should_return_unified_template_name_key()
     {
-        // #242 返修锚点（验收失败项 1a）：模板库共享端点变体的参数键必须与作业提交链一致（templateName）——
+        // 回归锚点：模板库共享端点变体的参数键必须与作业提交链一致（templateName）——
         // en 码表词条 "Template not found: {{templateName}}." 对两个变体均可插值，不再回退中文
         using var response = await _client.GetAsync("/api/templates/不存在的模板X");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -120,7 +120,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public async Task Submit_with_unknown_template_name_should_return_template_name_key()
     {
-        // #242 返修锚点：作业提交链变体（与上一测试同码同键集；提交链按既有映射返回 400）
+        // 回归锚点：作业提交链变体（与上一测试同码同键集；提交链按既有映射返回 400）
         using var response = await _client.PostAsync(
             "/api/jobs",
             Json("""{ "requestId": "ep-tpl", "targetDeviceId": "any", "templateName": "no-such-template", "labels": [ { "data": {} } ] }"""));
@@ -149,7 +149,7 @@ public sealed class ErrorParamsEndpointsTests : IDisposable
     [Fact]
     public void Callback_payload_schema_should_stay_unchanged_without_params()
     {
-        // AC-02：WMS 终态回调载荷（决策 #154）字段集零变化——不含 params / errorCode，字段名与顺序即契约
+        // WMS 终态回调载荷字段集零变化——不含 params / errorCode，字段名与顺序即契约
         var payload = new JobCallbackPayload(
             "job-1", "req-1", "Failed", DateTimeOffset.Parse("2026-09-29T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 3, 2, 1, "发送失败");
         var json = JsonSerializer.Serialize(payload, WebDefaults);

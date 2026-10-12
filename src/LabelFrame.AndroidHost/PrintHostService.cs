@@ -14,8 +14,8 @@ namespace LabelFrame.AndroidHost;
 /// <summary>
 /// 前台打印宿主服务：本地 HTTP + 打印 Worker + Server 路由轮询。
 /// 前台服务常驻，开机由 BootReceiver 拉起；运行状态经 <see cref="HostStatus"/> 快照供配置页 / 状态页读取。
-/// 打印传输自迭代 56（决策 #111）走 Zebra 官方 SDK（tcp 默认 / bluetooth / usb，见 <see cref="ZebraSdkTransport"/>）；
-/// 自迭代 96（决策 #156）按品牌路由：zebra 走内置 SDK 档，外置插件品牌走轻量档插件传输（<see cref="AndroidTransportFactory"/>）。
+/// 打印传输自走 Zebra 官方 SDK（tcp 默认 / bluetooth / usb，见 <see cref="ZebraSdkTransport"/>）
+/// 自按品牌路由：zebra 走内置 SDK 档，外置插件品牌走轻量档插件传输（<see cref="AndroidTransportFactory"/>）。
 /// </summary>
 [Service(Exported = true, ForegroundServiceType = Android.Content.PM.ForegroundService.TypeDataSync)]
 public sealed class PrintHostService : Service
@@ -49,11 +49,11 @@ public sealed class PrintHostService : Service
         Java.Lang.JavaSystem.LoadLibrary("e_sqlite3");
 
         var config = LabelHostConfig.Load(this);
-        // 外置插件通道装配（迭代 96，决策 #156）：内置 zebra 注册 + {FilesDir}/plugins 目录扫描（失败留痕不阻断）
+        // 外置插件通道装配：内置 zebra 注册 + {FilesDir}/plugins 目录扫描（失败留痕不阻断）
         var pluginHost = PluginHost.Load(this);
         // 打印传输品牌路由：zebra → 内置 SDK（既有路径原样）；外置插件品牌 → 插件传输；未安装 → 回退 zebra + 留痕
         _transport = AndroidTransportFactory.Create(config, pluginHost.Registry, pluginHost.PluginContext, this);
-        // 摘要经资源取值（迭代 110 / #244）：HostStatus 与通知随系统语言；本行日志为诊断内容维持中文（#164 ②），
+        // 摘要经资源取值（/）：HostStatus 与通知随系统语言；本行日志为诊断内容维持中文（②）
         // 摘要主体是地址 / 端口等技术值，仅连接方式词随语言
         var printerTarget = config.PrinterDisplay(this);
         HostStatus.NoteServiceStarted(config.ServerUrl, printerTarget);
@@ -104,7 +104,7 @@ public sealed class PrintHostService : Service
     {
         if (OperatingSystem.IsAndroidVersionAtLeast(26))
         {
-            // 渠道名不双语化（决策 #164 ⑤）：Android 渠道创建后不可改名，维持中文现状——迭代 110 范围显式排除
+            // 渠道名不双语化（⑤）：Android 渠道创建后不可改名，维持中文现状——范围显式排除
             var channel = new NotificationChannel(ChannelId, "LabelFrame 打印服务", NotificationImportance.Low);
             var manager = (NotificationManager?)GetSystemService(NotificationService);
             manager?.CreateNotificationChannel(channel);
@@ -145,7 +145,7 @@ public sealed class PrintHostService : Service
     }
 
     /// <summary>通知文案（面向仓库用户的人话）：服务器状态 + 打印机连接方式，一句话说完。
-    /// 迭代 110（#244）：文案经资源 id 引用（values 缺省中文 / values-en 英文，跟随系统语言）。</summary>
+    /// 文案经资源 id 引用（values 缺省中文 / values-en 英文，跟随系统语言）。</summary>
     private string BuildStatusText()
     {
         var s = HostStatus.Current;
@@ -281,7 +281,7 @@ public sealed class PrintHostService : Service
         CancellationToken cancellationToken)
     {
         // 与 WinHost ServerRoutingWorker 同构：主循环负责注册 / 长轮询 / 领取 / 投入队列，
-        // 回报循环每 1s 检查本地作业——终态立即回报、进行中节流上报进度（决策 #101，计数有变化才发）。
+        // 回报循环每 1s 检查本地作业——终态立即回报、进行中节流上报进度（计数有变化才发）。
         var localToServer = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
         var lastReported = new System.Collections.Concurrent.ConcurrentDictionary<string, (int Completed, int Failed)>();
         var interval = TimeSpan.FromSeconds(Math.Max(1, LabelHostConfig.PollIntervalSeconds));

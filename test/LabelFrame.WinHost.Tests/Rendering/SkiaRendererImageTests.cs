@@ -6,7 +6,7 @@ using SkiaSharp;
 namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
-/// 图片元素渲染（迭代 132 · #329，决策 #184）：预览 PNG 与打印 1bpp 输出统一单色
+/// 图片元素渲染（·）：预览 PNG 与打印 1bpp 输出统一单色
 /// （DrawImage 解码后 luma 阈值 128 单色化——彩色像素存在即红：红 luma≈76→黑、蓝 luma≈29→黑、白→白，
 /// 未单色化的旧口径会在 PNG 中留下 R≠G≠B 的彩色像素）；缺资源显式报错（不再灰占位照打）。
 /// </summary>
@@ -97,7 +97,7 @@ public class SkiaRendererImageTests
     [Fact]
     public void Empty_source_key_should_skip_element_entirely_without_ink_or_border()
     {
-        // #329 方案 v2：key 空＝未指定图片——整元素跳过（含边框）：渲染成功、元素盒内无墨、边框不画
+        // key 空＝未指定图片——整元素跳过（含边框）：渲染成功、元素盒内无墨、边框不画
         var document = new LabelDocument
         {
             Layout = new LabelLayout
@@ -134,7 +134,7 @@ public class SkiaRendererImageTests
     [Fact]
     public void Document_images_channel_should_still_work()
     {
-        // 既有行为回归：请求附带（document.Images 打印时数据图通道，决策 #75）命中时不报缺资源、正常出墨
+        // 既有行为回归：请求附带（document.Images 打印时数据图通道）命中时不报缺资源、正常出墨
         var document = new LabelDocument
         {
             Layout = Doc().Layout,

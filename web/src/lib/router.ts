@@ -1,4 +1,4 @@
-// 自研 hash 路由（迭代 127 · #312，决策 #177）：URL hash（#/<page>/<sub> 两级形态）成为页面位置的
+// 自研 hash 路由（·）：URL hash（#/<page>/<sub> 两级形态）成为页面位置的
 // 权威载体——page 段取既有 TabId 按构建白名单裁剪（旧 #dc= 链接先折算为正典形走同一裁剪，无旁路），
 // sub 段为页内次级不透明短串（V3.1 帮助深链 designer.fill 形锚点串预留，本轮由下载中心页内 tab 首用）。
 // 历史栈语义：切页 pushState 入栈（state 写序号戳且戳与栈位置严格对齐——入栈戳＝来点条目戳＋1，
@@ -32,8 +32,8 @@ function readStamp(state: unknown): number | null {
 
 /**
  * 解析 hash → 路由位置（纯函数，双构建共用）：
- * 空 hash（'' / '#' / '#/'）→ 默认 workbench；旧 #dc=<v>（迭代 118 分享链接）先折算为正典两级形
- * #/packages/<v> 再解析——与正典形同一构建白名单裁剪口径（决策 #177：client 构建 #dc= 回退
+ * 空 hash（'' / '#' / '#/'）→ 默认 workbench；旧 #dc=<v>（分享链接）先折算为正典两级形
+ * #/packages/<v> 再解析——与正典形同一构建白名单裁剪口径（：client 构建 #dc= 回退
  * workbench，server 保持兼容直达）；#/<page> 或 #/<page>/<sub>——page 不在白名单（构建裁剪）或
  * 词法不符 → 回退 workbench（sub 一并丢弃）；sub 词法不符 → 丢弃 sub 保留 page。
  */
@@ -164,7 +164,7 @@ export function useHashRoute({ allowed, page, requestPage }: HashRouteOptions): 
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // sub 写入：replaceState 不入栈（循迭代 118 下载中心 switchTo 先例）；保留既有 state（戳不丢）
+  // sub 写入：replaceState 不入栈（循下载中心 switchTo 先例）；保留既有 state（戳不丢）
   const setSub = useCallback((next: string) => {
     setSubState(next)
     window.history.replaceState(window.history.state, '', formatHash(pageRef.current, next))

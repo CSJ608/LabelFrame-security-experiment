@@ -4,8 +4,8 @@ using System.Text.Json.Serialization;
 namespace LabelFrame.Bootstrapper.Manifest;
 
 /// <summary>
-/// 最新版本指针（<c>latest.json</c>，随发版由 <c>generate-install-manifest.ps1</c> 生成——决策 #120）：
-/// 内容 = 最新版本号 + 该版 manifest URL。引导程序用于「清单新鲜度」提示（§6.11：不参与组件级比较，组件版本权威 = manifest）。
+/// 最新版本指针（<c>latest.json</c>，随发版由 <c>generate-install-manifest.ps1</c> 生成——）：
+/// 内容 = 最新版本号 + 该版 manifest URL。引导程序用于「清单新鲜度」提示（不参与组件级比较，组件版本权威 = manifest）。
 /// </summary>
 public sealed record LatestPointer(string LabelframeVersion, string ManifestUrl)
 {
@@ -35,7 +35,7 @@ public sealed record LatestPointer(string LabelframeVersion, string ManifestUrl)
     }
 
     /// <summary>
-    /// 由清单来源推导 latest.json 地址（§6.11 消费规则）：稳定通道 URL（GitHub latest 语义）→ 同通道 latest.json；
+    /// 由清单来源推导 latest.json 地址（消费规则）：稳定通道 URL（GitHub latest 语义）→ 同通道 latest.json
     /// 本地路径 → 同目录 latest.json（离线包内嵌场景）；特定版本 Release URL / 其他形态返回 null（不推导）。
     /// </summary>
     public static string? DeriveSource(string manifestSource)
@@ -66,6 +66,6 @@ public sealed record LatestPointer(string LabelframeVersion, string ManifestUrl)
             return Path.Combine(Path.GetDirectoryName(manifestSource) ?? string.Empty, LatestFileName);
         }
 
-        return null; // 特定版本 Release URL 等：用户显式选择的版本清单，不推导（§6.11）
+        return null;  // 特定版本 Release URL 等：用户显式选择的版本清单，不推导
     }
 }

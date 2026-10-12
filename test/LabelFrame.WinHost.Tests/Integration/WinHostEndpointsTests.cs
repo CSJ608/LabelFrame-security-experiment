@@ -78,7 +78,7 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Transport_plugins_should_expose_supports_document_compile_flag()
     {
-        // 能力位 DTO 透出（#119 AC-01，向后兼容增量字段）：GET /api/transport.availablePlugins
+        // 能力位 DTO 透出（向后兼容增量字段）：GET /api/transport.availablePlugins
         // 与 /api/transport/plugins 均含 supportsDocumentCompile；内置插件全部为 false（无品牌编译器装配）
         var config = await JsonAsync("/api/transport");
         Assert.All(config.GetProperty("availablePlugins").EnumerateArray(),
@@ -92,7 +92,7 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Transport_post_native_print_mode_without_capability_should_fail()
     {
-        // 保存层校验（§5.4.2）：native 仅对能力位为真的插件合法；HTTP 端点走既有校验错误响应（ok=false + 中文提示）
+        // 保存层校验：native 仅对能力位为真的插件合法；HTTP 端点走既有校验错误响应（ok=false + 中文提示）
         var response = await Client.PostAsync("/api/transport",
             Json("""{ "pluginId": "log", "params": { "printMode": "native" } }"""));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -162,7 +162,7 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Jobs_submit_malformed_json_should_be_400_with_bad_body_code()
     {
-        // 此前落入全局异常处理器 → 500 LF_INTERNAL_001；现为调用方错误 400 + LF_API_BAD_BODY（决策 #107）
+        // 此前落入全局异常处理器 → 500 LF_INTERNAL_001；现为调用方错误 400 + LF_API_BAD_BODY
         var response = await Client.PostAsync("/api/jobs", Json("""{ "requestId": "w-1", "labels": """));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await JsonAsync(response);
@@ -186,7 +186,7 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Host_config_get_post_and_loopback_guard()
     {
-        // GET：默认 serverUrl 为空 + deviceId 透出 + 只读 version（决策 #126：客户端「检查更新」比较口径）
+        // GET：默认 serverUrl 为空 + deviceId 透出 + 只读 version（客户端「检查更新」比较口径）
         var config = await JsonAsync("/api/host/config");
         Assert.Equal(string.Empty, config.GetProperty("serverUrl").GetString());
         Assert.NotNull(config.GetProperty("deviceId").GetString());
@@ -261,7 +261,7 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Plugins_install_non_zip_should_be_400_with_chinese_message()
     {
-        // 非 zip 文件：400 + LF_PLUGIN_INVALID + 纯中文可行动消息（不直出英文框架原话，决策 #107）
+        // 非 zip 文件：400 + LF_PLUGIN_INVALID + 纯中文可行动消息（不直出英文框架原话）
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(Encoding.UTF8.GetBytes("this is definitely not a zip archive"));
         form.Add(file, "file", "bad.lfplugin");
@@ -297,13 +297,13 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Logs_endpoints_should_return_json_and_store_per_line()
     {
-        // AC-01：客户端实例 GET /api/logs 返回 JSON（补挂 MapLogApi 前命中 SPA 回退返回 index.html，决策 #106）
+        // 客户端实例 GET /api/logs 返回 JSON（补挂 MapLogApi 前命中 SPA 回退返回 index.html）
         var empty = await Client.GetAsync("/api/logs");
         Assert.Equal(HttpStatusCode.OK, empty.StatusCode);
         Assert.Equal("application/json", empty.Content.Headers.ContentType?.MediaType);
         Assert.Equal(0, (await JsonAsync(empty)).GetArrayLength());
 
-        // AC-04：POST 两行 → GET 回查为两条独立记录（按行拆分入库）
+        // POST 两行 → GET 回查为两条独立记录（按行拆分入库）
         var push = await Client.PostAsync("/api/logs",
             Json("""{ "deviceId": "pda-1", "lines": ["第一行", "第二行"] }"""));
         Assert.Equal(HttpStatusCode.OK, push.StatusCode);

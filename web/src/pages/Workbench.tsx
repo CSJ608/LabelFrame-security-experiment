@@ -1,12 +1,12 @@
 // 工作台：模板管理（搜索 / 分组过滤 / 新建 / 编辑 / 删除 / 导出 / 导入）
-// 迭代 18：业务 API 跟随模式——服务端 = serverApi（模板中心）；单机降级 = localApi（本机 WinHost 模板库）。
-// 迭代 45：模板名搜索（子串、大小写不敏感，与分组过滤叠加生效）。
-// 迭代 46：预览缩略图（列表加载后按需拉取全部预览，会话内缓存随列表刷新失效；点击居中灯箱放大）。
-// 迭代 48：整体信息架构重构（用户定稿方案 A）——表格形态收敛为卡片网格（缩略图主视觉），
+// 业务 API 跟随模式——服务端 = serverApi（模板中心）；单机降级 = localApi（本机 WinHost 模板库）。
+// 模板名搜索（子串、大小写不敏感，与分组过滤叠加生效）。
+// 预览缩略图（列表加载后按需拉取全部预览，会话内缓存随列表刷新失效；点击居中灯箱放大）。
+// 整体信息架构重构（用户定稿方案 A）——表格形态收敛为卡片网格（缩略图主视觉）
 //   自适应多列卡片，名称 / 分组 / 日期 / 操作收于卡片下部；既有能力全部保留。
-// 迭代 85（#133 C-4，决议 1）：卡片操作区新增「打印」——经 onOpenPrint 跳「数据与打印」页并预选该模板
+// （C-4，决议 1）：卡片操作区新增「打印」——经 onOpenPrint 跳「数据与打印」页并预选该模板
 //   （字段草稿行为与手动选择一致）；双击卡片仍进设计器（现状不变）。
-// 迭代 104（#225，修订决策 #152①）：卡片主操作 = 「编辑」（主色），「打印」降常驻普通按钮；
+// （修订①）：卡片主操作 = 「编辑」（主色），「打印」降常驻普通按钮
 //   低频「导出 / 删除」收进 ⋯ 溢出菜单（锚定 Popover：portal + fixed 防 .wb-card overflow 裁剪）——
 //   修复四按钮平铺最小需宽约 216px 超出最窄卡片可用宽度 176px 致「删除」被裁的回归。
 
@@ -25,7 +25,7 @@ import { useTemplatePreviewCache } from './useTemplatePreview'
 import type { TemplatePreviewEntry } from './useTemplatePreview'
 import { TemplatePreviewModal } from './WorkbenchPreview'
 
-/** 预览缩略图呈现（迭代 48 卡片形态）：加载中骨架 / 失败占位 / 成功图片（点击放大）。 */
+/* * 预览缩略图呈现（卡片形态）：加载中骨架 / 失败占位 / 成功图片（点击放大）。 */
 function PreviewThumb({
   name,
   entry,
@@ -35,7 +35,7 @@ function PreviewThumb({
   entry: TemplatePreviewEntry | undefined
   onEnlarge: (name: string) => void
 }) {
-  // 迭代 111（#245）：页面文案 key 化（workbench 域；common 词条经 fallbackNS 免前缀）
+  // 页面文案 key 化（workbench 域；common 词条经 fallbackNS 免前缀）
   const { t } = useTranslation('workbench')
   if (!entry || entry.status === 'loading') {
     return <div className="preview-thumb-skel card" title={t('preview.generating')} />
@@ -63,13 +63,13 @@ export function Workbench({
   onOpenPrint,
 }: {
   onOpenDesigner: (req: DesignerRequest) => void
-  /** 迭代 85（#133 C-4）：卡片「打印」直达——跳「数据与打印」页并预选该模板（预选写草稿由 App 侧统一完成）。 */
+  /* * （C-4）：卡片「打印」直达——跳「数据与打印」页并预选该模板（预选写草稿由 App 侧统一完成）。 */
   onOpenPrint: (name: string) => void
 }) {
   const app = useApp()
   const { serverMode } = app
-  // 迭代 108（#241）：卡片日期格式化跟随当前界面语言（原硬编码 toLocaleString('zh-CN')）——
-  // 迭代 111（#245）：页面文案全面 key 化（workbench 域），useTranslation 同时订阅语言变化触发重渲染
+  // 卡片日期格式化跟随当前界面语言（原硬编码 toLocaleString（'zh-CN'））——
+  // 页面文案全面 key 化（workbench 域），useTranslation 同时订阅语言变化触发重渲染
   const { t, i18n } = useTranslation('workbench')
   const locale = toAppLocale(i18n.language)
   /** 业务 API 跟随模式（unknown 时不拉取，待探测完成）。 */
@@ -82,10 +82,10 @@ export function Workbench({
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<TemplateSummary | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  /** 迭代 104（#225）：当前打开 ⋯ 溢出菜单的卡片（模板 + 触发按钮锚点）；同一时刻至多一个。 */
+  /* * ：当前打开 ⋯ 溢出菜单的卡片（模板 + 触发按钮锚点）；同一时刻至多一个。 */
   const [menu, setMenu] = useState<{ tpl: TemplateSummary; anchor: HTMLElement } | null>(null)
 
-  // 预览缩略图（迭代 46 修订）：缓存随 biz 模式切换后的重新 load 失效
+  // 预览缩略图（修订）：缓存随 biz 模式切换后的重新 load 失效
   const preview = useTemplatePreviewCache(biz.previewTemplate)
   /** 当前放大查看的模板名（居中灯箱）。 */
   const [enlarged, setEnlarged] = useState<string | null>(null)

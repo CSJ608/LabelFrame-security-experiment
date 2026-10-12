@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 18 F2-F4：设置页三分组——服务端地址（机器级配置，保存即生效）/ 连接方式（本机 Client）/ 打印机。
+// F2-F4：设置页三分组——服务端地址（机器级配置，保存即生效）/ 连接方式（本机 Client）/ 打印机。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链：getHostConfig / getTransport / healthz）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +9,7 @@ import type { InstalledPluginInfo, PluginPackageInfo } from '../lib/api/types'
 import { AppProvider, useApp } from '../state/AppContext'
 import { Settings } from './Settings'
 
-// 迭代 96（#183）：挂载链（getHostConfig → getTransport / healthz → 各分组列表）为多段 promise +
+// 挂载链（getHostConfig → getTransport / healthz → 各分组列表）为多段 promise +
 // React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms（实证：TCP 参数表单
 // findByLabelText 1s 超时）。本文件统一把异步查询超时放宽到 8000ms（与 JobHistory / DataPrint 的
 // MOUNT_WAIT 同口径），消除对默认 1s 的隐式时序依赖；单测总超时由 vitest.config testTimeout（20s）兜住。
@@ -47,7 +47,7 @@ vi.mock('../lib/api/client', () => ({
   clientPackageDownloadUrl: (fileName: string) => `http://127.0.0.1:53961/api/client-packages/${encodeURIComponent(fileName)}`,
   pluginPackageDownloadUrl: (fileName: string) => `http://127.0.0.1:53961/api/plugin-packages/${encodeURIComponent(fileName)}`,
 }))
-// 迭代 20：本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
+// 本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
 vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
 function renderSettings() {
@@ -70,7 +70,7 @@ function withinSection(title: string): HTMLElement {
   return el.closest('section') as HTMLElement
 }
 
-/** 迭代 73（#108 决议 1）：连接方式面板默认折叠为当前连接摘要一行——点击面板头展开编辑区。 */
+/* * （决议 1）：连接方式面板默认折叠为当前连接摘要一行——点击面板头展开编辑区。 */
 function openTransportPanel() {
   fireEvent.click(screen.getByText('连接方式'))
 }
@@ -333,7 +333,7 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
     // ③ 测试打印说明（打印机分组）：当前连接方式：模拟打印
     const printerSection = withinSection('打印机')
     await waitFor(() => expect(printerSection.textContent).toContain('当前连接方式：模拟打印'))
-    // 全页无「LOG」直出（迭代 87 #143 起选项名亦为「模拟打印」，页面无任何「Log」字样）
+    // 全页无「LOG」直出（起选项名亦为「模拟打印」，页面无任何「Log」字样）
     expect(screen.queryByText(/LOG/)).toBeNull()
     expect(screen.queryByText(/Log/)).toBeNull()
   })
@@ -364,7 +364,7 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
     mockLogPluginTransport()
     renderSettings()
     // 挂载链先落定（连接配置已加载——折叠头摘要「模拟打印」出现为准），再展开交互：
-    // 实证（#183，PR #177 run 35553586518）：配置未落定即展开点选时，挂载期并发 mock 的迟到
+    // 实证（run 35553586518）：配置未落定即展开点选时，挂载期并发 mock 的迟到
     // 渲染会与单选列表 / 参数表单的渲染交错（选中态与表单不同步），findByLabelText 默认 1s 超时
     expect(await screen.findByText('模拟打印')).toBeTruthy()
     openTransportPanel()
@@ -590,7 +590,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
     mocks.local.listInstalledPlugins.mockResolvedValue([INSTALLED])
     renderSettings()
     fireEvent.click(await screen.findByRole('button', { name: /^安装$/ }))
-    // 迭代 93（#151 F-04）：自研 Modal 确认（替代原生 confirm 弹窗）
+    // 自研 Modal 确认（替代原生 confirm 弹窗）
     expect(await screen.findByText(/将覆盖为/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '确认覆盖安装' }))
     await waitFor(() => expect(mocks.local.installPlugin).toHaveBeenCalledTimes(1))
@@ -643,7 +643,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
     mocks.local.listInstalledPlugins.mockResolvedValue([INSTALLED])
     renderSettings()
     fireEvent.click(await screen.findByRole('button', { name: /^卸载$/ }))
-    // 迭代 93（#151 F-04）：自研 Modal 确认（替代原生 confirm 弹窗）
+    // 自研 Modal 确认（替代原生 confirm 弹窗）
     expect(await screen.findByText(/确认卸载插件/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '确认卸载' }))
     await waitFor(() => expect(mocks.local.uninstallPlugin).toHaveBeenCalledWith('sample'))
@@ -791,7 +791,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     expect(transportDot).toBeTruthy()
     fireEvent.click(transportDot)
     const dialog = screen.getByRole('dialog')
-    // #316 AC-01：气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
+    // 气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
     expect(dialog.getAttribute('aria-label')).toBe('连接方式')
     expect(within(dialog).queryByText('连接方式')).toBeNull()
     expect(within(dialog).getByText(/卡片收起时显示当前连接/)).toBeTruthy()
@@ -802,7 +802,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
   })
 })
 
-// ---------- 迭代 128（#316，决策 #178）：帮助深链 = 路由 sub 段承载，页内轮询自动弹卡片气泡 ----------
+// ---------- ：帮助深链 = 路由 sub 段承载，页内轮询自动弹卡片气泡 ----------
 
 describe('帮助深链（#316 决策 #178）', () => {
   function renderSettingsWithLink(helpAnchor: string) {

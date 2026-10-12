@@ -1,9 +1,9 @@
 ﻿namespace LabelFrame.WinHost.Jobs;
 
 /// <summary>
-/// 模拟打印作业数据留痕格式化（迭代 74，决策 #139）：纯函数——输入作业 ID / 模板名 / 各张标签字段数据，
+/// 模拟打印作业数据留痕格式化：纯函数——输入作业 ID / 模板名 / 各张标签字段数据
 /// 输出紧凑日志行（由宿主层 Log 模式提交点写入既有日志通道）。
-/// 形态（Issue #109 两项用户决议）：① 多张标签按数据集合去重——相同数据集合记一条 + 重复张数
+/// 形态（Issue 两项用户决议）：① 多张标签按数据集合去重——相同数据集合记一条 + 重复张数
 /// （批量打印不刷屏），不同数据集合各自记录（按首次出现顺序）；② 单条上限 2048 字符（≈2KB），
 /// 超限截断数据文本并标注完整长度。
 /// 去重键 = 数据集合的紧凑文本（键按 Ordinal 排序后比较，键序不同视为同一数据集合）；
@@ -94,7 +94,7 @@ public static class JobDataLogFormatter
             return prefix + dataText;
         }
 
-        // 超限（≈2KB）：截断数据文本并标注完整长度（决策 #139 ②，防异常大数据刷爆日志）
+        // 超限（≈2KB）：截断数据文本并标注完整长度（②，防异常大数据刷爆日志）
         var annotation = $"…（数据已截断，完整 {dataText.Length} 字符）";
         var budget = Math.Max(0, MaxLineLength - prefix.Length - annotation.Length);
         return prefix + dataText[..budget] + annotation;

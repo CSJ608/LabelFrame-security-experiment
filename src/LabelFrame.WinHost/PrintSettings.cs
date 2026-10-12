@@ -5,7 +5,7 @@ public sealed record PrintSettingsDto(bool BatchEnabled, int BatchSize, int Batc
 
 /// <summary>
 /// 批次作业设置（选项模型）：全局单例，API 线程写、打印 Worker 线程读，
-/// 读写统一走 lock 保证跨线程可见性（评审 #8 结论）。保存即生效，无需重启。
+/// 读写统一走 lock 保证跨线程可见性（评审 结论）。保存即生效，无需重启。
 /// </summary>
 public sealed class PrintSettings
 {

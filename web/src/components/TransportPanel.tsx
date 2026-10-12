@@ -1,10 +1,10 @@
-// 连接方式（迭代 15 §6.2 恢复，迭代 18 F3）：设置页完整面板。
-// 迭代 22：传输插件化——后端 availablePlugins（spec 驱动）存在时按插件目录动态渲染参数表单；
+// 连接方式（恢复，F3）：设置页完整面板。
+// 传输插件化——后端 availablePlugins（spec 驱动）存在时按插件目录动态渲染参数表单
 // 旧后端（无 availablePlugins）回退内置 4 模式（Log / Tcp / WindowsDriver / Zebra）。
 // 交互：先测试后生效（非 testOnly 后端先测试再切换持久化）；失败返回当前连接、前端全局状态不动。
 // 全部走 localApi（本机 Client 127.0.0.1:53960 / 页面来源）。连接徽标优先后端 displayText。
-// 迭代 93（#151 F-11）：删除全仓零引用的 DataPrint 顶部快速切换组件（git 历史可溯）。
-// 迭代 112（#246）：面板其余文案 key 化（settings 域 transportForm.* + common.transport.mode/zebraKind）。
+// 删除全仓零引用的 DataPrint 顶部快速切换组件。
+// 面板其余文案 key 化（settings 域 transportForm.* + common.transport.mode/zebraKind）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,8 +29,8 @@ import {
 import { useApp } from '../state/AppContext'
 import { Icon } from './Icon'
 
-/** 原生指令模式提示（迭代 78，DESIGN §5.4.2）：原生指令无指令级预览，界面以文案说明效果口径。
- *  迭代 111（#245）：随数据与打印页迁移 key 化（common.transport.*——该徽标同时用于本面板表单）。 */
+/* * 原生指令模式提示（DESIGN）：原生指令无指令级预览，界面以文案说明效果口径。
+ * 随数据与打印页迁移 key 化（common.transport.*——该徽标同时用于本面板表单）。 */
 export function NativePrintModeHint() {
   const { t } = useTranslation()
   return (
@@ -267,7 +267,7 @@ export function TransportParamsEditor({
   )
 }
 
-/** 插件参数输入区（迭代 22）：按 TransportParameterSpec 动态渲染——String 文本 / Int 数字 / Bool 开关 / Select 下拉。 */
+/* * 插件参数输入区：按 TransportParameterSpec 动态渲染——String 文本 / Int 数字 / Bool 开关 / Select 下拉。 */
 export function TransportPluginParamsEditor({
   plugin,
   params,
@@ -279,7 +279,7 @@ export function TransportPluginParamsEditor({
 }) {
   const { t } = useTranslation('settings')
   if (plugin.parameters.length === 0) {
-    // 迭代 82（#130 A-1）：无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
+    // 无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
     return <div className="hint">{plugin.description || t('transportForm.noParams')}</div>
   }
   return (

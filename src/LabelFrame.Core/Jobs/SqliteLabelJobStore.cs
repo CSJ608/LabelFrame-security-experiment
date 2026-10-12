@@ -75,7 +75,7 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
             if (inserted == 0)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                // 模板化消息（决策 #164 ③ / #166）：渲染结果与旧内插文案等价
+                // 模板化消息（③ /）：渲染结果与旧内插文案等价
                 var requestIdParams = new Dictionary<string, string> { ["requestId"] = job.RequestId };
                 return await GetJobByRequestIdCoreAsync(connection, job.RequestId, cancellationToken)
                     ?? throw new LabelJobException(

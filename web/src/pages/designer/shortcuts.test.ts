@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-// 迭代 112（#246）：清单改函数式（shortcutGroups() / coreShortcuts()，调用期取当前界面语言）——断言随接口机械调整，zh-CN 断言值不变（vitest.setup 钉住首启语言 zh-CN）。
+// 清单改函数式（shortcutGroups / coreShortcuts，调用期取当前界面语言）——断言随接口机械调整，zh-CN 断言值不变（vitest.setup 钉住首启语言 zh-CN）。
 import { coreShortcuts, shortcutGroups } from './shortcuts'
 
 describe('设计器快捷键清单', () => {

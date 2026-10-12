@@ -12,7 +12,7 @@ public class SqliteLogStoreTests
         {
             var store = new SqliteLogStore(dbPath);
             await store.InitializeAsync();
-            // 迭代 51（决策 #106）：多行提交按物理行拆为独立记录（此前合并为一条含换行符的 line）
+            // 多行提交按物理行拆为独立记录（此前合并为一条含换行符的 line）
             await store.AppendAsync("pda-1", ["打印完成", "第 1 张 OK"], CancellationToken.None);
 
             var entries = await store.QueryAsync("pda-1", null, CancellationToken.None);

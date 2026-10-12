@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 117（#268）：HTTP 非安全上下文（HTTP + 非 localhost IP 访问 server UI）回归——
+// HTTP 非安全上下文（HTTP + 非 localhost IP 访问 server UI）回归——
 // crypto.randomUUID 是浏览器安全上下文专属 API（仅 HTTPS / localhost 暴露），非安全上下文下为 undefined，
 // 旧实现在 buildRequest 内同步抛 TypeError：图片预览弹层不打开、打印请求无法构造。
 // 现改用 uuid 包 v4（randomUUID 不可用时回退 crypto.getRandomValues，不受安全上下文限制）。

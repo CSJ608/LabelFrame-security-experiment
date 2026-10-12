@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// 自研 hash 路由（迭代 127 · #312，决策 #177）：parseHash / formatHash 纯函数全分支 +
+// 自研 hash 路由（·）：parseHash / formatHash 纯函数全分支 +
 // useHashRoute hook 行为（入栈时序、sub 不入栈、hashchange 页面跟随、守卫取消 pre-revert 按戳回退、
 // 挂载规范化）。jsdom 的 history back/forward/go 触发 hashchange 且逐条目保留 state——pre-revert 可测
-// （#312 设计段勘察实证，本文件复验）。
+// （设计段勘察实证，本文件复验）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, renderHook, waitFor } from '@testing-library/react'
@@ -178,7 +178,7 @@ describe('useHashRoute · hook 行为（jsdom history）', () => {
   })
 
   it('守卫取消 pre-revert（back 截断序列回归）：back 放行后再切页截断前向历史，dirty 守卫 back 仍精确回退', async () => {
-    // PR #313 评审阻断项 2 复现序列：wb→data→jobs→back 放行回 data→切 designer（pushState 截断 jobs，
+    // 评审阻断项 2 复现序列：wb→data→jobs→back 放行回 data→切 designer（pushState 截断 jobs
     // 栈 [戳1,2,4] 戳位错位）→ dirty 守卫 back → 落 data(戳2) → 旧实现 go(4−2) 超栈尾不动、
     // hash 停 '#/data' 而页面仍是设计器。修复后戳位对齐（栈 [戳1,2,3]），go(1) 精确回 designer。
     let page: TabId = 'workbench'

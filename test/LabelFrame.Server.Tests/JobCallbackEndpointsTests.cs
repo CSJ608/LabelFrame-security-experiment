@@ -9,7 +9,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 终态回调的 HTTP 集成测试（WebApplicationFactory 拉起完整 Program，决策 #154）：
+/// 终态回调的 HTTP 集成测试（WebApplicationFactory 拉起完整 Program）：
 /// 非法 scheme 提交 4xx 拒绝（既有错误码体系 + 作业不入队）；合法 callbackUrl 受理 202 且
 /// 终态后作业视图透出投递状态。后台真实投递服务在场（回调地址指向回环保留端口，连接即拒，不外联）。
 /// </summary>
@@ -60,7 +60,7 @@ public sealed class JobCallbackEndpointsTests : IDisposable
               "labels": [ { "data": { "code": "A-01" } } ] }
             """));
 
-        // 4xx 中文错误、走既有错误码体系（#242 返修：callbackUrl 校验拆出专属码 LF_SRV_013）
+        // 4xx 中文错误、走既有错误码体系（callbackUrl 校验拆出专属码 LF_SRV_013）
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(ServerErrorCodes.InvalidCallbackUrl, error.GetProperty("code").GetString());

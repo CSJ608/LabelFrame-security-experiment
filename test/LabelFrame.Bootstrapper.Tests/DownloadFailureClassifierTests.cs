@@ -4,7 +4,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 下载侧失败分类测试（迭代 61 / #54；DESIGN §6.10）：引擎 HRESULT →
+/// 下载侧失败分类测试（/ ；DESIGN）：引擎 HRESULT →
 /// 源不可达 / 网络中断 / 校验失败三分类 + 差异化中文提示（含可操作建议）。
 /// </summary>
 public sealed class DownloadFailureClassifierTests

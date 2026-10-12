@@ -32,14 +32,14 @@ interface CanvasViewportProps {
   zoom: number
   gridOn: boolean
   pendingType: string | null
-  /** 画布只读锁（迭代 126 · #308 AC-05）：「看实时效果」演示期间 true——容器 pointer-events:none，
+  /* * 画布只读锁（·）：「看实时效果」演示期间 true——容器 pointer-events:none
    *  选中 / 拖拽 / 缩放 / 滚轮 / 拖入全不响应，画布仍可见；不拦 Konva 事件本身，规避拖拽状态清理被破坏。 */
   locked?: boolean
-  /** 图片资源表（key → 资源，迭代 132 · #329）：透传给各元素节点（图片元素按 key 解码渲染）。 */
+  /* * 图片资源表（key → 资源，·）：透传给各元素节点（图片元素按 key 解码渲染）。 */
   imageAssets?: Record<string, ImageAsset>
   onSelect: (ids: string[], toggle?: boolean) => void
   onAddElement: (type: string, xMm: number, yMm: number) => void
-  /** 空占位图片元素（key 空）被无修饰键单击（#329 方案 v2 拍板 2-A）：选中后直接打开文件选择；
+  /* * 空占位图片元素（key 空）被无修饰键单击（拍板 2-A）：选中后直接打开文件选择
    *  Shift / Ctrl 修饰点击仅多选不触发（修饰语义优先，防误弹）。 */
   onRequestImageUpload?: (id: string) => void
   /** dragend / transformend 提交（元素坐标 / 尺寸 / 锚定）。 */
@@ -48,7 +48,7 @@ interface CanvasViewportProps {
   onZoomChange: (z: number) => void
 }
 
-/** 多选整体刚性快照（迭代 131 返工 · #324 方案 v2/v3——用户拍板「整体刚性」）：
+/* * 多选整体刚性快照（返工 · /v3——用户拍板「整体刚性」）：
  *  dragStart 一次快照 + 每步独立重算（v1 的 lastX/lastY 逐步差分已废除，差分链不复存在）；
  *  v3 增 lastApplied 末步终态备忘（仅作 dragend 提交来源，不参与逐步推导——非步间差分状态）。 */
 interface MultiDragSnapshot {
@@ -58,13 +58,13 @@ interface MultiDragSnapshot {
   union: SnapRect
   /** 各选中元素初始节点坐标（逻辑 px，拖前模型换算）——跟随刚性设置与同 Δ 提交的基准。 */
   items: Array<{ id: string; x: number; y: number }>
-  /** dragmove 末步写入的吸附后主导位置（#324 方案 v3）——dragend 提交的唯一终态来源，
+  /* * dragmove 末步写入的吸附后主导位置——dragend 提交的唯一终态来源
    *  对松手瞬间任何节点扰动免疫（react-konva 事件后同步 flush、Transformer 重绑等组件层时序）。 */
   lastApplied: { x: number; y: number } | null
 }
 
 export function CanvasViewport(props: CanvasViewportProps) {
-  // 迭代 112（#246）：常驻提示条与打印预览提示随界面语言（订阅重渲染）
+  // 常驻提示条与打印预览提示随界面语言（订阅重渲染）
   const { t } = useTranslation('designer')
   const { state, selected, viewMode, dpi, zoom, gridOn, locked, imageAssets } = props
   const { paperW, paperH, elements } = state
@@ -78,7 +78,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
   const guidesRef = useRef<Konva.Line[]>([])
   const panRef = useRef({ panning: false, startX: 0, startY: 0, stageX: 0, stageY: 0 })
   const multiDragRef = useRef<MultiDragSnapshot | null>(null)
-  /** Transformer._proxyDrag 触发的「假拖动」节点 id 集（#324 方案 v3）——这些节点的
+  /* * Transformer._proxyDrag 触发的「假拖动」节点 id 集——这些节点的
    *  dragstart / dragmove / dragend 一律忽略：位置由主导侧每步刚性设置，dragend 吞掉
    *  防走单选提交（否则同一次多选拖动产生第二步历史，破坏撤销单步）。 */
   const fakeDragRef = useRef<Set<string>>(new Set())
@@ -146,7 +146,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
     stage.height(canvasSize.h * total)
     stage.scale({ x: total, y: total })
     clampStage()
-    // 迭代 93（#151 F-06）：clampStage 为 useCallback（依赖同三项），入依赖消除 exhaustive-deps 告警
+    // clampStage 为 useCallback（依赖同三项），入依赖消除 exhaustive-deps 告警
   }, [canvasSize, total, viewport, clampStage])
 
   // 参考线
@@ -170,12 +170,12 @@ export function CanvasViewport(props: CanvasViewportProps) {
   }, [canvasSize])
 
   /** 拖动吸附（原型 snapNode，纯单选路径）：目标 = 画布/内容区/其它元素边缘中心，网格兜底。
-   *  迭代 130（#323）：被拖盒与候选统一切模型盒域——getClientRect 渲染盒默认含居中描边半线宽外扩
+   * 被拖盒与候选统一切模型盒域——getClientRect 渲染盒默认含居中描边半线宽外扩
    *  （线 +0.25mm / 边框 +0.15mm / 图片占位描边 +0.125mm 每侧），旧口径把外扩传染给吸附落点与提交坐标。
    *  被拖盒 = 节点原点（= 模型盒原点）+ 模型宽高；候选 = 其它元素模型盒（纯模型计算，去逐元素 findOne）。
-   *  迭代 131 返工（#324 方案 v2）：多选吸附改走联合盒路径（snapUnion），不经本函数——本函数不再耦合
+   * 多选吸附改走联合盒路径（snapUnion），不经本函数——本函数不再耦合
    *  multiDragRef（v1 的跟随元素候选排除在 v2 中不可达：多选路径不调用本函数），候选 = 仅排除被拖元素
-   *  自身（othersModelRects 构造，与 #323 口径逐行等价）。 */
+   * 自身（othersModelRects 构造，与 口径逐行等价）。 */
   const snapNode = useCallback(
     (g: Konva.Node) => {
       const p = stateRef.current
@@ -197,9 +197,9 @@ export function CanvasViewport(props: CanvasViewportProps) {
     [addGuide, canvasSize, clearGuides, ox, oy, paperH, paperW],
   )
 
-  /** 多选联合盒吸附（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性」）：被拖盒 = dragStart 联合盒
+  /* * 多选联合盒吸附（返工 · ，用户拍板「整体刚性」）：被拖盒 = dragStart 联合盒
    *  + 主导总位移（Konva dragmove fire 时节点已为本步指针位置——DragAndDrop._drag 实读）；候选 = 未选中
-   *  元素（组内元素零参与——既不作被拖盒也不作候选，#180 ④「残影盒」防御的语义超集）；吸附量施加于
+   * 元素（组内元素零参与——既不作被拖盒也不作候选， ④「残影盒」防御的语义超集）；吸附量施加于
    *  主导节点，跟随元素由「初始快照 + 主导总位移」另行刚性设置。与单选 snapNode 共用 computeSnap
    *  （含按盒左上角贴 1mm 网格的兜底——此处即联合盒左上角）。 */
   const snapUnion = useCallback(
@@ -345,7 +345,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
     const p = stateRef.current
     const el = elementFromTarget(ev.target)
     if (el && p.selected.length > 1 && p.selected.includes(el.id())) {
-      // 主导权防御（#324 方案 v3，真实浏览器插桩定位）：Konva Transformer 的 _proxyDrag 会在主导元素
+      // 主导权防御（真实浏览器插桩定位）：Konva Transformer 的 _proxyDrag 会在主导元素
       // 首次 dragmove 时把其余绑定节点 setAbsolutePosition(+dx) 后强制 startDrag——跟随元素由此产生
       // 「假 dragstart」，若不拦截会覆盖本快照（v2 松手瞬移根因：单例 multiDragRef 被跟随元素的快照
       // 顶替，dragend 以「主导节点位置 × 跟随快照」错配算补丁）。桌面单指针下一个手势只有一个主导；
@@ -356,7 +356,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
         return
       }
       fakeDragRef.current.clear()
-      // 整体刚性快照（迭代 131 返工 · #324 方案 v2，用户拍板）：联合盒与各元素初始坐标一律从拖前
+      // 整体刚性快照（返工 · ，用户拍板）：联合盒与各元素初始坐标一律从拖前
       // 模型换算（不依赖节点存在——拖动中途删除元素时快照按 elementById 过滤、findOne 未命中自然跳过）
       const sel = p.selected.flatMap((id) => {
         const m = elementById(p.state.elements, id)
@@ -379,17 +379,17 @@ export function CanvasViewport(props: CanvasViewportProps) {
     const el = elementFromTarget(ev.target)
     if (!el || !layer) return
     const md = multiDragRef.current
-    // 单选路径（md null）：snapNode 吸附与 #323 口径逐行一致
+    // 单选路径（md null）：snapNode 吸附与 口径逐行一致
     if (!md) {
       snapNode(el)
       layer.batchDraw()
       return
     }
-    // 多选整体刚性（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性语义」）：吸附单位 = 整组联合盒，
+    // 多选整体刚性（返工 · ，用户拍板「整体刚性语义」）：吸附单位 = 整组联合盒
     // 每步独立重算（dragStart 快照 + 主导总位移），无步间状态——v1 的 lastX/lastY 逐步差分链
     // （用户实测「分离更严重」的头号可疑结构）已废除，差分累积误差结构性不可能。
     // 跟随节点每步直接设「初始快照 + 主导总位移（含吸附）」，组内相对位置刚性不变。
-    // v3（#324）：非主导节点（Transformer._proxyDrag 假拖动）的 dragmove 一律忽略——其节点位置
+    // v3：非主导节点（Transformer._proxyDrag 假拖动）的 dragmove 一律忽略——其节点位置
     // 由 Konva _setDragPosition 拉到指针位，但主导侧的 dragmove 随后每步刚性覆盖（fire 序主导在先）。
     if (el.id() !== md.targetId) return
     snapUnion(el, md)
@@ -406,7 +406,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
         }
       })
     }
-    // v3（#324）：末步吸附后主导位置写入快照——dragend 提交的唯一终态来源（松手段纯提交，
+    // v3：末步吸附后主导位置写入快照——dragend 提交的唯一终态来源（松手段纯提交
     // 不再读节点现值，对松手瞬间任何组件层时序扰动免疫）。
     md.lastApplied = { x: el.x(), y: el.y() }
     layer.batchDraw()
@@ -424,7 +424,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
       return
     }
     const md = multiDragRef.current
-    // v3（#324）：Transformer._proxyDrag 假拖动节点的 dragend 一律吞掉——不提交（防走单选提交
+    // v3：Transformer._proxyDrag 假拖动节点的 dragend 一律吞掉——不提交（防走单选提交
     // 产生第二步历史破坏撤销单步）、不清快照；多选提交权唯一归属主导元素。
     if (fakeDragRef.current.has(el.id())) {
       fakeDragRef.current.delete(el.id())
@@ -432,12 +432,12 @@ export function CanvasViewport(props: CanvasViewportProps) {
     }
     if (md && el.id() !== md.targetId) return
     multiDragRef.current = null
-    // 单选路径（md 为 null）零变化：仅主导元素提交，regionId 与提交链与 #323 口径逐行等价
+    // 单选路径（md 为 null）零变化：仅主导元素提交，regionId 与提交链与 口径逐行等价
     if (!md) {
       // Konva 拖拽松手时节点保持末次 dragmove 位置（DragAndDrop._endDragBefore 实读：只置状态不更新
       // 位置），松手再吸一次幂等（已贴线 dx=0），保证落点精确
       snapNode(el)
-      // 迭代 130（#323）：从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致，
+      // 从节点原点（= 模型盒原点）提交——落点 mm 与参考线严格一致
       // 残差仅剩两位舍入（≤0.005mm）；旧口径取渲染盒左上角，被描边外扩带偏 −0.15/−0.25mm。
       const pos = commitDragPosition(el.x(), el.y(), false)
       const regionId = p.viewMode === 'preview' ? e.regionId : containerRegionIdFor({ ...e, x: pos.x, y: pos.y }, p.state.elements)
@@ -454,7 +454,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
       p.onCommit()
       return
     }
-    // 多选路径（迭代 131 返工 · #324 方案 v3）：松手段纯提交——不再跑二次联合盒吸附，终态也不读节点
+    // 多选路径（返工 ·）：松手段纯提交——不再跑二次联合盒吸附，终态也不读节点
     // 现值，二者统一取 dragmove 末步写入快照的 lastApplied（吸附后主导位置）。依据（Konva 源码实读
     // ＋浏览器插桩定位）：DragAndDrop._endDragBefore 松手只置 dragStatus 不更新节点位置，末次 dragmove
     // 的吸附就是终态，「松手再吸一次防指针覆盖」的存在前提在多选路径不成立（指针覆盖只发生在 dragmove
@@ -503,7 +503,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
     tr.nodes().forEach((g) => {
       const e = elementById(p.state.elements, g.id())
       if (!e) return
-      // 迭代 130（#323）：skipStroke 剔除居中描边外扩（盒 = 模型盒），保留 Konva 变换 / 翻折归一化数学——
+      // skipStroke 剔除居中描边外扩（盒 = 模型盒），保留 Konva 变换 / 翻折归一化数学——
       // 旧口径每轮提交 x/y 各偏 −半线宽、w/h 各虚增 +线宽，反复缩放逐次累计漂移（线 −0.25/+0.5、边框 −0.15/+0.3 每轮）。
       const r = g.getClientRect({ relativeTo: layer, skipStroke: true })
       let w = r.width / PX

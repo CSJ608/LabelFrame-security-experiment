@@ -1,5 +1,5 @@
-// 设计器快捷操作清单（迭代 15 增强：画布常驻提示条 + 工具栏「快捷键」弹窗完整清单）
-// 迭代 112（#246）：文案 key 化（designer 域 shortcuts.*）——改为函数在调用期取当前界面语言，
+// 设计器快捷操作清单（增强：画布常驻提示条 + 工具栏「快捷键」弹窗完整清单）
+// 文案 key 化（designer 域 shortcuts.*）——改为函数在调用期取当前界面语言
 // 消费组件（Designer 弹窗 / CanvasViewport 提示条）经 useTranslation 订阅语言切换后重渲染刷新。
 
 import i18next from '../../i18n'

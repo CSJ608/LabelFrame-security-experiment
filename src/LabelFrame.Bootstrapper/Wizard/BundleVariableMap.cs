@@ -2,8 +2,8 @@ using LabelFrame.Bootstrapper.Topology;
 
 namespace LabelFrame.Bootstrapper.Wizard;
 
-/// <summary>Burn 变量契约（DESIGN §6.3，决策 #122 / #124）：问卷解析结果与探测 / 落位信息 → Bundle 链条件变量——BA 写入引擎，Chain 内包以 Condition / InstallArguments 消费。</summary>
-/// <remarks>纯函数（net10 测试锚定）；后续品牌插件按 <c>InstallPlugin&lt;Brand&gt;</c> / <c>&lt;Brand&gt;TargetDir</c> 同构扩展（7/8 #56）。</remarks>
+/// <summary>Burn 变量契约（DESIGN ， /）：问卷解析结果与探测 / 落位信息 → Bundle 链条件变量——BA 写入引擎，Chain 内包以 Condition / InstallArguments 消费。</summary>
+/// <remarks>纯函数（net10 测试锚定）；后续品牌插件按 <c>InstallPlugin&lt;Brand&gt;</c> / <c>&lt;Brand&gt;TargetDir</c> 同构扩展（7/8）。</remarks>
 public static class BundleVariableMap
 {
     /// <summary>预设 manifest id 变量（standalone / server-win / server-docker / server-linux / client）。</summary>
@@ -21,16 +21,16 @@ public static class BundleVariableMap
     /// <summary>是否安装 Zebra 品牌插件（plugin-zebra 落位包条件）。</summary>
     public const string ZebraPluginVariable = "InstallPluginZebra";
 
-    /// <summary>.NET 10 Desktop Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 §6.9 口径写入）。</summary>
+    /// <summary>.NET 10 Desktop Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入）。</summary>
     public const string DesktopRuntimeVariable = "DesktopRuntimeInstalled";
 
-    /// <summary>ASP.NET Core Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 §6.9 口径写入；迭代 62 返修，决策 #128）。</summary>
+    /// <summary>ASP.NET Core Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入；）。</summary>
     public const string AspNetCoreRuntimeVariable = "AspNetCoreRuntimeInstalled";
 
-    /// <summary>WebView2 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 §6.9 口径写入）。</summary>
+    /// <summary>WebView2 是否已装（链内 DetectCondition 消费，BA 于 Detect 前按 口径写入）。</summary>
     public const string WebView2Variable = "WebView2Installed";
 
-    /// <summary>evergreen 源变量（决策 #151，#173）：WebView2Runtime 包装包 InstallArguments 以 [变量] 引用——BA 随确认页写入（布局目录本地文件在位优先，否则清单 urls 顺序拼接；空 = 工具官方 fwlink 兜底）。</summary>
+    /// <summary>evergreen 源变量：WebView2Runtime 包装包 InstallArguments 以 [变量] 引用——BA 随确认页写入（布局目录本地文件在位优先，否则清单 urls 顺序拼接；空 = 工具官方 fwlink 兜底）。</summary>
     public const string WebView2SourceVariable = "WebView2Source";
 
     /// <summary>webui 落位目标目录（链内落位包 InstallArguments 以 [变量] 引用）。</summary>
@@ -39,10 +39,10 @@ public static class BundleVariableMap
     /// <summary>Zebra 插件落位目标目录（链内落位包 InstallArguments 以 [变量] 引用）。</summary>
     public const string PluginZebraTargetDirVariable = "PluginZebraTargetDir";
 
-    /// <summary>webui 落位凭据在位（清理包 WebUiPlacementCleanup DetectCondition 消费，迭代 69 / 决策 #133：BA 启动期读凭据比对 WixBundleVersion 写入）。</summary>
+    /// <summary>webui 落位凭据在位（清理包 WebUiPlacementCleanup DetectCondition 消费，/ ：BA 启动期读凭据比对 WixBundleVersion 写入）。</summary>
     public const string WebUiPlacementPresentVariable = "WebUiPlacementPresent";
 
-    /// <summary>zebra 插件落位凭据在位（清理包 ZebraPluginPlacementCleanup DetectCondition 消费，迭代 69 / 决策 #133）。</summary>
+    /// <summary>zebra 插件落位凭据在位（清理包 ZebraPluginPlacementCleanup DetectCondition 消费，/）。</summary>
     public const string ZebraPluginPlacementPresentVariable = "ZebraPluginPlacementPresent";
 
     /// <summary>拓扑计划 → 变量集合（string 值；数值变量由 BA 写引擎时转 long）。</summary>
@@ -74,7 +74,7 @@ public static class BundleVariableMap
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
         "LabelFrame", "server", "plugins", "web-ui");
 
-    /// <summary>Zebra 插件落位目标目录（DEPLOY §6：plugins\&lt;pluginId&gt;；pluginId 映射表见 §6.8）。</summary>
+    /// <summary>Zebra 插件落位目标目录（DEPLOY §6：plugins\&lt;pluginId&gt;；pluginId 映射表见）。</summary>
     public static string PluginZebraTargetDir() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
         "LabelFrame", "Client", "plugins", BrandPluginMap.PluginIdOf("zebra") ?? "plugin-zebra");

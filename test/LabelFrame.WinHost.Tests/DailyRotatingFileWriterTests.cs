@@ -3,7 +3,7 @@ using LabelFrame.WinHost;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// host.log 按日轮转写入器测试（决策 #108，AC-02）：
+/// host.log 按日轮转写入器测试：
 /// 写入落到按日文件 host-yyyyMMdd.log（不再写单名 host.log）、启动即清理超期、
 /// 历史单名 / 非日期文件不动、停用后写入不抛异常。
 /// </summary>

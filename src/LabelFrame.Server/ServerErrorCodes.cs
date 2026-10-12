@@ -1,7 +1,7 @@
 namespace LabelFrame.Server;
 
 /// <summary>Server 问题码。约定：LF_SRV_xxx。</summary>
-/// <remarks>新增码须同步 web 端码表（`web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译——决策 #166 ④）。</remarks>
+/// <remarks>新增码须同步 web 端码表（`web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译—— ④）。</remarks>
 public static class ServerErrorCodes
 {
     /// <summary>设备未注册。</summary>
@@ -31,15 +31,15 @@ public static class ServerErrorCodes
     /// <summary>宿主失联超时（Claimed 作业超时回收的原因码，嵌入回收后的 ErrorMessage 文案；非 HTTP 错误响应）。</summary>
     public const string HostLostTimeout = "LF_SRV_009";
 
-    /// <summary>PDA（Android 宿主）安装包不存在（迭代 59 决策 #119）。</summary>
+    /// <summary>PDA（Android 宿主）安装包不存在。</summary>
     public const string PdaPackageNotFound = "LF_SRV_010";
 
-    /// <summary>Pending 暂存超期放弃（超 TTL 未投递置 Expired 终态的原因码，落 server_jobs.error_code；迭代 109 决策 #166）。</summary>
+    /// <summary>Pending 暂存超期放弃（超 TTL 未投递置 Expired 终态的原因码，落 server_jobs.error_code）。</summary>
     public const string PendingExpired = "LF_SRV_011";
 
-    /// <summary>按 IP 未找到设备（提交 targetIp 解析 / GET by-ip 查询；与 LF_SRV_001 设备未注册语义不同，拆码见决策 #166 ⑥）。</summary>
+    /// <summary>按 IP 未找到设备（提交 targetIp 解析 / GET by-ip 查询；与 LF_SRV_001 设备未注册语义不同，拆码见 ⑥）。</summary>
     public const string DeviceNotFoundByIp = "LF_SRV_012";
 
-    /// <summary>callbackUrl 无效（决策 #154：scheme 白名单仅 http/https，提交即拒；从 LF_SRV_002 拆出以区分语义）。</summary>
+    /// <summary>callbackUrl 无效（scheme 白名单仅 http/https，提交即拒；从 LF_SRV_002 拆出以区分语义）。</summary>
     public const string InvalidCallbackUrl = "LF_SRV_013";
 }

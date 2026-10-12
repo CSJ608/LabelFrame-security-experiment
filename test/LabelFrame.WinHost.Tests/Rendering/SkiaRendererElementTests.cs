@@ -7,7 +7,7 @@ namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
 /// 渲染器元素覆盖补全：图片 / 线 / 区域三种元素此前零测试（文本 / 条码 / 二维码已有）；
-/// 迭代 89（#147）补锚定自动高度文本垂直坐标语义回归（绘制框 = 解析锚定框，不穿锚定盒底边）。
+/// 补锚定自动高度文本垂直坐标语义回归（绘制框 = 解析锚定框，不穿锚定盒底边）。
 /// 断言策略与 SkiaLabelRendererTests 一致：按毫米区域数墨点（不依赖具体字体渲染）。
 /// </summary>
 public class SkiaRendererElementTests
@@ -66,7 +66,7 @@ public class SkiaRendererElementTests
     [Fact]
     public void Image_element_without_resource_should_throw_with_key_name()
     {
-        // 迭代 132（#329，决策 #184 拍板 4-A）改写：缺资源由「灰占位照打（无墨仅边框）」变为
+        // （拍板 4-A）改写：缺资源由「灰占位照打（无墨仅边框）」变为
         // 显式报错（预览 / 出图 / 打印链失败并透出键名）——灰占位呈现归设计器画布与属性面板。
         var ex = Assert.Throws<MissingImageResourceException>(() => Render(new LabelLayout
         {
@@ -124,7 +124,7 @@ public class SkiaRendererElementTests
     public void Region_anchored_element_should_align_when_configured()
     {
         // 对比式断言：同一文本以不同锚定渲染，墨迹重心应随锚定方向移动。
-        // 显式宽度（块位置由对齐系数计算）与自动宽度（迭代 54 决策 #110：按实测文本宽度计算偏移）都应生效。
+        // 显式宽度（块位置由对齐系数计算）与自动宽度（按实测文本宽度计算偏移）都应生效。
         LabelBitmap RenderWith(LabelRegionAlign h, LabelRegionAlign v, double widthMm) => Render(new LabelLayout
         {
             Name = "anchor-" + h + "-" + v, ContractName = "c", ContractVersion = "1.0", WidthMm = 60, HeightMm = 30,
@@ -145,7 +145,7 @@ public class SkiaRendererElementTests
         var (centerX, _) = InkCenter(RenderWith(LabelRegionAlign.Center, LabelRegionAlign.Center, 12));
         Assert.True(centerX > startX + 5, $"水平锚定未生效：start x={startX:F1}, center x={centerX:F1}");
 
-        // 水平锚定——自动宽度（决策 #110 方案 A，实测文本宽度参与计算）：Start / Center / End 墨迹重心递增
+        // 水平锚定——自动宽度（方案 A，实测文本宽度参与计算）：Start / Center / End 墨迹重心递增
         var (autoStartX, _) = InkCenter(RenderWith(LabelRegionAlign.Start, LabelRegionAlign.Start, 0));
         var (autoCenterX, _) = InkCenter(RenderWith(LabelRegionAlign.Center, LabelRegionAlign.Center, 0));
         var (autoEndX, _) = InkCenter(RenderWith(LabelRegionAlign.End, LabelRegionAlign.End, 0));
@@ -179,9 +179,9 @@ public class SkiaRendererElementTests
     [Fact]
     public void Region_anchored_auto_height_text_should_center_inside_region_without_piercing_bottom()
     {
-        // 迭代 89 #147（AC-01）：区域居中锚定自动宽度 + 自动高度文本——绘制框 = 解析锚定框（字高框），
+        // 区域居中锚定自动宽度 + 自动高度文本——绘制框 = 解析锚定框（字高框）
         // 墨迹完整位于锚定盒内且垂直居中。修复前误用决策 A 兜底框（max(字高 + 2×内边距, 10mm) = 10mm）
-        // 再按缺省 Middle 块内居中，字形中心比区域中心下沉 (10 − 2)/2 = 4mm = 2 字高，穿出盒底边（真机陪验 #120）。
+        // 再按缺省 Middle 块内居中，字形中心比区域中心下沉 （10 − 2）/2 = 4mm = 2 字高，穿出盒底边（真机陪验）。
         // 区域无边框（区域自身不绘制），全版墨迹即文本墨迹，InkCenter 可直接度量垂直重心。
         LabelBitmap RenderWith(LabelRegionAlign v) => Render(new LabelLayout
         {
@@ -217,7 +217,7 @@ public class SkiaRendererElementTests
     [Fact]
     public void Non_anchored_auto_height_text_keeps_fallback_box_vertical_center()
     {
-        // 迭代 89 #147（AC-01）非锚定路径零变化 pin：无 heightMm 的非锚定文本仍按决策 A 兜底框
+        // #147非锚定路径零变化 pin：无 heightMm 的非锚定文本仍按决策 A 兜底框
         // max(字高 + 2×内边距, 10mm) 块内 Middle 居中——元素 y=5 → 墨迹重心 ≈ 5 + 10/2 = 10mm。
         var bitmap = Render(new LabelLayout
         {
@@ -232,7 +232,7 @@ public class SkiaRendererElementTests
     [Fact]
     public void Explicit_width_text_block_text_align_should_keep_working()
     {
-        // 防回归（AC-02）：显式宽度块内 TextAlign 既有行为——Left 与 Right 墨迹重心应明显不同
+        // 防回归：显式宽度块内 TextAlign 既有行为——Left 与 Right 墨迹重心应明显不同
         LabelBitmap RenderWith(LabelTextAlign align) => Render(new LabelLayout
         {
             Name = "talign-" + align, ContractName = "c", ContractVersion = "1.0", WidthMm = 60, HeightMm = 30,

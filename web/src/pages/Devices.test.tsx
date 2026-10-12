@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 20：在线设备页（Server UI 专用）——设备列表（deviceId / 名称 / lastIp / 在线状态 / 最近心跳），
+// 在线设备页（Server UI 专用）——设备列表（deviceId / 名称 / lastIp / 在线状态 / 最近心跳）
 // 每 5s 自动刷新；点击在线设备设为数据与打印默认目标（localStorage labelframe.defaultTargetDeviceId，
 // AppContext 共享跨页联动，选中高亮 + 状态提示）；离线设备不可设为默认。
 
@@ -9,7 +9,7 @@ import type { DeviceView } from '../lib/api/types'
 import { AppProvider } from '../state/AppContext'
 import { Devices } from './Devices'
 
-// 迭代 96（#183）：挂载链（server 构建为 healthz → serverMode → 设备列表加载）为多段 promise +
+// 挂载链（server 构建为 healthz → serverMode → 设备列表加载）为多段 promise +
 // React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy 默认 1000ms；统一放宽到 8000ms
 //（与 JobHistory / DataPrint / Settings 同口径），单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
@@ -128,7 +128,7 @@ describe('在线设备页：5s 轮询（G2，在线状态翻转时效最坏约 3
     vi.useFakeTimers()
     render(<Harness />)
     // 首次拉取立即执行（无定时器延迟）；挂载链（healthz → serverMode → 列表加载）有界多轮冲洗至落定
-    //（React 调度走真实宏任务，固定单轮冲洗在高负载 runner 上可能残留未落定代际——#183 同类时序敏感）
+    // （React 调度走真实宏任务，固定单轮冲洗在高负载 runner 上可能残留未落定代际—— 同类时序敏感）
     for (let i = 0; i < 15 && mocks.server.listDevices.mock.calls.length < 1; i++) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)

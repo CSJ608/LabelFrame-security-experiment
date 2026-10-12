@@ -3,14 +3,14 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 安装进度页（决策 #124，DESIGN §6.9）：引擎事件映射（CacheAcquireProgress / ExecuteProgress → 总进度，
+/// 安装进度页（DESIGN）：引擎事件映射（CacheAcquireProgress / ExecuteProgress → 总进度
 /// Cache/Execute Package Begin/Complete → 分包状态）；失败时切换为失败报告（失败步骤 / Burn 日志位置 / 建议动作 + 重试）。
-/// 下载侧细化（迭代 61 / #54，DESIGN §6.10）：单包下载百分比、下载源序号与换源提示、缓存命中标注、
+/// 下载侧细化（/ ，DESIGN）：单包下载百分比、下载源序号与换源提示、缓存命中标注
 /// 失败分类（源不可达 / 网络中断 / 校验失败）差异化提示。
 /// </summary>
 internal sealed class ProgressPage : UserControl, IWizardPage
 {
-    /// <summary>链序展示（DESIGN §6.9 链序表；与 Bundle.wxs Chain 一致）。</summary>
+    /// <summary>链序展示（DESIGN 链序表；与 Bundle.wxs Chain 一致）。</summary>
     private static readonly string[] ChainOrder =
     [
         "DotNetDesktopRuntime",
@@ -57,7 +57,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
         _phaseLabel.AutoSize = true;
         _phaseLabel.Location = new Point(8, 38);
 
-        // 下载侧提示行（换源 / 缓存命中，#54）：与阶段行错开一行
+        // 下载侧提示行（换源 / 缓存命中）：与阶段行错开一行
         _downloadHintLabel.AutoSize = true;
         _downloadHintLabel.Location = new Point(8, 60);
         _downloadHintLabel.MaximumSize = new Size(680, 0);
@@ -165,7 +165,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
         }
     }
 
-    /// <summary>失败报告（DESIGN §6.9 / §6.10）：失败步骤 + 引擎消息、下载侧失败分类差异化提示、Burn 日志位置、建议动作。</summary>
+    /// <summary>失败报告（DESIGN /）：失败步骤 + 引擎消息、下载侧失败分类差异化提示、Burn 日志位置、建议动作。</summary>
     private void ShowFailure(InstallState state)
     {
         _listView.Visible = false;
@@ -176,7 +176,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
             ? $"阶段：{DescribePhase(state.Phase)}"
             : $"组件：{DisplayName(failedPackage.Key)}（阶段 {DescribePhase(state.Phase)}，链已停止并回滚本次已执行组件）";
 
-        // 下载侧失败分类（#54：源不可达 / 网络中断 / 校验失败差异化提示；分类缺失时跳过该节）
+        // 下载侧失败分类（源不可达 / 网络中断 / 校验失败差异化提示；分类缺失时跳过该节）
         var categoryText = failedPackage.Value.Failure is { } category && category != LabelFrame.Bootstrapper.Downloads.DownloadFailureCategory.None
             ? "\n\n失败分类：" + LabelFrame.Bootstrapper.Downloads.DownloadFailureClassifier.Describe(category)
             : string.Empty;
@@ -241,7 +241,7 @@ internal sealed class ProgressPage : UserControl, IWizardPage
         _listView.EndUpdate();
     }
 
-    /// <summary>下载阶段当前组件描述（单包百分比 + 源序号，#54 下载侧细化）。</summary>
+    /// <summary>下载阶段当前组件描述（单包百分比 + 源序号， 下载侧细化）。</summary>
     private string DescribeCurrentPackage(InstallState state)
     {
         if (state.CurrentPackageId is null)

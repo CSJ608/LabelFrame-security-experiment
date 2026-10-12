@@ -5,8 +5,8 @@ using WixToolset.BootstrapperApplicationApi;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 完成页（决策 #124，DESIGN §6.9）：结果摘要（装了什么 / 版本 / 跳过项 / 服务状态）+
-/// 下一步指引（打开客户端 / 访问管理界面 / PDA 到下载中心扫码——衔接 #52）与重启提示。
+/// 完成页（DESIGN）：结果摘要（装了什么 / 版本 / 跳过项 / 服务状态）+
+/// 下一步指引（打开客户端 / 访问管理界面 / PDA 到下载中心扫码——衔接）与重启提示。
 /// </summary>
 internal sealed class CompletePage : UserControl, IWizardPage
 {
@@ -158,7 +158,7 @@ internal sealed class CompletePage : UserControl, IWizardPage
     {
         if (component.Type == "runtime")
         {
-            // 探测腿映射（决策 #129 ③ 顺带补齐）：#87 新增 aspnetcore 条目时误落 WebView2 探测腿——三腿各自对齐
+            // 探测腿映射（③ 顺带补齐）： 新增 aspnetcore 条目时误落 WebView2 探测腿——三腿各自对齐
             var alreadyInstalled = component.Id switch
             {
                 "runtime-desktop" => _ba.RuntimeStatus.DesktopRuntimeInstalled,

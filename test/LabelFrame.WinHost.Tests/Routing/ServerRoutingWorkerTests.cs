@@ -214,7 +214,7 @@ public class ServerRoutingWorkerTests
     [Fact]
     public async Task Worker_should_report_throttled_progress_with_fake_time_provider()
     {
-        // AC-03：FakeTimeProvider 驱动回报循环时钟——打印中间隔性上报、节流生效、终态后停发
+        // FakeTimeProvider 驱动回报循环时钟——打印中间隔性上报、节流生效、终态后停发
         var dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lfroute-{Guid.NewGuid():N}.db");
         try
         {
@@ -293,7 +293,7 @@ public class ServerRoutingWorkerTests
     [Fact]
     public async Task Progress_failure_should_degrade_silently_and_not_block_result()
     {
-        // AC-03：Server 不可达（进度上报持续抛异常）不影响打印主链路，终态回报仍送达
+        // Server 不可达（进度上报持续抛异常）不影响打印主链路，终态回报仍送达
         var dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lfroute-{Guid.NewGuid():N}.db");
         try
         {
@@ -389,8 +389,8 @@ public class ServerRoutingWorkerTests
     }
 
     /// <summary>
-    /// 原生指令模式下编译失败 → 路由回报 Failed（#119 AC-03）：任一标签编译失败本地不建作业，
-    /// 宿主按既有失败回报路径回报 Server Failed，错误消息含问题码与中文原因（§5.4.3）。
+    /// 原生指令模式下编译失败 → 路由回报 Failed：任一标签编译失败本地不建作业
+    /// 宿主按既有失败回报路径回报 Server Failed，错误消息含问题码与中文原因。
     /// </summary>
     [Fact]
     public async Task Compile_failure_in_native_mode_should_report_server_job_failed()

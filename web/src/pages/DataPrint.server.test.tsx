@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-// 迭代 20：DataPrint server 构建（VITE_UI_MODE=server）——在线设备选择器（必选、仅在线可选、离线置灰显示
+// DataPrint server 构建（VITE_UI_MODE=server）——在线设备选择器（必选、仅在线可选、离线置灰显示
 // 上次心跳）；默认目标优先级 = 用户点选（localStorage labelframe.defaultTargetDeviceId，须在线）> 第一台在线；
 // 提交时现拉 GET /api/devices 校验在线（K3，掉线提示并禁止提交、作业不排队，不复用缓存列表）；
 // 隐藏打印机连接徽标与逐张失败重试表格（G4）；业务 API 恒 serverApi（无 standalone 分支）。
-// 迭代 81（#129）：图片预览页内弹层与下载分离双形态走查（与 client 构建行为一致）。
+// 图片预览页内弹层与下载分离双形态走查（与 client 构建行为一致）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -92,7 +92,7 @@ const DEVICES: DeviceView[] = [
   { deviceId: 'device-2', name: '仓库-2 打印电脑', registeredAt: '2026-08-11T00:00:00Z', lastSeenAt: '2026-08-10T23:00:00Z', status: 'Offline', lastIp: '192.168.1.6' },
 ]
 
-/** 无字段模板（静态标签，迭代 65 · #62）：contract.fields 空 + 版式无 field 元素 → fieldKeys 为空。 */
+/* * 无字段模板（静态标签，·）：contract.fields 空 + 版式无 field 元素 → fieldKeys 为空。 */
 const STATIC_PKG: TemplatePackage = {
   name: '固定警示标签',
   group: '默认',
@@ -140,8 +140,8 @@ afterEach(() => {
 })
 
 /** 挂载链等待超时（ms）：DataPrint 挂载要串行走完「设备列表 → 模板列表 → 模板详情 → testData 预填」多段异步链，
- *  CI 高负载下可能超过 findBy / waitFor 默认 1000ms（迭代 38：ci run 34081028327 偶发超时），统一放宽。 */
-// 迭代 96（#183）：3000ms 在 CI 高负载下被击穿（见 DataPrint.test.tsx 注释），对齐放宽到 8000ms
+ * CI 高负载下可能超过 findBy / waitFor 默认 1000ms（ci run 34081028327 偶发超时），统一放宽。 */
+// 3000ms 在 CI 高负载下被击穿（见 DataPrint.test.tsx 注释），对齐放宽到 8000ms
 const MOUNT_WAIT = { timeout: 8000 }
 
 async function renderDataPrint() {
@@ -237,13 +237,13 @@ describe('DataPrint server 构建：隐藏逐张失败重试表格（G4）', () 
     // G4：server 构建强制隐藏逐张表格 / 重试按钮
     expect(screen.queryByRole('button', { name: /重试/ })).toBeNull()
     expect(screen.queryByText(/可在下方列表中逐张重试/)).toBeNull()
-    // 失败原因提示走汇总文案（迭代 85 · #133：指引改为可点击「作业历史」跳转入口——文本经按钮分段）
+    // 失败原因提示走汇总文案（· ：指引改为可点击「作业历史」跳转入口——文本经按钮分段）
     expect(screen.getByText(/可在「」中查看失败原因/)).toBeTruthy()
     expect(screen.getByRole('button', { name: '作业历史' })).toBeTruthy()
   })
 })
 
-// 迭代 65（#62）：无字段模板 = 静态标签——server 构建下同样可打印测试（空数据提交到所选在线设备）
+// 无字段模板 = 静态标签——server 构建下同样可打印测试（空数据提交到所选在线设备）
 describe('DataPrint server 构建：无字段模板（静态标签）打印测试（迭代 65 · #62）', () => {
   /** 渲染无字段模板并等待操作区与目标设备就绪（无字段输入框可等，以打印按钮 + 设备选择器为锚点）。 */
   async function renderStaticPrint() {
@@ -281,7 +281,7 @@ describe('DataPrint server 构建：无字段模板（静态标签）打印测�
   })
 })
 
-// 迭代 81（#129 决议，评审 #114 C-1）：图片预览页内弹层与下载分离——server 构建（服务端管理界面）
+// （决议，评审 C-1）：图片预览页内弹层与下载分离——server 构建（服务端管理界面）
 // 与 client 构建行为一致：点击「图片预览」弹层呈现当前字段值渲染图，弹层内显式「下载」按钮；
 // 模拟出图（生成图片 / 批量 zip）文案与直接下载行为零回归。
 describe('DataPrint server 构建：图片预览页内弹层与下载分离（迭代 81 · #129）', () => {
@@ -331,7 +331,7 @@ describe('DataPrint server 构建：字段显示名渲染（迭代 83 · #131 �
   })
 })
 
-// 迭代 84（#132，评审 #114 A-3 / B-6）：副标题用户化 + 作业进度目标设备显示设备名（server 构建 / 服务端管理界面）。
+// （评审 / B-6）：副标题用户化 + 作业进度目标设备显示设备名（server 构建 / 服务端管理界面）。
 describe('DataPrint server 构建：打印页称谓与作业进度设备名（迭代 84 · #132）', () => {
   it('AC-01：副标题「填写数据并打印 / Excel 批量打印」，无「测试」字样（双形态）', async () => {
     await renderDataPrint()

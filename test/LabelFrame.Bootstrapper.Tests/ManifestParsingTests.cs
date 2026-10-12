@@ -11,7 +11,7 @@ public sealed class ManifestParsingTests
     [Fact]
     public void Parse_current_manifest_should_load_six_components()
     {
-        // 对齐迭代 63（#56）起 CI 产物现状：六组件（官方插件 plugin-zebra 随 #123 收录）、dependsOn 全空
+        // 对齐起 CI 产物现状：六组件（官方插件 plugin-zebra 随 收录）、dependsOn 全空
         var manifest = InstallManifest.Parse(LoadFixture("install-manifest.current.json"));
 
         Assert.Equal(1, manifest.SchemaVersion);
@@ -23,7 +23,7 @@ public sealed class ManifestParsingTests
         Assert.All(manifest.Components, component => Assert.Single(component.Urls));
         var plugin = Assert.Single(manifest.Components, component => component.Id == "plugin-zebra");
         Assert.Equal("lfplugin", plugin.Type);
-        Assert.Equal("0.27.0", plugin.Version); // 官方插件版本随主版本演进（决策 #123）
+        Assert.Equal("0.27.0", plugin.Version);  // 官方插件版本随主版本演进
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class ManifestParsingTests
     [Fact]
     public void Parse_full_manifest_should_load_runtime_and_plugin_entries()
     {
-        // 对齐 DESIGN §6.2 示例 + runtime-aspnetcore（迭代 62 返修；二次返修补 client 链腿，决策 #129）+ plugin-zebra 条目
+        // 对齐 DESIGN 示例 + runtime-aspnetcore+ plugin-zebra 条目
         var manifest = InstallManifest.Parse(LoadFixture("install-manifest.full.json"));
 
         Assert.Equal(9, manifest.Components.Count);
@@ -57,7 +57,7 @@ public sealed class ManifestParsingTests
     [Fact]
     public void Parse_schema_version_too_new_should_fail_closed_with_upgrade_hint()
     {
-        // §6.2 演进规则：更照新清单拒绝并提示先升级引导程序（fail-closed）
+        // 演进规则：更照新清单拒绝并提示先升级引导程序（fail-closed）
         var json = LoadFixture("install-manifest.current.json").Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2");
 
         var ex = Assert.Throws<InstallManifestFormatException>(() => InstallManifest.Parse(json));
@@ -90,7 +90,7 @@ public sealed class ManifestParsingTests
     [Fact]
     public void Parse_depends_on_missing_reference_should_reject()
     {
-        // §6.2：依赖只约束同集合内组件——引用不存在的条目即清单非法（首个 dependsOn 属 server-msi）
+        // 依赖只约束同集合内组件——引用不存在的条目即清单非法（首个 dependsOn 属 server-msi）
         var json = new System.Text.RegularExpressions.Regex(@"""dependsOn"": \[\]")
             .Replace(LoadFixture("install-manifest.current.json"), "\"dependsOn\": [\"runtime-desktop\"]", 1);
 
@@ -101,7 +101,7 @@ public sealed class ManifestParsingTests
     [Fact]
     public void Parse_unknown_optional_field_should_be_ignored()
     {
-        // §6.2 演进规则：新增可选字段 = 兼容（旧引导程序忽略未知字段）
+        // 演进规则：新增可选字段 = 兼容（旧引导程序忽略未知字段）
         var json = LoadFixture("install-manifest.current.json")
             .Replace("\"generatedAt\": \"2026-09-14T03:00:00Z\",", "\"generatedAt\": \"2026-09-14T03:00:00Z\", \"futureOptionalField\": \"whatever\",");
 

@@ -6,9 +6,9 @@ using LabelFrame.Bootstrapper.Prerequisites;
 namespace LabelFrame.Bootstrapper.PayloadTool;
 
 /// <summary>
-/// 非 MSI 组件落位工具入口（迭代 62，决策 #124）：管理界面 zip → <c>plugins\web-ui</c>；<c>.lfplugin</c> → <c>plugins\&lt;pluginId&gt;\</c>。
-/// 卸载清理（迭代 69，决策 #133）：<c>-clean</c> 与落位动作同目标对称（Bundle 卸载 / Modify 改选 / 回滚时机由 Burn 以 UninstallArguments 驱动）。
-/// evergreen 安装（决策 #151，#173）：<c>-install-webview2</c> = 下载 / 本地布局文件 → 微软 Authenticode 发布者验签 → 静默安装（退出码透传）；
+/// 非 MSI 组件落位工具入口：管理界面 zip → <c>plugins\web-ui</c>；<c>.lfplugin</c> → <c>plugins\&lt;pluginId&gt;\</c>。
+/// 卸载清理：<c>-clean</c> 与落位动作同目标对称（Bundle 卸载 / Modify 改选 / 回滚时机由 Burn 以 UninstallArguments 驱动）。
+/// evergreen 安装：<c>-install-webview2</c> = 下载 / 本地布局文件 → 微软 Authenticode 发布者验签 → 静默安装（退出码透传）
 /// <c>-verify</c> = 同源解析与验签但不执行（诊断 / 沙箱走查载体）。
 /// 中文输出写入 Burn 包日志（引擎捕获进程输出）；退出码契约见工程注释。
 /// </summary>
@@ -48,7 +48,7 @@ internal static class Program
     {
         if (args.Length == 0)
         {
-            // 无参数 = 空操作成功（缺省调用形态的安全兜底；落位包现以 -clean 显式编排卸载清理，迭代 69）
+            // 无参数 = 空操作成功（缺省调用形态的安全兜底；落位包现以 -clean 显式编排卸载清理）
             Console.WriteLine("未指定落位参数，空操作退出。");
             return ExitSuccess;
         }
@@ -92,7 +92,7 @@ internal static class Program
             }
         }
 
-        // evergreen 安装 / 验签模式（决策 #151）：独立参数契约（-source 可缺省走官方 fwlink 兜底）
+        // evergreen 安装 / 验签模式：独立参数契约（-source 可缺省走官方 fwlink 兜底）
         if (mode is "-install-webview2" or "-verify")
         {
             return RunEvergreenInstall(source, publisher, execute: mode == "-install-webview2");
@@ -117,7 +117,7 @@ internal static class Program
         {
             if (mode == "-clean")
             {
-                // 卸载清理（决策 #133）：与落位同目标对称；目录缺失 = 幂等成功，删除失败 = 尽力而为不阻断卸载主链
+                // 卸载清理：与落位同目标对称；目录缺失 = 幂等成功，删除失败 = 尽力而为不阻断卸载主链
                 var cleanup = PayloadPlacer.CleanPlacement(target!);
                 switch (cleanup)
                 {
@@ -174,7 +174,7 @@ internal static class Program
     }
 
     /// <summary>
-    /// evergreen 安装 / 验签模式（决策 #151，#173）：源解析（本地布局文件优先 → urls 逐源；空 = 官方 fwlink 兜底）→
+    /// evergreen 安装 / 验签模式：源解析（本地布局文件优先 → urls 逐源；空 = 官方 fwlink 兜底）→
     /// 微软 Authenticode 发布者验签（WinVerifyTrust + 签名者 CN 双条件，fail-closed）→（<c>-install-webview2</c>）静默安装并透传退出码。
     /// 退出码：0 = 验签通过（-verify 到此为止）/ 安装成功；40 = 验签拒绝（签名无效或发布者不符）；41 = 全源获取失败；其余 = 安装器退出码透传。
     /// </summary>

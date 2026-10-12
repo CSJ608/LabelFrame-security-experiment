@@ -53,7 +53,7 @@ internal static class JobsApi
             return Results.Ok(EnrichPrintInfo(JobViews.From(job), job.Id, transportManager, options.PrintOutputPath));
         }
 
-        // 模板化消息（决策 #164 ③ / #166）：渲染结果与旧内插文案等价，params 供展示端按码表翻译插值
+        // 模板化消息（③ /）：渲染结果与旧内插文案等价，params 供展示端按码表翻译插值
         var parameters = new Dictionary<string, string> { ["jobId"] = jobId };
         return Results.NotFound(new ErrorView(
             JobErrorCodes.JobNotFound,

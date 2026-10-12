@@ -1,8 +1,8 @@
-// 全局错误兜底（迭代 51，决策 #106）：
+// 全局错误兜底：
 // ErrorBoundary：渲染异常错误页（仅文案 + 重新加载按钮，不附错误摘要——避免透出内部细节）；
 // 开发线索由 componentDidCatch 的 console.error 承担（错误对象 + 组件栈完整留痕）；
 // window.onerror / unhandledrejection 监听见 lib/errorLogging.ts（main.tsx 挂载前安装）。
-// 迭代 111（#245）：错误页文案 key 化（shell.errorBoundary.*；类组件无 hook，读 i18next 单例——
+// 错误页文案 key 化（shell.errorBoundary.*；类组件无 hook，读 i18next 单例——
 // 错误页渲染于当前语言，语言切换后的重译依赖后续渲染，此路径可接受）。
 
 import { Component } from 'react'

@@ -5,7 +5,7 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// 存量升级兼容（迭代 63，决策 #123，AC-04）：已用 zebra 配置 + 外置插件未装 → 自动安装随客户端附带的官方插件包；
+/// 存量升级兼容：已用 zebra 配置 + 外置插件未装 → 自动安装随客户端附带的官方插件包
 /// 无配置 / 已装 / 无附带包 / 附带包损坏等边界行为。
 /// </summary>
 public class ZebraPluginMigrationTests
@@ -45,7 +45,7 @@ public class ZebraPluginMigrationTests
     [Fact]
     public void Run_with_legacy_zebra_alias_config_and_bundled_package_should_auto_install()
     {
-        // 存量升级主线（AC-04）：旧内置时代 pluginId "zebra"（≤0.26 connection.json）→ 自动装外置包，本次启动即装配
+        // 存量升级主线：旧内置时代 pluginId "zebra"（≤0.26 connection.json）→ 自动装外置包，本次启动即装配
         var (options, root, messages) = Create(connectionJson: """{"PluginId":"zebra","Params":{"kind":"Tcp","host":"10.0.0.9","port":"9100"}}""");
         try
         {

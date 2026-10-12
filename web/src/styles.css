@@ -23,7 +23,7 @@
   --warn-soft: #fdf0e0;
   --danger: #c2413a;
   --danger-soft: #fdeceb;
-  --danger-strong: #a8352f;  /* 实心红 hover 加深（迭代 104 / #225 决策 #161；--danger / --danger-soft 语义不变供非按钮场景复用） */
+  --danger-strong: #a8352f; /* 实心红 hover 加深（/ ；--danger / --danger-soft 语义不变供非按钮场景复用） */
   --ruler-ink: #9aa6b4;     /* 标尺刻度 */
   --grid-a: #e3e9f0;        /* 网格主线 */
   --grid-b: #eef1f5;        /* 网格细线 */
@@ -83,7 +83,7 @@ body {
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid var(--line-soft);
-  /* 品牌 v02（#288）：LabelLogo 固定填充 #123B3C/#D96C4F，不再经 currentColor 取 --accent */
+  /* 品牌 v02：LabelLogo 固定填充 #123B3C/#D96C4F，不再经 currentColor 取 --accent */
 }
 .nav-tabs { flex: 1; display: flex; flex-direction: column; padding: 6px 0; gap: 2px; }
 .nav-tab {
@@ -111,7 +111,7 @@ body {
   border-radius: 0 2px 2px 0;
   background: var(--accent);
 }
-/* 迭代 114（#260）：nav-foot 并列连接状态点与语言切换器（居中一行，窄导航 60px 内不换行） */
+/* nav-foot 并列连接状态点与语言切换器（居中一行，窄导航 60px 内不换行） */
 .nav-foot { padding: 8px 0; border-top: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: center; gap: 7px; }
 
 /* 语言切换器（循环单按钮「中 / EN」）：极简文字按钮，与导航 tab 字号一致的弱化视觉 */
@@ -208,7 +208,7 @@ body {
 .btn svg { width: 14px; height: 14px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-/* 迭代 104（#225，决策 #161）：删除类警示按钮升级实心红——红底白字、hover 加深（醒目 + 防误触）；
+/* 删除类警示按钮升级实心红——红底白字、hover 加深（醒目 + 防误触）；
    此前为红字浅描边轻量样式。非按钮场景（状态灯 / badge / banner / 错误文字）继续用 --danger / --danger-soft */
 .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn.danger:hover { background: var(--danger-strong); border-color: var(--danger-strong); }
@@ -258,7 +258,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .table tbody tr:hover { background: #f5f8fc; }
 .table tbody tr.selected { background: var(--accent-soft); }
 .table .mono { font-size: 12px; }
-/* 操作列：th 保持 table-cell 并右对齐文字（迭代 45 修正——display:flex 会让表头退出列宽分配，
+/* 操作列：th 保持 table-cell 并右对齐文字（修正：display:flex 会让表头退出列宽分配，
    宽窗口下表头浅底在操作列右侧提前截断，露出灰底空带）；表体内的按钮容器仍用 flex 右对齐 */
 .table td .actions { display: flex; gap: 4px; justify-content: flex-end; }
 .table th.actions { text-align: right; }
@@ -348,7 +348,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   border-top: 1px solid var(--line-soft);
 }
 
-/* ---------- 锚定弹出菜单（迭代 104 / #225，仓库首个下拉菜单组件 components/Popover.tsx） ---------- */
+/* ---------- 锚定弹出菜单（/ ，仓库首个下拉菜单组件 components/Popover.tsx） ---------- */
 /* position:fixed 由组件内联注入（portal 到 body，防 .wb-card overflow:hidden 裁剪）；
    z-index 低于 modal-mask(100)：菜单之上弹确认框时菜单不遮挡确认框 */
 .popover {
@@ -382,11 +382,11 @@ label.field > .input, label.field > select.input { width: 100%; }
 .menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 .menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
 .menu-item svg { width: 14px; height: 14px; }
-/* 删除类菜单项 = 触发按钮（决策 #161：实心红醒目标准，点击后另有确认弹窗把关） */
+/* 删除类菜单项 = 触发按钮（实心红醒目标准，点击后另有确认弹窗把关） */
 .menu-item.danger { background: var(--danger); color: #fff; }
 .menu-item.danger:hover { background: var(--danger-strong); }
 
-/* ---------- 新用户分步引导（迭代 119 / #276，决策 #170：自研 spotlight 气泡引导 components/Guide.tsx） ---------- */
+/* ---------- 新用户分步引导（/ ，：自研 spotlight 气泡引导 components/Guide.tsx） ---------- */
 /* portal 到 body；z-index 110 高于既有最高 modal-mask(100)，压过全部弹层（既有地图：.preview-modal=95 /
    .popover=90，.modal 与 .log-drawer 无 z-index）；遮罩拦截其余区域交互，跳过 / Esc / 完成退出 */
 .guide-layer {
@@ -425,7 +425,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .guide-bubble-foot { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
 .guide-flex { flex: 1; }
 
-/* ---------- 帮助体系（迭代 126 / #308，决策 #176）：「?」文档点＋就地文档气泡＋帮助页 ---------- */
+/* ---------- 帮助体系（/）：「?」文档点＋就地文档气泡＋帮助页 ---------- */
 /* 文档点：分组 / 卡片标题行尾 ghost 圆形小按钮（data-help 语义锚点在按钮上）；
    气泡：portal 到 body、fixed 由组件内联注入；z-index 90 与 .popover 同层
    （低于 modal-mask 100、低于 guide-layer 110——帮助气泡之上可再弹确认框）；
@@ -459,7 +459,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   animation: popIn 150ms ease-out;
   z-index: 90;
 }
-/* 多段正文（#316 陪验反馈 2）：\n 分段渲染后的段间距——首段贴标题、段间留白可分辨 */
+/* 多段正文（陪验反馈 2）：\n 分段渲染后的段间距——首段贴标题、段间留白可分辨 */
 .help-bubble-body { margin: 0 0 6px; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
 .help-bubble-body:last-of-type { margin-bottom: 0; }
 .help-bubble-foot { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
@@ -467,7 +467,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 /* 演示期间画布只读（拍板 4 方案 A）：pointer-events 收敛——选中 / 拖拽 / 缩放 / 滚轮 / 拖入全不响应，
    画布与气泡仍可见；不拦 Konva 事件本身，规避拖拽状态清理被破坏（#308 方案风险条目） */
 .canvas-locked { pointer-events: none; }
-/* 帮助页 V3.1（迭代 128 · #316，决策 #178，观感返工拍板②）：左目录树（两级手风琴）＋受限宽正文的
+/* 帮助页 V3.1：左目录树（两级手风琴）＋受限宽正文的
    文档站版式（Stripe / GitHub 口径）——滚动收敛到主区容器 .help-main（滚动高亮的基准也在此），
    .help-article 仅限宽 760px 不再自滚（防双滚动条）；窄窗（≤960px，对齐 .grid-2 断点先例）左栏
    收起、page-head 目录按钮展开为浮层覆盖。 */
@@ -553,7 +553,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   }
 }
 
-/* ---------- 工作台模板预览（迭代 46，修订：预览列内嵌缩略图 + 点击放大） ---------- */
+/* ---------- 工作台模板预览（修订：预览列内嵌缩略图 + 点击放大） ---------- */
 /* 缩略图（单元格内）：等比缩到 40px 高，点击放大 */
 .preview-thumb {
   display: block;
@@ -590,7 +590,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   color: var(--danger);
 }
 @keyframes previewSkel { 0%, 100% { background: #f4f6f9; } 50% { background: #e9edf2; } }
-/* 放大灯箱（迭代 46 二次验收修订 B：居中模态）——背景点击关闭，卡片本体不关闭 */
+/* 放大灯箱（二次验收修订 B：居中模态）——背景点击关闭，卡片本体不关闭 */
 .preview-modal {
   position: fixed;
   inset: 0;
@@ -657,7 +657,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   text-align: center;
   padding-top: 8px;
 }
-/* 图片预览弹层操作行（迭代 81 · #129）：显式「下载」按钮与预览分离，居中并附渲染口径说明 */
+/* 图片预览弹层操作行（·）：显式「下载」按钮与预览分离，居中并附渲染口径说明 */
 .preview-modal-actions {
   display: flex;
   align-items: center;
@@ -681,7 +681,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .preview-modal-state small { font-size: 11px; color: var(--ink-3); }
 @keyframes previewFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---------- 工作台信息架构（迭代 48，用户定稿方案 A：卡片网格，缩略图主视觉） ---------- */
+/* ---------- 工作台信息架构（用户定稿方案 A：卡片网格，缩略图主视觉） ---------- */
 .wb-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
@@ -707,7 +707,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   background: #fafbfc;
   border-bottom: 1px solid var(--line-soft);
 }
-/* 卡片内大号缩略图（覆盖迭代 46 行内 40px 规格） */
+/* 卡片内大号缩略图（覆盖行内 40px 规格） */
 .preview-thumb.card { height: auto; max-height: 112px; max-width: calc(100% - 20px); }
 .preview-thumb-skel.card, .preview-thumb-err.card { width: 118px; height: 74px; }
 .wb-card-body { padding: 8px 10px 7px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -726,7 +726,7 @@ label.field > .input, label.field > select.input { width: 100%; }
   border-top: 1px solid var(--line-soft);
 }
 .wb-card-foot .btn { flex: 1; justify-content: center; padding: 3px 4px; }
-/* ⋯ 更多操作按钮（迭代 104）：图标按钮不占弹性宽度——两常驻按钮分剩余空间，最窄卡片不裁按钮 */
+/* ⋯ 更多操作按钮：图标按钮不占弹性宽度——两常驻按钮分剩余空间，最窄卡片不裁按钮 */
 .wb-card-foot .btn.wb-more { flex: 0 0 auto; padding: 3px 7px; }
 
 
@@ -793,7 +793,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .hint { font-size: 11.5px; color: var(--ink-3); line-height: 1.7; }
 .error-text { color: var(--danger); font-size: 12px; }
 
-/* 行内链接式按钮（迭代 85 · #133）：提示文案中的可点击跳转（视觉为链接，语义 / 焦点行为为按钮） */
+/* 行内链接式按钮（·）：提示文案中的可点击跳转（视觉为链接，语义 / 焦点行为为按钮） */
 .link-like {
   padding: 0 1px;
   font: inherit;
@@ -808,7 +808,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .link-like:hover { color: var(--accent-hover); }
 .link-like:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
 
-/* ---------- 页级横幅（迭代 93 · #151 F-07）：统一替代各页逐字复制的内联样式 ----------
+/* ---------- 页级横幅：统一替代各页逐字复制的内联样式 ----------
    基类含 flex 布局：纯文本横幅与原 block 版视觉一致（单一匿名子项），
    需在横幅内排按钮的场合（设计器加载失败、工作台失败重试）可直接水平排列。 */
 .banner {
@@ -821,7 +821,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .banner.error { background: var(--danger-soft); color: var(--danger); }
 .banner.notice { background: var(--accent-soft); color: var(--accent); }
 
-/* ---------- 设计器图片上传失败 toast（迭代 132 返修 · #329 方案 v2 拍板 1-A） ----------
+/* ---------- 设计器图片上传失败 toast ----------
    页内轻量浮层、5s 自动消失、单条最新覆盖（Designer 局部状态驱动）；定位在设计器画布上方居中。 */
 .image-toast {
   position: absolute;

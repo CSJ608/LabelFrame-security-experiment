@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 126（#308 AC-03）：「?」文档点组件测试——按钮渲染 / 气泡开关 / 词条渲染 / 演示按钮插槽。
+// 「?」文档点组件测试——按钮渲染 / 气泡开关 / 词条渲染 / 演示按钮插槽。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'

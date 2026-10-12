@@ -1,8 +1,8 @@
-// 设置页（迭代 18 F2-F4）：服务端地址（机器级配置，保存即生效）+ 连接方式（本机 Client）+ 打印机状态 / 测试打印
-// 迭代 22 §2.3：新增「更新与安装包」卡片——列出服务端可用客户端安装包（下载指向 {serverBaseUrl}/api/client-packages/{file}）；单机模式提示需先连接服务端。
-// 迭代 23 §5.6：新增「插件管理」卡片（置于「更新与安装包」之下）——服务端可用插件区（仅 valid 可安装，安装 = 下载 blob → 本机 WinHost multipart）+ 已安装插件区（始终渲染，徽标 + 卸载）。
-// 迭代 45：内容容器改多列自适应网格（决策 B）——宽窗多列、窄窗单列，替代原固定 640 左对齐窄列。
-// 迭代 112（#246）：全页文案 key 化（settings 域；zh-CN 值与原硬编码逐字一致）。
+// 设置页（F2-F4）：服务端地址（机器级配置，保存即生效）+ 连接方式（本机 Client）+ 打印机状态 / 测试打印
+// 新增「更新与安装包」卡片——列出服务端可用客户端安装包（下载指向 {serverBaseUrl}/api/client-packages/{file}）；单机模式提示需先连接服务端。
+// 新增「插件管理」卡片（置于「更新与安装包」之下）——服务端可用插件区（仅 valid 可安装，安装 = 下载 blob → 本机 WinHost multipart）+ 已安装插件区（始终渲染，徽标 + 卸载）。
+// 内容容器改多列自适应网格（决策 B）——宽窗多列、窄窗单列，替代原固定 640 左对齐窄列。
+// 全页文案 key 化（settings 域；zh-CN 值与原硬编码逐字一致）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,12 +25,12 @@ import { isServerUi } from '../lib/uiMode'
 
 export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const app = useApp()
-  // 迭代 108（#241）：「语言」项绑定 settings 域——选项名固定各自语言原文（「中文」/「English」不随当前语言翻译）；
-  // 迭代 112（#246）：其余卡片全部迁入 settings 域
+  // 「语言」项绑定 settings 域——选项名固定各自语言原文（「中文」/「English」不随当前语言翻译）
+  // 其余卡片全部迁入 settings 域
   const { t, i18n } = useTranslation('settings')
-  // 迭代 126（#308）：7 张卡片标题挂「?」文档点。迭代 129（#320，决策 #179）：设计器挂点撤门后
+  // 7 张卡片标题挂「?」文档点。：设计器挂点撤门后
   // 本页保留 !isServerUi——语义改为 client-only 页防御门（settings tab 不在 SERVER_TABS，server
-  // 构建本不可达，门仅防手造 URL 等边缘；断言面与 PropsPanel 分离）。迭代 128（#316 决策 #178）：
+  // 构建本不可达，门仅防手造 URL 等边缘；断言面与 PropsPanel 分离）。：
   // 深链信号改路由 sub 段（helpAnchor props）——页内轮询（useHelpDeepLink）锚点常在即刻命中自动
   // 弹卡片气泡；超时通用降级提示。
   const [openDot, setOpenDot] = useState<string | null>(null)
@@ -54,7 +54,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       />
     )
   const [url, setUrl] = useState(app.baseUrl)
-  // 迭代 73（#108 决议 1）：连接配置低频收纳——「连接方式」默认折叠为当前连接摘要一行，点击展开完整编辑区
+  // （决议 1）：连接配置低频收纳——「连接方式」默认折叠为当前连接摘要一行，点击展开完整编辑区
   const [transportOpen, setTransportOpen] = useState(false)
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -66,11 +66,11 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   // 测试打印结果（ok 标志替代原「文案 startsWith」判别——本地化后不再依赖前缀匹配）
   const [printResult, setPrintResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
-  // 迭代 22 §2.3：更新与安装包——服务端可达时拉取安装包列表；不可达提示需先连接服务端
+  // 更新与安装包——服务端可达时拉取安装包列表；不可达提示需先连接服务端
   const [packages, setPackages] = useState<ClientPackageInfo[] | null>(null)
   const [packagesError, setPackagesError] = useState<string | null>(null)
 
-  // 迭代 23 §5.6：插件管理——服务端可用插件区（四态：加载中 / 空 / 错误[含旧 Server 404] / 单机模式）
+  // 插件管理——服务端可用插件区（四态：加载中 / 空 / 错误[含旧 Server 404] / 单机模式）
   const [pluginPackages, setPluginPackages] = useState<PluginPackageInfo[] | null>(null)
   const [pluginPackagesError, setPluginPackagesError] = useState<string | null>(null)
   const [pluginPackagesOldServer, setPluginPackagesOldServer] = useState(false)
@@ -84,11 +84,11 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const [uninstalling, setUninstalling] = useState<string | null>(null)
   const [pluginNotice, setPluginNotice] = useState<string | null>(null)
   const [pluginError, setPluginError] = useState<string | null>(null)
-  // 迭代 93（#151 F-04）：插件覆盖安装 / 卸载确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
+  // 插件覆盖安装 / 卸载确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
   const [confirmOverwrite, setConfirmOverwrite] = useState<PluginPackageInfo | null>(null)
   const [confirmUninstall, setConfirmUninstall] = useState<InstalledPluginInfo | null>(null)
 
-  // 迭代 24 §4.4：打印批次——WinHost /api/host/print-settings（用户级持久化，保存即生效）；旧 WinHost 404 → 版本提示
+  // 打印批次——WinHost /api/host/print-settings（用户级持久化，保存即生效）；旧 WinHost 404 → 版本提示
   const [printSettings, setPrintSettings] = useState<PrintSettings | null>(null)
   const [printSettingsError, setPrintSettingsError] = useState<string | null>(null)
   const [printSettingsOldWinHost, setPrintSettingsOldWinHost] = useState(false)

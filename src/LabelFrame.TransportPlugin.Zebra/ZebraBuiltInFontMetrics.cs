@@ -1,8 +1,8 @@
 namespace LabelFrame.TransportPlugin.Zebra;
 
 /// <summary>
-/// Zebra 打印机内置字体度量（迭代 78，DESIGN §5.4.1「SDK 内置字体度量接 ITextWidthMeasurer」）。
-/// 用途仅限区域锚定 / 对齐的起始坐标编译期换算（§5.4.1 功能裁剪原则——对齐为尽力近似），
+/// Zebra 打印机内置字体度量（DESIGN 「SDK 内置字体度量接 ITextWidthMeasurer」）。
+/// 用途仅限区域锚定 / 对齐的起始坐标编译期换算（功能裁剪原则——对齐为尽力近似）
 /// 不追求与打印机实际字形位级一致：
 /// 位图字体按 ZPL II 编程指南 203 dpi 基准设计点阵（字符高 × 宽，点）取单元格宽度；
 /// 缩放字体 0（Swiss 721 家族）按 Helvetica 同度量的比例字宽表估算（1/1000 字高）。

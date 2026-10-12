@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-// 下载中心页（迭代 118 改版 · #272）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问，
-// tab 状态经路由 sub 段进 URL——迭代 127 · #312 决策 #177 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原、
+// 下载中心页（改版 ·）：页内三 tab（快速访问 / Windows 包管理 / Android 包管理，默认快速访问
+// tab 状态经路由 sub 段进 URL——· 由 #dc= 迁至 #/packages/<sub>，刷新 / 直链还原
 // 旧 #dc= 链接经 parseHash 兼容映射直达）；快速访问首屏 = 上排 Windows / Android「最新上传」卡（修改时间倒序
 // 第一条的货架语义：文件名 / 大小 / 上传时间 / 下载二维码（origin + 下载路径）/ 下载按钮 /「全部版本 →」跳
 // 管理卡、空态引导跳转上传）+ 下区块「服务端信息」卡（大二维码 = 选中裸地址 URL + 地址文本与复制 +
 // 多网卡候选切换 / localhost 回退）；管理 tab（client-packages / pda-packages）上传 / 下载 / 删除（确认
-// Modal）行为回归——数据与接口不动（AC-06）。
+// Modal）行为回归——数据与接口不动。
 
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -77,7 +77,7 @@ function gotoManageTab(label: string): void {
 
 /**
  * 路由接线测试壳：等价 App 对 DownloadCenter 的接线（sub / onSubChange 经 useHashRoute 注入，
- * #/<page>/<sub> 两级形，迭代 127 · #312）；「去别页」按钮模拟主导航切走（pushState 入栈），
+ * #/<page>/<sub> 两级形，· ）；「去别页」按钮模拟主导航切走（pushState 入栈）
  * 供后退 / 前进还原 sub 用例使用。
  */
 function DownloadCenterRouteHarness() {
@@ -125,7 +125,7 @@ describe('下载中心页 · 三 tab 与路由 sub 段（迭代 118 · #272；�
     await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
     expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 APK/ })).toBeTruthy()
-    // sub 变更 replaceState 不入栈（决策 #177）
+    // sub 变更 replaceState 不入栈
     expect(window.history.length).toBe(len0)
   })
 
@@ -400,7 +400,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
     const delButtons = screen.getAllByRole('button', { name: /删除/ })
     const pdaDelete = delButtons.find((b) => b.closest('tr')?.textContent?.includes('AndroidHost-0.26.0'))
     fireEvent.click(pdaDelete!)
-    // 迭代 93（#151 F-04）：自研 Modal 确认（替代原生 confirm 弹窗）——标题区分分区，确认后删除 + 刷新
+    // 自研 Modal 确认（替代原生 confirm 弹窗）——标题区分分区，确认后删除 + 刷新
     expect(await screen.findByText('删除 APK')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
     await waitFor(() => expect(mocks.server.deletePdaPackage).toHaveBeenCalledWith('LabelFrame-AndroidHost-0.26.0.apk'))

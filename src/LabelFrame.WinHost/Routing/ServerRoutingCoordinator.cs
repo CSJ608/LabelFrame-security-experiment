@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 namespace LabelFrame.WinHost.Routing;
 
 /// <summary>
-/// 服务端路由协调器（迭代 80，评审 #114 C-2 / 决策 #141）：兑现「服务端地址保存即生效」——
+/// 服务端路由协调器（评审 C-2 /）：兑现「服务端地址保存即生效」——
 /// 保存成功后不重启进程即完成路由热切换：按新地址重建 poller / 路由 worker 并立即注册到新服务端，
 /// 同时清理旧路由（取消在途长轮询 → 等待 worker 收尾 → 释放旧 HttpClient 连接池）。
-/// 形态选择（#114 决议 1 取「重建 worker」而非「poller 每轮读取配置」）：后者无法覆盖
+/// 形态选择（决议 1 取「重建 worker」而非「poller 每轮读取配置」）：后者无法覆盖
 /// 「启动时未配置地址 → 保存后首次开启路由」的转换（worker 未创建），且切换时延受长轮询挂起
 /// （最长 20s）影响不确定；重建形态在保存请求内确定性完成，旧连接生命周期独占、清理边界清晰。
 /// 不作为 IHostedService 注册（测试装配 RemoveAll&lt;IHostedService&gt; 后仍可经端点热切换），

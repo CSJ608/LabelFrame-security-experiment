@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 namespace LabelFrame.WinHost;
 
 /// <summary>
-/// 托盘右键菜单显示器（迭代 115，#263）。
+/// 托盘右键菜单显示器。
 /// 实现 Win32 通知图标上下文菜单标准前置模式（MSDN TrackPopupMenu Remarks / KB135788）：
 /// TrackPopupMenu 前 <see cref="SetForegroundWindow"/> 前置隐藏 owner 窗口（外部点击自动收起菜单），
 /// 菜单关闭后 <see cref="PostMessage"/> 投递 WM_NULL 清除菜单模态状态（owner 前置状态变化后菜单仍可反复弹出）；
 /// 菜单模态运行期间重入 <see cref="ShowMenu"/> 直接早退，消除嵌套 TrackPopupMenu 的未定义行为。
 /// 窗口前置 / 菜单弹出 / 消息投递三个 Win32 调用点可注入替身，
-/// 供单元测试断言调用时序（AC-01），对齐 <see cref="TrayQuitSignaler"/> 可测性先例（缺陷 #58）。
+/// 供单元测试断言调用时序，对齐 <see cref="TrayQuitSignaler"/> 可测性先例。
 /// </summary>
 public sealed class TrayMenuPresenter
 {

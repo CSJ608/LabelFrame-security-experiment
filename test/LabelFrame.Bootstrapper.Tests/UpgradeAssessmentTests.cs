@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>升级评估矩阵（DESIGN §6.11 组件级口径表，决策 #126）：已装快照 × manifest 目标版本 → 逐组件动作与整体判定。</summary>
+/// <summary>升级评估矩阵（DESIGN 组件级口径表）：已装快照 × manifest 目标版本 → 逐组件动作与整体判定。</summary>
 public sealed class UpgradeAssessmentTests
 {
     private static readonly RuntimeProbeResult RuntimeNone = new(false, null, false, null, false);
@@ -71,7 +71,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Equal_versions_with_missing_segments_are_up_to_date()
     {
-        // §6.11 统一比较器：缺失段视为 0——0.27 == 0.27.0
+        // 统一比较器：缺失段视为 0——0.27 == 0.27.0
         var manifest = ManifestOf(Component("client-msi", "msi", "0.27.0"));
 
         var assessment = UpgradeAssessor.Assess(manifest, SnapshotOf(client: "0.27"));
@@ -96,7 +96,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Uninstalled_component_does_not_affect_up_to_date_verdict()
     {
-        // 分离部署只装服务端：未装的 client-msi 属「新装」，不影响服务端「已是最新」判定（§6.11）
+        // 分离部署只装服务端：未装的 client-msi 属「新装」，不影响服务端「已是最新」判定
         var manifest = ManifestOf(Component("server-msi", "msi", "0.27.0"), Component("client-msi", "msi", "0.27.0"));
 
         var assessment = UpgradeAssessor.Assess(manifest, SnapshotOf(server: "0.27.0"));
@@ -124,7 +124,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Desktop_runtime_newer_than_manifest_is_up_to_date()
     {
-        // 共享系统组件：本机更新即满足（执行侧 DetectCondition 只判 ≥ 10.0.0，§6.11 表）
+        // 共享系统组件：本机更新即满足（执行侧 DetectCondition 只判 ≥ 10.0.0， 表）
         var manifest = ManifestOf(Component("runtime-desktop", "runtime", "10.0.12"));
         var runtime = new RuntimeProbeResult(true, "10.0.13", false, null, false);
 
@@ -148,7 +148,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void AspNetCore_runtime_follows_same_shared_component_semantics_as_desktop()
     {
-        // 迭代 62 返修（决策 #128）：runtime-aspnetcore 与 runtime-desktop 同为共享系统组件——本机更新即满足、落后即升级
+        // runtime-aspnetcore 与 runtime-desktop 同为共享系统组件——本机更新即满足、落后即升级
         var manifest = ManifestOf(Component("runtime-aspnetcore", "runtime", "10.0.12"));
 
         var newer = UpgradeAssessor.Assess(manifest, SnapshotOf(runtime: new RuntimeProbeResult(false, null, true, "10.0.13", false)));
@@ -223,7 +223,7 @@ public sealed class UpgradeAssessmentTests
     [Fact]
     public void Plugin_version_compare_delegates_to_unified_semantics()
     {
-        // #123 既有签名委托统一实现（§6.8 / §6.11 单一语义）：行为不变
+        // 既有签名委托统一实现（/ 单一语义）：行为不变
         Assert.Equal(0, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("1.0", "1.0.0")));
         Assert.Equal(1, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("1.0.1", "1.0.0")));
         Assert.Equal(-1, Math.Sign(Placement.PayloadPlacer.ComparePluginVersions("2.0.0", "10.0.0")));

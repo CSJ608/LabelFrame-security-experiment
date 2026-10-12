@@ -2,7 +2,7 @@ using LabelFrame.Bootstrapper.Manifest;
 
 namespace LabelFrame.Bootstrapper.Upgrade;
 
-/// <summary>组件级升级动作（DESIGN §6.11 组件级口径表）。</summary>
+/// <summary>组件级升级动作（DESIGN 组件级口径表）。</summary>
 public enum ComponentUpgradeAction
 {
     /// <summary>本机未装（全新安装）。</summary>
@@ -43,17 +43,17 @@ public sealed record UpgradeAssessment(
     bool AnyInstalled,
     bool HasUpgradable)
 {
-    /// <summary>整体「已是最新」（AC-02 口径）：本机有已装组件且没有任何已装组件待升级。</summary>
+    /// <summary>整体「已是最新」：本机有已装组件且没有任何已装组件待升级。</summary>
     public bool IsUpToDate => AnyInstalled && !HasUpgradable;
 }
 
 /// <summary>
-/// 升级评估（DESIGN §6.11，决策 #126，纯函数）：当轮 manifest 组件条目版本（目标）× 本机已装快照（现状）→ 逐组件动作 + 整体判定。
+/// 升级评估（DESIGN ，，纯函数）：当轮 manifest 组件条目版本（目标）× 本机已装快照（现状）→ 逐组件动作 + 整体判定。
 /// 「已是最新」只看已装组件（未装组件属新装不参与判定）；呈现按调用方过滤（欢迎页全清单摘要 / 确认页按拓扑计划过滤）。
 /// </summary>
 public static class UpgradeAssessor
 {
-    /// <summary>按 §6.11 组件级口径表评估。</summary>
+    /// <summary>按 组件级口径表评估。</summary>
     public static UpgradeAssessment Assess(InstallManifest manifest, LocalInstallSnapshot local)
     {
 #if NET10_0_OR_GREATER
@@ -92,9 +92,9 @@ public static class UpgradeAssessor
 
         var action = component.Id switch
         {
-            // runtime-webview2：version 恒 evergreen，不比较版本——已装即最新（§6.11 表）
+            // runtime-webview2：version 恒 evergreen，不比较版本——已装即最新（表）
             "runtime-webview2" => local.Runtime.WebView2Installed ? ComponentUpgradeAction.UpToDate : ComponentUpgradeAction.Install,
-            // webui：覆盖重写语义（§6.9），无独立版本概念
+            // webui：覆盖重写语义，无独立版本概念
             "webui" => ComponentUpgradeAction.NotTracked,
             // 非本机安装组件（linux-server / pda-apk / 未知 id）
             "linux-server" or "pda-apk" => ComponentUpgradeAction.NotTracked,

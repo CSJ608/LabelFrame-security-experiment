@@ -64,7 +64,7 @@ public class SubmitRequestJsonTests
         Assert.IsType<LabelBarcodeElement>(request.Template.Layout.Elements[1]);
         Assert.Single(request.Labels!);
 
-        // 终态回调字段（决策 #154）：可空可选，直连模式反序列化接受（忽略语义在提交服务测试覆盖）
+        // 终态回调字段：可空可选，直连模式反序列化接受（忽略语义在提交服务测试覆盖）
         Assert.Equal("https://cb.example.com/hook", request.CallbackUrl);
     }
 }

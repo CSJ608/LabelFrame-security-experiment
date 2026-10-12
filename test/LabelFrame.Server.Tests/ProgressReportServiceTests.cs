@@ -1,7 +1,7 @@
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 进度增量上报服务语义（决策 #101）：仅 Claimed 接受、计数 max 单调不回退、
+/// 进度增量上报服务语义：仅 Claimed 接受、计数 max 单调不回退
 /// 不改终态字段、不刷新 claimed_at（不干预 Claimed 超时回收计龄）。
 /// </summary>
 public class ProgressReportServiceTests

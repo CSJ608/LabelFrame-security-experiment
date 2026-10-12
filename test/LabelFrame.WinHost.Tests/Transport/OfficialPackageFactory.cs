@@ -7,7 +7,7 @@ namespace LabelFrame.WinHost.Tests.Transport;
 /// <summary>
 /// 测试用官方 Zebra 插件包工厂：镜像 scripts/build-zebra-plugin.ps1 的产物形态——
 /// 真实插件程序集 + Zebra SDK 全套伴生依赖（取自测试 bin 的完整闭包），排除「宿主必带」程序集，
-/// 使安装 / 装配用例与生产 .lfplugin 同构（CI 内验证生产包形状，AC-02 装配面代理）。
+/// 使安装 / 装配用例与生产 .lfplugin 同构（CI 内验证生产包形状， 装配面代理）。
 /// </summary>
 internal static class OfficialPackageFactory
 {

@@ -52,7 +52,7 @@ public class JobPrintWorkerThrottleTests
     [Fact]
     public async Task Enabled_cross_job_should_not_pause_before_second_job_first_label()
     {
-        // 作业 A 5 张 + 作业 B 5 张：批间计数按作业重置（迭代 45 决议），B 首张发送前不等待
+        // 作业 A 5 张 + 作业 B 5 张：批间计数按作业重置（决议），B 首张发送前不等待
         var result = await RunWorkerAsync(new PrintSettingsDto(true, 5, IntervalMs), 5, 5);
 
         Assert.Equal(10, result.Offsets.Count);

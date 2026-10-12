@@ -9,7 +9,7 @@ namespace LabelFrame.Server.Tests;
 
 /// <summary>
 /// 设备 last_ip 记录 / 迁移、by-ip 查找、targetIp 提交、IP 规范化。
-/// 含「同 IP 双设备号」场景（缺陷 #46）：设备号变更后新设备号从同 IP 注册，旧行 last_ip 无人清除——
+/// 含「同 IP 双设备号」场景：设备号变更后新设备号从同 IP 注册，旧行 last_ip 无人清除——
 /// 解析必须命中最近活跃的新行，而非先注册的旧行（FakeTimeProvider 驱动保证时间确定）。
 /// </summary>
 public class DeviceIpTests
@@ -88,7 +88,7 @@ public class DeviceIpTests
     [Fact]
     public async Task Find_by_ip_should_prefer_recently_active_device_when_same_ip_reused()
     {
-        // 缺陷 #46 复现路径：设备号 A 在某 IP 注册 → 设备号变更后新设备号 B 从同 IP 注册（旧行 stale、新行活跃）
+        // 复现路径：设备号 A 在某 IP 注册 → 设备号变更后新设备号 B 从同 IP 注册（旧行 stale、新行活跃）
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 9, 11, 8, 0, 0, TimeSpan.Zero));
         using var db = new TempServer(time);
         await db.Service.RegisterDeviceAsync("device-a", "旧设备号", "192.168.7.77");
@@ -156,7 +156,7 @@ public class DeviceIpTests
 
         var exception = await Assert.ThrowsAsync<ServerException>(() => db.Service.SubmitJobAsync(CreateRequest("req-ip-x", targetIp: "192.168.1.99")));
 
-        // #242 返修：按 IP 未找到拆码 LF_SRV_012（与 LF_SRV_001 设备未注册 {deviceId} 各自单参数键集）
+        // 按 IP 未找到拆码 LF_SRV_012（与 LF_SRV_001 设备未注册 {deviceId} 各自单参数键集）
         Assert.Equal(ServerErrorCodes.DeviceNotFoundByIp, exception.Code);
         Assert.Equal(["ip"], exception.Parameters!.Keys.Order().ToList());
     }

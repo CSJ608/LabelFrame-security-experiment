@@ -1,6 +1,6 @@
 namespace LabelFrame.Server.Tests;
 
-/// <summary>PDA（Android 宿主）安装包目录服务测试（迭代 59 决策 #119，与 ClientPackagesService 对称 + .apk 上传限制）。</summary>
+/// <summary>PDA（Android 宿主）安装包目录服务测试（与 ClientPackagesService 对称 + .apk 上传限制）。</summary>
 public class PdaPackagesServiceTests
 {
     private static (PdaPackagesService Service, string Dir) Create()

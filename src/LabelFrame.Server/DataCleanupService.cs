@@ -32,7 +32,7 @@ public sealed partial class DataCleanupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // 启动后延迟 60 秒执行一次，之后按 CleanupIntervalHours 周期执行（#296：首清在延迟后立即发生，
+        // 启动后延迟 60 秒执行一次，之后按 CleanupIntervalHours 周期执行（：首清在延迟后立即发生
         // 不等首个周期 tick——否则默认周期下升级 / 重启后最长 24h 不做任何清理，量闸同步失效）
         var interval = TimeSpan.FromHours(Math.Max(1, _options.CleanupIntervalHours));
         try
@@ -68,7 +68,7 @@ public sealed partial class DataCleanupService : BackgroundService
     }
 
     /// <summary>执行一次清理：终态作业按 JobRetentionDays、日志按 LogRetentionDays；
-    /// 随后按量闸（LogsDbMaxSizeMB，0 或负值 = 不限）删最旧日志直至库文件回到阈值内——不受保留期下限约束（决策 #173）。</summary>
+    /// 随后按量闸（LogsDbMaxSizeMB，0 或负值 = 不限）删最旧日志直至库文件回到阈值内——不受保留期下限约束。</summary>
     public async Task CleanupAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -89,7 +89,7 @@ public sealed partial class DataCleanupService : BackgroundService
 
             if (sizeGate.VacuumWarning is { } warning)
             {
-                // VACUUM / 空库仍超阈等异常经 ILogger 记 Error（服务宿主可能无控制台，#296 留观项②）
+                // VACUUM / 空库仍超阈等异常经 ILogger 记 Error（服务宿主可能无控制台， 留观项②）
                 LogVacuumFailed(_logger, warning);
             }
         }

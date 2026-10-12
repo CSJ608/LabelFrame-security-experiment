@@ -4,7 +4,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>多源回退决策结果（#54：BA 消费引擎获取解析事件，按清单 urls 顺序提供下一源；迭代 70 / #89 补本地源形态）。</summary>
+/// <summary>多源回退决策结果（BA 消费引擎获取解析事件，按清单 urls 顺序提供下一源；/ 补本地源形态）。</summary>
 /// <param name="Decision">决策：提供源（覆写引擎下载 URL / 本地源）或保持引擎当前源。</param>
 /// <param name="Url">决策为 <see cref="SourceFallbackDecision.UseSource"/> 且为远程源时的目标 URL（本地源 / 其余为 null）。</param>
 /// <param name="LocalPath">决策为 <see cref="SourceFallbackDecision.UseSource"/> 且为本地源时的布局目录文件路径（远程源 / 其余为 null）。</param>
@@ -34,11 +34,11 @@ public enum SourceFallbackDecision
 }
 
 /// <summary>
-/// 多源回退状态机（迭代 61 / Issue #54「范围修订 v2」；UI 无关，BA 事件层薄接线，本类承载全部决策逻辑供 net10 测试锚定）。
+/// 多源回退状态机（/ Issue 「范围修订 v2」；UI 无关，BA 事件层薄接线，本类承载全部决策逻辑供 net10 测试锚定）。
 /// </summary>
 /// <remarks>
 /// <para>
-/// 契约（DESIGN §6.2 决策 #115 + §6.10 + 决策 #135 本地源扩展）：清单组件 <c>urls</c> 数组<b>顺序即优先级、逐源回退</b>；
+/// 契约（DESIGN + + 本地源扩展）：清单组件 <c>urls</c> 数组<b>顺序即优先级、逐源回退</b>
 /// 离线布局目录（本地清单所在目录）作为<b>隐式优先源目录</b>——布局文件在位时有效源序 = [本地文件] ++ urls
 /// （第 0 次获取解析提供本地文件，失败后按既有推进语义落到 urls[0]…），manifest schema 零修改。
 /// </para>
@@ -49,7 +49,7 @@ public enum SourceFallbackDecision
 /// （换源正是在重试轮次间发生）。事件线程调用（Burn 引擎回调单线程），无需加锁。
 /// </para>
 /// <para>
-/// sha256 口径（#117，决策 #135）：本地源与远程源同样强制——本地文件由 BA 经 <c>IEngine.SetLocalSource</c> 交给引擎，
+/// sha256 口径：本地源与远程源同样强制——本地文件由 BA 经 <c>IEngine.SetLocalSource</c> 交给引擎
 /// 引擎按包内嵌摘要（构建期实测 = manifest sha256）校验，篡改即获取 / 校验失败按序换源，全源耗尽 fail-closed。
 /// 布局文件不在位 / 清单来源为 URL → 有效源序退化为纯 urls（无布局目录在线安装行为与现状一致）。
 /// </para>
@@ -102,7 +102,7 @@ public sealed class CacheSourceFallback
 
             urlsByPackage[packageId] = component.Urls;
 
-            // 本地源登记（决策 #135）：仅当布局目录给定且组件布局文件实际在位（Apply 开始时静态判定，全程一致）
+            // 本地源登记：仅当布局目录给定且组件布局文件实际在位（Apply 开始时静态判定，全程一致）
             if (!string.IsNullOrWhiteSpace(layoutDirectory))
             {
                 var fileName = OfflineLayoutNaming.TryDeriveFileName(component);
@@ -143,7 +143,7 @@ public sealed class CacheSourceFallback
 
         if (hasLocal && failures == 0)
         {
-            // 首选 = 布局目录本地文件（隐式优先源，§6.10 源解析顺序契约）
+            // 首选 = 布局目录本地文件（隐式优先源， 源解析顺序契约）
             return new SourceFallbackOutcome(SourceFallbackDecision.UseSource, null, localPath, 0, effectiveCount, Rotated: false);
         }
 

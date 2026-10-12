@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
-// 分步引导测试（迭代 119 · #276；en 逐字比对补强与归位 components/ 见迭代 120 · #278）：
-// - AC-04：步骤定义的 i18n key 与「✅ 文案定稿 v1」五条一一对应；zh 标题 / 正文逐字一致（定稿比对锚点）、
-//   单步正文 ≤ 40 字；en 标题 / 正文 / 步骤按钮与定稿逐字一致（#278 AC-02 双语对称防线）；
+// 分步引导测试（· ；en 逐字比对补强与归位 components/ 见·）：
+// - ：步骤定义的 i18n key 与「✅ 文案定稿 v1」五条一一对应；zh 标题 / 正文逐字一致（定稿比对锚点）
+// 单步正文 ≤ 40 字；en 标题 / 正文 / 步骤按钮与定稿逐字一致（双语对称防线）
 //   键集全量一致性归 locales.test.ts 统一防线；
-// - AC-01/02：首见自动启动、逐步推进（经 switchTab 切页）、跳过 / 完成 / Esc 均写首见标记、刷新不再自动出现；
-// - AC-03：状态栏「使用引导」重看入口再放完整一轮，重放不改变已看状态。
+// - /02：首见自动启动、逐步推进（经 switchTab 切页）、跳过 / 完成 / Esc 均写首见标记、刷新不再自动出现
+// - ：状态栏「使用引导」重看入口再放完整一轮，重放不改变已看状态。
 // server 构建分支不渲染断言在 Guide.server.test.tsx（App.server.test.tsx 同款双跑拆分）。
 // jsdom 定位局限：getBoundingClientRect 全 0（Popover.tsx:32 先例）——spotlight 挖洞矩形断言用伪造矩形，
-// 真实定位正确性归 AC-01 浏览器自动化走查。
+// 真实定位正确性归 浏览器自动化走查。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -21,7 +21,7 @@ import enGuide from '../i18n/locales/en/guide.json'
 
 configure({ asyncUtilTimeout: 8000 })
 
-// ---- 「✅ 文案定稿 v1」逐字底稿（#276 定稿 json 字段镜像；zh 定稿比对 + zh≤40 字 + #278 AC-02 en 对称断言依据） ----
+// ---- 「✅ 文案定稿 v1」逐字底稿（定稿 json 字段镜像；zh 定稿比对 + zh≤40 字 + en 对称断言依据） ----
 const FINALIZED: readonly {
   key: string
   titleZh: string

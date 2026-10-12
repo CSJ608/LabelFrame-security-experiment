@@ -5,7 +5,7 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// 文档编译能力契约锚定（迭代 77，#119 AC-01；DESIGN §5.4.1 / §5.4.2）：
+/// 文档编译能力契约锚定（DESIGN /）：
 /// 装配期能力位判定（plugin is ILabelCommandCompiler）+ 注册表编译器取用 + printMode 读取口径。
 /// </summary>
 public class LabelCommandCompilerCapabilityTests
@@ -71,7 +71,7 @@ public class LabelCommandCompilerCapabilityTests
     [Fact]
     public void Compile_options_should_carry_dpi_and_context()
     {
-        // §5.4.1 输入选项：首版 = DPI + 插件上下文（与 Create 收到的 ITransportPluginContext 同构）
+        // 输入选项：首版 = DPI + 插件上下文（与 Create 收到的 ITransportPluginContext 同构）
         var context = new TransportPluginContext(TextWriter.Null, "dir");
         var options = new LabelCommandCompileOptions(300, context);
 

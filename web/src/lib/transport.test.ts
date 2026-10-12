@@ -1,4 +1,4 @@
-// 迭代 22：传输插件工具单元测试——displayText 优先徽标、mode→pluginId 映射、
+// 传输插件工具单元测试——displayText 优先徽标、mode→pluginId 映射
 // spec 默认值 / Select 枚举兼容解析（string[] 与 { value, label? }[]）、配置参数提取。
 
 import { describe, expect, it } from 'vitest'

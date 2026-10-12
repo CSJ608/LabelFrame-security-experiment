@@ -10,7 +10,7 @@ public sealed class LabelJobException : Exception
         Code = code;
     }
 
-    /// <summary>创建异常（模板化消息：message 为渲染后中文文案，parameters 随异常透传到 ErrorView.params——决策 #164 ③ / #166）。</summary>
+    /// <summary>创建异常（模板化消息：message 为渲染后中文文案，parameters 随异常透传到 ErrorView.params—— ③ /）。</summary>
     public LabelJobException(string code, string message, IReadOnlyDictionary<string, string>? parameters)
         : base(message)
     {

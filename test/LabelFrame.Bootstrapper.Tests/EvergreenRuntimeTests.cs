@@ -5,7 +5,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// evergreen 载荷获取编排测试（决策 #151，#173）：源解析（[WebView2Source] 变量形态）、BA 侧源变量构造
+/// evergreen 载荷获取编排测试：源解析（[WebView2Source] 变量形态）、BA 侧源变量构造
 /// （布局本地文件优先 → urls）、获取器编排（本地优先 / 逐源回退 / 发布者验签 fail-closed）。
 /// </summary>
 public sealed class EvergreenRuntimeTests : IDisposable
@@ -123,7 +123,7 @@ public sealed class EvergreenRuntimeTests : IDisposable
         }
         """);
 
-        // 空 = 工具按官方 fwlink 兜底（决策 #151：fwlink 是稳定公开常量）
+        // 空 = 工具按官方 fwlink 兜底（fwlink 是稳定公开常量）
         Assert.Equal(string.Empty, EvergreenRuntime.BuildWebView2SourceValue(manifest, null));
         Assert.Equal(string.Empty, EvergreenRuntime.BuildWebView2SourceValue(null, null));
     }
@@ -164,7 +164,7 @@ public sealed class EvergreenRuntimeTests : IDisposable
     [Fact]
     public void Local_verification_failure_falls_back_to_urls()
     {
-        // 布局文件被篡改 → 验签拒绝 → 按序落回 urls（与 §6.10 换源语义一致）
+        // 布局文件被篡改 → 验签拒绝 → 按序落回 urls（与 换源语义一致）
         var local = Path.Combine(_root, "w2.exe");
         var url = "https://mirror.example/w2.exe";
         var verifyCalls = new List<string>();

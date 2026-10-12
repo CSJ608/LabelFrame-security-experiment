@@ -7,10 +7,10 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 多源回退状态机测试（迭代 61 / #54「范围修订 v2」；DESIGN §6.10 决策 #125）：
-/// urls 顺序即优先级（#115）、失败计数逐源推进、源耗尽停止干预、单源清单退化行为、校验失败同样换源；
-/// 迭代 70 / #89（决策 #135）补：布局目录本地源优先——有效源序 = [布局文件（在位时）] ++ urls、
-/// 本地失败按序落到 urls、布局不在位 / 无布局目录时行为与现状完全一致（AC-03 回归锚点）。
+/// 多源回退状态机测试（/ 「范围修订 v2」；DESIGN）：
+/// urls 顺序即优先级、失败计数逐源推进、源耗尽停止干预、单源清单退化行为、校验失败同样换源
+/// / #89补：布局目录本地源优先——有效源序 = [布局文件（在位时）] ++ urls
+/// 本地失败按序落到 urls、布局不在位 / 无布局目录时行为与现状完全一致（回归锚点）。
 /// </summary>
 public sealed class CacheSourceFallbackTests
 {
@@ -67,7 +67,7 @@ public sealed class CacheSourceFallbackTests
         fallback.RecordAcquireFailure("ServerMsi");
         var outcome = fallback.ResolveAcquire("ServerMsi");
 
-        // #115：顺序即优先级——主源失败后提供镜像源，且标记换源（UI 换源提示依据）
+        // 顺序即优先级——主源失败后提供镜像源，且标记换源（UI 换源提示依据）
         Assert.Equal(SourceFallbackDecision.UseSource, outcome.Decision);
         Assert.Equal("https://mirror.example/LabelFrame-Server-0.27.0.msi", outcome.Url);
         Assert.Equal(1, outcome.SourceIndex);
@@ -150,7 +150,7 @@ public sealed class CacheSourceFallbackTests
     [Fact]
     public void Reset_clears_counters_for_new_apply()
     {
-        // 重试按钮 = 全新 Plan + Apply：失败计数归零、从头按 urls 顺序（§6.10）
+        // 重试按钮 = 全新 Plan + Apply：失败计数归零、从头按 urls 顺序
         var fallback = CacheSourceFallback.FromManifest(MultiSourceManifest());
         fallback.RecordAcquireFailure("ServerMsi");
 
@@ -239,7 +239,7 @@ public sealed class CacheSourceFallbackTests
         Assert.Throws<ArgumentNullException>(() => CacheSourceFallback.FromManifest(null!));
     }
 
-    // ---- 布局目录本地源优先（迭代 70 / #89，决策 #135；有效源序 = [布局文件] ++ urls） ----
+    // ---- 布局目录本地源优先（/ ，；有效源序 = [布局文件] ++ urls） ----
 
     /// <summary>临时布局目录：放入指定组件的布局文件（内容任意——状态机只判在位，哈希校验由引擎承担）。</summary>
     private static string CreateLayoutDirectory(params string[] fileNames)
@@ -293,7 +293,7 @@ public sealed class CacheSourceFallbackTests
     [Fact]
     public void Layout_verify_failure_tampered_file_also_rotates_to_urls()
     {
-        // 篡改布局文件（引擎校验失败）→ 换源重取干净副本；断网（urls 均不可达）则源耗尽 fail-closed（AC-04）
+        // 篡改布局文件（引擎校验失败）→ 换源重取干净副本；断网（urls 均不可达）则源耗尽 fail-closed
         using var layout = new TempDirectoryScope(CreateLayoutDirectory("LabelFrame-Server-0.27.0.msi"));
         var fallback = CacheSourceFallback.FromManifest(MultiSourceManifest(), layout.Directory);
 
@@ -356,7 +356,7 @@ public sealed class CacheSourceFallbackTests
     [Fact]
     public void Layout_directory_present_but_empty_files_makes_all_urls_only()
     {
-        // 布局目录在位但组件文件缺失（部分拷贝 / 损坏分发）→ 全部包退化为纯 urls（AC-03 同构回归锚点）
+        // 布局目录在位但组件文件缺失（部分拷贝 / 损坏分发）→ 全部包退化为纯 urls（同构回归锚点）
         using var layout = new TempDirectoryScope(CreateLayoutDirectory("unrelated-file.txt"));
         var fallback = CacheSourceFallback.FromManifest(MultiSourceManifest(), layout.Directory);
 

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-// i18n 基座行为自证（迭代 108 · #241）：
-// - AC-02 首启默认：detectInitialLocale 纯函数（依赖注入 localStorage / 浏览器语言列表）——
+// i18n 基座行为自证（·）：
+// - 首启默认：detectInitialLocale 纯函数（依赖注入 localStorage / 浏览器语言列表）——
 //   保存的偏好优先；未保存时 `zh*` → zh-CN、其他 → en；
 // - 单例初始化：模块加载即选定语言并同步 <html lang>（含已保存偏好在全新模块加载下的生效——「刷新后保持」的机制证明）；
-// - AC-01 切换即时生效：App 级组件测试——设置页切 English 后导航 / 状态栏 / 日期格式随之变化、
+// - 切换即时生效：App 级组件测试——设置页切 English 后导航 / 状态栏 / 日期格式随之变化
 //   localStorage 持久化、documentElement.lang 同步，切回中文恢复。
 // 环境前提：vitest.setup.ts 把 navigator.language 钉在 zh-CN（既有断言确定性），本文件不依赖其切换。
 
@@ -93,7 +93,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
   window.sessionStorage.clear()
-  // 迭代 119（#276）：App 级用例测语言切换，以「已看过引导」用户运行——首见自动启动行为归 Guide.test.tsx
+  // App 级用例测语言切换，以「已看过引导」用户运行——首见自动启动行为归 Guide.test.tsx
   window.localStorage.setItem(GUIDE_SEEN_KEY, 'done')
   mocks.server.healthz.mockResolvedValue({ service: 'LabelFrame.Server', status: 'ok' })
   mocks.local.healthz.mockResolvedValue({ service: 'LabelFrame.WinHost', status: 'ok' })
@@ -142,7 +142,7 @@ describe('AC-02 首启默认语言（detectInitialLocale 纯函数）', () => {
 
 describe('i18n 单例初始化（模块加载即生效）', () => {
   it('测试环境钉住 zh-CN：默认语言 zh-CN 且 <html lang> 同步', () => {
-    // vitest.setup.ts 钉住 navigator.language = zh-CN 且 localStorage 为空 → 首启默认 zh-CN（AC-02 中文浏览器分支）
+    // vitest.setup.ts 钉住 navigator.language = zh-CN 且 localStorage 为空 → 首启默认 zh-CN（中文浏览器分支）
     expect(i18n.language).toBe('zh-CN')
     expect(document.documentElement.lang).toBe('zh-CN')
   })

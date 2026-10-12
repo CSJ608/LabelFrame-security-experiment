@@ -8,7 +8,7 @@ using Serilog;
 namespace LabelFrame.WinHost.Tests.Jobs;
 
 /// <summary>
-/// 失败上下文结构化日志验证（决策 #102 / AC-06）：发送失败日志须含作业 / 项索引 / 插件 / 打印目标 / 错误码 / 原因，
+/// 失败上下文结构化日志验证（/）：发送失败日志须含作业 / 项索引 / 插件 / 打印目标 / 错误码 / 原因
 /// 经与生产同模板的 Serilog 文件通道落盘后逐字段断言。
 /// </summary>
 public class JobPrintWorkerFailureLogTests
@@ -67,7 +67,7 @@ public class JobPrintWorkerFailureLogTests
             await worker.StartAsync(cts.Token);
 
             // 等待失败落库（发送抛异常 → FailItemAsync → 作业挂起）。
-            // 轮询预算（#183 根因排查结论）：worker 失败路径本身无锁 / 无固定睡眠（信号驱动唤醒 + WAL +
+            // 轮询预算（根因排查结论）：worker 失败路径本身无锁 / 无固定睡眠（信号驱动唤醒 + WAL +
             // 池化 SQLite 访问，busy 超时 5s），本地正常运行 <1s 即落 Failed；CI 高负载下并行测试类放大
             // 轮询循环与 worker 各自的 SQLite 往返延迟，原「200 次 × 50ms 固定迭代 + 15s 总 CTS 同管收尾」
             // 的墙钟预算被击穿，CTS 在轮询中途到期抛取消——呈「约 20s 超时特征」。属测试等待预算债而非

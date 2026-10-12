@@ -1,5 +1,5 @@
 // 通用模态框（确认 / 表单）
-// 迭代 108（#241）：关闭按钮 aria-label key 化（common 域）；本文件已圈入 lint 防线（裸中文 JSX 拦截）。
+// 关闭按钮 aria-label key 化（common 域）；本文件已圈入 lint 防线（裸中文 JSX 拦截）。
 
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'

@@ -13,7 +13,7 @@ public interface ITransportPluginRegistry
     /// <summary>按 ID 取插件描述（不存在返回 null）。</summary>
     TransportPluginDescriptor? GetPlugin(string id);
 
-    /// <summary>按 ID 取插件的文档编译能力（§5.4.1；插件不存在或未实现 ILabelCommandCompiler 返回 null）。</summary>
+    /// <summary>按 ID 取插件的文档编译能力（插件不存在或未实现 ILabelCommandCompiler 返回 null）。</summary>
     ILabelCommandCompiler? GetCommandCompiler(string id);
 
     /// <summary>按 ID + 参数创建传输实例（插件不存在抛异常）。</summary>

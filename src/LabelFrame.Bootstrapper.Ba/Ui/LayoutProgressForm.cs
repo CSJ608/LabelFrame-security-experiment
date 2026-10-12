@@ -5,7 +5,7 @@ using LabelFrame.Bootstrapper.OfflineLayout;
 using LabelFrame.Bootstrapper.Wizard;
 
 /// <summary>
-/// 离线布局目录生成进度窗（迭代 70 / #89，决策 #135）：<c>--layout</c> 模式的轻量单窗呈现——
+/// 离线布局目录生成进度窗（/）：<c>--layout</c> 模式的轻量单窗呈现——
 /// 总进度（组件 i/N）+ 当前组件行（下载字节数 / 复用 / 校验中）+ 取消（取消即中止下载、非零退出）。
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ internal sealed class LayoutProgressForm : Form
     private readonly Button _cancelButton = new();
     private readonly CancellationTokenSource _cancellation = new();
 
-    /// <summary>首显主动置前器（迭代 116 / #265）：与向导同一缺陷类——无前台权启动时进度窗静默不前置。</summary>
+    /// <summary>首显主动置前器（/）：与向导同一缺陷类——无前台权启动时进度窗静默不前置。</summary>
     private readonly WizardForegroundActivator _foregroundActivator = new();
 
     private readonly Action<string>? _log;
@@ -69,7 +69,7 @@ internal sealed class LayoutProgressForm : Form
     /// <summary>取消令牌（取消按钮触发；窗体关闭同样触发——取消生成并非零退出）。</summary>
     public CancellationToken CancellationToken => _cancellation.Token;
 
-    /// <summary>首显主动置前（迭代 116 / #265）：与 <see cref="WizardForm"/> 同一组合拳（详见其 OnShown 注释）。</summary>
+    /// <summary>首显主动置前（/）：与 <see cref="WizardForm"/> 同一组合拳（详见其 OnShown 注释）。</summary>
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);

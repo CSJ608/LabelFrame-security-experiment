@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-// 迭代 114（#260）壳层语言切换器——client 构建：
-// - AC-01 在位：nav-foot（连接状态点旁）显示当前语言短名「中 / EN」；
-// - AC-02 即点即生效：点击后词条 / <html lang> / localStorage 即时变化，再点切回恢复；
+// 壳层语言切换器——client 构建：
+// - 在位：nav-foot（连接状态点旁）显示当前语言短名「中 / EN」
+// - 即点即生效：点击后词条 / <html lang> / localStorage 即时变化，再点切回恢复
 //   「刷新保持」经 vi.resetModules 全新模块图重载 App 验证（localStorage 偏好在模块加载即生效）；
-// - AC-03 双入口一致：设置页语言卡（select）与壳层切换器同一 changeLocale 单点，显示同步、互切一致。
+// - 双入口一致：设置页语言卡（select）与壳层切换器同一 changeLocale 单点，显示同步、互切一致。
 // 环境前提：vitest.setup.ts 钉住 navigator.language = zh-CN（首启默认中文断言确定性）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -91,7 +91,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
   window.sessionStorage.clear()
-  // 迭代 119（#276）：本文件测壳层语言切换器，以「已看过引导」用户运行——首见自动启动行为归 Guide.test.tsx
+  // 本文件测壳层语言切换器，以「已看过引导」用户运行——首见自动启动行为归 Guide.test.tsx
   window.localStorage.setItem(GUIDE_SEEN_KEY, 'done')
   mocks.server.healthz.mockResolvedValue({ service: 'LabelFrame.Server', status: 'ok' })
   mocks.local.healthz.mockResolvedValue({ service: 'LabelFrame.WinHost', status: 'ok' })

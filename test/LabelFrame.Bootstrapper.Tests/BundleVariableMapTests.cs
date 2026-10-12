@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>Burn 变量契约（DESIGN §6.3，决策 #122）：问卷解析结果 → Bundle 链条件变量（BA 写入引擎、Chain 条件消费）。</summary>
+/// <summary>Burn 变量契约（DESIGN）：问卷解析结果 → Bundle 链条件变量（BA 写入引擎、Chain 条件消费）。</summary>
 public sealed class BundleVariableMapTests
 {
     private static InstallManifest LoadManifest(string fileName) =>
@@ -78,7 +78,7 @@ public sealed class BundleVariableMapTests
     [Fact]
     public void To_variables_current_manifest_with_zebra_selected_should_set_zebra_flag()
     {
-        // 迭代 63 起产物现状（plugin-zebra 条目已收录）：勾选 Zebra → InstallPluginZebra 置位（#56 接线主线）
+        // 起产物现状（plugin-zebra 条目已收录）：勾选 Zebra → InstallPluginZebra 置位（接线主线）
         var plan = Resolver.Resolve(
             LoadManifest("install-manifest.current.json"),
             TopologyPreset.Standalone,
@@ -110,7 +110,7 @@ public sealed class BundleVariableMapTests
     [Fact]
     public void Placement_target_directories_should_follow_deploy_conventions()
     {
-        // 落位目标目录（决策 #124，DEPLOY §5 / §6）：webui → server\plugins\web-ui；插件 → Client\plugins\<pluginId>
+        // 落位目标目录（DEPLOY §5 / §6）：webui → server\plugins\web-ui；插件 → Client\plugins\<pluginId>
         var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         Assert.Equal(Path.Combine(programData, "LabelFrame", "server", "plugins", "web-ui"), BundleVariableMap.WebUiTargetDir());
         Assert.Equal(Path.Combine(programData, "LabelFrame", "Client", "plugins", "labelframe-transport-zebra"), BundleVariableMap.PluginZebraTargetDir());
@@ -119,7 +119,7 @@ public sealed class BundleVariableMapTests
     [Fact]
     public void Chain_package_map_should_cover_contract_component_ids()
     {
-        // 链包 → 组件 id 映射（§6.9 链序表，迭代 69 扩为九包——补双清理包，决策 #133）：七组件全覆盖（后续品牌按同构扩展）
+        // 链包 → 组件 id 映射（链序表，扩为九包——补双清理包）：七组件全覆盖（后续品牌按同构扩展）
         Assert.Equal(9, ChainPackageMap.ComponentByPackageId.Count);
         foreach (var componentId in new[] { "runtime-desktop", "runtime-aspnetcore", "runtime-webview2", "server-msi", "client-msi", "webui", "plugin-zebra" })
         {

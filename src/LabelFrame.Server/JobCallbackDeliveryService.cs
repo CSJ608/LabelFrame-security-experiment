@@ -13,7 +13,7 @@ public interface IJobCallbackSender
 }
 
 /// <summary>
-/// HTTP 回调发送器（决策 #154 安全边界）：投递超时 10 秒、不跟随重定向（3xx 原样返回按失败重试）、
+/// HTTP 回调发送器（安全边界）：投递超时 10 秒、不跟随重定向（3xx 原样返回按失败重试）
 /// 响应体读弃不落地。发送器为 Server 专属出站通道，不与任何宿主 / 回报路径共享 HttpClient。
 /// </summary>
 public sealed class HttpJobCallbackSender : IJobCallbackSender, IDisposable
@@ -62,7 +62,7 @@ public sealed class HttpJobCallbackSender : IJobCallbackSender, IDisposable
 }
 
 /// <summary>
-/// 终态回调投递后台服务（决策 #154）：周期扫描 job_callbacks 到期任务并 POST 回调载荷；
+/// 终态回调投递后台服务：周期扫描 job_callbacks 到期任务并 POST 回调载荷
 /// 指数退避、至多 JobCallbackDeliveryPolicy.MaxAttempts 次、超限死信；投递状态持久化——
 /// 进程重启后未完成任务继续投递（至少一次语义）。与 PendingJobExpirationService 同构
 /// （PeriodicTimer + 注入 TimeProvider，测试以 FakeTimeProvider 驱动确定性）。

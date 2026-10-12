@@ -27,7 +27,7 @@ public sealed class JobPrintWorker : BackgroundService
     /// <summary>批次节流内存计数：当前作业内发送成功张数，切换作业时归零（作业首张不等待批间间隔）。</summary>
     private int _sendsSinceBatch;
 
-    /// <summary>最近一次发送所属作业：领取到不同作业时将批次计数归零（按作业重置，迭代 45 决议）。</summary>
+    /// <summary>最近一次发送所属作业：领取到不同作业时将批次计数归零（按作业重置，决议）。</summary>
     private string? _lastSentJobId;
 
     /// <summary>创建打印 Worker。</summary>
@@ -130,7 +130,7 @@ public sealed class JobPrintWorker : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    // 失败上下文结构化（决策 #102）：作业 / 项索引 / 传输插件 / 打印目标 / 错误码，排障可直接检索
+                    // 失败上下文结构化：作业 / 项索引 / 传输插件 / 打印目标 / 错误码，排障可直接检索
                     var connection = _transportManager.CurrentConfig;
                     _logger.LogError(
                         ex,

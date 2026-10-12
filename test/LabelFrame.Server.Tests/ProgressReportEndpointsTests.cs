@@ -9,7 +9,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 进度增量上报 HTTP 端点集成测试（决策 #101）：宿主上报后查询视图计数逐步增长；
+/// 进度增量上报 HTTP 端点集成测试：宿主上报后查询视图计数逐步增长
 /// 终态仍由 result 端点写入且幂等不回退；错误语义（404 / 403 / 409 / 400）与 result 端点一致。
 /// </summary>
 public sealed class ProgressReportEndpointsTests : IDisposable

@@ -13,7 +13,7 @@ export interface BackendElement {
   xMm: number
   yMm: number
   paddingMm?: number
-  /** 双边内边距（迭代 13：替代单值 max 近似；旧模板无此字段时用 paddingMm 兜底） */
+  /* * 双边内边距（替代单值 max 近似；旧模板无此字段时用 paddingMm 兜底） */
   paddingH?: number
   paddingV?: number
   borderMm?: number
@@ -22,7 +22,7 @@ export interface BackendElement {
   regionVAlign?: string
   sourceKey?: string
   literal?: string
-  /** 字段填充模式的预览值（迭代 12：仅 field 模式且 key 非空写；固定值模式不写） */
+  /* * 字段填充模式的预览值（仅 field 模式且 key 非空写；固定值模式不写） */
   previewValue?: string
   fontName?: string
   fontHeightMm?: number
@@ -31,23 +31,23 @@ export interface BackendElement {
   heightMm?: number
   textAlign?: string
   verticalAlign?: string
-  /** 前端画布字体（迭代 13：Skia 图片打印用；矢量 ZPL 仍由 fontName 决定） */
+  /* * 前端画布字体（Skia 图片打印用；矢量 ZPL 仍由 fontName 决定） */
   fontFamily?: string
-  /** 加粗（迭代 14：true 才写；ZPL 用字体变体、Skia 用 fontStyle bold） */
+  /* * 加粗（true 才写；ZPL 用字体变体、Skia 用 fontStyle bold） */
   bold?: boolean
-  /** 自动换行（迭代 13：true 才写） */
+  /* * 自动换行（true 才写） */
   wrap?: boolean
-  /** 行距系数（迭代 13：!= 1.2 才写） */
+  /* * 行距系数（!= 1.2 才写） */
   lineHeight?: number
-  /** 溢出处理（迭代 13：shrink 缩小 / overflow 隐藏裁剪；!= shrink 才写） */
+  /* * 溢出处理（shrink 缩小 / overflow 隐藏裁剪；!= shrink 才写） */
   fitMode?: 'shrink' | 'overflow'
   moduleWidth?: number
-  /** 条码底部文字（迭代 13：false 才写，默认 true） */
+  /* * 条码底部文字（false 才写，默认 true） */
   displayValue?: boolean
   sizeMm?: number
-  /** 二维码纠错级别（迭代 13：!= M 才写） */
+  /* * 二维码纠错级别（!= M 才写） */
   qrEcc?: 'L' | 'M' | 'Q' | 'H'
-  /** 二维码静区模块数（迭代 13：!= 2 才写） */
+  /* * 二维码静区模块数（!= 2 才写） */
   qrMargin?: number
   x2Mm?: number
   y2Mm?: number
@@ -90,7 +90,7 @@ export function toBackendElement(e: DesignElement): BackendElement {
   const padH = 'paddingH' in e ? (e.paddingH ?? 0) : 0
   const padV = 'paddingV' in e ? (e.paddingV ?? 0) : 0
   const pad = Math.max(padH, padV)
-  // 迭代 13：双边内边距双值写出；paddingMm 保留兼容（旧模板/后端读回兜底）
+  // 双边内边距双值写出；paddingMm 保留兼容（旧模板/后端读回兜底）
   if (padH > 0) base.paddingH = r2(padH)
   if (padV > 0) base.paddingV = r2(padV)
   if (pad > 0) base.paddingMm = r2(pad)
@@ -112,7 +112,7 @@ export function toBackendElement(e: DesignElement): BackendElement {
       if (e.h > 0) base.heightMm = r2(e.h)
       if (e.align !== 'Left') base.textAlign = e.align
       if (e.valign && e.valign !== 'middle') base.verticalAlign = e.valign === 'top' ? 'Top' : 'Bottom'
-      // 迭代 13：文本排版字段（非默认才写）
+      // 文本排版字段（非默认才写）
       if (e.fontFamily && e.fontFamily !== 'Microsoft YaHei') base.fontFamily = e.fontFamily
       if (e.bold) base.bold = true
       if (e.wrap) base.wrap = true
@@ -255,8 +255,8 @@ export function fromBackendElements(list: readonly BackendElement[]): DesignElem
 }
 
 /**
- * 字段推导结果 → 契约 fields（决策 #37：非必填，类型 Text）。
- * 显示名（迭代 83 · #131 决议 1）：可选，空则回退键（displayName 字段契约本就存在，非格式变更）。
+ * 字段推导结果 → 契约 fields（非必填，类型 Text）。
+ * 显示名（· 决议 1）：可选，空则回退键（displayName 字段契约本就存在，非格式变更）。
  */
 export function toContractFields(fields: readonly FieldInfo[]): BackendField[] {
   return fields.map((f) => ({ key: f.key, displayName: f.displayName?.trim() || f.key, isRequired: false, type: 'Text' as const }))
@@ -268,10 +268,10 @@ export function toContract(name: string, version: string, fields: readonly Field
 }
 
 /**
- * 契约 fields 显示名 → 内部元素回填（按字段名匹配；迭代 83 · #131 决议 1）。
+ * 契约 fields 显示名 → 内部元素回填（按字段名匹配；· 决议 1）。
  * 版式元素 JSON 无显示名字段（契约格式不变），保存路径显示名只进契约 fields——
  * 加载模板时按 sourceKey 匹配回填到元素，保证设计器往返（导出 / 导入）不丢显示名。
- * 存量模板 displayName = key（决策 #37 旧口径）时不回填（元素保持无显示名，显示处回退键，行为不变）。
+ * 存量模板 displayName = key（旧口径）时不回填（元素保持无显示名，显示处回退键，行为不变）。
  */
 export function applyContractDisplayNames(elements: readonly DesignElement[], fields: readonly BackendField[]): DesignElement[] {
   const names = new Map<string, string>()

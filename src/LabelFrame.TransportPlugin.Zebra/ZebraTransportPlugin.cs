@@ -4,14 +4,14 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.TransportPlugin.Zebra;
 
-/// <summary>Zebra 官方 Link-OS SDK 传输插件（TCP / USB / 驱动统一连接）——外置官方插件（迭代 63，决策 #123）。</summary>
+/// <summary>Zebra 官方 Link-OS SDK 传输插件（TCP / USB / 驱动统一连接）——外置官方插件。</summary>
 /// <remarks>
 /// 插件 Id = <see cref="TransportPluginIdPolicy.ZebraPluginId"/>（labelframe-transport-zebra）；
-/// 旧内置时代 id "zebra" 由 WinHost 读取配置时按别名映射（DESIGN §6.8），插件侧不再使用。
-/// 迭代 78（#120）：同一插件对象实现 <see cref="ILabelCommandCompiler"/>（品牌级能力，§5.4.1——
-/// 与连接实例 / 传输形态无关），并声明连接级打印方式参数 printMode（§5.4.2 决议 2）。
-/// 迭代 90（#148）：Description / printMode Hint 补「原生指令模式下二维码（QR）数据不支持中文（仅 ASCII）」
-/// 说明（真机实证见 #121：原生 ^CI28 下中文被打印机静默过滤）；编译行为不动（保持现状，未升级 fail-closed）。
+/// 旧内置时代 id "zebra" 由 WinHost 读取配置时按别名映射（DESIGN），插件侧不再使用。
+/// 同一插件对象实现 <see cref="ILabelCommandCompiler"/>（品牌级能力，——
+/// 与连接实例 / 传输形态无关），并声明连接级打印方式参数 printMode（决议 2）。
+/// Description / printMode Hint 补「原生指令模式下二维码（QR）数据不支持中文（仅 ASCII）」
+/// 说明（真机实证见 ：原生 ^CI28 下中文被打印机静默过滤）；编译行为不动（保持现状，未升级 fail-closed）。
 /// </remarks>
 public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompiler
 {
@@ -24,7 +24,7 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
     public string DisplayName => "Zebra";
 
     /// <inheritdoc />
-    /// <remarks>迭代 90（#148）：说明文限定「原生指令模式」——中文走文本框（图片模式 / 原生 LF_ENC_002 既有拒绝口径）。</remarks>
+    /// <remarks>：说明文限定「原生指令模式」——中文走文本框（图片模式 / 原生 LF_ENC_002 既有拒绝口径）。</remarks>
     public string Description => "Zebra 官方 Link-OS SDK：TCP / USB（自动发现）/ Windows 驱动统一连接与打印机状态（Win10+，官方插件）。原生指令模式下二维码（QR）数据不支持中文（仅 ASCII），中文请用文本框（图片模式）。";
 
     /// <inheritdoc />
@@ -40,7 +40,7 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
         new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"]),
         new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: true, Hint: "如 ZDesigner ZD421-203dpi ZPL", VisibleWhenKey: "kind", VisibleWhenValues: ["Driver"]),
         new TransportParameterSpec("usbName", "Zebra USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现第一台", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"]),
-        // 打印方式（§5.4.2 决议 2：仅连接级 Select 参数；默认 image，native = 插件编译器产出品牌原生指令）
+        // 打印方式（决议 2：仅连接级 Select 参数；默认 image，native = 插件编译器产出品牌原生指令）
         new TransportParameterSpec(
             TransportPrintMode.ParameterKey,
             "打印方式",
@@ -83,7 +83,7 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
     }
 
     /// <inheritdoc />
-    /// <remarks>文档编译能力（§5.4.1）：品牌级纯函数变换，不访问打印机；委托无状态 <see cref="ZebraLabelCompiler"/>。</remarks>
+    /// <remarks>文档编译能力：品牌级纯函数变换，不访问打印机；委托无状态 <see cref="ZebraLabelCompiler"/>。</remarks>
     public Task<LabelCommandCompileResult> CompileAsync(
         LabelDocument document,
         LabelCommandCompileOptions options,

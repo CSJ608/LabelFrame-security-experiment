@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>非 MSI 落位（决策 #124 机制 A，DESIGN §6.9）：覆盖解压 + .lfplugin 的 #123 版本比较（覆盖 / 同版幂等 / 降级拒绝）。</summary>
+/// <summary>非 MSI 落位（机制 A，DESIGN）：覆盖解压 + .lfplugin 的 版本比较（覆盖 / 同版幂等 / 降级拒绝）。</summary>
 public sealed class PayloadPlacerTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"labelframe-placer-{Guid.NewGuid():N}");
@@ -92,7 +92,7 @@ public sealed class PayloadPlacerTests : IDisposable
     }
 
     [Theory]
-    [InlineData("1.0", "1.0.0", 0)] // Version 语义：缺失段视为 0（#123：1.0 == 1.0.0）
+    [InlineData("1.0", "1.0.0", 0)]  // Version 语义：缺失段视为 0（1.0 == 1.0.0）
     [InlineData("1.0.1", "1.0.0", 1)]
     [InlineData("1.0.0", "1.0.1", -1)]
     [InlineData("2.0.0", "10.0.0", -1)] // 数值比较（非字符串序）

@@ -5,7 +5,7 @@ namespace LabelFrame.Core.Transport.Plugins;
 /// <summary>
 /// 内置传输插件：Core 提供 Log（模拟）与 TCP 9100（跨平台网络打印机）；
 /// Windows 驱动（winspool）由 WinHost 以同一接口注册；
-/// Zebra 品牌传输已外置为官方插件（labelframe-transport-zebra，迭代 63 决策 #123）。
+/// Zebra 品牌传输已外置为官方插件（labelframe-transport-zebra）。
 /// </summary>
 public static class BuiltinTransportPlugins
 {
@@ -20,7 +20,7 @@ public sealed class LogTransportPlugin : ITransportPlugin
     /// <inheritdoc />
     public string Id => "log";
 
-    /// <summary>显示名「模拟打印」（迭代 87 #143：选项列表去技术前缀「Log」）；插件 Id 保持 <c>log</c> 不变（存量连接配置兼容）。</summary>
+    /// <summary>显示名「模拟打印」（选项列表去技术前缀「Log」）；插件 Id 保持 <c>log</c> 不变（存量连接配置兼容）。</summary>
     public string DisplayName => "模拟打印";
 
     /// <inheritdoc />

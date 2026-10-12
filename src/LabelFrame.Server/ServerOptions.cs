@@ -56,21 +56,21 @@ public sealed class ServerOptions
     /// <summary>过期 / 超时扫描周期（分钟）：后台任务按此周期把超期 Pending 标记为 Expired、把失联 Claimed 回收为 Failed。</summary>
     public int ExpirationScanIntervalMinutes { get; set; } = 5;
 
-    /// <summary>文本日志文件路径（为空不写文件；Linux 部署挂载到宿主机查看）。按日轮转：实际写入 <名>-yyyyMMdd.log（决策 #108）。</summary>
+    /// <summary>文本日志文件路径（为空不写文件；Linux 部署挂载到宿主机查看）。按日轮转：实际写入 <名>-yyyyMMdd.log。</summary>
     public string? LogFilePath { get; set; }
 
     /// <summary>文本日志文件个数保留上限（默认 31；0 或负值 = 不清理）。LABELFRAME_SERVER_LOG_FILE_RETENTION_DAYS 可覆盖。
-    /// 语义微调（决策 #173）：按日单文件时代即「保留天数」；单文件大小上限（<see cref="LogFileMaxSizeMB"/>）启用后单日可产生
+    /// 语义微调：按日单文件时代即「保留天数」；单文件大小上限（<see cref="LogFileMaxSizeMB"/>）启用后单日可产生
     /// 多个序号文件（server-yyyyMMdd.N.log），本项实际语义为「文件个数上限」，文本层总占用上界 = 本项 × 单文件上限。</summary>
     public int LogFileRetentionDays { get; set; } = 31;
 
     /// <summary>文本日志单文件大小上限（MB，默认 50；0 或负值 = 不限制）。LABELFRAME_SERVER_LOG_FILE_MAX_SIZE_MB 可覆盖。
-    /// 单文件超限轮转为当日序号文件（server-yyyyMMdd.1.log → .2.log …），总占用上界 ≈ 31 文件 × 本值（决策 #173）。</summary>
+    /// 单文件超限轮转为当日序号文件（server-yyyyMMdd.1.log → .2.log …），总占用上界 ≈ 31 文件 × 本值。</summary>
     public int LogFileMaxSizeMB { get; set; } = 50;
 
     /// <summary>logs.db 按量闸阈值（MB，默认 256；0 或负值 = 不限量闸、按期时间闸仍生效）。
     /// 库文件（logs.db + logs.db-wal 合计）超过阈值时按大小删最旧日志直至回到阈值内——**不受 <see cref="LogRetentionDays"/> 保留下限约束（有意行为）**，
-    /// 删除后 VACUUM + wal_checkpoint(TRUNCATE) 真实回收磁盘。LABELFRAME_SERVER_LOGS_DB_MAX_SIZE_MB 可覆盖（决策 #173）。</summary>
+    /// 删除后 VACUUM + wal_checkpoint（TRUNCATE） 真实回收磁盘。LABELFRAME_SERVER_LOGS_DB_MAX_SIZE_MB 可覆盖。</summary>
     public int LogsDbMaxSizeMB { get; set; } = 256;
 
     /// <summary>产品版本（与打包脚本 -Version 保持一致）。</summary>
@@ -79,7 +79,7 @@ public sealed class ServerOptions
     /// <summary>客户端安装包目录（服务端统一分发客户端安装包；Windows %ProgramData%\\LabelFrame\\server\\client-packages；Linux /var/lib/labelframe/server/client-packages）。</summary>
     public static string DefaultClientPackagesPath => Path.Combine(DefaultDataDirectory, "client-packages");
 
-    /// <summary>PDA（Android 宿主）安装包目录（服务端统一分发 PDA 的 APK；Windows %ProgramData%\\LabelFrame\\server\\pda-packages；Linux /var/lib/labelframe/server/pda-packages；迭代 59 决策 #119）。</summary>
+    /// <summary>PDA（Android 宿主）安装包目录（服务端统一分发 PDA 的 APK；Windows %ProgramData%\\LabelFrame\\server\\pda-packages；Linux /var/lib/labelframe/server/pda-packages）。</summary>
     public static string DefaultPdaPackagesPath => Path.Combine(DefaultDataDirectory, "pda-packages");
 
     /// <summary>传输插件包目录（插件包上传服务端独立目录；Windows %ProgramData%\LabelFrame\server\plugin-packages；Linux /var/lib/labelframe/server/plugin-packages）。</summary>
@@ -89,7 +89,7 @@ public sealed class ServerOptions
     public string PluginPackagesPath { get; set; } = DefaultPluginPackagesPath;
     /// <summary>客户端安装包目录（存在即列出；目录直放文件或经 API 上传都支持）。</summary>
     public string ClientPackagesPath { get; set; } = DefaultClientPackagesPath;
-    /// <summary>PDA（Android 宿主）安装包目录（存在即列出；目录直放文件或经 API 上传都支持，上传仅接受 .apk；迭代 59 决策 #119）。</summary>
+    /// <summary>PDA（Android 宿主）安装包目录（存在即列出；目录直放文件或经 API 上传都支持，上传仅接受 .apk）。</summary>
     public string PdaPackagesPath { get; set; } = DefaultPdaPackagesPath;
 
     /// <summary>默认服务端管理界面插件目录（Windows %ProgramData%\LabelFrame\server\plugins\web-ui；Linux /var/lib/labelframe/server/plugins/web-ui）。</summary>

@@ -1,9 +1,9 @@
 // 设计器（核心）：顶栏（模板名/分组/纸张/DPI/预览/保存）+ 左栏（控件/字段/图层）
 // + 画布（移植原型交互）+ 右栏（属性 / 测试数据 Tab）。
 // 状态：stateRef 为同步真相（事件回调内先更新再 setState），历史为快照式。
-// 迭代 92（#150 F-02）：未保存离开保护——dirty（历史栈有已提交更改）时返回按钮与 Shell 导航切 tab
+// 未保存离开保护——dirty（历史栈有已提交更改）时返回按钮与 Shell 导航切 tab
 // 均弹三选 Modal（保存并离开 / 放弃更改 / 继续编辑）；无编辑直接离开不弹窗。
-// 迭代 128（#316，决策 #178）：帮助深链锚点 = 路由 sub 段（helpAnchor props）——页内轮询
+// 帮助深链锚点 = 路由 sub 段（helpAnchor props）——页内轮询
 //（useHelpDeepLink）等锚点入 DOM 自动弹文档点气泡；深链自动开草稿放示例元素入初始基线（拍板 A，
 // 见 init 落点），守卫链零改动（三选差异由示例元素落点自然产生）。
 
@@ -37,8 +37,8 @@ import { shortcutGroups } from './designer/shortcuts'
 const snap = (s: DesignState) => JSON.stringify({ paperW: s.paperW, paperH: s.paperH, elements: s.elements })
 const parse = (s: string): DesignState => JSON.parse(s) as DesignState
 
-// ---------- 图片资源（迭代 132 · #329，决策 #184）：限制上限与前端预检常量 ----------
-// 方案 v2：限制按入库（压缩后）字节判定——>1MB 先走浏览器内压缩管道（imageCompress），压缩后仍超限才拒收
+// ---------- 图片资源（·）：限制上限与前端预检常量 ----------
+// 限制按入库（压缩后）字节判定——>1MB 先走浏览器内压缩管道（imageCompress），压缩后仍超限才拒收
 /** 支持格式（accept + 预检白名单，与服务端格式探嗅对齐）。 */
 const IMAGE_ACCEPT = 'image/png,image/jpeg,image/bmp'
 /** 单图入库字节上限（2MB，压缩后）。 */
@@ -108,7 +108,7 @@ function readFileAsDataUrl(file: Blob): Promise<string> {
   })
 }
 
-/** 深链示例元素构造（#316 决策 #178 拍板 A）：预设 spec → defaultElement + patch 合并——每次调用
+/* * 深链示例元素构造（拍板 A）：预设 spec → defaultElement + patch 合并——每次调用
  *  生成新 id（跨草稿不串号）、默认文案随当前语言；元素随草稿 init 并入初始基线（见 init 落点）。
  *  spec 类型全集含控件栏外三型（Line / Region 等），defaultElement 重载面按控件栏入口收窄——
  *  数据源为受控预设表，双转型到实现签名（全 7 型均有分支）。 */
@@ -124,11 +124,11 @@ function buildHelpLinkElements(anchor: string): DesignElement[] {
 interface DesignerProps {
   request: DesignerRequest
   onClose: () => void
-  /** 迭代 92（#150 F-02）：向 Shell 注册离开守卫（导航 tab 切换拦截：dirty 时弹三选 Modal 挂起本次切换）；卸载自动注销。
-   *  迭代 127 修复（#312 取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行，
+  /* * ：向 Shell 注册离开守卫（导航 tab 切换拦截：dirty 时弹三选 Modal 挂起本次切换）；卸载自动注销。
+   * 修复（取证）：守卫返回 boolean——false=已挂起（弹三选待确认）、true=无未保存更改已直接放行
    *  供路由 hashchange 分支判定是否 pre-revert（非 dirty 放行时不得回退，否则浏览器后退在设计器上失效）。 */
   registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
-  /** 帮助深链锚点（迭代 128 · #316 决策 #178：语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
+  /* * 帮助深链锚点（· ：语义 = 路由 sub 段，Shell 直传不预轮询）——本组件
    *  经 useHelpDeepLink 页内轮询等锚点入 DOM 后自动弹出对应文档点气泡；锚点已登记示例元素预设
    *  且草稿为新建时，示例元素随 init 并入初始基线（拍板 A）。 */
   helpAnchor?: string | null
@@ -136,10 +136,10 @@ interface DesignerProps {
 
 export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: DesignerProps) {
   const app = useApp()
-  // 迭代 112（#246）：设计器文案 key 化（designer 域）；数据性默认值（分组「默认」）随界面语言（待决议-1）
+  // 设计器文案 key 化（designer 域）；数据性默认值（分组「默认」）随界面语言（待决议-1）
   const { t } = useTranslation('designer')
   const { serverMode } = app
-  /** 业务 API 跟随模式（迭代 91 F-13 与 Workbench 对齐：unknown 时下方加载 effect 不发请求，待探测完成）。 */
+  /* * 业务 API 跟随模式（与 Workbench 对齐：unknown 时下方加载 effect 不发请求，待探测完成）。 */
   const biz = serverMode === 'server' ? serverApi : localApi
   const [state, setState] = useState<DesignState | null>(null)
   const [selected, setSelected] = useState<string[]>([])
@@ -155,18 +155,18 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  // 迭代 92（#150 F-02）：未保存离开保护——三选 Modal（保存并离开 / 放弃更改 / 继续编辑）
+  // 未保存离开保护——三选 Modal（保存并离开 / 放弃更改 / 继续编辑）
   const [leaveGuardOpen, setLeaveGuardOpen] = useState(false)
-  // 迭代 126（#308 AC-05）：「看实时效果」演示——显示层 override（记录演示文档点锚点），
+  // 「看实时效果」演示——显示层 override（记录演示文档点锚点）
   // 仅合并进 viewElements 喂画布与属性面板；不写 stateRef / historyRef → 不进历史栈、不置
   // dirty、doSave 读 stateRef 不含注入值（零落库零写请求的结构性保证）；退出 = 清锚点即还原。
   const [demoAnchor, setDemoAnchor] = useState<string | null>(null)
-  // displayName 示例值随语言补入（预设不静态写死，#308 wrapup 定夺 zh「库位」/ en "Bin"）
+  // displayName 示例值随语言补入（预设不静态写死， wrapup 定夺 zh「库位」/ en "Bin"）
   const demoPatch = demoAnchor
     ? { ...HELP_DEMO_PRESETS[demoAnchor], displayName: helpSampleDisplayName() }
     : undefined
   const demoActive = demoPatch !== undefined
-  // 迭代 128（#316，决策 #178）：深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
+  // 深链自动弹气泡——页内轮询确认锚点入 DOM 后的内部信号
   //（PropsPanel 既有 autoOpenAnchor 链，处理后清信号防重复触发）。
   const [autoOpenAnchor, setAutoOpenAnchor] = useState<string | null>(null)
   // 深链草稿一次性标记（拍板 A）：本挂载以深链自动开草稿时置位——首个 onFound 不清状态栏
@@ -179,17 +179,17 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const contractNameRef = useRef('')
   const contractVersionRef = useRef('1')
   const selectedRef = useRef<string[]>([])
-  // 图片资源表（迭代 132 · #329，决策 #184）：key → 资源，由本组件持有——不进 DesignState / 历史快照
+  // 图片资源表（·）：key → 资源，由本组件持有——不进 DesignState / 历史快照
   //（snap 仅 paperW/paperH/elements，防 base64 撑爆撤销栈）；撤销「添加图片元素」后资源成孤儿由保存时 GC。
   const [imageAssets, setImageAssets] = useState<Record<string, ImageAsset>>({})
   const imageAssetsRef = useRef<Record<string, ImageAsset>>({})
   /** 隐藏文件选择（上传 / 更换共用同一 input；replaceTargetRef 记录更换目标元素 id）。 */
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
-  // 迭代 92（#150 F-02，决议 a）：离开保护挂起的离开动作——「放弃更改」与「保存并离开」成功后执行；
+  // （决议 a）：离开保护挂起的离开动作——「放弃更改」与「保存并离开」成功后执行
   // 各终止路径（继续编辑 / 保存失败 / 覆盖取消 / 名称缺失）就地作废，防陈旧离开动作误触发后续普通保存。
   const pendingLeaveRef = useRef<(() => void) | null>(null)
-  // 迭代 91（F-13）：加载单次闩锁 + 挂载标记（见下方加载 effect 注释）
+  // 加载单次闩锁 + 挂载标记（见下方加载 effect 注释）
   const initedRef = useRef(false)
   const mountedRef = useRef(true)
   useEffect(() => {
@@ -199,7 +199,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
   }, [])
 
-  // 迭代 128（#316，决策 #178 机制迁移）：深链锚点页内轮询（旧 Shell 两段信号收口删除，等待收敛
+  // （机制迁移）：深链锚点页内轮询（旧 Shell 两段信号收口删除，等待收敛
   // 到目标页）——置于加载 effect 之前：自动草稿路径先写 pending、init 随即以 draftOpened 覆盖
   //（方案风险节「pending 一闪后被 draftOpened 覆盖属预期」）；超时走通用降级词条（未开模板 /
   // 未选中元素 / 类型不含目标分组 / 对齐组需多选 / 预览锁定等一切锚点不可见情形同此提示）。
@@ -213,7 +213,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     onPending: () => app.setStatus(t('help:deepLink.pending')),
   })
 
-  // 深链到达性保障（#316 陪验反馈 1）：锚点变更时若目标分组对当前选中不可见（未选中 / 类型不含
+  // 深链到达性保障（陪验反馈 1）：锚点变更时若目标分组对当前选中不可见（未选中 / 类型不含
   // 目标组 / 对齐组少于多选），主动把界面带到锚点可见状态——否则页内轮询只会超时降级、气泡内容
   // 始终看不到。两档处置：深链原装示例草稿且未编辑（deepLinkDraftRef 在场 + undoCount=0）→ 按新
   // 锚点重建示例元素集（等价「换一个小节看」，不丢任何用户内容）；其余（用户草稿已编辑 / 已开模板）
@@ -280,7 +280,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   }, [])
 
   // ---------- 加载 ----------
-  // 迭代 91（F-13）：与 Workbench 的 serverMode 守卫对齐——unknown（模式探测未完成）时不以 localApi 误发请求，
+  // 与 Workbench 的 serverMode 守卫对齐——unknown（模式探测未完成）时不以 localApi 误发请求
   // 待 AppContext 解析出 server / standalone 后重跑本 effect 按正确 base 加载。serverMode 为原始值入依赖，
   // 不会触发既有注释所述的无限循环（app 为 context 对象、每次渲染新引用，才是不能入依赖的雷区）；
   // initedRef 单次闩锁——模式中途翻转（10s 周期探测 server ↔ standalone）不重拉模板、不重置编辑中状态
@@ -305,7 +305,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         initialNameRef.current = pkg.name
         contractNameRef.current = pkg.contract?.name ?? pkg.name
         contractVersionRef.current = pkg.contract?.version ?? '1'
-        // 图片资源回填（迭代 132 · #329）：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染，
+        // 图片资源回填（·）：GET 响应本就携带 images base64——dataURL 即时回填画布可渲染
         // 像素尺寸异步解码补齐（属性面板信息行用；失败保持 0，仅影响展示不影响渲染）。
         if (pkg.images && Object.keys(pkg.images).length > 0) {
           const assets: Record<string, ImageAsset> = {}
@@ -333,10 +333,10 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
 
     if (request.kind === 'new') {
-      // 迭代 128（#316，决策 #178 拍板 A·初始基线）：深链自动开草稿时按锚点小节类型放置示例
+      // （拍板 A·初始基线）：深链自动开草稿时按锚点小节类型放置示例
       // 元素——随 init 并入 stateRef 且作 createHistory 基线（可正常编辑、undoCount=0 不 dirty、
       // 未编辑退出静默弃、用户编辑后三选守卫照常）；「不落库零业务数据」重解释＝自动机制零写请求
-      // ＋用户显式命名保存属正常草稿行为（#178 记录，偏离 Issue 约束句「不写 stateRef 保存链」的
+      // ＋用户显式命名保存属正常草稿行为（ 记录，偏离 Issue 约束句「不写 stateRef 保存链」的
       // 理由：纯显示层注入 ⇒ undoCount=0 ⇒ 「退出即弃带未保存守卫」永不触发的内在矛盾）。
       const linkAnchor = helpAnchor && Object.hasOwn(HELP_LINK_ELEMENTS, helpAnchor) ? helpAnchor : null
       const samples = linkAnchor ? buildHelpLinkElements(linkAnchor) : []
@@ -359,7 +359,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           {
             paperW: pkg.layout?.widthMm || 100,
             paperH: pkg.layout?.heightMm || 60,
-            // 迭代 83 · #131 决议 1：显示名存于契约 fields（版式元素 JSON 无此字段），加载时按字段名回填到元素
+            // · 决议 1：显示名存于契约 fields（版式元素 JSON 无此字段），加载时按字段名回填到元素
             elements: applyContractDisplayNames(fromBackendElements(pkg.layout?.elements ?? []), pkg.contract?.fields ?? []),
           },
           pkg,
@@ -386,7 +386,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     (type: string, xMm: number, yMm: number) => {
       const s = stateRef.current
       if (!s) return
-      // 五类控件栏入口（图片两步式：先落 key 空 20×20mm 空占位，再上传填充——#329 方案 v2）
+      // 五类控件栏入口（图片两步式：先落 key 空 20×20mm 空占位，再上传填充——）
       const e = defaultElement(type as 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image') as DesignElement
       e.x = Math.max(0, Math.min(s.paperW - 2, r2(xMm)))
       e.y = Math.max(0, Math.min(s.paperH - 2, r2(yMm)))
@@ -409,7 +409,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     [commit],
   )
 
-  // ---------- 图片上传（迭代 132 · #329，决策 #184；方案 v2 两步式＋压缩） ----------
+  // ---------- 图片上传（· ，； 两步式＋压缩） ----------
   /** 上传失败提醒（拍板 1-A）：页内轻量 toast 浮层自动消失（5s）——单条最新覆盖（连续失败不堆积），
    *  Designer 局部实现不引全局组件；成功 / 压缩提示仍走状态栏（常驻语义，最新覆盖）。 */
   const [imageToast, setImageToast] = useState<string | null>(null)
@@ -477,7 +477,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         imageAssetsRef.current = nextAssets
         setImageAssets(nextAssets)
         changeElement(targetId, { key })
-        // 成功提示（复陪验反馈 2-②，推翻方案 v2 拍板 5-A）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见），
+        // 成功提示（复陪验反馈 2-②，推翻 拍板 5-A）：压缩发生时以 toast 呈现（状态栏轻提示用户实证看不见）
         // 原始→入库体积知情权；未压缩的常规更新仍走状态栏（画布变化本身可见）。
         if (compressed) showImageToast(t('status.imageCompressed', { from: fmtMb(file.size), to: fmtMb(blob.size) }))
         else app.setStatus(t('status.imageReplaced'))
@@ -666,7 +666,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     app.setStatus(t('status.pasted', { count: copies.length }))
   }, [app, commit, t])
 
-  // ---------- 设计 JSON 导入 / 导出（剪贴板，多级降级；迭代 22 修复：不再弹 prompt 重复复制） ----------
+  // ---------- 设计 JSON 导入 / 导出（剪贴板，多级降级；修复：不再弹 prompt 重复复制） ----------
   const doExportDesign = useCallback(async () => {
     const s = stateRef.current
     if (!s) return
@@ -790,7 +790,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         const fields = deriveFieldInfos(s.elements)
         const version = request.kind === 'new' ? '1' : contractVersionRef.current
         const contractName = request.kind === 'new' ? finalName : contractNameRef.current
-        // 图片资源（迭代 132 · #329，决策 #184）：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64；
+        // 图片资源（·）：仅提交被元素引用的 key（孤儿 GC），剥 dataURL 前缀取纯 base64
         // 恒发显式字典（有图非空 / 无图空字典），不依赖契约缺省态（缺省 / null＝保留仅为旧调用方兜底）
         const usedKeys = new Set(s.elements.filter((e) => e.type === 'Image' && e.key).map((e) => (e as ImageElement).key))
         const images: Record<string, string> = {}
@@ -804,13 +804,13 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           name: finalName,
           group: group.trim() || i18next.t('designer:defaultGroup'),
           contract: toContract(contractName, version, fields),
-          // 迭代 12：不传 testData——由后端从元素 previewValue 自动派生（读-改-写，旧值不丢）
+          // 不传 testData——由后端从元素 previewValue 自动派生（读-改-写，旧值不丢）
           layout: toLayout(finalName, contractName, version, s.paperW, s.paperH, s.elements),
           images,
         }
         await biz.saveTemplate(pkg)
         app.setStatus(t('status.saved', { name: finalName }))
-        // 迭代 92（#150）：「保存并离开」成功后执行挂起的离开动作（保存成功自然复位 dirty——组件随离开卸载）；
+        // 「保存并离开」成功后执行挂起的离开动作（保存成功自然复位 dirty——组件随离开卸载）
         // 普通保存无挂起动作，维持既有 onClose 回工作台
         const leave = pendingLeaveRef.current
         pendingLeaveRef.current = null
@@ -818,7 +818,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         else onClose()
       } catch (err) {
         app.setStatus(err instanceof ApiError ? err.message : t('status.saveFailed'))
-        // 迭代 92（#150，AC-03）：保存失败停留设计器、不丢编辑——挂起的离开动作就地作废
+        // 保存失败停留设计器、不丢编辑——挂起的离开动作就地作废
         pendingLeaveRef.current = null
       } finally {
         setSaving(false)
@@ -830,7 +830,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const save = useCallback(() => {
     const trimmed = name.trim()
     if (!trimmed) {
-      // 迭代 92（#150）：「保存并离开」无模板名时止步于此（停留设计器补名称），挂起动作作废
+      // 「保存并离开」无模板名时止步于此（停留设计器补名称），挂起动作作废
       pendingLeaveRef.current = null
       app.setStatus(t('status.nameRequired'))
       return
@@ -850,9 +850,9 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     }
   }, [app, biz, doSave, name, request.kind, t])
 
-  // ---------- 离开保护（迭代 92 · #150 F-02，决议 a：dirty = 历史栈有任一已提交更改） ----------
-  /** 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗（AC-02）；有则弹三选 Modal 挂起本次离开动作（AC-01）。
-   *  返回 false=已挂起（三选待确认）、true=已直接放行——Shell switchTab 以此决定路由是否 pre-revert（#312 取证修复）。 */
+  // ---------- 离开保护（· ，决议 a：dirty = 历史栈有任一已提交更改） ----------
+  /* * 请求离开：无已提交更改（undoCount = 0）直接离开不弹窗；有则弹三选 Modal 挂起本次离开动作。
+   * 返回 false=已挂起（三选待确认）、true=已直接放行——Shell switchTab 以此决定路由是否 pre-revert（取证修复）。 */
   const requestLeave = useCallback((leave: () => void): boolean => {
     if ((historyRef.current?.undoCount ?? 0) > 0) {
       pendingLeaveRef.current = leave
@@ -878,13 +878,13 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   }, [])
 
   /** 三选之「保存并离开」：走既有保存链路（空名校验 / 同名覆盖确认），成功后由 doSave 执行挂起离开；
-   *  失败停留设计器显示错误、不丢编辑（AC-03）。 */
+   * 失败停留设计器显示错误、不丢编辑。 */
   const saveAndLeave = useCallback(() => {
     setLeaveGuardOpen(false)
     save()
   }, [save])
 
-  /** 设计器返回按钮 / 加载失败返回工作台：dirty 时经三选确认，否则直接返回（AC-02）。 */
+  /* * 设计器返回按钮 / 加载失败返回工作台：dirty 时经三选确认，否则直接返回。 */
   const requestClose = useCallback(() => requestLeave(onClose), [requestLeave, onClose])
 
   /** 覆盖确认取消（含 Esc / 点遮罩 / 右上角关闭）：停留在设计器，挂起的离开动作作废。 */
@@ -902,9 +902,9 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
 
   const fields = useMemo(() => (state ? deriveFieldInfos(state.elements) : []), [state])
 
-  // 演示视图（AC-05）：override 只合并进「渲染视图」state——画布（预览值本就画布渲染）与属性面板
+  // 演示视图：override 只合并进「渲染视图」state——画布（预览值本就画布渲染）与属性面板
   // 实时反映示例值；SidePanel 图层列表与「测试默认值」页签保持原始 state（有意边界：演示不影响
-  // 派生链路，防注入值写入 previewDefaults 相关链路破坏零落库论断——#308 方案评审明示）。
+  // 派生链路，防注入值写入 previewDefaults 相关链路破坏零落库论断—— 方案评审明示）。
   const viewState = useMemo<DesignState | null>(() => {
     if (!state || !demoPatch) return state
     const targetId = selectedRef.current[0]
@@ -924,7 +924,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     return m
   }, [state])
 
-  // 字段显示名（迭代 83 · #131 决议 1）：与推导一致取首个非空，显示处 `displayName || key` 回退
+  // 字段显示名（· 决议 1）：与推导一致取首个非空，显示处 `displayName || key` 回退
   const displayNameByKey = useMemo(() => {
     const m = new Map<string, string>()
     if (!state) return m

@@ -10,7 +10,7 @@ namespace LabelFrame.Api;
 
 /// <summary>
 /// 全局异常处理：统一 ErrorView（问题码 + 中文提示），不向客户端透出堆栈与内部路径。
-/// 分类（迭代 50，决策 #107）：请求体反序列化失败属调用方错误 → 400 + LF_API_BAD_BODY；
+/// 分类：请求体反序列化失败属调用方错误 → 400 + LF_API_BAD_BODY
 /// 其余未捕获异常 → 500 + LF_INTERNAL_001。
 /// </summary>
 public sealed partial class GlobalExceptionHandler : IExceptionHandler
@@ -72,7 +72,7 @@ public static class GlobalExceptionHandlerExtensions
         services.AddProblemDetails();
         // minimal API 参数绑定失败（非法 JSON / 非 UTF-8 / 类型不匹配）默认仅在 Development 抛 BadHttpRequestException，
         // Production 下由框架短路为「400 空 body」——无法给出统一 ErrorView。此处固定开启，
-        // 保证任何环境都交给上面的全局异常处理器分类为 400 + LF_API_BAD_BODY（迭代 50，决策 #107）。
+        // 保证任何环境都交给上面的全局异常处理器分类为 400 + LF_API_BAD_BODY。
         services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
         return services;
     }

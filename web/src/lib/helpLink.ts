@@ -1,4 +1,4 @@
-// 帮助深链页内轮询 hook（迭代 128 · #316，决策 #178 机制迁移）：深链信号从旧 Shell 两段
+// 帮助深链页内轮询 hook（· ， 机制迁移）：深链信号从旧 Shell 两段
 // state（helpAnchorPending / Ready）迁至路由 sub 段（#/designer/<anchor> 形）后，「等锚点
 // 入 DOM」的页内等待收敛为本 hook——Designer / Settings 共用：锚点出现即回调 onFound（调用方
 // 经既有 openDot / autoOpenAnchor 链自动弹出文档点气泡），80ms/4s 轮询超时回调 onTimeout
@@ -22,7 +22,7 @@ export interface UseHelpDeepLinkOptions {
 
 /**
  * 深链锚点页内轮询：anchor 非空即开始轮询 [data-help] 锚点（锚点值变更重启轮询）。
- * sub 段驻留 URL（#316 拍板 2-A）——锚点值不变期间不重复触发，重挂载（刷新 / 后退还原）重走一轮。
+ * sub 段驻留 URL（拍板 2-A）——锚点值不变期间不重复触发，重挂载（刷新 / 后退还原）重走一轮。
  */
 export function useHelpDeepLink(anchor: string | null | undefined, { onFound, onTimeout, onPending }: UseHelpDeepLinkOptions) {
   // 回调经 ref 取最新（回调随渲染换引用不重启轮询）

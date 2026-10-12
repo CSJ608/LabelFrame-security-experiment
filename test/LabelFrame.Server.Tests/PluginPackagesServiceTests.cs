@@ -179,7 +179,7 @@ public class PluginPackagesServiceTests
         }
     }
 
-    // ---- 官方插件放行策略（迭代 63，决策 #123 ⑤，AC-05）----
+    // ---- 官方插件放行策略（⑤）----
 
     [Fact]
     public async Task Save_official_plugin_id_should_be_allowed()

@@ -11,12 +11,12 @@ namespace LabelFrame.AndroidHost;
 /// <summary>
 /// 本地 HTTP 服务（PDA 网页直连，不经 Server）：基于 TcpListener 的极简实现，
 /// 避免 Android 上承载完整 ASP.NET Core。仅监听 127.0.0.1。
-/// 迭代 96（决策 #156）增插件端点（与 WinHost 同构：已装列表 / 安装 / 卸载，重启生效）。
+/// 增插件端点（与 WinHost 同构：已装列表 / 安装 / 卸载，重启生效）。
 /// </summary>
 public sealed class EmbeddedHttpServer : IDisposable
 {
     /// <summary>插件端点错误码（与 LabelFrame.Api 的 ApiErrorCodes 同值——AndroidHost 不引用 Api 工程，字面量对齐；
-    /// 迭代 110 补 InstallFailed：安装兜底失败原误挂 Invalid，翻译语义与注册表对齐）。</summary>
+    /// 补 InstallFailed：安装兜底失败原误挂 Invalid，翻译语义与注册表对齐）。</summary>
     private static class PluginErrorCodes
     {
         public const string Invalid = "LF_PLUGIN_INVALID";
@@ -43,7 +43,7 @@ public sealed class EmbeddedHttpServer : IDisposable
     /// <param name="store">作业存储。</param>
     /// <param name="transport">当前打印传输（作业发送与打印机测试）。</param>
     /// <param name="context">Android 上下文（版本读取）。</param>
-    /// <param name="pluginInstaller">插件安装服务（迭代 96；null = 插件端点不可用——理论不发生，防御式）。</param>
+    /// <param name="pluginInstaller">插件安装服务（null = 插件端点不可用——理论不发生，防御式）。</param>
     public EmbeddedHttpServer(
         int port,
         SubmissionService submission,
@@ -142,7 +142,7 @@ public sealed class EmbeddedHttpServer : IDisposable
 
     /// <summary>
     /// 统一缓冲读取请求：请求头与请求体从同一份累积字节中解析；请求体以原始字节返回
-    /// （JSON 端点自行按 UTF-8 解码，插件包上传端点直接消费字节——迭代 96）。
+    /// （JSON 端点自行按 UTF-8 解码，插件包上传端点直接消费字节——）。
     /// 不能先 StreamReader 读头再读体——StreamReader 预读缓冲会把请求体一并吞掉，
     /// 后续按 Content-Length 直读网络流将永久等待（POST 带体请求挂死）。
     /// </summary>
@@ -326,7 +326,7 @@ public sealed class EmbeddedHttpServer : IDisposable
             return TestPrint();
         }
 
-        // ---- 插件安装 / 卸载（迭代 96 / 决策 #156，与 WinHost 端点同构；安装 / 卸载重启生效）----
+        // ---- 插件安装 / 卸载（/ ，与 WinHost 端点同构；安装 / 卸载重启生效）----
         if (method == "GET" && basePath == "/api/plugins/installed")
         {
             return ListInstalledPlugins();
@@ -442,7 +442,7 @@ public sealed class EmbeddedHttpServer : IDisposable
     }
 
     /// <summary>宿主配置视图（GET /api/host/config 响应形状）；Version 为只读应用版本（POST 不可改）。
-    /// PrinterAddress 为按连接类型生成的用户可读连接摘要（迭代 56：tcp / bluetooth / usb）。</summary>
+    /// PrinterAddress 为按连接类型生成的用户可读连接摘要（tcp / bluetooth / usb）。</summary>
     private sealed record HostConfigView(
         string TcpHost, int TcpPort, string PrinterBrand, string ConnectionType,
         string BluetoothMac, string PrinterAddress,
@@ -524,7 +524,7 @@ public sealed class EmbeddedHttpServer : IDisposable
         catch (Core.Transport.Plugins.Package.PluginPackageException ex)
         {
             // 业务性失败（非 zip / zip 损坏 / manifest 缺失或非法 / 平台不匹配 / 内置 id 冲突等）：消息已是中文可行动提示；
-            // detail 参数随 ErrorView 透出（迭代 110 / #244），供展示端按码翻译插值
+            // detail 参数随 ErrorView 透出（/），供展示端按码翻译插值
             return Json(400, new ErrorView(PluginErrorCodes.Invalid, ex.Message, null, new Dictionary<string, string> { ["detail"] = ex.Message }));
         }
         catch (Exception ex)

@@ -1,4 +1,4 @@
-// 剪贴板工具（迭代 22 修复）：navigator.clipboard 在页面无焦点 / 权限拒绝（NotAllowedError）/
+// 剪贴板工具：navigator.clipboard 在页面无焦点 / 权限拒绝（NotAllowedError）/
 // 非 secure context（局域网 HTTP）下不可用，此前 Ctrl+Shift+C/V 直接回退 prompt 弹窗要用户重复复制。
 // 现提供：复制 = Clipboard API → 隐藏 textarea + execCommand('copy') 降级；读取 = Clipboard API → 一次性 paste 捕获降级。
 

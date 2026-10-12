@@ -117,7 +117,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M6.5 10h.01M9.5 10h.01M12.5 10h.01M15.5 10h.01M18.5 10h.01M6.5 14h11" />
     </>
   ),
-  // 迭代 23：拼图块（插件管理页菜单图标）
+  // 拼图块（插件管理页菜单图标）
   puzzle: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="2.5" />
@@ -125,11 +125,11 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M20 10h1.5a1.5 1.5 0 0 1 0 3H20" />
     </>
   ),
-  // 迭代 85（#133）：下箭头（作业历史行展开 / 收起，展开时经 transform 旋转 180°）
+  // 下箭头（作业历史行展开 / 收起，展开时经 transform 旋转 180°）
   chevron: <path d="M6 9l6 6 6-6" />,
-  // 迭代 104（#225）：三点（更多操作，工作台卡片 ⋯ 溢出菜单触发）
+  // 三点（更多操作，工作台卡片 ⋯ 溢出菜单触发）
   more: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={2.6} />,
-  // 迭代 119（#276）：问号（状态栏「使用引导」重看入口图标）
+  // 问号（状态栏「使用引导」重看入口图标）
   guide: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -137,7 +137,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 17.2h.01" strokeWidth={2.6} />
     </>
   ),
-  // 迭代 126（#308）：书本底问号（帮助页导航与「?」文档点；书本底与「使用引导」的圆圈问号区分，
+  // 书本底问号（帮助页导航与「?」文档点；书本底与「使用引导」的圆圈问号区分
   // 防两个不同入口同形混淆——拍板评审①）
   help: (
     <>
@@ -147,7 +147,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12.4 15.6h.01" strokeWidth={2.6} />
     </>
   ),
-  // 迭代 128（#316）：三横线（帮助页窄窗目录收起 / 展开切换——文档站目录通用形）
+  // 三横线（帮助页窄窗目录收起 / 展开切换——文档站目录通用形）
   toc: <path d="M4 6h16M4 12h16M4 18h16" />,
 }
 
@@ -175,9 +175,9 @@ export function Icon({ name, size = 16, ...rest }: IconProps) {
   )
 }
 
-/** 品牌图形 v02（#288）：「剥离 / Peel & Feed」微型几何——深青标签纸 + 珊瑚剥离角。
+/* * 品牌图形 v02：「剥离 / Peel & Feed」微型几何——深青标签纸 + 珊瑚剥离角。
  *  几何逐字取自品牌母版 symbol-color-24.svg（assets/brand/），固定填充不随 --accent
- *  （--accent 测量蓝是界面语言非品牌标识，Issue #288 不在范围）。 */
+ * （--accent 测量蓝是界面语言非品牌标识，Issue 不在范围）。 */
 export function LabelLogo({ size = 24 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">

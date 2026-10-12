@@ -9,7 +9,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// server_jobs.error_code 落库（迭代 109 · #242，AC-06，决策 #164 ③ / #166）：
+/// server_jobs.error_code 落库（· ，， ③ /）：
 /// 旧版本库（无 error_code 列）升级自动补列、历史行为不变；新终态行含 error_code（可空）——
 /// 宿主回报可选携带、失联回收 LF_SRV_009、超期放弃 LF_SRV_011。
 /// </summary>
@@ -38,7 +38,7 @@ public sealed class ServerJobErrorCodeTests
     [Fact]
     public async Task Initialize_should_migrate_legacy_server_jobs_without_error_code()
     {
-        // 旧版本库：server_jobs 无 error_code 列（含 error_message / callback_url，即迭代 98~108 形态）
+        // 旧版本库：server_jobs 无 error_code 列（含 error_message / callback_url，即 形态）
         var path = TempDbPath("mig");
         try
         {

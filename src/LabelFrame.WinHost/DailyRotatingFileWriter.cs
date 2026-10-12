@@ -3,7 +3,7 @@ using System.Text;
 namespace LabelFrame.WinHost;
 
 /// <summary>
-/// host.log 按日轮转写入器（决策 #108）：基准路径 host.log，实际写入 host-&lt;yyyyMMdd&gt;.log
+/// host.log 按日轮转写入器：基准路径 host.log，实际写入 host-&lt;yyyyMMdd&gt;.log
 /// （与 app-*.log / server-*.log 口径一致）；超期文件自动清理（默认保留 31 个，0 或负值 = 不清理，
 /// 清理在启动与每日轮转时执行；历史单名 host.log 不迁移不删除）。
 /// 失败防护：构造时目录 / 文件不可打开由调用方捕获回退（沿用 TextWriter.Null 降级）；

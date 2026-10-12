@@ -1,4 +1,4 @@
-// 全局错误监听（迭代 51，决策 #106）：window.onerror / unhandledrejection 统一 console.error 留痕
+// 全局错误监听：window.onerror / unhandledrejection 统一 console.error 留痕
 // （开发线索，不做后端上报）；main.tsx 在挂载应用前安装。
 // 处理函数单独导出供单元测试直接断言（jsdom 中手工派发 error 事件不触发 window.onerror，只走真实未捕获路径）。
 

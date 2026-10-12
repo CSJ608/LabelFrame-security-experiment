@@ -15,6 +15,6 @@ public interface IServerJobPoller
     /// <summary>回报作业结果。</summary>
     Task ReportResultAsync(string jobId, ServerJobResult result, CancellationToken cancellationToken = default);
 
-    /// <summary>进度增量上报（仅 Claimed 语义在服务端校验；计数 max 单调，决策 #101）。</summary>
+    /// <summary>进度增量上报（仅 Claimed 语义在服务端校验；计数 max 单调）。</summary>
     Task ReportProgressAsync(string jobId, ServerJobProgress progress, CancellationToken cancellationToken = default);
 }

@@ -3,7 +3,7 @@ using LabelFrame.Core.Layout;
 namespace LabelFrame.Core.Tests.Layout;
 
 /// <summary>
-/// 版式解析区域锚定测试（迭代 54，决策 #110 方案 A；迭代 89 #147 补垂直锚定框语义断言）：
+/// 版式解析区域锚定测试（方案 A； 补垂直锚定框语义断言）：
 /// 自动宽度文本水平锚定按实测文本宽度计算（块宽仍为区域全宽、块内 TextAlign 语义不变）；
 /// 显式宽度路径 / 垂直锚定 / 无度量器回退行为防回归。
 /// </summary>
@@ -189,7 +189,7 @@ public class LabelLayoutResolverTests
     [Fact]
     public void Anchored_auto_width_auto_height_text_bounds_center_inside_region_vertically()
     {
-        // 迭代 89 #147（AC-01）：区域居中锚定的自动宽度 + 自动高度文本——
+        // 区域居中锚定的自动宽度 + 自动高度文本——
         // 解析 bounds（锚定框 = 字高框，格顶语义）完整位于锚定盒内、垂直居中。
         // 渲染方必须在该框内绘制（此前误用 ≥10mm 兜底框再块内居中导致穿底，见渲染层回归测试）。
         var regions = SingleRegion(10, 5, 40, 20);
@@ -211,7 +211,7 @@ public class LabelLayoutResolverTests
     [Fact]
     public void Anchored_auto_height_text_bounds_follow_region_valign_direction()
     {
-        // 迭代 89 #147：自动高度锚定框（字高框）随 RegionVAlign 方向贴边——Start 贴盒顶 / End 贴盒底。
+        // 自动高度锚定框（字高框）随 RegionVAlign 方向贴边——Start 贴盒顶 / End 贴盒底。
         // 渲染方若在该框内绘制，Start/End 语义即「文本贴边」，与 Center 居中同一套框语义。
         var regions = SingleRegion(10, 5, 40, 20);
         var measurer = new FixedWidthMeasurer(8);

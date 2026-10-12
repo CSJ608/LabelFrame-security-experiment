@@ -59,7 +59,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
         }
     }
 
-    /// <summary>ITestableTransport：连接测试（~HS 探测），成功返回 null，失败返回含具体原因的中文错误消息（决策 #108：不再泛化失败）。</summary>
+    /// <summary>ITestableTransport：连接测试（~HS 探测），成功返回 null，失败返回含具体原因的中文错误消息（不再泛化失败）。</summary>
     public async Task<string?> TestAsync(CancellationToken cancellationToken = default)
     {
         var (_, failureReason) = await TestConnectionCoreAsync(cancellationToken);
@@ -70,7 +70,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
         => (await TestConnectionCoreAsync(cancellationToken)).Success;
 
-    /// <summary>连接测试核心：成功返回 (true, null)；失败返回 (false, 具体原因)——连接被拒 / 超时 / ~HS 无响应等，供测试结果消息透传（AC-05）。</summary>
+    /// <summary>连接测试核心：成功返回 （true, null）；失败返回 （false, 具体原因）——连接被拒 / 超时 / ~HS 无响应等，供测试结果消息透传。</summary>
     private async Task<(bool Success, string? FailureReason)> TestConnectionCoreAsync(CancellationToken cancellationToken)
     {
         using var client = new TcpClient();
@@ -123,7 +123,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
     /// <inheritdoc />
     /// <remarks>
     /// Zebra ~HS 主机状态响应为三行逗号分隔字段（每行以 STX 开头、ETX+CR+LF 结尾）；
-    /// 缺纸 / 暂停位均在首行：第 2 字段 = 缺纸、第 3 字段 = 暂停（官方 ZPL 指南 ~HS 字段表，迭代 55 修正）。
+    /// 缺纸 / 暂停位均在首行：第 2 字段 = 缺纸、第 3 字段 = 暂停（官方 ZPL 指南 ~HS 字段表，修正）。
     /// 官方声明缺纸 / 耗材用尽 / 打印头打开 / 回卷器满 / 打印头过热等状态下打印机可能完全不响应 ~HS——
     /// 「无响应 / 超时 / 响应不完整」按异常态处理（离线 + 原因），绝不映射为正常。
     /// </remarks>
@@ -218,7 +218,7 @@ public sealed class Tcp9100PrintTransport : IPrintTransport, IPrinterStatusProvi
                 $"状态响应不完整，无法解析（首行仅 {fields.Length} 个字段，期望至少 3 个）。");
         }
 
-        // Message 最小口径：只报缺纸 / 暂停（决策 #109，其余异常位不纳入文案）
+        // Message 最小口径：只报缺纸 / 暂停（其余异常位不纳入文案）
         string? message = paperOut ? "缺纸，请装纸。" : paused ? "已暂停，按打印机的暂停键恢复。" : null;
         return new PrinterStatusInfo(true, paperOut, paused, message);
     }

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace LabelFrame.WinHost.Tests.Routing;
 
-/// <summary>进度节流组件确定性测试（FakeTimeProvider，AC-03）：变化才发 + 最小间隔 + 失败可重试。</summary>
+/// <summary>进度节流组件确定性测试（FakeTimeProvider）：变化才发 + 最小间隔 + 失败可重试。</summary>
 public class ProgressThrottleTests
 {
     [Fact]

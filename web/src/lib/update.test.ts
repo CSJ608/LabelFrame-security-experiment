@@ -1,4 +1,4 @@
-// 检查更新辅助（迭代 64，决策 #126 / DESIGN §6.11 ⑤）：版本解析 / 比较 / 结论三态。
+// 检查更新辅助（/ DESIGN ⑤）：版本解析 / 比较 / 结论三态。
 
 import { describe, expect, it } from 'vitest'
 import { checkForUpdate, compareVersions, parseClientPackageVersion, pickLatestPackageVersion } from './update'

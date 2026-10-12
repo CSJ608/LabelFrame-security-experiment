@@ -18,7 +18,7 @@ public sealed record DeviceView(
     string? LastIp = null);
 
 /// <summary>作业视图。</summary>
-/// <param name="CallbackStatus">终态回调投递状态（决策 #154：Pending / Delivered / DeadLetter；null = 无回调）。</param>
+/// <param name="CallbackStatus">终态回调投递状态（Pending / Delivered / DeadLetter；null = 无回调）。</param>
 /// <param name="CallbackAttempts">回调已尝试次数（无回调为 null）。</param>
 /// <param name="CallbackLastError">回调末次失败原因（中文；无回调或已成功为 null）。</param>
 public sealed record ServerJobView(
@@ -43,7 +43,7 @@ public sealed record ClaimedJob(string JobId, string RequestId, int TotalItems, 
 public sealed record JobPayload(TemplateDto Template, IReadOnlyList<LabelDto> Labels);
 
 /// <summary>设备回报结果（POST 体）。</summary>
-/// <param name="ErrorCode">失败原因码（可选，加法——决策 #164 ③ / #166：落 server_jobs.error_code 供按码追溯；旧宿主不发送即为 null）。</param>
+/// <param name="ErrorCode">失败原因码（可选，加法—— ③ / ：落 server_jobs.error_code 供按码追溯；旧宿主不发送即为 null）。</param>
 public sealed record ReportResultRequest(string? Status, int? CompletedItems, int? FailedItems, string? ErrorMessage, string? ErrorCode = null);
 
 /// <summary>设备进度增量上报（POST 体）。计数按字段取 max 单调递增，只描述过程不改终态。</summary>

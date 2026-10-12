@@ -5,9 +5,9 @@ using LabelFrame.Bootstrapper.Wizard;
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
 /// <summary>
-/// 确认页（迭代 95 / 决策 #151 ⑤ + D2）：默认视图只保留用户做决定必需的三要素——装什么（角色摘要 + 体积）、执行边界一行（#124 语义不变）、
+/// 确认页（/ ⑤ + D2）：默认视图只保留用户做决定必需的三要素——装什么（角色摘要 + 体积）、执行边界一行（语义不变）
 /// 升级 / 新鲜度状态行；「显示明细」折叠区承载技术细节（组件全表含来源 URL 与本机版本、清单来源覆写入口、离线安装说明）。
-/// 「下一步」= 开始安装（进入进度页触发引擎 Plan + Apply，执行边界契约 #124）。
+/// 「下一步」= 开始安装（进入进度页触发引擎 Plan + Apply，执行边界契约）。
 /// </summary>
 internal sealed class ConfirmPage : UserControl, IWizardPage
 {
@@ -46,7 +46,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _summaryLabel.Location = new Point(8, 36);
         _summaryLabel.MaximumSize = new Size(680, 0);
 
-        // 执行边界一行（#124 语义、#151 精简表述）
+        // 执行边界一行（语义、 精简表述）
         _banner.Text = ExecuteBoundaryNotice.Banner;
         _banner.AutoSize = false;
         _banner.Height = 30;
@@ -57,7 +57,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _banner.TextAlign = ContentAlignment.MiddleLeft;
         _banner.Padding = new Padding(8, 0, 0, 0);
 
-        // 升级 / 已是最新状态行（§6.11，#151 起由欢迎页移到确认页——自动加载后用户不再停留就绪页）
+        // 升级 / 已是最新状态行（起由欢迎页移到确认页——自动加载后用户不再停留就绪页）
         _upgradeLabel.AutoSize = false;
         _upgradeLabel.Height = 30;
         _upgradeLabel.Width = 680;
@@ -67,7 +67,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _upgradeLabel.BackColor = Color.FromArgb(232, 240, 254);
         _upgradeLabel.ForeColor = Color.FromArgb(22, 84, 160);
 
-        // 清单新鲜度提示（latest.json 消费，§6.11）：仅落后于通道最新时可见
+        // 清单新鲜度提示（latest.json 消费）：仅落后于通道最新时可见
         _freshnessLabel.AutoSize = false;
         _freshnessLabel.Height = 26;
         _freshnessLabel.Width = 680;
@@ -151,7 +151,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
             ? $"清单版本 {_session.Manifest!.LabelframeVersion}：本问卷结果无下载组件。"
             : $"将安装：{DescribeRole(plan)}，共约 {SizeFormat.Format(plan.TotalSizeBytes)}。";
 
-        // 升级状态行（§6.11：全新 / 可升级 / 已是最新）+ 新鲜度（落后于通道最新时可见）
+        // 升级状态行（全新 / 可升级 / 已是最新）+ 新鲜度（落后于通道最新时可见）
         _upgradeLabel.Text = UpgradePresentation.Summarize(plannedEntries);
         var freshness = UpgradePresentation.DescribeFreshness(_session.Manifest!, _session.Latest);
         _freshnessLabel.Visible = freshness is not null;
@@ -168,7 +168,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
             var displayName = string.IsNullOrWhiteSpace(component.Notes) ? component.Id : $"{component.Id}（{component.Notes}）";
             if (component.Type == "runtime")
             {
-                // 运行时组件标注探测结论（AC-02：缺失才装、已装跳过——Burn DetectCondition 消费）
+                // 运行时组件标注探测结论（缺失才装、已装跳过——Burn DetectCondition 消费）
                 var runtimeInstalled = component.Id switch
                 {
                     "runtime-desktop" => _ba.RuntimeStatus.DesktopRuntimeInstalled,
@@ -233,7 +233,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         _ => brand,
     };
 
-    /// <summary>运行时探测腿文案（决策 #129 ③）：按当轮计划集合过滤——计划不含的运行时不输出「未装（将安装）」。</summary>
+    /// <summary>运行时探测腿文案（③）：按当轮计划集合过滤——计划不含的运行时不输出「未装（将安装）」。</summary>
     private string DescribeRuntimeProbes(TopologyPlan plan)
     {
         var notes = new List<string>();
@@ -255,7 +255,7 @@ internal sealed class ConfirmPage : UserControl, IWizardPage
         return string.Join("，", notes);
     }
 
-    /// <summary>本机版本列（§6.11 可升级清单）：升级 = 现版本 → 新版本；新装 = —（新装）；已最新 = 版本号（已是最新）。</summary>
+    /// <summary>本机版本列（可升级清单）：升级 = 现版本 → 新版本；新装 = —（新装）；已最新 = 版本号（已是最新）。</summary>
     private static string DescribeLocalVersion(IReadOnlyList<ComponentUpgradeEntry> entries, string componentId)
     {
         var entry = entries.FirstOrDefault(candidate => candidate.ComponentId == componentId);

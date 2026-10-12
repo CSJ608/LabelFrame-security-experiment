@@ -1,13 +1,13 @@
 // 属性面板：选中元素才显示；多选显示对齐操作；文本 / 条码 / 二维码 / 矩形等分组属性
-// 迭代 112（#246）：文案 key 化（designer 域 props.*）；字体下拉显示名随界面语言
+// 文案 key 化（designer 域 props.*）；字体下拉显示名随界面语言
 // （字体内部名 / 模板存储值不变——白名单 6 项维持现状不动）。
-// 迭代 126（#308）：全部分组标题挂「?」就地文档点（data-help 锚点，HelpDot 气泡与帮助文章
-// 同源词条）。迭代 129（#320，决策 #179）：撤 !isServerUi 门——设计器 tab 在 SERVER_TABS 可达
+// 全部分组标题挂「?」就地文档点（data-help 锚点，HelpDot 气泡与帮助文章
+// 同源词条）。：撤 !isServerUi 门——设计器 tab 在 SERVER_TABS 可达
 // 且功能完整，「?」在 server 构建同样渲染（词条同源、已随 help 域进双产物）；设置页挂点维持
 // 门（client-only 页防御门，见 Settings.tsx）。演示（填充组「看实时效果」）期间输入与操作禁用
 // （拍板 4 方案 A：禁用是界面信号，写入侧由 Designer 传 no-op 回调结构性兜底）；开启状态
 // openDot 由本组件持有，帮助文章深链经 autoOpenAnchor 信号自动弹出对应文档点气泡（锚点就位
-// 由 Designer 页内轮询确认，迭代 128 · #316 机制迁移后信号源 = 路由 sub 段）。
+// 由 Designer 页内轮询确认，· 机制迁移后信号源 = 路由 sub 段）。
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,11 +24,11 @@ export interface PropsPanelProps {
   onChange: (id: string, patch: Partial<DesignElement>) => void
   onAlign: (align: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom') => void
   onDelete: (ids: string[]) => void
-  /** 图片资源表（key → 资源，迭代 132 · #329）：图片组信息行与缺资源判定用。 */
+  /* * 图片资源表（key → 资源，·）：图片组信息行与缺资源判定用。 */
   imageAssets?: Record<string, ImageAsset>
-  /** 「上传 / 更换图片」按钮：打开文件选择为目标元素填 key（空占位填充或换新 key，旧 key 孤儿随保存 GC——决策 #184）。 */
+  /* * 「上传 / 更换图片」按钮：打开文件选择为目标元素填 key（空占位填充或换新 key，旧 key 孤儿随保存 GC——）。 */
   onReplaceImage?: (id: string) => void
-  /** 演示进行中（填充组「看实时效果」）：输入与操作禁用（AC-05，拍板 4 方案 A）。 */
+  /* * 演示进行中（填充组「看实时效果」）：输入与操作禁用（拍板 4 方案 A）。 */
   demoActive?: boolean
   onDemoStart?: (anchor: string) => void
   onDemoExit?: () => void
@@ -56,7 +56,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
   }
   const toggleDot = (anchor: string) => changeDot(openDot === anchor ? null : anchor)
 
-  /** 分组标题「?」文档点（迭代 129 · #320 撤 server 门：双构建直渲染——设计器 server 构建功能完整）。 */
+  /* * 分组标题「?」文档点（· 撤 server 门：双构建直渲染——设计器 server 构建功能完整）。 */
   const dot = (anchor: string) => (
     <HelpDot
       anchor={anchor}
@@ -354,7 +354,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
 }
 
 /** 填充：固定值 / 字段填充（字段名 + 显示名 + 预览值）；标题挂「?」文档点（首波唯一内嵌实时演示，
- *  迭代 129 · #320 起随 dot() 撤门双构建渲染）。 */
+ * · 起随 dot 撤门双构建渲染）。 */
 function ContentGroup({
   e,
   onChange,

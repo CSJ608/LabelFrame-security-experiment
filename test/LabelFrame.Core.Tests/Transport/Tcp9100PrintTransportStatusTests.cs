@@ -6,7 +6,7 @@ using LabelFrame.Core.Transport;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// ~HS 状态解析模拟报文矩阵（迭代 55，按官方 ZPL 指南 ~HS 字段表）：
+/// ~HS 状态解析模拟报文矩阵（按官方 ZPL 指南 ~HS 字段表）：
 /// 官方响应为三行逗号分隔字段（每行以 STX 开头、ETX+CR+LF 结尾），
 /// 首行第 2 字段 = 缺纸、第 3 字段 = 暂停；矩阵覆盖
 /// 正常 / 缺纸 / 暂停 / 截断 / 空响应 / 无响应超时六类场景。

@@ -3,7 +3,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>管理界面开关页（仅服务端角色出现，迭代 95 / #151）：webui 组件落位服务端 plugins/web-ui——服务端 + 同机客户端默认关（客户端本机界面已完整），独立服务端建议开。</summary>
+/// <summary>管理界面开关页（仅服务端角色出现，/）：webui 组件落位服务端 plugins/web-ui——服务端 + 同机客户端默认关（客户端本机界面已完整），独立服务端建议开。</summary>
 internal sealed class ManagementUiPage : UserControl, IWizardPage
 {
     private readonly WizardSession _session;
@@ -49,7 +49,7 @@ internal sealed class ManagementUiPage : UserControl, IWizardPage
     {
         var preset = _session.Preset;
 
-        // §6.3 开关适用性与建议：服务端 + 同机客户端默认不装（客户端本机界面已完整）；独立服务端建议装
+        // 开关适用性与建议：服务端 + 同机客户端默认不装（客户端本机界面已完整）；独立服务端建议装
         var descriptions = new Dictionary<TopologyPreset, string>
         {
             [TopologyPreset.Standalone] = "这台电脑的客户端本机界面已完整，一般无需另装管理界面。",

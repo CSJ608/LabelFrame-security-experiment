@@ -22,7 +22,7 @@ public class TransportPluginRegistryExternalTests
 
         Assert.False(registry.RegisterExternal(shadow, "C:\\plugins\\shadow.dll", writer));
         Assert.Contains("内置插件 ID 冲突", writer.ToString());
-        Assert.Equal("模拟打印", registry.GetPlugin("log")!.DisplayName); // 内置未被覆盖（迭代 87 #143：去技术前缀「Log」）
+        Assert.Equal("模拟打印", registry.GetPlugin("log")!.DisplayName);  // 内置未被覆盖（去技术前缀「Log」）
     }
 
     [Fact]

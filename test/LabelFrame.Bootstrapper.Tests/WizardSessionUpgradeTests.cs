@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>问卷会话的升级评估接线（§6.11，决策 #126）：清单加载后完成本机探测 + 评估 + latest.json 新鲜度（只读契约不变）。</summary>
+/// <summary>问卷会话的升级评估接线：清单加载后完成本机探测 + 评估 + latest.json 新鲜度（只读契约不变）。</summary>
 public sealed class WizardSessionUpgradeTests : IDisposable
 {
     private readonly string _dir;
@@ -125,7 +125,7 @@ public sealed class WizardSessionUpgradeTests : IDisposable
 
         await session.LoadManifestAsync();
 
-        Assert.Null(session.Latest); // 推导源不存在：静默跳过，不阻断主流程（§6.11）
+        Assert.Null(session.Latest);  // 推导源不存在：静默跳过，不阻断主流程
         Assert.NotNull(session.Assessment);
     }
 

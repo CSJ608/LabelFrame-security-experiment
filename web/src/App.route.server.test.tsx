@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-// hash 路由地基（迭代 127 · #312，决策 #177）server 分支——AC-03：
+// hash 路由地基（·）server 分支——：
 // server 页同形态路由（#/devices / #/packages / #/plugin-packages 等）；受限 tab 集不可经 hash 越权
 // 进入（#/settings 解析即回退 workbench 并规范化 URL，页面不挂载）；#/packages/<sub> 直达下载中心
 // 页内 tab（含旧 #dc= 分享链接兼容映射）。vi.mock uiMode 注入 server 分支（Guide.server.test.tsx 双跑先例）。
-// 迭代 128（#316）：补带 sub 段的越权形态（#/settings/<sub>）——深链 sub 段不构成旁路。
-// 迭代 129（#320，决策 #179）：帮助纳入 server——SERVER_TABS 增「帮助」后 #/help（含带 sub 段形态）
+// 补带 sub 段的越权形态（#/settings/<sub>）——深链 sub 段不构成旁路。
+// 帮助纳入 server——SERVER_TABS 增「帮助」后 #/help（含带 sub 段形态）
 // 从越权回退反转为直达（守门断言按 Guide.server.test.tsx 先例「更新而非删除」）；#/settings 维持回退；
 // 补 server 帮助内容适配（七卡 / 无设置卡 / server 副标题 / server 文章）与 #/designer/<anchor>
 // server 侧自动开草稿（深链撤门与 client 对称）用例。
@@ -138,7 +138,7 @@ describe('server 构建 · AC-03：路由对 server tab 集生效且形态一致
       ['作业历史', '#/jobs', PAGE_MARKER.jobs],
       ['下载中心', '#/packages', '客户端'],
       ['插件管理', '#/plugin-packages', PAGE_MARKER.pluginPackages],
-      // 迭代 129（#320）：「帮助」页纳入 server 主导航（末位，与 client 对齐）
+      // 「帮助」页纳入 server 主导航（末位，与 client 对齐）
       ['帮助', '#/help', '七个页面的使用文章；界面内「?」就近说明'],
       ['工作台', '#/workbench', PAGE_MARKER.workbench],
     ]
@@ -165,7 +165,7 @@ describe('server 构建 · AC-03：路由对 server tab 集生效且形态一致
     window.location.hash = '#/settings'
     render(<App />)
     expect(await screen.findByText(PAGE_MARKER.workbench)).toBeTruthy()
-    // 决策 #177 拍板 A：回退同时 URL 规范化为 #/workbench（与所见一致、可安全分享）
+    // 拍板 A：回退同时 URL 规范化为 #/workbench（与所见一致、可安全分享）
     await waitFor(() => expect(window.location.hash).toBe('#/workbench'))
   })
 

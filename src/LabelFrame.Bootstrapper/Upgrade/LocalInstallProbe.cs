@@ -10,7 +10,7 @@ namespace LabelFrame.Bootstrapper.Upgrade;
 /// <param name="ServerMsiVersion">服务端 MSI 已装版本（MSI 注册表，同族多产品取最高；未装为 null）。</param>
 /// <param name="ClientMsiVersion">客户端 MSI 已装版本（同上）。</param>
 /// <param name="ZebraPluginVersion">Zebra 官方插件已装版本（落位目录 manifest.json；未装为 null）。</param>
-/// <param name="Runtime">运行时探测结果（.NET Desktop Runtime / WebView2，§6.9 口径）。</param>
+/// <param name="Runtime">运行时探测结果（NET Desktop Runtime / WebView2， 口径）。</param>
 public sealed record LocalInstallSnapshot(
     string? ServerMsiVersion,
     string? ClientMsiVersion,
@@ -18,13 +18,13 @@ public sealed record LocalInstallSnapshot(
     RuntimeProbeResult Runtime);
 
 /// <summary>
-/// 本机已装组件版本探测（DESIGN §6.11，决策 #126）：MSI 注册表（<c>MsiEnumRelatedProducts</c> 按 UpgradeCode 枚举 +
+/// 本机已装组件版本探测（DESIGN）：MSI 注册表（<c>MsiEnumRelatedProducts</c> 按 UpgradeCode 枚举 +
 /// <c>MsiGetProductInfo</c> 读版本串，同族多产品取最高）+ 官方插件落位目录 manifest.json + 运行时探测复用。
 /// 全程只读（问卷只读契约不变）；MSI 查询与插件 manifest 读取以委托注入（net10 测试腿可注入假源）。
 /// </summary>
 public sealed class LocalInstallProbe
 {
-    /// <summary>服务端 MSI UpgradeCode（packaging/main-server.wxs 事实，决策 #126 §6.11 表）。</summary>
+    /// <summary>服务端 MSI UpgradeCode（packaging/main-server.wxs 事实， 表）。</summary>
     public const string ServerUpgradeCode = "{10BDDF3E-BD37-4C3A-A19E-56CA9EFE5B74}";
 
     /// <summary>客户端 MSI UpgradeCode（packaging/main.wxs 事实）。</summary>
@@ -59,7 +59,7 @@ public sealed class LocalInstallProbe
             runtime);
     }
 
-    /// <summary>同族多产品取最高版本（正常只有一个；残留 / 多上下文并存时报告最新，§6.11 组件级口径）。</summary>
+    /// <summary>同族多产品取最高版本（正常只有一个；残留 / 多上下文并存时报告最新， 组件级口径）。</summary>
     private string? BestMsiVersion(string upgradeCode)
     {
         string? best = null;
@@ -80,7 +80,7 @@ public sealed class LocalInstallProbe
         return best;
     }
 
-    /// <summary>读取官方插件落位目录 manifest.json 的 version（§6.8 目录约定；目录 / 文件 / 字段不存在返回 null）。</summary>
+    /// <summary>读取官方插件落位目录 manifest.json 的 version（目录约定；目录 / 文件 / 字段不存在返回 null）。</summary>
     private string? PluginVersion(string pluginDir)
     {
         var manifestPath = Path.Combine(pluginDir, "manifest.json");

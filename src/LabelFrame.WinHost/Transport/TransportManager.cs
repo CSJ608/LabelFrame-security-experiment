@@ -144,7 +144,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
         return new TransportChangeResult(true, $"已切换为 {Describe(applied)}。", applied);
     }
 
-    /// <summary>按插件参数规格校验：插件存在、必填、Int / Select 取值；含打印方式合法性（§5.4.2）。</summary>
+    /// <summary>按插件参数规格校验：插件存在、必填、Int / Select 取值；含打印方式合法性。</summary>
     private string? Validate(TransportConfig config)
     {
         var plugin = _registry.GetPlugin(config.PluginId);
@@ -188,7 +188,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
             }
         }
 
-        // 打印方式合法性（§5.4.2 保存层校验）：printMode=native 仅对有文档编译能力的插件合法；
+        // 打印方式合法性（保存层校验）：printMode=native 仅对有文档编译能力的插件合法
         // 缺失 / 非法取值不在此拦截（读取口径回退 image），存量异常配置（手改 connection.json /
         // 插件降级后能力消失）由提交链路兜底显式失败（LF_ENC_003），不静默按图片打印。
         if (TransportPrintMode.Resolve(config.Params.TryGetValue(TransportPrintMode.ParameterKey, out var printMode) ? printMode : null)
@@ -224,7 +224,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
         => _registry.CreateTransport(config.PluginId, new TransportPluginParameters(config.Params), _context);
 
     /// <summary>
-    /// 启动装配护栏（迭代 63，决策 #123 / AC-01）：生效配置引用的插件未注册（如 zebra 外置后未安装、
+    /// 启动装配护栏（/）：生效配置引用的插件未注册（如 zebra 外置后未安装
     /// 升级自动安装失败）时回退默认连接并留痕，不因缺插件崩溃——「未装外置包则该品牌不可用」的可控行为；
     /// 默认连接本身也引用缺失插件（appsettings / 环境变量 Transport=Zebra 而插件未装）时再回退 Log。
     /// </summary>
@@ -310,7 +310,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
             var persisted = TransportConfig.FromJson(json);
             if (persisted is null)
             {
-                // 解析失败（损坏 JSON）回退默认连接：留痕原因与回退目标（决策 #108——此前静默回退，用户打印机配置「消失」无痕迹）
+                // 解析失败（损坏 JSON）回退默认连接：留痕原因与回退目标（——此前静默回退，用户打印机配置「消失」无痕迹）
                 WriteHostLog($"connection.json 解析失败（{ConfigFilePath}）：内容不是有效的连接配置，已回退默认连接 {Describe(baseConfig)}。");
                 return baseConfig;
             }
@@ -340,7 +340,7 @@ public sealed class TransportManager : ITransportManager, IDisposable
         }
         catch (Exception ex)
         {
-            // 读取失败（IO / 权限等）回退默认连接：留痕原因与回退目标（决策 #108）
+            // 读取失败（IO / 权限等）回退默认连接：留痕原因与回退目标
             WriteHostLog($"connection.json 读取失败（{ConfigFilePath}）：{ex.Message}，已回退默认连接 {Describe(baseConfig)}。");
             return baseConfig;
         }

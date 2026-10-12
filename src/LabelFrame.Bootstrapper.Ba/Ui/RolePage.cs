@@ -3,7 +3,7 @@ using LabelFrame.Bootstrapper.Wizard;
 
 namespace LabelFrame.Bootstrapper.Ba.Ui;
 
-/// <summary>本机角色页（迭代 95 / 决策 #151 ①：仅高级模式出现，基础模式由就绪页默认「仅打印客户端」直接越过）。</summary>
+/// <summary>本机角色页（/ ①：仅高级模式出现，基础模式由就绪页默认「仅打印客户端」直接越过）。</summary>
 internal sealed class RolePage : UserControl, IWizardPage
 {
     private readonly WizardSession _session;

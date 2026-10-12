@@ -5,7 +5,7 @@ using Xunit;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// TrayQuitSignaler（托盘退出信号器）单元测试（缺陷 #58，AC-05）：
+/// TrayQuitSignaler（托盘退出信号器）单元测试：
 /// WM_QUIT 投递到登记的托盘线程、未登记不投递、幂等、Join 限时；
 /// 以及 TrayIconService 真实消息循环退出回收（WM_QUIT → 消息循环结束 → NIM_DELETE 在托盘线程内执行）。
 /// </summary>
@@ -141,7 +141,7 @@ public sealed class TrayQuitSignalerTests
     [Fact]
     public void TrayIconService_dispose_should_terminate_tray_message_loop()
     {
-        // 真实消息循环交互（AC-05）：Start 后托盘线程登记 → Dispose 投递 WM_QUIT →
+        // 真实消息循环交互：Start 后托盘线程登记 → Dispose 投递 WM_QUIT →
         // GetMessage 返回 0 退出循环 → NIM_DELETE / DestroyWindow 在托盘线程内执行 → 线程结束。
         // 不依赖任务栏存在（Shell_NotifyIcon 结果不断言），只验证退出信号链路。
         var logs = new List<string>();

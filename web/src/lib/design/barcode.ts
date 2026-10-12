@@ -26,7 +26,7 @@ export function makePlaceholderCanvas(wMm: number, hMm: number, text: string): H
   return c
 }
 
-/** 条码 canvas（fit 到元素内盒，居中）。迭代 112（#246）：占位判别走语义态、文案随界面语言。 */
+/* * 条码 canvas（fit 到元素内盒，居中）。：占位判别走语义态、文案随界面语言。 */
 export function makeBarcodeCanvas(e: BarcodeElement): HTMLCanvasElement {
   const state = elementContentState(e)
   if (state === 'literal-empty' || state === 'unbound-field') return makePlaceholderCanvas(e.w, e.h, i18next.t('designer:canvas.barcodePlaceholder'))
@@ -51,7 +51,7 @@ export function makeBarcodeCanvas(e: BarcodeElement): HTMLCanvasElement {
   return c
 }
 
-/** 二维码 canvas（同步模块绘制，稳定可见）。迭代 112（#246）：占位判别走语义态、文案随界面语言。 */
+/* * 二维码 canvas（同步模块绘制，稳定可见）。：占位判别走语义态、文案随界面语言。 */
 export function makeQrCanvas(e: QrCodeElement, wMm: number, hMm: number): HTMLCanvasElement {
   const state = elementContentState(e)
   if (state === 'literal-empty' || state === 'unbound-field') return makePlaceholderCanvas(wMm, hMm, i18next.t('designer:canvas.qrPlaceholder'))

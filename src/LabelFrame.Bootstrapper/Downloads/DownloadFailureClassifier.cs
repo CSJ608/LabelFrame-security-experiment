@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Downloads;
 
-/// <summary>下载侧失败分类（迭代 61 / Issue #54：差异化提示口径，DESIGN §6.10）。</summary>
+/// <summary>下载侧失败分类（/ Issue ：差异化提示口径，DESIGN）。</summary>
 public enum DownloadFailureCategory
 {
     /// <summary>无失败（成功态）。</summary>

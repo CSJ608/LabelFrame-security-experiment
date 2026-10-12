@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>运行时前置探测（决策 #124，DESIGN §6.9 检测口径）：.NET 文件版本探测（≥ 10.0.0 latestMajor 前滚）+ WebView2 注册表双查。</summary>
+/// <summary>运行时前置探测（DESIGN 检测口径）：.NET 文件版本探测（≥ 10.0.0 latestMajor 前滚）+ WebView2 注册表双查。</summary>
 public sealed class RuntimeProbeTests
 {
     [Fact]
@@ -61,7 +61,7 @@ public sealed class RuntimeProbeTests
     [Fact]
     public void AspNetCore_runtime_dirs_are_probed_independently_of_desktop()
     {
-        // 迭代 62 返修（决策 #128）：AspNetCore 与 Desktop 互不包含——只装 Desktop 的机器 AspNetCore 应报未装（AC-01 缺陷根因）
+        // AspNetCore 与 Desktop 互不包含——只装 Desktop 的机器 AspNetCore 应报未装（缺陷根因）
         var probe = new RuntimeProbe(
             enumerateDesktopRuntimeVersions: () => ["10.0.12"],
             enumerateAspNetCoreRuntimeVersions: () => []);

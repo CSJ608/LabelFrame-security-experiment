@@ -12,10 +12,10 @@ public sealed class LabelHostConfig
     /// <summary>本地 HTTP 端口（状态页与 JS 桥）。</summary>
     public const int LocalPort = 53970;
 
-    /// <summary>打印机默认品牌（当前唯一；品牌是未来传输插件的路由键，见 DESIGN 决策 #95）。</summary>
+    /// <summary>打印机默认品牌（当前唯一；品牌是未来传输插件的路由键，见 DESIGN）。</summary>
     public const string DefaultPrinterBrand = "zebra";
 
-    /// <summary>默认连接类型（TCP 网口，默认且一级交付路径，迭代 56 决策 #111）。</summary>
+    /// <summary>默认连接类型（TCP 网口，默认且一级交付路径）。</summary>
     public const string DefaultConnectionType = "tcp";
 
     /// <summary>TCP 打印机默认地址（可被 SharedPreferences 覆盖）。</summary>
@@ -36,7 +36,7 @@ public sealed class LabelHostConfig
     /// <summary>打印机品牌（当前仅 Zebra，等未来插件机制扩展）。</summary>
     public string PrinterBrand { get; set; } = DefaultPrinterBrand;
 
-    /// <summary>打印机连接类型（tcp 网口 / bluetooth 蓝牙 / usb USB 数据线，迭代 56 决策 #111；未识别值按 tcp）。</summary>
+    /// <summary>打印机连接类型（tcp 网口 / bluetooth 蓝牙 / usb USB 数据线，；未识别值按 tcp）。</summary>
     public string ConnectionType { get; set; } = DefaultConnectionType;
 
     /// <summary>打印机 IP。</summary>
@@ -45,7 +45,7 @@ public sealed class LabelHostConfig
     /// <summary>打印机端口。</summary>
     public int TcpPort { get; set; } = DefaultTcpPort;
 
-    /// <summary>蓝牙打印机 MAC 地址（SPP 手输，迭代 56 预授权决议 1；连接类型为 bluetooth 时使用）。</summary>
+    /// <summary>蓝牙打印机 MAC 地址（SPP 手输，预授权决议 1；连接类型为 bluetooth 时使用）。</summary>
     public string BluetoothMac { get; set; } = string.Empty;
 
     /// <summary>设备号（系统唯一码自动生成）。</summary>
@@ -58,13 +58,13 @@ public sealed class LabelHostConfig
     public required string DatabasePath { get; set; }
 
     /// <summary>
-    /// 外置插件根目录（迭代 96 / 决策 #156 ⑤）：{FilesDir}/plugins，一插件一子目录
+    /// 外置插件根目录（/ ⑤）：{FilesDir}/plugins，一插件一子目录
     /// （语义对齐 Windows %ProgramData%\LabelFrame\Client\plugins——卸载 = 删目录 + 重启生效）。
     /// </summary>
     public required string PluginsPath { get; set; }
 
     /// <summary>从 SharedPreferences 加载（旧装机数据自动迁移：tcp_host 键沿用，端口与品牌缺失取默认值；
-    /// 存量 tcp 配置零迁移直入 SDK TCP 路径，AC-03）。</summary>
+    /// 存量 tcp 配置零迁移直入 SDK TCP 路径，）。</summary>
     public static LabelHostConfig Load(Context context)
     {
         var prefs = context.GetSharedPreferences("labelframe", FileCreationMode.Private)!;
@@ -128,8 +128,8 @@ public sealed class LabelHostConfig
     }
 
     /// <summary>打印机连接方式的用户可读摘要（主页状态卡 / 通知 / 状态页共用，按连接类型给一句话）。
-    /// 外置插件品牌（brand ≠ zebra，迭代 96）统一显示「IP:端口」——插件品牌连接类型固定网口 tcp 起步。
-    /// 迭代 110（#244，决策 #164 ⑤）：连接方式词经资源 id 引用，随系统语言（values 缺省中文与原字面量等价）。</summary>
+    /// 外置插件品牌（brand ≠ zebra）统一显示「IP:端口」——插件品牌连接类型固定网口 tcp 起步。
+    /// （⑤）：连接方式词经资源 id 引用，随系统语言（values 缺省中文与原字面量等价）。</summary>
     public string PrinterDisplay(Android.Content.Context context)
     {
         var brand = PrinterBrand.Trim();

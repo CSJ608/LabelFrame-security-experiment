@@ -2,8 +2,8 @@ using LabelFrame.Bootstrapper.Manifest;
 
 namespace LabelFrame.Bootstrapper.Topology;
 
-/// <summary>目标安装位置描述（确认页展示；目录约定对齐 docs/DEPLOY.md §2 引导程序 / §3 MSI / §5 Ubuntu / §6 管理界面 / §7 插件分发）。迭代 95（#151）问卷收敛后仅服务本机三角色——Linux 路径描述随 server-linux 移出问卷删除（Linux 侧承接 = install.sh，§6.12）。</summary>
-/// <remarks>问卷阶段只描述不落位；实际安装 / 修改语义由专项 6/8（#55）定案，届时此映射升级为结构化路径。</remarks>
+/// <summary>目标安装位置描述（确认页展示；目录约定对齐 docs/DEPLOY.md §2 引导程序 / §3 MSI / §5 Ubuntu / §6 管理界面 / §7 插件分发）。问卷收敛后仅服务本机三角色——Linux 路径描述随 server-linux 移出问卷删除（Linux 侧承接 = install.sh）。</summary>
+/// <remarks>问卷阶段只描述不落位；实际安装 / 修改语义由专项 6/8定案，届时此映射升级为结构化路径。</remarks>
 public static class InstallTargets
 {
     /// <summary>按组件条目与角色给出目标安装位置描述。</summary>

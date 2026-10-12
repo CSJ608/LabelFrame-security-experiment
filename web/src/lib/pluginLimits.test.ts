@@ -1,4 +1,4 @@
-// 迭代 23 §2.2 / 附二拍板 2：插件包 64MB 上限预检纯函数（与后端 PluginPackageLimits.MaxBytes=64MB 一致）。
+// / 附二拍板 2：插件包 64MB 上限预检纯函数（与后端 PluginPackageLimits.MaxBytes=64MB 一致）。
 // 组件测试不便构造 64MB+ 的 File，阈值判定在此单测覆盖；组件内 mock 返回控制。
 
 import { describe, expect, it } from 'vitest'

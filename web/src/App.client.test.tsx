@@ -1,16 +1,16 @@
 // @vitest-environment jsdom
-// 迭代 20：client 构建菜单与状态栏——含 设置（不含 在线设备 / 设备日志）；
-// 迭代 75（#112）：「PDA 日志」页下线——导航入口移除（回传链路不存在前的界面收敛）；
+// client 构建菜单与状态栏——含 设置（不含 在线设备 / 设备日志）
+// 「PDA 日志」页下线——导航入口移除（回传链路不存在前的界面收敛）
 // 状态栏在本机打印服务运行中时显示本机 IP（/api/host/config.ips，多 IP 逗号分隔，title 给全量）。
-// 迭代 80（#128 决议 2「三名义」①）：状态栏改呈现「本机打印服务：运行中 / 未运行」——
-// 不再用「服务端已连接」兼指本机后台服务可达（评审 #114 B-9）。
+// （决议 2「三名义」①）：状态栏改呈现「本机打印服务：运行中 / 未运行」——
+// 不再用「服务端已连接」兼指本机后台服务可达（评审 B-9）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App'
 import { GUIDE_SEEN_KEY } from './lib/guide'
 
-// 迭代 96（#183）：App 挂载链（AppContext 启动链）为多段 promise + React 真实宏任务调度，
+// App 挂载链（AppContext 启动链）为多段 promise + React 真实宏任务调度
 // CI 高负载 runner 上偶发超过 findBy 默认 1000ms；统一放宽到 8000ms（与其余页面测试同口径），
 // 单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
@@ -75,10 +75,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   window.localStorage.clear()
   window.sessionStorage.clear()
-  // 迭代 119（#276）：本文件测壳层既有功能，以「已看过引导」用户运行——首见自动启动 / 切页行为归 Guide.test.tsx
+  // 本文件测壳层既有功能，以「已看过引导」用户运行——首见自动启动 / 切页行为归 Guide.test.tsx
   window.localStorage.setItem(GUIDE_SEEN_KEY, 'done')
   mocks.server.healthz.mockResolvedValue({ service: 'LabelFrame.Server', status: 'ok' })
-  // 迭代 80：本机打印服务探测（localApi.healthz = 页面来源 WinHost）默认运行中
+  // 本机打印服务探测（localApi.healthz = 页面来源 WinHost）默认运行中
   mocks.local.healthz.mockResolvedValue({ service: 'LabelFrame.WinHost', status: 'ok' })
   mocks.local.getHostConfig.mockResolvedValue({
     serverUrl: 'http://127.0.0.1:53961',
@@ -101,7 +101,7 @@ describe('client 构建：菜单（迭代 20 裁剪守门）', () => {
     expect(await screen.findByRole('button', { name: '设置' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '在线设备' })).toBeNull()
     expect(screen.queryByRole('button', { name: '设备日志' })).toBeNull()
-    // 迭代 75（#112）：「PDA 日志」导航入口移除（/api/logs 端点与 logs.db 后端保留）
+    // 「PDA 日志」导航入口移除（/api/logs 端点与 logs.db 后端保留）
     expect(screen.queryByRole('button', { name: 'PDA 日志' })).toBeNull()
   })
 })
@@ -161,8 +161,8 @@ describe('client 构建：状态栏「本机打印服务」（迭代 80 决议 2
   })
 })
 
-// 迭代 104（#225，决策 #161）：日志抽屉「清空」= 销毁类操作——实心红 danger＋点击先弹确认
-//（原灰色 ghost 无确认直接执行）；Esc / 遮罩 / 取消均不清空，确认后才清空（AC-04）。
+// 日志抽屉「清空」= 销毁类操作——实心红 danger＋点击先弹确认
+// （原灰色 ghost 无确认直接执行）；Esc / 遮罩 / 取消均不清空，确认后才清空。
 describe('client 构建：日志抽屉「清空」确认流（迭代 104 · #225）', () => {
   /** 日志抽屉容器（状态栏 msg 与抽屉同文——断言一律限定抽屉内，避免状态栏同名干扰）。 */
   const drawer = () => document.querySelector('.log-drawer') as HTMLElement

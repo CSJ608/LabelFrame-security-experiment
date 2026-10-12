@@ -1,6 +1,6 @@
-// 下载中心页（迭代 118 改版 · #272，升级迭代 59 决策 #119 设立的下载中心）：页内三 tab——
-// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态由路由 sub 段承载（迭代 127 · #312，
-// 决策 #177——升级 #169 的 #dc= 形态为 #/packages/<sub>，旧 #dc= 分享链接经 parseHash 兼容映射直达），
+// 下载中心页（改版 · ，升级 设立的下载中心）：页内三 tab——
+// 「快速访问」（默认）/「Windows 包管理」/「Android 包管理」；tab 状态由路由 sub 段承载（· 
+// ——升级 的 #dc= 形态为 #/packages/<sub>，旧 #dc= 分享链接经 parseHash 兼容映射直达）
 // 刷新 / 直链打开均还原当前 tab；视觉沿用仓库页内 tab 先例（btn + active 分段风格）。
 // 快速访问 = 消费视图（拿包 + 连服务器），整区限宽居中：上区块标题「客户端」——Windows / Android 各一张
 // 「最新上传」卡（货架语义按上架时间/修改时间倒序取第一条，删除后自动回退剩余最新一条，不做版本号解析 / 推荐标记）；
@@ -8,8 +8,8 @@
 // 连接地址候选来自 GET /api/server/ipv4-candidates（只读枚举本机 IPv4，私网优先）：默认取与 origin 匹配者，
 // localhost / 无匹配回退首个候选（不产生 localhost 废码）；多网卡可切换候选，二维码 / 地址 / 复制同步更新。
 // 管理退居专职 tab：Windows（client-packages）/ Android（pda-packages）上传 / 下载 / 删除（确认 Modal）
-// 行为与数据接口不动（AC-06 回归）；client-packages 既有行为不动：客户端设置页「更新与安装包」仍走
-// GET /api/client-packages 下载。措辞平台优先（Windows / Android），downloadCenter 域 zh-CN + en 全量 key 化（迭代 112 #246 起延续）。
+// 行为与数据接口不动（回归）；client-packages 既有行为不动：客户端设置页「更新与安装包」仍走
+// GET /api/client-packages 下载。措辞平台优先（Windows / Android），downloadCenter 域 zh-CN + en 全量 key 化（起延续）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +43,7 @@ interface PackageRow {
   downloadHref: string
 }
 
-// ── 页内 tab（迭代 118 · #272 立；迭代 127 · #312 改路由 sub 段承载）：#/packages/<sub>，刷新 / 直链还原 ──
+// ── 页内 tab（· 立；· 改路由 sub 段承载）：#/packages/<sub>，刷新 / 直链还原 ──
 
 /** 页内 tab 标识：quick = 快速访问（默认消费视图）；windows / android = 平台包管理。 */
 type DcTab = 'quick' | 'windows' | 'android'
@@ -205,7 +205,7 @@ function LatestBadge({ label }: { label: string }) {
 }
 
 /**
- * 快速访问首屏「最新上传」卡（Windows / Android 各一，#272）：
+ * 快速访问首屏「最新上传」卡（Windows / Android 各一）：
  * 货架语义——取修改时间倒序第一条（管理员换货即生效、删除自动回退剩余最新一条）；
  * 卡内：文件名 / 大小 / 上传时间 / 下载二维码（origin + 下载路径）/ 下载按钮 /「全部版本 →」跳对应管理 tab；
  * 空态引导跳转对应管理 tab 上传。
@@ -299,7 +299,7 @@ function candidateUrl(ip: string): string {
 }
 
 /**
- * 连接信息卡（快速访问首屏下排通栏，浅底与上排区分，#272）：
+ * 连接信息卡（快速访问首屏下排通栏，浅底与上排区分）：
  * 第一行大二维码居中（内容 = 选中裸地址 URL，无包装协议——PDA 扫码枪键盘直填即得地址）；
  * 第二行等宽地址文本 + 复制按钮（复制当前选中地址）；多网卡候选可切换，切换后二维码 / 地址 / 复制同步更新。
  * 地址候选 = GET /api/server/ipv4-candidates（私网优先排序）；默认选择规则见 lib/connection.ts pickDefaultAddress。
@@ -382,7 +382,7 @@ function ConnectionCard() {
 
 export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubChange?: (next: string) => void }) {
   const { t } = useTranslation('downloadCenter')
-  // 迭代 127（#312，决策 #177）：页内 tab 状态源 = 路由 sub 段（App 经 props 注入，缺省 '' → quick）；
+  // 页内 tab 状态源 = 路由 sub 段（App 经 props 注入，缺省 '' → quick）
   // 切 tab 经 onSubChange 写 sub（replaceState 不入栈，由路由层执行），旧 #dc= 自有 hash 三件已删。
   const tab = tabFromSub(sub)
   const [clientPackages, setClientPackages] = useState<ClientPackageInfo[] | null>(null)
@@ -392,7 +392,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
   const [uploadingClient, setUploadingClient] = useState(false)
   const [uploadingPda, setUploadingPda] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
-  // 迭代 93（#151 F-04）：删除确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
+  // 删除确认改自研 Modal（复用工作台删除确认模式），替代原生 confirm 弹窗
   const [pendingRemove, setPendingRemove] = useState<{ kind: 'client' | 'pda'; row: PackageRow } | null>(null)
 
   // 切页内 tab = 写路由 sub 段（quick 为缺省值写空段，保持 URL 干净）；hash 写入与不入栈语义在路由层
@@ -487,7 +487,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
     else void removePda(row)
   }
 
-  // 时间排序（迭代 59 决议 3 → 迭代 118 收口为「最新上传」货架语义：按上架时间展示，latest.json 对齐事项就此关闭）
+  // 时间排序（决议 3 → 收口为「最新上传」货架语义：按上架时间展示，latest.json 对齐事项就此关闭）
   const byNewest = <T extends { modifiedAt?: string }>(list: T[] | null): T[] | null =>
     list === null ? null : [...list].sort((a, b) => (b.modifiedAt ?? '').localeCompare(a.modifiedAt ?? ''))
 

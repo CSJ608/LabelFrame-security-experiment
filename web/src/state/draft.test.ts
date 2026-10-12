@@ -1,4 +1,4 @@
-// 迭代 15 §5.4：draft 保留逻辑（合并语义 / 按模板分键 / 刷新持久化 / 标签页隔离）
+// draft 保留逻辑（合并语义 / 按模板分键 / 刷新持久化 / 标签页隔离）
 
 import { describe, expect, it } from 'vitest'
 import type { StorageLike } from './draft'

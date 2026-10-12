@@ -2,7 +2,7 @@ using LabelFrame.Bootstrapper.Manifest;
 
 namespace LabelFrame.Bootstrapper.Topology;
 
-/// <summary>「预设 + 开关 → 组件集合」解析器实现（DESIGN §6.3 映射表 + 实现要点，决策 #121）。</summary>
+/// <summary>「预设 + 开关 → 组件集合」解析器实现（DESIGN 映射表 + 实现要点）。</summary>
 public sealed class TopologyResolver : ITopologyResolver
 {
     private const string ManagementUiComponentId = "webui";
@@ -26,8 +26,8 @@ public sealed class TopologyResolver : ITopologyResolver
         }
 #endif
 
-        // server-docker / server-linux 已移出问卷（迭代 95 / 决策 #151）：Docker = Release compose 指引、
-        // Linux = install.sh（#134）；本解析器只服务问卷三角色，manifest 中的 server-docker / server-linux
+        // server-docker / server-linux 已移出问卷（/）：Docker = Release compose 指引
+        // Linux = install.sh；本解析器只服务问卷三角色，manifest 中的 server-docker / server-linux
         // topologies 标记保留（install.sh 消费），不再有对应枚举值。
         var topologyId = preset.ToManifestId();
         var selected = new Dictionary<string, ManifestComponent>(StringComparer.Ordinal);
@@ -71,7 +71,7 @@ public sealed class TopologyResolver : ITopologyResolver
         return new TopologyPlan(preset, planned, planned.Sum(item => item.Component.SizeBytes));
     }
 
-    /// <summary>品牌插件条目判定（id 前缀 plugin-；品牌 → 组件映射语义由 #56 完整化）。</summary>
+    /// <summary>品牌插件条目判定（id 前缀 plugin-；品牌 → 组件映射语义由 完整化）。</summary>
     internal static bool IsBrandPlugin(ManifestComponent component) => component.Id.StartsWith(PluginIdPrefix, StringComparison.Ordinal);
 
     /// <summary>从组件 id 提取品牌 id（plugin-zebra → zebra）。</summary>
@@ -84,7 +84,7 @@ public sealed class TopologyResolver : ITopologyResolver
     private static bool ContainsTopology(ManifestComponent component, string topologyId) =>
         component.Topologies.Contains(topologyId, StringComparer.Ordinal);
 
-    /// <summary>纳入组件并递归拉入 dependsOn 闭包（§6.2：依赖只约束同集合内组件的安装顺序；缺引用在清单解析时已拒绝）。</summary>
+    /// <summary>纳入组件并递归拉入 dependsOn 闭包（依赖只约束同集合内组件的安装顺序；缺引用在清单解析时已拒绝）。</summary>
     private static void IncludeWithDependencies(InstallManifest manifest, ManifestComponent component, Dictionary<string, ManifestComponent> selected)
     {
         if (selected.ContainsKey(component.Id))

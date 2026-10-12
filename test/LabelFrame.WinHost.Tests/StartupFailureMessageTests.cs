@@ -1,6 +1,6 @@
 namespace LabelFrame.WinHost.Tests;
 
-/// <summary>启动失败的用户可读提示：端口占用转中文可行动建议（AC-08），其余透出原始信息。</summary>
+/// <summary>启动失败的用户可读提示：端口占用转中文可行动建议，其余透出原始信息。</summary>
 public class StartupFailureMessageTests
 {
     [Fact]

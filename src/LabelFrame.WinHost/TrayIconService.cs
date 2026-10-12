@@ -194,7 +194,7 @@ public sealed class TrayIconService : IDisposable
             _activeNid = nid;
             _log?.Invoke($"托盘就绪（TaskbarCreated 消息号 = {TaskbarCreatedMessage}）。");
 
-            // 登记托盘线程（缺陷 #58）：Dispose 据此投递 WM_QUIT——消息循环退出后在托盘线程内执行 NIM_DELETE
+            // 登记托盘线程：Dispose 据此投递 WM_QUIT——消息循环退出后在托盘线程内执行 NIM_DELETE
             _quitSignaler.RegisterLoopThread(GetCurrentThreadId(), Thread.CurrentThread);
 
             while (GetMessage(out var msg, IntPtr.Zero, 0, 0))
@@ -295,7 +295,7 @@ public sealed class TrayIconService : IDisposable
     private void ShowMenu(Action openUi, Func<Task> shutdown)
     {
         // 弹出与标准前置模式（SetForegroundWindow → TrackPopupMenu → PostMessage WM_NULL）由
-        // TrayMenuPresenter 执行（迭代 115，#263），本方法只按返回命令分发动作。
+        // TrayMenuPresenter 执行，本方法只按返回命令分发动作。
         var cmd = _menuPresenter.ShowMenu(_hwnd);
 
         if (cmd == TrayMenuPresenter.CmdOpen)
@@ -328,7 +328,7 @@ public sealed class TrayIconService : IDisposable
 
         try
         {
-            // 向托盘线程投递 WM_QUIT + 限时 Join（缺陷 #58）：消息循环退出后在托盘线程内
+            // 向托盘线程投递 WM_QUIT + 限时 Join：消息循环退出后在托盘线程内
             // 执行 Shell_NotifyIcon(NIM_DELETE)，托盘图标随进程退出移除，不再残留幽灵图标。
             _quitSignaler.Dispose();
         }
@@ -340,10 +340,10 @@ public sealed class TrayIconService : IDisposable
 }
 
 /// <summary>
-/// 托盘消息循环线程的退出信号器（缺陷 #58）。
+/// 托盘消息循环线程的退出信号器。
 /// 托盘线程启动并添加图标后登记自身；<see cref="Dispose"/> 向该线程投递 WM_QUIT——
 /// 消息循环退出后在托盘线程内执行 Shell_NotifyIcon(NIM_DELETE)（消除幽灵图标）——并限时 Join 等待。
-/// 线程消息投递函数可注入，供单元测试替代 Win32 调用（AC-05：消息循环交互可抽象可测）。
+/// 线程消息投递函数可注入，供单元测试替代 Win32 调用（消息循环交互可抽象可测）。
 /// </summary>
 public sealed class TrayQuitSignaler : IDisposable
 {

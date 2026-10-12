@@ -57,7 +57,7 @@ app.MapDelete("/api/client-packages/{fileName}", (string fileName, ClientPackage
     return Results.Ok(new { deleted = view.FileName });
 });
 
-// ---- PDA（Android 宿主）安装包分发（迭代 59 决策 #119，与 client-packages 模式对称；下载 MIME 为 APK 专用类型）----
+// ---- PDA（Android 宿主）安装包分发（与 client-packages 模式对称；下载 MIME 为 APK 专用类型）----
 app.MapGet("/api/pda-packages", (PdaPackagesService svc) => Results.Ok(svc.List()));
 
 app.MapPost("/api/pda-packages", async (IFormFile file, PdaPackagesService svc, CancellationToken ct) =>
@@ -87,7 +87,7 @@ app.MapGet("/api/pda-packages/{fileName}", (string fileName, PdaPackagesService 
         return Results.NotFound(new ErrorView(ServerErrorCodes.PdaPackageNotFound, "安装包不存在。"));
     }
 
-    // APK 专用 MIME：Android 浏览器据此识别为安装包并拉起安装（决策 #119）
+    // APK 专用 MIME：Android 浏览器据此识别为安装包并拉起安装
     return Results.File(path, PdaPackagesService.ApkContentType, Path.GetFileName(path));
 });
 
@@ -121,7 +121,7 @@ app.MapPost("/api/plugin-packages", async (IFormFile file, PluginPackagesService
     catch (PluginPackageException ex)
     {
         // 业务性失败（非 zip / zip 损坏 / manifest 缺失或非法等）：消息已是中文可行动提示；
-        // 模板化（决策 #164 ③ / #166）——detail 为异常原因（动态数据，展示端插值原样呈现）
+        // 模板化（③ /）——detail 为异常原因（动态数据，展示端插值原样呈现）
         var parameters = new Dictionary<string, string> { ["detail"] = ex.Message };
         return Results.BadRequest(new ErrorView(
             ServerErrorCodes.InvalidRequest,

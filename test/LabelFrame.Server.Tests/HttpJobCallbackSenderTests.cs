@@ -6,7 +6,7 @@ using LabelFrame.Server;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// HttpJobCallbackSender 真实套接字测试（决策 #154 安全边界的行为锚点）：
+/// HttpJobCallbackSender 真实套接字测试（安全边界的行为锚点）：
 /// 2xx 判成功（请求形态 application/json + POST）、不跟随重定向（302 只收到一次请求且判失败）、
 /// 非 2xx 判失败（错误消息含状态码）。投递超时为常量（10 秒），真实等待不在单测覆盖内。
 /// </summary>

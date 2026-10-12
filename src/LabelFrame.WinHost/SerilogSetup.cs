@@ -4,7 +4,7 @@ using Serilog.Events;
 namespace LabelFrame.WinHost;
 
 /// <summary>
-/// Serilog 文件日志装配（决策 #102，修复缺陷 #14）。
+/// Serilog 文件日志装配。
 /// 根因：装配抽取后 UseSerilog 曾留在 Main 里只用于配置绑定、从不 Build 的 builder 上，
 /// 配置从未挂到运行宿主。修复约定：本方法是文件日志唯一的装配入口，
 /// 只接受 <see cref="WinHostApp.BuildAsync"/> 的 configureBuilder 传入的**真实 builder**——
@@ -28,7 +28,7 @@ public static class SerilogSetup
             // 目录创建失败不阻断启动：sink 首写失败会经 SelfLog 可见化
         }
 
-        // SelfLog 写独立文件（serilog-self.log）：文件通道自身失效时原因仍可查（缺陷 #14 的失败可见化）
+        // SelfLog 写独立文件（serilog-self.log）：文件通道自身失效时原因仍可查（的失败可见化）
         try
         {
             var selfLogPath = Path.Combine(options.AppLogDirectory, "serilog-self.log");
@@ -50,7 +50,7 @@ public static class SerilogSetup
                 Path.Combine(options.AppLogDirectory, "app-.log"),
                 formatProvider: System.Globalization.CultureInfo.InvariantCulture,
                 rollingInterval: RollingInterval.Day,
-                // 保留上限（决策 #108）：按日轮转下文件数即天数，默认 31；0 或负值 = 不清理（retainedFileCountLimit 传 null）
+                // 保留上限：按日轮转下文件数即天数，默认 31；0 或负值 = 不清理（retainedFileCountLimit 传 null）
                 retainedFileCountLimit: options.AppLogRetentionDays > 0 ? options.AppLogRetentionDays : null,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
     }

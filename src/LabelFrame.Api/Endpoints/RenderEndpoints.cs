@@ -54,7 +54,7 @@ public static class RenderEndpoints
             }
             catch (MissingImageResourceException ex)
             {
-                // 决策 #184：缺资源＝出图侧显式报错（不静默灰占位照打）
+                // 缺资源＝出图侧显式报错（不静默灰占位照打）
                 return Results.BadRequest(new ErrorView(options.InvalidRequestCode, ex.Message));
             }
 
@@ -97,7 +97,7 @@ public static class RenderEndpoints
                     byte[] bitmapBytes;
                     try
                     {
-                        // 决策 #184：缺资源＝批量出图同样显式报错（与 render-image / preview 同口径）
+                        // 缺资源＝批量出图同样显式报错（与 render-image / preview 同口径）
                         var bitmap = options.Renderer.RenderLabelBitmap(document, options.Dpi, images);
                         bitmapBytes = LabelBitmapPng.ToPng(bitmap);
                     }

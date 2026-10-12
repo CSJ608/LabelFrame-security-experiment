@@ -58,7 +58,7 @@ public static class WinHostApp
         });
         configureBuilder?.Invoke(builder);
 
-        // Windows 注册内置传输能力（log / tcp9100 / winspool；zebra 已外置为官方插件，决策 #123）；Linux 首版固定只注册 Log。
+        // Windows 注册内置传输能力（log / tcp9100 / winspool；zebra 已外置为官方插件）；Linux 首版固定只注册 Log。
         var transportRegistry = new TransportPluginRegistry();
 #if WINDOWS
         foreach (var plugin in BuiltinTransportPlugins.CreateCorePlugins())
@@ -68,7 +68,7 @@ public static class WinHostApp
 
         transportRegistry.Register(new WinspoolTransportPlugin());
 
-        // 存量升级兼容（决策 #123，AC-04）：已用 zebra 配置且外置插件未装 → 自动安装随客户端附带的官方插件包；
+        // 存量升级兼容：已用 zebra 配置且外置插件未装 → 自动安装随客户端附带的官方插件包
         // 须先于下方外部插件目录扫描执行（本次启动即完成装配）。
         ZebraPluginMigration.Run(options, hostLogWriter, hostInfo);
 #else
@@ -82,7 +82,7 @@ public static class WinHostApp
         var pluginLoad = PluginDirectoryLoader.LoadWithErrors(options.PluginsPath, hostLogWriter);
         foreach (var discovered in pluginLoad.Plugins)
         {
-            // 外部插件不允许覆盖内置插件 ID（冲突时记日志跳过）；ALC 根随注册强持有（决策 #127）
+            // 外部插件不允许覆盖内置插件 ID（冲突时记日志跳过）；ALC 根随注册强持有
             if (transportRegistry.RegisterExternal(discovered.Plugin, discovered.AssemblyPath, hostLogWriter, discovered.LoadContext))
             {
                 hostInfo($"已加载外部传输插件：{discovered.Plugin.Id}（{discovered.Plugin.DisplayName}，来自 {discovered.AssemblyPath}）");
@@ -140,7 +140,7 @@ public static class WinHostApp
         // Skia 渲染器实例单例：DI 与共享端点（模板预览 / 调试出图）共用同一实例（预览与打印同源）
         var skiaRenderer = new SkiaLabelRenderer();
         builder.Services.AddSingleton<ILabelBitmapRenderer>(skiaRenderer);
-        // 出图目录保留清理器（迭代 72，决策 #136）：模拟打印落盘后顺带执行；测试构造缺省 null = 不清理
+        // 出图目录保留清理器：模拟打印落盘后顺带执行；测试构造缺省 null = 不清理
         var printRetentionCleaner = new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays, hostLogWriter);
         builder.Services.AddSingleton(sp => new JobSubmissionService(
             queue,
@@ -166,7 +166,7 @@ public static class WinHostApp
         await logStore.InitializeAsync();
         builder.Services.AddSingleton(logStore);
 
-        // 服务端路由协调器（迭代 80，决策 #141）：无条件注册（未配置地址时空转），
+        // 服务端路由协调器：无条件注册（未配置地址时空转）
         // 「保存服务端地址」经 HostApi 热切换（重建 poller / worker + 旧连接清理），不再仅启动期固化
         builder.Services.AddSingleton(sp => new Routing.ServerRoutingCoordinator(
             sp,
@@ -176,7 +176,7 @@ public static class WinHostApp
         // 服务层扩展点：在全部注册完成后执行（测试 RemoveAll<IHostedService> 等需要看到完整注册列表）
         configureServices?.Invoke(builder.Services);
 
-        // 统一退出协调器（缺陷 #58）：托盘「退出」与 /api/host/shutdown 共用的「优雅停止 + 限时兜底强退」路径
+        // 统一退出协调器：托盘「退出」与 /api/host/shutdown 共用的「优雅停止 + 限时兜底强退」路径
         var exitCoordinator = new HostExitCoordinator(hostInfo);
         builder.Services.AddSingleton(exitCoordinator);
 
@@ -215,7 +215,7 @@ public static class WinHostApp
         // 图片资源解析统一：请求附带 base64 优先、按名回退本地模板库（两端点行为一致）
         app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, options.Dpi, JobErrorCodes.InvalidRequest));
 
-        // 设备日志端点（迭代 51 补挂：与 Server 共享实现，决策 #106）——客户端实例 /api/logs 返回 JSON，
+        // 设备日志端点（补挂：与 Server 共享实现）——客户端实例 /api/logs 返回 JSON
         // 不再命中下方 SPA 回退；错误码与宿主其他共享端点一致 LF_API_001
         app.MapLogApi(new LogApiOptions(logStore, JobErrorCodes.InvalidRequest));
 

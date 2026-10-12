@@ -11,10 +11,10 @@ using LabelFrame.WinHost.Tests.Transport;
 namespace LabelFrame.WinHost.Tests.Jobs;
 
 /// <summary>
-/// 宿主集成（迭代 78，#120 AC-03 + 迭代 79，#121；DESIGN §5.4.3）：native 分派走真实 Zebra 编译器——
+/// 宿主集成（+ ，；DESIGN）：native 分派走真实 Zebra 编译器——
 /// 本地作业指令字段（LabelJobItem.Zpl）为品牌原生指令（文本 / 条码 / 二维码元素，^A0 / ^BC / ^BQ / ^FD，非 ^GF 位图）；
 /// image / 缺省路径经真实 Zebra 插件连接零回归（仍整版渲染 ^GF）。
-/// 与迭代 77 的 JobSubmissionCompileTests（fake 编译器）互补：此处为真实品牌编译器锚定。
+/// 与的 JobSubmissionCompileTests（fake 编译器）互补：此处为真实品牌编译器锚定。
 /// </summary>
 public class ZebraNativeSubmissionTests
 {
@@ -46,7 +46,7 @@ public class ZebraNativeSubmissionTests
         return (service, store);
     }
 
-    /// <summary>纯文本模板（迭代 78 锚定）。</summary>
+    /// <summary>纯文本模板（锚定）。</summary>
     private static TemplateDto CreateTemplate() => new(
         new Core.Contracts.LabelContract
         {
@@ -67,7 +67,7 @@ public class ZebraNativeSubmissionTests
             ],
         });
 
-    /// <summary>混合模板（迭代 79：文本 + Code 128 条码 + 二维码）。</summary>
+    /// <summary>混合模板（文本 + Code 128 条码 + 二维码）。</summary>
     private static TemplateDto CreateMixedTemplate() => new(
         new Core.Contracts.LabelContract
         {
@@ -107,7 +107,7 @@ public class ZebraNativeSubmissionTests
     private const string ImageConnection =
         """{ "pluginId": "labelframe-transport-zebra", "params": { "kind": "Tcp", "host": "127.0.0.1" } }""";
 
-    // ── AC-03：native 分派走真实 Zebra 编译器（作业指令字段为原生指令）──
+    // ── ：native 分派走真实 Zebra 编译器（作业指令字段为原生指令）──
 
     [Fact]
     public async Task Native_mode_should_dispatch_to_real_zebra_compiler()
@@ -134,7 +134,7 @@ public class ZebraNativeSubmissionTests
         Assert.DoesNotContain("^GF", first);
     }
 
-    // ── AC-03：image / 缺省路径零回归（经真实 Zebra 插件连接，无 printMode → 既有整版渲染）──
+    // ── ：image / 缺省路径零回归（经真实 Zebra 插件连接，无 printMode → 既有整版渲染）──
 
     [Fact]
     public async Task Image_mode_with_real_plugin_should_render_bitmap_as_before()
@@ -168,7 +168,7 @@ public class ZebraNativeSubmissionTests
         Assert.Null(await store.GetJobByRequestIdAsync("req-zebra-chinese"));
     }
 
-    // ── 端到端（迭代 79，#121）：混合模板 native 逐张编译（文本 + 条码 + 二维码整页自包含）──
+    // ── 端到端：混合模板 native 逐张编译（文本 + 条码 + 二维码整页自包含）──
 
     [Fact]
     public async Task Native_mode_mixed_template_should_compile_all_element_types()
@@ -200,7 +200,7 @@ public class ZebraNativeSubmissionTests
         Assert.DoesNotContain("^GF", zpl);
     }
 
-    // ── 端到端（迭代 79，#121）：Code 128 中文值经提交链路按 LF_ENC_001 拒绝（既有语义零回归）──
+    // ── 端到端：Code 128 中文值经提交链路按 LF_ENC_001 拒绝（既有语义零回归）──
 
     [Fact]
     public async Task Native_mode_chinese_barcode_should_fail_with_lf_enc_001()

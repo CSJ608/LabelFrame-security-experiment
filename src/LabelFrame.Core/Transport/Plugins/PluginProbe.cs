@@ -4,7 +4,7 @@ using System.Runtime.Loader;
 namespace LabelFrame.Core.Transport.Plugins;
 
 /// <summary>
-/// 插件发现探针（安装预检用，加载口径同 PluginDirectoryLoader = 决策 #127）：
+/// 插件发现探针（安装预检用，加载口径同 PluginDirectoryLoader =）：
 /// 目录单 collectible ALC 整体字节加载（全部 DLL 预载进同一上下文，消灭惰性解析窗口），
 /// 跨程序集发现 <see cref="ITransportPlugin"/> 并返回插件 ID；只做发现，不 Create 传输实例。
 /// 预检完显式 <see cref="AssemblyLoadContext.Unload"/>（确定性释放，不等 GC）；
@@ -41,7 +41,7 @@ public static class PluginProbe
             return new PluginProbeResult(ids, errors);
         }
 
-        // 单目录单 ALC（决策 #127）：全部 DLL 预载同一上下文，跨程序集发现
+        // 单目录单 ALC：全部 DLL 预载同一上下文，跨程序集发现
         var alc = new AssemblyLoadContext($"plugin-probe:{Path.GetFileName(Path.TrimEndingDirectorySeparator(directory))}", isCollectible: true);
         alc.Resolving += (context, name) => ResolveDependency(context, name, directory);
         try

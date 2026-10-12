@@ -8,25 +8,25 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.TransportPlugin.Zebra;
 
 /// <summary>
-/// Zebra 原生指令编译器（迭代 78 起，DESIGN §5.4；实现 3/4——文本（迭代 78）+ 条码与二维码（迭代 79））：
+/// Zebra 原生指令编译器（起，DESIGN ；实现 3/4——文本+ 条码与二维码）：
 /// 把 <see cref="LabelDocument"/> 编译为整页自包含 ZPL 文本（^XA / ^XZ / ^PW / ^LL + 逐元素指令），
-/// 宿主不包装追加（§5.4.1 输出口径）。纯函数性质：同输入同输出、无副作用、不访问打印机。
+/// 宿主不包装追加（输出口径）。纯函数性质：同输入同输出、无副作用、不访问打印机。
 /// </summary>
 /// <remarks>
-/// 功能裁剪原则（§5.4.1，图片模式 = 全功能基准）：排版增强（wrap / fitMode / lineHeight）一律不实现——
+/// 功能裁剪原则（图片模式 = 全功能基准）：排版增强（wrap / fitMode / lineHeight）一律不实现——
 /// 超长文本不换行不缩放直接输出，溢出为预期常态；对齐类能力（区域锚定 / 块内 TextAlign / 垂直对齐）无指令
 /// 原生等价，按内置字体度量（<see cref="ZebraTextWidthMeasurer"/>）在编译期换算起始坐标作尽力近似，
-/// 换算路径复用宿主同一 <see cref="LabelLayoutResolver"/>（决策 #110）。条码 / 二维码按元素起始坐标直接输出
-/// （迭代 79，#121），人眼可读行排版不做换行模拟；图片 / 线元素原生指令编译显式失败（§5.4.4）维持裁剪
-/// （例外：图片元素 SourceKey 空＝未指定的空占位静默跳过不出指令，#329 方案 v2）。
+/// 换算路径复用宿主同一 <see cref="LabelLayoutResolver"/>。条码 / 二维码按元素起始坐标直接输出
+/// 人眼可读行排版不做换行模拟；图片 / 线元素原生指令编译显式失败维持裁剪
+/// （例外：图片元素 SourceKey 空＝未指定的空占位静默跳过不出指令）。
 /// 中英文口径：文本仅接受打印机内置字体可覆盖的字符（可打印 ASCII + Latin-1）——中文等未覆盖字符（无中文字库）
-/// 显式拒绝（LF_ENC_002，§5.4.4「首版不做元素级混合模式」）；Code 128 字符集仅可打印 ASCII，中文等值
-/// 按 LF_ENC_001 编码拒绝（DESIGN §7「Code128 中文值专门校验」既有语义，与文本元素的 LF_ENC_002 区分）；
+/// 显式拒绝（LF_ENC_002，「首版不做元素级混合模式」）；Code 128 字符集仅可打印 ASCII，中文等值
+/// 按 LF_ENC_001 编码拒绝（DESIGN §7「Code128 中文值专门校验」既有语义，与文本元素的 LF_ENC_002 区分）
 /// 二维码经 ^CI28（UTF-8）支持中文值。
 /// </remarks>
 public sealed class ZebraLabelCompiler : ILabelCommandCompiler
 {
-    /// <summary>加粗近似：粗体字体变体映射（决策 #49 方案 A；不同机型可调整映射表，效果以真机验收为准）。</summary>
+    /// <summary>加粗近似：粗体字体变体映射（方案 A；不同机型可调整映射表，效果以真机验收为准）。</summary>
     internal static readonly IReadOnlyDictionary<char, char> BoldFontVariantMap = new Dictionary<char, char>
     {
         ['0'] = '1', // 缩放字体 0 → 粗体变体 1
@@ -63,7 +63,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
             switch (element)
             {
                 case LabelRegionElement:
-                    // 区域 = 版式容器：仅参与元素锚定解析（#110），自身不产出指令；边框为图片模式能力，原生模式裁剪（§5.4.1 预期差异）
+                    // 区域 = 版式容器：仅参与元素锚定解析，自身不产出指令；边框为图片模式能力，原生模式裁剪（预期差异）
                     continue;
                 case LabelTextElement text:
                     var compiled = CompileText(text, document, regions, measurer, options.Dpi);
@@ -93,7 +93,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
                     sb.Append(compiledQr.Command);
                     break;
                 case LabelImageElement image when string.IsNullOrEmpty(image.SourceKey):
-                    // #329 方案 v2：SourceKey 空＝未指定图片（两步式空占位）——静默跳过不出指令，
+                    // SourceKey 空＝未指定图片（两步式空占位）——静默跳过不出指令
                     // 「未指定＝不存在于打印面」（与两渲染器同口径）；key 非空的有图元素仍按下方口径显式失败
                     continue;
                 case LabelImageElement:
@@ -133,7 +133,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
             return new LabelCommandCompileResult(string.Empty, null, null, null);
         }
 
-        // 字符覆盖检查（§5.4.4）：内置字体无法表示的字符（中文等）显式拒绝，不输出乱码
+        // 字符覆盖检查：内置字体无法表示的字符（中文等）显式拒绝，不输出乱码
         foreach (var c in value)
         {
             if (!IsSupportedChar(c))
@@ -144,7 +144,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
             }
         }
 
-        // 字体：模板保留的 ZPL 内置字体名（默认 0 = 缩放字体）；加粗近似 = 粗体字体变体映射（决策 #49 方案 A）
+        // 字体：模板保留的 ZPL 内置字体名（默认 0 = 缩放字体）；加粗近似 = 粗体字体变体映射（方案 A）
         var fontChar = ResolveFontChar(element.FontName);
         if (element.Bold && BoldFontVariantMap.TryGetValue(fontChar, out var boldChar))
         {
@@ -156,8 +156,8 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
             ? $",{Math.Max(1, ToDots(element.FontWidthMm, dpi))}"
             : string.Empty; // 字宽缺省 = 按字体标准纵横比（ZPL ^A 口径）
 
-        // 起始坐标换算路径（§5.4.1 解析几何，尽力近似）：与图片渲染共用 LabelLayoutResolver，
-        // 区域锚定偏移按本品牌内置字体度量计算（决策 #110）
+        // 起始坐标换算路径（解析几何，尽力近似）：与图片渲染共用 LabelLayoutResolver
+        // 区域锚定偏移按本品牌内置字体度量计算
         var bounds = LabelLayoutResolver.ResolveBounds(element, regions, measurer, value);
         var xMm = bounds.XMm + element.EffectivePaddingHMm;
         var yMm = bounds.YMm + element.EffectivePaddingVMm;
@@ -172,7 +172,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
         var blockHeightMm = element.HeightMm > 0 ? element.HeightMm : element.FontHeightMm;
         yMm += Math.Max(0, blockHeightMm - element.FontHeightMm) * VerticalFactor(element.VerticalAlign);
 
-        // 超长文本不换行不缩放直接输出（§5.4.1 排版降级）：不做溢出校验、不截断
+        // 超长文本不换行不缩放直接输出（排版降级）：不做溢出校验、不截断
         var command =
             $"^FO{ToDots(xMm, dpi)},{ToDots(yMm, dpi)}" +
             $"^A{fontChar}N,{heightDots}{widthFragment}" +
@@ -181,7 +181,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
     }
 
     /// <summary>
-    /// 编译单个 Code 128 条码元素（迭代 79，ZPL 官方 ^BC / ^BY 口径）：
+    /// 编译单个 Code 128 条码元素（ZPL 官方 ^BC / ^BY 口径）：
     /// <c>^FO</c> 定位 + <c>^BY{模块宽},3</c>（模块宽 1..10 直接透传——模板字段即 ZPL 模块宽度，非毫米量纲；
     /// 宽窄比对 Code 128 固定比例无效，随值输出仅为沿用仓库既有形态）+ <c>^BCN,{高度},Y|N,N,N</c>
     /// ——高度毫米按 DPI 换算；f 参数 = interpretation line（displayValue 人眼可读行，默认下方 g=N）；
@@ -238,7 +238,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
     }
 
     /// <summary>
-    /// 编译单个二维码元素（迭代 79，ZPL 官方 ^BQ 口径）：
+    /// 编译单个二维码元素（ZPL 官方 ^BQ 口径）：
     /// <c>^FO</c> 定位 + <c>^BQN,2,{放大倍数},{ECC}</c>（模型 2；掩码缺省 7 由打印机自选）+
     /// QR 开关进 <c>^FD</c> 的标准形态 <c>^FD{ECC}A,{数据}</c>（自动输入模式，ECC 在 ^FD 内为必填开关）。
     /// UTF-8 中文经整页 <c>^CI28</c>（字符集指令在场）支持；ECC 档 L/M/Q/H 双处（^BQ d 与 ^FD 开关）一致输出。
@@ -330,7 +330,7 @@ public sealed class ZebraLabelCompiler : ILabelCommandCompiler
     private static LabelCommandCompileResult Fail(string reason, string? fieldKey)
         => new(null, JobErrorCodes.CommandCompileFailed, reason, fieldKey);
 
-    /// <summary>带错误码的失败结果（编译器无法原生表示元素 / 字符等预期内失败，§5.4.1）。</summary>
+    /// <summary>带错误码的失败结果（编译器无法原生表示元素 / 字符等预期内失败）。</summary>
     private static LabelCommandCompileResult Fail(string errorCode, string reason, string? fieldKey)
         => new(null, errorCode, reason, fieldKey);
 

@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace LabelFrame.WinHost.Tests.Routing;
 
 /// <summary>
-/// 服务端路由协调器单测（迭代 80，#128 AC-04）：保存服务端地址后的路由热切换与旧连接清理——
+/// 服务端路由协调器单测：保存服务端地址后的路由热切换与旧连接清理——
 /// 重建 poller / worker 并向新服务端注册、旧 worker 停止、旧 HttpClient 连接池释放、地址未变化幂等。
 /// </summary>
 public class ServerRoutingCoordinatorTests
@@ -154,7 +154,7 @@ public class ServerRoutingCoordinatorTests
     [Fact]
     public async Task Apply_new_url_should_rebuild_worker_register_new_and_clean_old_connection()
     {
-        // AC-01 机制核心：切换后新 poller 向新地址注册、旧 worker 停止（长轮询取消）、旧 HttpClient 释放
+        // 机制核心：切换后新 poller 向新地址注册、旧 worker 停止（长轮询取消）、旧 HttpClient 释放
         // CI 慢机上此类集成等待可超 15s（本地秒级），放宽避免环境性超时（同 run 35222612255 取消形态）
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await using var fixture = new Fixture();

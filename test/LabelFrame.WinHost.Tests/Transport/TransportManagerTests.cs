@@ -146,7 +146,7 @@ public class TransportManagerTests
     [Fact]
     public async Task Tcp_test_message_should_carry_specific_failure_reason()
     {
-        // AC-05：连接测试失败原因透传——能 accept 但不响应 ~HS 的目标给出具体「无响应」原因，而非泛化失败
+        // 连接测试失败原因透传——能 accept 但不响应 ~HS 的目标给出具体「无响应」原因，而非泛化失败
         var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
         listener.Start();
         var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
@@ -177,7 +177,7 @@ public class TransportManagerTests
     [Fact]
     public async Task Tcp_test_message_should_carry_unreachable_reason()
     {
-        // AC-05：不可达地址（已释放端口，连接被拒）给出含目标地址的具体原因
+        // 不可达地址（已释放端口，连接被拒）给出含目标地址的具体原因
         var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
         listener.Start();
         var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
@@ -191,7 +191,7 @@ public class TransportManagerTests
     [Fact]
     public void Corrupted_connection_json_should_fallback_to_default_and_log_reason()
     {
-        // AC-04：connection.json 损坏 → 回退默认连接，host.log 留痕原因与回退目标（此前静默回退无痕迹）
+        // connection.json 损坏 → 回退默认连接，host.log 留痕原因与回退目标（此前静默回退无痕迹）
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lfconn-{Guid.NewGuid():N}.json");
         File.WriteAllText(path, "{ 不是合法 JSON");
         var hostLog = new System.IO.StringWriter();
@@ -213,7 +213,7 @@ public class TransportManagerTests
     [Fact]
     public void Unreadable_connection_json_should_fallback_to_default_and_log_reason()
     {
-        // AC-04 变体：文件被独占锁定（读取 IO 失败）同样回退默认连接并留痕
+        // 变体：文件被独占锁定（读取 IO 失败）同样回退默认连接并留痕
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lfconn-{Guid.NewGuid():N}.json");
         File.WriteAllText(path, """{"pluginId":"tcp9100","params":{"host":"192.168.1.50","port":"9100"}}""");
         using (var lockStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))

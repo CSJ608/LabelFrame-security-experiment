@@ -98,7 +98,7 @@ public static class AndroidLabelRenderer
             return;
         }
 
-        // 区域水平锚定按实测文本宽度计算（决策 #110）：度量与绘制同一 Paint 管线（TextSize / FakeBoldText）
+        // 区域水平锚定按实测文本宽度计算：度量与绘制同一 Paint 管线（TextSize / FakeBoldText）
         var bounds = LabelLayoutResolver.ResolveBounds(text, regions, AndroidTextWidthMeasurer.Instance, value);
         var x = ToDots(bounds.XMm, dpi);
         var y = ToDots(bounds.YMm, dpi);
@@ -106,7 +106,7 @@ public static class AndroidLabelRenderer
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
         // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致，迭代 89 #147），非锚定文本维持决策 A 兜底
+        // 自动高度即字高，格顶语义与锚定偏移一致，），非锚定文本维持决策 A 兜底
         // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致；与 PC Skia 渲染同口径）。
         var anchored = text.RegionId is not null && regions.ContainsKey(text.RegionId);
         var boxHeightMm = text.HeightMm > 0
@@ -299,7 +299,7 @@ public static class AndroidLabelRenderer
         IReadOnlyDictionary<string, LabelRegionElement> regions,
         int dpi)
     {
-        // #329 方案 v2：SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框），
+        // SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框）
         // 「未指定＝不存在于打印面」（与 PC Skia 同口径）；key 非空缺资源才走下方显式报错
         if (string.IsNullOrEmpty(image.SourceKey))
         {
@@ -317,7 +317,7 @@ public static class AndroidLabelRenderer
             using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                // 拉伸填满元素盒（与 PC Skia 同口径，决策 #184 填充拍板 A）；Paint 传 true 开双线性滤波防缩小混叠
+                // 拉伸填满元素盒（与 PC Skia 同口径， 填充拍板 A）；Paint 传 true 开双线性滤波防缩小混叠
                 using var paint = new Paint { AntiAlias = true, FilterBitmap = true };
                 canvas.DrawBitmap(source, null, new Rect(x, y, x + width, y + height), paint);
                 return;
@@ -331,13 +331,13 @@ public static class AndroidLabelRenderer
             return;
         }
 
-        // 决策 #184：缺资源＝打印侧显式报错（与 PC Skia 同口径），不再画灰占位框照打
+        // 缺资源＝打印侧显式报错（与 PC Skia 同口径），不再画灰占位框照打
         throw new MissingImageResourceException(image.SourceKey);
     }
 
     /// <summary>
     /// 解码图片并按 luma 阈值 128 预单色化（黑 / 白 ARGB，不透明）：与 PC Skia DrawImage 同阈值同源
-    /// （决策 #184——口径一致＝阈值同源，两端缩放插值实现不同、逐像素一致不作承诺）；
+    /// （——口径一致＝阈值同源，两端缩放插值实现不同、逐像素一致不作承诺）
     /// 透明区按白处理。解码失败返回 null（由调用方按缺资源口径处理）。
     /// </summary>
     private static Bitmap? DecodeMonochrome(byte[] bytes)

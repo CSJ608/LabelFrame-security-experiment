@@ -4,7 +4,7 @@ using LabelFrame.Core.Errors;
 namespace LabelFrame.AndroidHost.Errors;
 
 /// <summary>
-/// LF_* 错误码 PDA 侧码表（迭代 110 / #244，决策 #164 ③ / #166——语义对齐迭代 109 的 web 端实现）。
+/// LF_* 错误码 PDA 侧码表（/ ， ③ / ——语义对齐的 web 端实现）。
 /// 宿主本地 HTTP 与 Server 的错误响应为「码 + 可选 params + 中文兜底 message」，展示端持码表翻译：
 /// 已知码用码表模板插值（占位 <c>{key}</c>，键名与后端 params 一致，插值复用
 /// <see cref="ErrorMessageTemplates.Format"/> 的单遍替换语义），未知码或模板所需参数不全回退后端中文 message

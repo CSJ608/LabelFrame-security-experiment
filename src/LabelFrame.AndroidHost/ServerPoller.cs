@@ -11,7 +11,7 @@ public sealed record PendingJob(string JobId, string RequestId, int TotalItems, 
 /// <summary>回报结果。</summary>
 public sealed record JobResult(string Status, int CompletedItems, int FailedItems, string? ErrorMessage);
 
-/// <summary>进度增量上报（决策 #101；计数口径与结果回报一致）。</summary>
+/// <summary>进度增量上报（计数口径与结果回报一致）。</summary>
 public sealed record JobProgress(int CompletedItems, int FailedItems);
 
 /// <summary>Server 轮询客户端：注册 / 心跳、长轮询通知、领取定向作业、回报结果（与 WinHost 同构，内联实现）。</summary>
@@ -84,7 +84,7 @@ public sealed class ServerPoller : IDisposable
             RequestTimeout,
             cancellationToken);
 
-    /// <summary>进度增量上报（决策 #101，与 WinHost 同语义）。</summary>
+    /// <summary>进度增量上报（与 WinHost 同语义）。</summary>
     public Task ReportProgressAsync(string jobId, JobProgress progress, CancellationToken cancellationToken = default)
         => PostAsync(
             $"{_serverUrl}/api/devices/{_deviceId}/jobs/{jobId}/progress",

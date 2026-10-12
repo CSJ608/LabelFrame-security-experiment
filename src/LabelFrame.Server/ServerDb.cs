@@ -105,7 +105,7 @@ public sealed class ServerDb
         }
     }
 
-    /// <summary>旧库兼容迁移：server_jobs 表缺少 callback_url 列时补列（决策 #154，迭代 98；已存在则跳过；失败静默忽略，不影响启动）。</summary>
+    /// <summary>旧库兼容迁移：server_jobs 表缺少 callback_url 列时补列（已存在则跳过；失败静默忽略，不影响启动）。</summary>
     private static async Task MigrateServerJobsCallbackUrlAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         var hasCallbackUrl = false;
@@ -140,7 +140,7 @@ public sealed class ServerDb
         }
     }
 
-    /// <summary>旧库兼容迁移：server_jobs 表缺少 error_code 列时补列（决策 #164 ③ / #166，迭代 109；已存在则跳过；失败静默忽略，不影响启动）。error_message 中文存量不迁移（历史行 error_code 为 NULL）。</summary>
+    /// <summary>旧库兼容迁移：server_jobs 表缺少 error_code 列时补列（③ / ，；已存在则跳过；失败静默忽略，不影响启动）。error_message 中文存量不迁移（历史行 error_code 为 NULL）。</summary>
     private static async Task MigrateServerJobsErrorCodeAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         var hasErrorCode = false;
@@ -257,7 +257,7 @@ public sealed class ServerDb
 
     /// <summary>
     /// 按 last_ip 精确查找设备（忽略大小写；未找到返回 null）。
-    /// 同 IP 多行并存（设备号变更后新行插入、旧行 last_ip 无人清除，缺陷 #46）时按
+    /// 同 IP 多行并存（设备号变更后新行插入、旧行 last_ip 无人清除）时按
     /// 最近活跃优先（last_seen_at DESC，注册时间与 id 作确定性平手序）——旧行 stale、新行活跃必命中新行；
     /// 同 IP 多设备且都活跃（如 NAT 共网出口）时跟随最近一次心跳的设备。
     /// </summary>
@@ -325,7 +325,7 @@ public sealed class ServerDb
 
     /// <summary>领取：同一事务内刷新心跳 + 把目标设备的未过期 Pending 作业置为 Claimed，返回 (心跳受影响行数, 载荷)。</summary>
     /// <remarks>
-    /// 写事务合批（迭代 39）：原「Touch + Claim」为两个独立自动提交写事务，20 设备并发下各排队一次
+    /// 写事务合批：原「Touch + Claim」为两个独立自动提交写事务，20 设备并发下各排队一次
     /// SQLite 单写锁；合并为一个事务后每轮领取少一次锁竞争。并发安全不变——圈定仍由单条
     /// UPDATE ... RETURNING 原子完成，多实例 / 并发下不会重复领取同一作业。
     /// <paramref name="ttlCutoff"/> 非 null 时按 created_at 过滤超期作业（正确性兜底，不依赖过期扫描周期）；null = 不过滤（TTL 关闭）。
@@ -394,7 +394,7 @@ public sealed class ServerDb
     }
 
     /// <summary>更新作业结果。</summary>
-    /// <param name="errorCode">失败原因码（决策 #164 ③ / #166：宿主回报可选携带；成功回报传 null）。</param>
+    /// <param name="errorCode">失败原因码（③ / ：宿主回报可选携带；成功回报传 null）。</param>
     public async Task<ServerJob?> UpdateJobResultAsync(
         string jobId,
         ServerJobStatus status,
@@ -585,7 +585,7 @@ public sealed class ServerDb
     }
 
     /// <summary>
-    /// 终态回调登记统一出口（决策 #154，幂等）：把已到终态且带 callback_url、尚未登记的作业写入投递表
+    /// 终态回调登记统一出口（幂等）：把已到终态且带 callback_url、尚未登记的作业写入投递表
     /// （job_id 主键 + INSERT OR IGNORE，并发 / 重复登记安全）。三处终态转移点（宿主回报、失联回收、
     /// 超 TTL 过期）都经此登记；<paramref name="jobId"/> 非 null 时只处理该作业（回报路径单作业精准登记）。
     /// 返回新登记条数。

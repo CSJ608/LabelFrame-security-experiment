@@ -1,10 +1,10 @@
 // 设计器元素渲染（react-konva 声明式）：Group = 边框 + 内容
-// 迭代 112（#246）：画布节点文案（图片 / 容器占位）key 化（designer 域）。
-// 迭代 132（#329）：图片元素由占位框升级为实际图片内容（资源表 dataURL 异步解码为
-// HTMLImageElement 喂 Konva Image）；缺资源 / 加载失败保持占位框（决策 #184 拍板 4-A）。
-// 迭代 132 返修（#329 方案 v2）：图片内容三态——key 空＝未指定（虚线空占位）、key 非空缺资源＝
+// 画布节点文案（图片 / 容器占位）key 化（designer 域）。
+// 图片元素由占位框升级为实际图片内容（资源表 dataURL 异步解码为
+// HTMLImageElement 喂 Konva Image）；缺资源 / 加载失败保持占位框（拍板 4-A）。
+// 图片内容三态——key 空＝未指定（虚线空占位）、key 非空缺资源＝
 // 缺资源占位、加载成功＝实际图片；成功分支与空占位分支都带整盒 fill 命中区（KImage listening={false}
-// 不参与命中——无 fill 兜底则画布点击穿透，返修 1 阻断项）。
+// 不参与命中——无 fill 兜底则画布点击穿透，阻断项）。
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +21,7 @@ interface ElementNodeProps {
   editable: boolean
   ox: number
   oy: number
-  /** 图片资源表（key → 资源，迭代 132 · #329；Designer 持有，不进历史快照）。 */
+  /* * 图片资源表（key → 资源，· ；Designer 持有，不进历史快照）。 */
   imageAssets?: Record<string, ImageAsset>
   onDragStart?: (ev: KonvaEventObject<DragEvent>) => void
   onDragMove?: (ev: KonvaEventObject<DragEvent>) => void
@@ -51,7 +51,7 @@ export function ElementNode({ e, editable, ox, oy, imageAssets, onDragStart, onD
     onDragEnd,
   }
 
-  // 预览态（editable=false）且 key 空：不渲染任何内容（「未指定＝不存在于打印面」，方案 v2 AC-02e）
+  // 预览态（editable=false）且 key 空：不渲染任何内容（「未指定＝不存在于打印面」， e）
   if (!editable && e.type === 'Image' && !e.key) return null
 
   switch (e.type) {
@@ -113,7 +113,7 @@ function TextContent({ e }: { e: TextElement }) {
   const textRef = useRef<Konva.Text>(null)
 
   // 缩小适应：measureSize 循环降字号直到放得下（与原型 applyTextFit 一致；
-  // 迭代 13：wrap=true 换行后超高也整体缩小，与 Skia §4.4 打印语义一致，避免预览与打印不一致）
+  // wrap=true 换行后超高也整体缩小，与 Skia 打印语义一致，避免预览与打印不一致）
   // 注意：Konva measureSize 返回单行尺寸（与 wrap 设置无关），wrap 模式需按「单行宽 ÷ 内容宽 = 行数」估算换行后的总高。
   useEffect(() => {
     const t = textRef.current
@@ -175,7 +175,7 @@ function ImageContent({ e, wPx, hPx, qr }: { e: BarcodeElement | QrCodeElement; 
   const padV = pxv(e.paddingV || 0)
   const innerW = Math.max(2, wPx - padH * 2)
   const innerH = Math.max(2, hPx - padV * 2)
-  // 迭代 112（#246）：依赖含界面语言——未绑定占位文案随语言重建画布（其余情形重建无副作用，纯函数等价）
+  // 依赖含界面语言——未绑定占位文案随语言重建画布（其余情形重建无副作用，纯函数等价）
   const canvas = useMemo(
     () => (qr ? makeQrCanvas(e as QrCodeElement, innerW, innerH) : makeBarcodeCanvas(e as BarcodeElement)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,8 +185,8 @@ function ImageContent({ e, wPx, hPx, qr }: { e: BarcodeElement | QrCodeElement; 
   return <KImage image={canvas} x={fit.x + padH} y={fit.y + padV} width={fit.w} height={fit.h} listening={false} />
 }
 
-/** 图片元素内容（迭代 132 · #329）：资源表 dataURL 异步解码为 HTMLImageElement 喂 Konva Image，
- *  拉伸填满元素盒（决策 #184 填充拍板 A，与后端渲染同口径）。三态（方案 v2）：
+/* * 图片元素内容（·）：资源表 dataURL 异步解码为 HTMLImageElement 喂 Konva Image
+ * 拉伸填满元素盒（填充拍板 A，与后端渲染同口径）。三态：
  *  key 空＝未指定（虚线空占位，canvas.imageEmpty）；key 非空缺资源 / 解码中 / 加载失败＝
  *  缺资源占位（拍板 4-A：编辑器内可辨认、可重新上传修复；预览 / 打印侧才显式报错）；
  *  加载成功＝实际图片。成功分支与空占位分支都渲染整盒 fill 的 Rect——KImage listening={false}

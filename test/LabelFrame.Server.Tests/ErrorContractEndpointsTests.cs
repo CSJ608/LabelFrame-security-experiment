@@ -9,7 +9,7 @@ using Xunit;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 错误响应契约 HTTP 集成测试（迭代 50，决策 #107）：
+/// 错误响应契约 HTTP 集成测试：
 /// 请求体反序列化失败（非法 JSON / 非 UTF-8 / 类型不匹配）→ 400 + LF_API_BAD_BODY；
 /// 非归属设备回报 / 进度 → 403 + ErrorView（LF_SRV_004，非空 body）；
 /// 插件包上传非法 zip → 400 + 中文消息（不直出英文框架原话）。

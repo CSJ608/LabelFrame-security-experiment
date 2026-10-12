@@ -20,7 +20,7 @@ internal static class HostApi
     public static IEndpointRouteBuilder MapHostApi(this IEndpointRouteBuilder app, Action<string> hostInfo)
     {
     // ---- 机器级配置（/api/host/config，前端读写 ServerUrl；仅回环可写）----
-    // GET 响应含只读 version（客户端产品版本 HostOptions.ProductVersion，决策 #126——客户端「检查更新」比较口径；POST 忽略该字段）
+    // GET 响应含只读 version（客户端产品版本 HostOptions.ProductVersion，——客户端「检查更新」比较口径；POST 忽略该字段）
     app.MapGet("/api/host/config", (HostOptions options) =>
         Results.Ok(new Api.HostConfigDto(options.ServerUrl ?? string.Empty, options.DeviceId, options.DeviceName, LocalIpAddresses.EnumerateIpv4(), HostOptions.ProductVersion)));
 
@@ -45,7 +45,7 @@ internal static class HostApi
 
         store.SaveServerUrl(serverUrl);
         options.ServerUrl = serverUrl;
-        // 保存即生效（迭代 80，决策 #141）：路由热切换——重建 poller / worker 注册到新服务端并清理旧连接；
+        // 保存即生效：路由热切换——重建 poller / worker 注册到新服务端并清理旧连接
         // 地址未变化时幂等无动作（不打断进行中的注册 / 长轮询）
         await routing.ApplyServerUrlAsync(serverUrl, context.RequestAborted);
         hostInfo($"机器级配置已更新：ServerUrl={serverUrl}");
@@ -58,7 +58,7 @@ internal static class HostApi
     app.MapPost("/api/host/print-settings", (HttpContext context, PrintSettingsDto? request, PrintSettingsStore store, PrintSettings printSettings) =>
         Api.PrintSettingsApi.Post(context.Connection.RemoteIpAddress, request, store, printSettings));
 
-    // ---- 本机服务关闭（Web UI 设置页「退出程序」用；与托盘菜单共用统一退出路径，缺陷 #58）----
+    // ---- 本机服务关闭（Web UI 设置页「退出程序」用；与托盘菜单共用统一退出路径）----
     app.MapPost("/api/host/shutdown", async (HttpContext context, HostExitCoordinator exit, LabelJobQueue queue, CancellationToken cancellationToken) =>
     {
         var remote = context.Connection.RemoteIpAddress;

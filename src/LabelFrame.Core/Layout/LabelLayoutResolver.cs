@@ -18,12 +18,12 @@ public static class LabelLayoutResolver
         => ResolveBounds(element, regions, textMeasurer: null, textValue: null);
 
     /// <summary>
-    /// 解析元素边界（含区域锚定）。文本无显式宽度（WidthMm ≤ 0）且锚定区域时（决策 #110 方案 A）：
+    /// 解析元素边界（含区域锚定）。文本无显式宽度（WidthMm ≤ 0）且锚定区域时（方案 A）：
     /// 块宽仍为区域全宽（减单值内边距，供块内 TextAlign / 边框 / 裁剪使用，语义不变）；
     /// 水平锚定偏移按「实测文本宽度 + 2×有效水平内边距（夹取到区域宽）」计算
     /// ——内边距计入锚定宽度与显式宽度块「内边距在框内」的语义一致（Start/End 时文本距区域边缘一个内边距）。
     /// 未提供度量器或文本值时回退既有几何（锚定宽度 = 块宽 → 偏移 ≈ 0）。
-    /// 垂直锚定语义（迭代 89 #147 定案）：Y 为锚定框（自动高度时 = 字高框）的顶部，Height 即锚定框高；
+    /// 垂直锚定语义（定案）：Y 为锚定框（自动高度时 = 字高框）的顶部，Height 即锚定框高
     /// 渲染方必须在该框内绘制（不得换用更高的兜底框后再块内居中），原生指令方按字高格顶落笔——两模式同框。
     /// </summary>
     public static ElementBounds ResolveBounds(

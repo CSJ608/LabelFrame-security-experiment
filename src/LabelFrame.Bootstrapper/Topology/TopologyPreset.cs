@@ -1,10 +1,10 @@
 namespace LabelFrame.Bootstrapper.Topology;
 
-/// <summary>本机角色（DESIGN §6.3，决策 #116 + #151 问卷收敛）：有限枚举 + 仅两项自由开关，不提供任意组件勾选。</summary>
+/// <summary>本机角色（DESIGN ， + 问卷收敛）：有限枚举 + 仅两项自由开关，不提供任意组件勾选。</summary>
 /// <remarks>
-/// 迭代 95（决策 #151）问卷面收敛为本机角色三选：基础模式默认「仅打印客户端」不出现角色页；
+/// 问卷面收敛为本机角色三选：基础模式默认「仅打印客户端」不出现角色页
 /// server-docker / server-linux 移出问卷（manifest topology 标记保留，Linux 承接 = install.sh、Docker 承接 = Release compose）；
-/// <c>offline</c>（离线全量包）是一等形态但不进问卷枚举（布局目录隐式检测，#135），<c>pda</c> 经服务端下载中心分发（#52）。
+/// <c>offline</c>（离线全量包）是一等形态但不进问卷枚举（布局目录隐式检测），<c>pda</c> 经服务端下载中心分发。
 /// </remarks>
 public enum TopologyPreset
 {
@@ -20,7 +20,7 @@ public enum TopologyPreset
 
 public static class TopologyPresetExtensions
 {
-    /// <summary>manifest 拓扑标记 id（§6.2 topologies 枚举中的预设部分）。</summary>
+    /// <summary>manifest 拓扑标记 id（topologies 枚举中的预设部分）。</summary>
     public static string ToManifestId(this TopologyPreset preset) => preset switch
     {
         TopologyPreset.Standalone => "standalone",
@@ -47,11 +47,11 @@ public static class TopologyPresetExtensions
         _ => string.Empty,
     };
 
-    /// <summary>角色是否包含打印客户端（打印机品牌页 / 服务端地址页适用性，迭代 95 / 决策 #151）。</summary>
+    /// <summary>角色是否包含打印客户端（打印机品牌页 / 服务端地址页适用性，/）。</summary>
     public static bool IncludesClient(this TopologyPreset preset) =>
         preset is TopologyPreset.Standalone or TopologyPreset.Client;
 
-    /// <summary>角色是否包含服务端（管理界面开关页适用性，迭代 95 / 决策 #151）。</summary>
+    /// <summary>角色是否包含服务端（管理界面开关页适用性，/）。</summary>
     public static bool IncludesServer(this TopologyPreset preset) =>
         preset is TopologyPreset.Standalone or TopologyPreset.ServerWin;
 }

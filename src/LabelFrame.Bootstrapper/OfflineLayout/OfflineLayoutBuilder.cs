@@ -56,10 +56,10 @@ public sealed record OfflineLayoutResult(
     string? BootstrapperFileName);
 
 /// <summary>
-/// 离线布局目录生成器（迭代 70 / #89，DESIGN §6.2，决策 #132）——把当版全部组件 + 官方 manifest / latest 原样字节 +
+/// 离线布局目录生成器（/ ，DESIGN）——把当版全部组件 + 官方 manifest / latest 原样字节 +
 /// 引导 EXE 汇集到目标目录；逐组件按 <c>urls</c> 顺序下载、按策略校验一致才落位（fail-closed）：
 /// 常规条目 = sha256 与 manifest 逐字节一致；evergreen 条目（version = <c>evergreen</c>）= 微软 Authenticode
-/// 发布者验签（决策 #151，#173——微软轮换直链文件后重新生成不再因哈希漂移失败）。
+/// 发布者验签（——微软轮换直链文件后重新生成不再因哈希漂移失败）。
 /// </summary>
 /// <remarks>
 /// 与 <c>scripts/make-offline-layout.ps1</c>（IT 脚本形态）语义一致：命名约定共用 <see cref="OfflineLayoutNaming"/>；
@@ -174,7 +174,7 @@ public static class OfflineLayoutBuilder
             WriteAllText(Path.Combine(targetDirectory, OfflineLayoutNaming.LatestFileName), latestJson);
         }
 
-        // 引导 EXE：复制入目录（目标机「拷目录 + 双击 EXE」即离线首装，§6.2）；运行中的 EXE 可读复制
+        // 引导 EXE：复制入目录（目标机「拷目录 + 双击 EXE」即离线首装）；运行中的 EXE 可读复制
         string? bootstrapperFileName = null;
         if (!string.IsNullOrWhiteSpace(bootstrapperSourcePath))
         {
@@ -216,7 +216,7 @@ public static class OfflineLayoutBuilder
                 {
                     failures.Add($"{url} → {verifyFailure}");
                     TryDelete(tempPath);
-                    continue; // 换下一源（源内容被替换 / 损坏——与引擎安装期坏哈希换源同语义，§6.10）
+                    continue;  // 换下一源（源内容被替换 / 损坏——与引擎安装期坏哈希换源同语义）
                 }
 
                 if (File.Exists(targetPath))
@@ -243,7 +243,7 @@ public static class OfflineLayoutBuilder
             $"组件 {component.Id} 全部 {component.Urls.Count} 个源获取失败（{DescribePolicy(component)}，fail-closed）：{string.Join("；", failures)}");
     }
 
-    /// <summary>evergreen 条目判定（version = <c>evergreen</c>：恒变直链无摘要可钉——校验策略 = 发布者验签，决策 #151）。</summary>
+    /// <summary>evergreen 条目判定（version = <c>evergreen</c>：恒变直链无摘要可钉——校验策略 = 发布者验签）。</summary>
     private static bool IsEvergreenEntry(ManifestComponent component) =>
         string.Equals(component.Version, "evergreen", StringComparison.OrdinalIgnoreCase);
 

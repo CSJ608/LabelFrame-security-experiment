@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// 迭代 18 F6：作业历史页——服务端 / 单机降级列表、空态按模式文案、刷新、徽标区分。
+// F6：作业历史页——服务端 / 单机降级列表、空态按模式文案、刷新、徽标区分。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链）。
-// 迭代 84（#132）：目标设备列设备名解析（AC-02）与编号收敛（AC-03）断言。
-// 迭代 85（#133 C-5，决议 2）：行展开明细——本机直连作业逐张结果（状态 / 失败原因）；服务端形态汇总 + 如实占位。
+// 目标设备列设备名解析与编号收敛断言。
+// （C-5，决议 2）：行展开明细——本机直连作业逐张结果（状态 / 失败原因）；服务端形态汇总 + 如实占位。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   server: {
     healthz: vi.fn(),
     getJobs: vi.fn(),
-    // 迭代 84：目标设备列设备名解析（deviceId → name）
+    // 目标设备列设备名解析（deviceId → name）
     listDevices: vi.fn(),
   },
   local: {
@@ -24,17 +24,17 @@ const mocks = vi.hoisted(() => ({
     getTransport: vi.fn(),
   },
   clipboard: {
-    // 迭代 84：编号一键复制（jsdom 无 Clipboard API / execCommand，mock 模块）
+    // 编号一键复制（jsdom 无 Clipboard API / execCommand，mock 模块）
     copyText: vi.fn(),
   },
 }))
 
 vi.mock('../lib/api/client', () => ({ serverApi: mocks.server, localApi: mocks.local, setServerBaseUrl: vi.fn() }))
 vi.mock('../lib/clipboard', () => ({ copyText: mocks.clipboard.copyText }))
-// 迭代 20：本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
+// 本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
 vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
-/** 迭代 84：设备名解析表数据源——device-1 / device-2 有名称，device-3 无名称（回退设备 ID）。 */
+/* * ：设备名解析表数据源——device-1 / device-2 有名称，device-3 无名称（回退设备 ID）。 */
 const DEVICES: DeviceView[] = [
   { deviceId: 'device-1', name: '仓库-1 打印电脑', registeredAt: '2026-08-11T00:00:00Z', lastSeenAt: '2026-08-11T01:00:00Z', status: 'Online' },
   { deviceId: 'device-2', name: '仓库-2 打印电脑', registeredAt: '2026-08-11T00:00:00Z', lastSeenAt: '2026-08-11T01:00:00Z', status: 'Online' },
@@ -84,7 +84,7 @@ const JOBS: JobView[] = [
 
 /** 挂载链等待超时（ms）：AppProvider 启动链（getHostConfig → healthz → serverMode）→ 首次列表加载
  *  为多段 promise + React 真实宏任务调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms
- *  （#183 实证：「服务端模式：列表渲染」找不到「已完成」，2530ms）；统一放宽（与 DataPrint.test 同口径）。 */
+ * （实证：「服务端模式：列表渲染」找不到「已完成」，2530ms）；统一放宽（与 DataPrint.test 同口径）。 */
 const MOUNT_WAIT = { timeout: 8000 }
 
 function renderJobHistory() {
@@ -104,7 +104,7 @@ beforeEach(() => {
   mocks.local.getTransport.mockResolvedValue({ mode: 'Log', params: {} })
   mocks.server.getJobs.mockResolvedValue(JOBS)
   mocks.local.getJobs.mockResolvedValue(JOBS)
-  // 迭代 84：设备名解析与一键复制默认就绪（用例内可覆盖）
+  // 设备名解析与一键复制默认就绪（用例内可覆盖）
   mocks.server.listDevices.mockResolvedValue(DEVICES)
   mocks.clipboard.copyText.mockResolvedValue(true)
 })
@@ -120,7 +120,7 @@ describe('作业历史页（迭代 18 F6）', () => {
     // 三行作业都渲染
     expect(screen.getByText('失败')).toBeTruthy()
     expect(screen.getByText('打印中')).toBeTruthy()
-    // 目标设备列（迭代 84 AC-02）：有名称显示设备名，无名称回退设备 ID，无目标显示「本机」
+    // 目标设备列：有名称显示设备名，无名称回退设备 ID，无目标显示「本机」
     expect(screen.getByText('仓库-1 打印电脑')).toBeTruthy()
     expect(screen.getByText('仓库-2 打印电脑')).toBeTruthy()
     expect(screen.getByText('device-3')).toBeTruthy()
@@ -129,7 +129,7 @@ describe('作业历史页（迭代 18 F6）', () => {
     expect(screen.getByText(/3\/3/)).toBeTruthy()
     expect(screen.getByText('打印机缺纸')).toBeTruthy()
     // 双 base 守门：服务端模式走 serverApi
-    // 迭代 22 §2.1：客户端构建在服务端模式下传本机 deviceId（只看自己的作业）
+    // 客户端构建在服务端模式下传本机 deviceId（只看自己的作业）
     expect(mocks.server.getJobs).toHaveBeenCalledWith(100, 'device-1')
     expect(mocks.local.getJobs).not.toHaveBeenCalled()
   })
@@ -199,7 +199,7 @@ describe('作业历史页（迭代 18 F6）', () => {
   })
 })
 
-// 迭代 84（#132，评审 #114 B-6 / B-7）：目标设备列设备名解析（与在线设备页 / 目标设备下拉同源）与编号收敛（决议 2）。
+// （评审 B-6 / B-7）：目标设备列设备名解析（与在线设备页 / 目标设备下拉同源）与编号收敛（决议 2）。
 describe('作业信息可读性（迭代 84 · #132）', () => {
   it('AC-02：目标设备列经 GET /api/devices 解析设备名；无名称设备回退设备 ID', async () => {
     renderJobHistory()
@@ -263,7 +263,7 @@ describe('作业信息可读性（迭代 84 · #132）', () => {
   })
 })
 
-// 迭代 85（#133 C-5，决议 2）：作业历史行展开明细。
+// （C-5，决议 2）：作业历史行展开明细。
 describe('作业行展开明细（迭代 85 · #133 C-5）', () => {
   /** 本机直连作业（WinHost 列表即返回逐张 items）：完成 2 / 失败 2（errorMessage 与 errorCode 回退两形态）。 */
   const LOCAL_DETAIL_JOB: JobView = {
@@ -356,7 +356,7 @@ describe('作业历史自动轮询（迭代 48，用户定稿：1.5s / 仅进行
   /** 冲洗挂载链（配置加载 → healthz 探测 → serverMode 确定 → 首次列表加载）至完全落定。
    *  挂载链本身是纯 promise + React 状态更新，但 React 调度走真实宏任务——固定两轮冲洗在
    *  高负载 runner 上可能残留未落定的渲染代际，迟到渲染落在计时窗口内会重触发加载 effect，
-   *  表现为轮询计数错位（#183 实证：「2s 退避后重试」期望 2 实得 3）。改为有界多轮冲洗：
+   * 表现为轮询计数错位（实证：「2s 退避后重试」期望 2 实得 3）。改为有界多轮冲洗：
    *  以「首次拉取已发生 + 列表行已渲染」为落定条件，命中后再补两轮空转吸收迟到的真实宏任务渲染。 */
   async function flush() {
     for (let i = 0; i < 15; i++) {

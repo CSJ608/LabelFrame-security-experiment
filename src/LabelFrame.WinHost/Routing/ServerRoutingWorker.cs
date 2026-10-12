@@ -8,7 +8,7 @@ namespace LabelFrame.WinHost.Routing;
 
 /// <summary>
 /// Server 路由 Worker：周期注册（心跳）→ 领取定向作业 → 投入本地作业队列打印 →
-/// 打印中节流上报进度（决策 #101）→ 本地作业终态后回报 Server。未配置 ServerUrl 时不启用。
+/// 打印中节流上报进度→ 本地作业终态后回报 Server。未配置 ServerUrl 时不启用。
 /// 回报与进度由独立循环负责：本地作业终态后约 1s 内回报，不被长轮询等待阻塞；
 /// 进度上报失败静默降级（不阻塞打印主链路，下一轮自然重试）。
 /// </summary>
@@ -31,7 +31,7 @@ public sealed class ServerRoutingWorker : BackgroundService
     /// <summary>完成回报周期：独立于长轮询，本地作业终态后尽快回报。</summary>
     public static readonly TimeSpan ReportInterval = TimeSpan.FromSeconds(1);
 
-    /// <summary>进度上报默认节流间隔（决策 #101：计数有变化才发，无变化零流量）。</summary>
+    /// <summary>进度上报默认节流间隔（计数有变化才发，无变化零流量）。</summary>
     public static readonly TimeSpan DefaultProgressInterval = TimeSpan.FromSeconds(1);
 
     /// <summary>创建路由 Worker。</summary>
@@ -199,7 +199,7 @@ public sealed class ServerRoutingWorker : BackgroundService
             if (local.Status is LabelJobStatus.Completed or LabelJobStatus.Failed or LabelJobStatus.Cancelled)
             {
                 var status = local.Status == LabelJobStatus.Completed ? "Completed" : "Failed";
-                // 失败明细取首个带原因的标签（消息与原因码同源），随回报透传给 Server 落 error_code（决策 #166）
+                // 失败明细取首个带原因的标签（消息与原因码同源），随回报透传给 Server 落 error_code
                 var failedItem = local.Items.FirstOrDefault(i => i.ErrorMessage is not null);
                 await _poller.ReportResultAsync(
                     serverJobId,

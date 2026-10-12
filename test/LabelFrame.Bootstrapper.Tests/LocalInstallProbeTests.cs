@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>本机已装探测（§6.11，决策 #126）：委托注入下的 MSI 版本选取、插件 manifest 读取与异常兜底。</summary>
+/// <summary>本机已装探测：委托注入下的 MSI 版本选取、插件 manifest 读取与异常兜底。</summary>
 public sealed class LocalInstallProbeTests
 {
     private static RuntimeProbeResult Runtime => new(true, "10.0.12", true, "10.0.12", true);
@@ -44,7 +44,7 @@ public sealed class LocalInstallProbeTests
     [Fact]
     public void Multiple_products_same_family_pick_highest_version()
     {
-        // 同族多产品（残留 / 多上下文）取最高（§6.11 组件级口径）
+        // 同族多产品（残留 / 多上下文）取最高（组件级口径）
         var probe = new LocalInstallProbe(
             msiProductsByUpgradeCode: _ => ["{00000000-0000-0000-0000-000000000001}", "{00000000-0000-0000-0000-000000000002}"],
             msiProductVersion: productCode => productCode.EndsWith("0001") ? "0.25.0" : "0.26.0");

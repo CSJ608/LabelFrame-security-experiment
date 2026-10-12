@@ -8,7 +8,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 离线布局目录生成器测试（迭代 70 / #89，决策 #132）：逐组件 urls 顺序回退 + sha256 fail-closed +
+/// 离线布局目录生成器测试（/）：逐组件 urls 顺序回退 + sha256 fail-closed +
 /// 幂等复用 + manifest / latest 原样落盘 + 引导 EXE 复制——与 scripts/make-offline-layout.ps1 同语义锚定。
 /// </summary>
 public sealed class OfflineLayoutBuilderTests : IDisposable
@@ -141,7 +141,7 @@ public sealed class OfflineLayoutBuilderTests : IDisposable
     [Fact]
     public async Task All_urls_failing_closes_without_laying_down_component()
     {
-        // fail-closed：全源失败（404 / 哈希不符）即异常退出，绝不落位未校验文件（AC-04 生成侧口径）
+        // fail-closed：全源失败（404 / 哈希不符）即异常退出，绝不落位未校验文件（生成侧口径）
         var (manifest, json, _, webView2Bytes) = BuildManifest();
         var target = Path.Combine(_root, "layout");
         var http = new RoutingHttpMessageHandler(new Dictionary<string, Func<byte[]>>
@@ -243,7 +243,7 @@ public sealed class OfflineLayoutBuilderTests : IDisposable
     [Fact]
     public async Task Evergreen_entry_verifies_by_publisher_instead_of_stale_hash_and_reuses_existing_file()
     {
-        // 决策 #151：evergreen 条目（version=evergreen）按微软 Authenticode 发布者验签——manifest sha256 已因微软轮换
+        // evergreen 条目（version=evergreen）按微软 Authenticode 发布者验签——manifest sha256 已因微软轮换
         // 「过期」（与在位文件哈希不符）但签名有效 → 仍然复用零下载（rotation-immune 的生成期锚点）
         var (manifest, json, serverBytes, _) = BuildManifest();
         var target = Path.Combine(_root, "layout");

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>latest.json 指针（§6.11 消费，决策 #126 / #51 生成契约）：解析与来源推导规则。</summary>
+/// <summary>latest.json 指针（消费， / 生成契约）：解析与来源推导规则。</summary>
 public sealed class LatestPointerTests
 {
     [Fact]
@@ -33,7 +33,7 @@ public sealed class LatestPointerTests
     [Fact]
     public void Parse_ignores_unknown_members()
     {
-        // §6.2 演进规则：新增可选字段 = 兼容
+        // 演进规则：新增可选字段 = 兼容
         var pointer = LatestPointer.Parse("""{ "labelframeVersion": "0.27.0", "manifestUrl": "u", "extra": 1 }""");
         Assert.NotNull(pointer);
         Assert.Equal("0.27.0", pointer.LabelframeVersion);
@@ -45,7 +45,7 @@ public sealed class LatestPointerTests
     [InlineData("C:\\offline\\install-manifest.json", "C:\\offline\\latest.json")] // 本地路径（离线包内嵌）
     [InlineData("install-manifest.json", "latest.json")] // 裸相对路径
     [InlineData("https://github.com/marci-labs/LabelFrame/releases/download/v0.26.0/install-manifest.json",
-        null)] // 特定版本 Release URL：用户显式选择的版本清单，不推导（§6.11）
+        null)]  // 特定版本 Release URL：用户显式选择的版本清单，不推导
     [InlineData("https://example.invalid/other.json", null)] // 其他形态
     [InlineData("", null)]
     public void Derive_source_follows_consumption_rules(string source, string? expected)

@@ -50,7 +50,7 @@ public static class ImportEndpoints
             }
             catch (Exception ex)
             {
-                // 模板化消息（决策 #164 ③ / #166）：detail 为解析异常原因（动态数据，展示端插值原样呈现）
+                // 模板化消息（③ /）：detail 为解析异常原因（动态数据，展示端插值原样呈现）
                 var parameters = new Dictionary<string, string> { ["detail"] = ex.Message };
                 return Results.BadRequest(new ErrorView(
                     options.InvalidRequestCode,

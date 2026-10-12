@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>服务端地址链路（迭代 95 / 决策 #151 ④）：问卷输入规范化（D1 口径）→ settings.json 存取（与 WinHost HostConfigStore 同一事实源）→ 会话只读探测预填。</summary>
+/// <summary>服务端地址链路（/ ④）：问卷输入规范化（D1 口径）→ settings.json 存取（与 WinHost HostConfigStore 同一事实源）→ 会话只读探测预填。</summary>
 public sealed class ServerUrlTests
 {
     private static string FixturePath(string fileName) =>

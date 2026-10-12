@@ -16,12 +16,12 @@ public sealed record InstalledPluginView(
     DateTimeOffset? InstalledAt);
 
 /// <summary>
-/// 客户端插件安装 / 卸载服务（迭代 96 自 WinHost 下沉 Core 供 Windows / Android 双端共用，决策 #156）：
+/// 客户端插件安装 / 卸载服务（自 WinHost 下沉 Core 供 Windows / Android 双端共用）：
 /// 安装 = 三层校验（① zip + manifest 必填与平台门 ② 内置 id 拒绝 ③ 临时 ALC 预检核对插件 id）→
 /// 解压到 plugins/&lt;pluginId&gt;/（覆盖旧目录）→ 重启生效；
 /// 平台门：宿主平台不在 manifest <c>platforms</c> 声明集合内拒绝（无字段的既有包按 Windows 端解释——向后兼容）；
-/// 官方插件（labelframe- 前缀）覆盖安装先做版本比较：新版本覆盖 / 同版本幂等跳过 / 降级拒绝（决策 #123 ④；第三方维持不做版本比较）；
-/// 卸载 = 删除 plugins/&lt;pluginId&gt;/ → 重启生效；运行时热卸载不做（#68 口径跨端一致）。
+/// 官方插件（labelframe- 前缀）覆盖安装先做版本比较：新版本覆盖 / 同版本幂等跳过 / 降级拒绝（④；第三方维持不做版本比较）
+/// 卸载 = 删除 plugins/&lt;pluginId&gt;/ → 重启生效；运行时热卸载不做（口径跨端一致）。
 /// </summary>
 public sealed class PluginInstaller
 {
@@ -147,7 +147,7 @@ public sealed class PluginInstaller
         // ① zip 完整性 + 根 manifest + 必填字段 + zip-slip（PluginPackageReader.Read 内部校验）
         var content = PluginPackageReader.Read(bytes);
 
-        // ①b 平台门（迭代 96，决策 #156）：宿主平台不在 manifest platforms 声明集合内拒绝——
+        // ①b 平台门：宿主平台不在 manifest platforms 声明集合内拒绝——
         // 无字段的既有包按 Windows 端解释（Windows 兼容安装、PDA 拒绝存量 Windows 包）
         if (!content.Manifest.SupportsPlatform(_hostPlatform))
         {
@@ -166,7 +166,7 @@ public sealed class PluginInstaller
         var safeId = SafeFileName.Normalize(content.Manifest.PluginId)
             ?? throw new PluginPackageException($"pluginId「{content.Manifest.PluginId}」不是合法的插件目录名。");
 
-        // ②b 官方插件覆盖安装版本比较（决策 #123 ④，率先于第三方启用；迭代 96 起双端一致）：新版本覆盖 / 同版本幂等 / 降级拒绝
+        // ②b 官方插件覆盖安装版本比较（④，率先于第三方启用；起双端一致）：新版本覆盖 / 同版本幂等 / 降级拒绝
         var installedManifest = ReadInstalledManifest(safeId);
         if (installedManifest is not null && TransportPluginIdPolicy.IsOfficial(content.Manifest.PluginId))
         {

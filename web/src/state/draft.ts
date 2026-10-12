@@ -1,4 +1,4 @@
-// DataPrint 会话草稿（迭代 15 §6.1）：提升到全局的打印设置保留。
+// DataPrint 会话草稿：提升到全局的打印设置保留。
 // 纯逻辑 + 可注入存储（sessionStorage 由调用方提供），便于单测与标签页隔离验证。
 // 保留范围：selectedName / valuesByTemplate（按模板分键）/ dirtyKeysByTemplate / debugMode / jobId。
 // 不保留：Excel 原始数据与列映射（页面局部状态，切页即丢）。

@@ -4,7 +4,7 @@ using LabelFrame.Core.Layout;
 namespace LabelFrame.AndroidHost.Rendering;
 
 /// <summary>
-/// 字宽度量 Android 实现（决策 #110）：Android.Graphics Paint 与 AndroidLabelRenderer 同一文本渲染管线
+/// 字宽度量 Android 实现：Android.Graphics Paint 与 AndroidLabelRenderer 同一文本渲染管线
 /// （TextSize / FakeBoldText），在参考比例下度量后换算毫米——结果与渲染 DPI 无关（线性缩放）。
 /// 无状态，进程内单例复用。
 /// </summary>

@@ -1,7 +1,7 @@
-// 连接方式（迭代 15 §6.2 恢复，迭代 18 F3）：模式标签 / 徽标格式化 / 参数默认值
-// 迭代 22：传输插件化——availablePlugins（spec 驱动表单）优先；旧后端（无 availablePlugins）回退内置 4 模式。
+// 连接方式（恢复，F3）：模式标签 / 徽标格式化 / 参数默认值
+// 传输插件化——availablePlugins（spec 驱动表单）优先；旧后端（无 availablePlugins）回退内置 4 模式。
 // 徽标：新后端 displayText 优先，旧后端按 mode + params 本地格式化。
-// 迭代 111（#245）：formatTransport 的本地格式化跟随当前界面语言（common.transport.* 词条；
+// formatTransport 的本地格式化跟随当前界面语言（common.transport.* 词条
 // zh-CN 值与原硬编码逐字一致；调用点均在组件渲染期求值，语言切换后随重渲染更新）。
 
 import i18next from '../i18n'
@@ -9,9 +9,9 @@ import type { PluginParams, PluginParamValue, TransportConfig, TransportMode, Tr
 
 export const ALL_TRANSPORT_MODES: TransportMode[] = ['Log', 'Tcp', 'WindowsDriver', 'Zebra']
 
-// 迭代 73（#108 界面文案用户化）：模式标签用户化——「Log」等开发者向名称改为用户语（保留专业语义：
+// （界面文案用户化）：模式标签用户化——「Log」等开发者向名称改为用户语（保留专业语义：
 // Log = 模拟打印、Tcp = 网络打印机、Zebra 为品牌名保留）。
-// 迭代 112（#246）：标签 key 化（common.transport.mode.* / zebraKind.*）——改为函数在调用期取当前
+// 标签 key 化（common.transport.mode.* / zebraKind.*）——改为函数在调用期取当前
 // 界面语言；消费组件（TransportPanel 单选项）经 useTranslation 订阅语言切换后重渲染刷新。
 export type ModeLabelKey = 'log' | 'tcp' | 'windowsDriver' | 'zebra'
 
@@ -40,7 +40,7 @@ export function zebraKindLabel(kind: ZebraKind): string {
   return i18next.t(`transport.zebraKind.${ZEBRA_KIND_LABEL_KEYS[kind]}`)
 }
 
-// ── 迭代 22：旧模式 ↔ 插件 id 映射（回退显示 / 初始选中；与后端 connection.json 旧配置映射表一致）──
+// ── ：旧模式 ↔ 插件 id 映射（回退显示 / 初始选中；与后端 connection.json 旧配置映射表一致）──
 
 export const MODE_TO_PLUGIN_ID: Record<TransportMode, string> = {
   Log: 'log',
@@ -61,7 +61,7 @@ export function isPluginMode(cfg: TransportConfig | null | undefined): boolean {
   return Array.isArray(cfg?.availablePlugins) && cfg.availablePlugins.length > 0
 }
 
-/** 连接级打印方式（迭代 78，DESIGN §5.4.2）：当前生效连接是否为原生指令模式（printMode=native）。
+/* * 连接级打印方式（DESIGN）：当前生效连接是否为原生指令模式（printMode=native）。
  *  与后端读取口径一致：缺失 / 非法值不视为 native（回退 image）。 */
 export function isNativePrintMode(cfg: TransportConfig | null | undefined): boolean {
   const raw = (cfg?.params as PluginParams | undefined)?.printMode
@@ -100,7 +100,7 @@ export function defaultParams(mode: TransportMode, current?: TransportConfig | n
   }
 }
 
-// ── 迭代 22：插件参数 spec 工具（兼容后端可能的两种序列化）──
+// ── ：插件参数 spec 工具（兼容后端可能的两种序列化）──
 
 /** Select 枚举项解析：兼容 `string[]` 与 `{ value, label? }[]` 两种后端序列化。 */
 export function specOptions(spec: TransportParameterSpec): { value: string; label: string }[] {

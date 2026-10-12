@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// 迭代 104（#225）：锚定 Popover 组件行为回归——portal 到 body（脱离 overflow:hidden 祖先）、
+// 锚定 Popover 组件行为回归——portal 到 body（脱离 overflow:hidden 祖先）
 // Esc / 点击菜单外区域关闭、菜单内点击不关闭；anchor 为 null 时不渲染。
 // 视觉裁剪（.wb-card overflow:hidden）以「菜单不在卡片内 + fixed 定位」结构断言自证（Workbench.test.tsx 同口径），
-// 浏览器实测留待 #225 AC-07 验收走查。
+// 浏览器实测留待 验收走查。
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -37,7 +37,7 @@ describe('Popover（锚定弹出菜单）', () => {
     render(<Host />)
     fireEvent.click(screen.getByRole('button', { name: '触发' }))
     const menu = screen.getByRole('menu')
-    // 防裁剪两要素（迭代 104 实施已知坑）：菜单不挂在 .wb-card 子树内 + fixed 定位
+    // 防裁剪两要素（实施已知坑）：菜单不挂在 .wb-card 子树内 + fixed 定位
     expect(menu.closest('.wb-card')).toBeNull()
     expect(menu.parentElement).toBe(document.body)
     expect(menu.style.position).toBe('fixed')

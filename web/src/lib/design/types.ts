@@ -1,5 +1,5 @@
 // 设计器内部元素模型（labelframe-web-design 格式，与原型一致）
-// 迭代 112（#246）：文案 key 化（designer 域）——默认元素文本「文本」属 UI 层数据性默认值，
+// 文案 key 化（designer 域）——默认元素文本「文本」属 UI 层数据性默认值
 // 跟随当前界面语言（待决议-1 建议项：en 态新建文本元素默认占位英文，存量模板存储值不受影响）；
 // typeLabel / layerLabel / elementContent 在调用点（组件渲染期）求值，语言切换后随重渲染更新。
 
@@ -34,7 +34,7 @@ export interface TextElement extends ElementBase {
   fontH: number
   fontW: number
   fontFamily: string
-  /** 加粗（迭代 14：小字号打印不清晰，加粗提高可读性；默认 false 不写契约字段） */
+  /* * 加粗（小字号打印不清晰，加粗提高可读性；默认 false 不写契约字段） */
   bold: boolean
   /** 自动换行 */
   wrap: boolean
@@ -44,7 +44,7 @@ export interface TextElement extends ElementBase {
   mode: ContentMode
   /** 字段填充的字段名（打印数据按此匹配） */
   key: string
-  /** 打印字段显示名（可选，迭代 83 · #131 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
   displayName?: string
   /** 固定值内容 / 字段填充的预览值（仅画布显示） */
   text: string
@@ -60,7 +60,7 @@ export interface BarcodeElement extends ElementBase {
   type: 'Barcode'
   mode: ContentMode
   key: string
-  /** 打印字段显示名（可选，迭代 83 · #131 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
   displayName?: string
   text: string
   paddingH: number
@@ -75,7 +75,7 @@ export interface QrCodeElement extends ElementBase {
   type: 'QrCode'
   mode: ContentMode
   key: string
-  /** 打印字段显示名（可选，迭代 83 · #131 决议 1：打印页字段标签回退 key） */
+  /* * 打印字段显示名（可选，· 决议 1：打印页字段标签回退 key） */
   displayName?: string
   text: string
   paddingH: number
@@ -94,8 +94,8 @@ export interface ImageElement extends ElementBase {
   key: string
 }
 
-/** 图片资源（设计器内存态，迭代 132 · #329）：dataUrl 供画布解码；width / height 为入库图片像素尺寸（属性面板信息行）；
- *  sizeBytes 为入库（压缩后）字节量——上传预检总量上限与保存体积按此计（#329 方案 v2 起超 1MB 走压缩管道，
+/* * 图片资源（设计器内存态，·）：dataUrl 供画布解码；width / height 为入库图片像素尺寸（属性面板信息行）
+ * sizeBytes 为入库（压缩后）字节量——上传预检总量上限与保存体积按此计（ 起超 1MB 走压缩管道
  *  入库字节 ≠ 用户原文件字节；模板回填按 base64 长度折算）。 */
 export interface ImageAsset {
   dataUrl: string
@@ -140,7 +140,7 @@ export function defaultElement(type: 'Rect', id?: string): RectElement
 export function defaultElement(type: 'Image', id?: string): ImageElement
 export function defaultElement(type: 'Line', id?: string): LineElement
 export function defaultElement(type: 'Region', id?: string): RegionElement
-/** 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片——迭代 132 · #329 起图片入控件栏）。 */
+/* * 控件栏入口（文本 / 条码 / 二维码 / 矩形 / 图片——· 起图片入控件栏）。 */
 export function defaultElement(type: 'Text' | 'Barcode' | 'QrCode' | 'Rect' | 'Image', id?: string): TextElement | BarcodeElement | QrCodeElement | RectElement | ImageElement
 export function defaultElement(type: ElementType, id = uid()): DesignElement {
   const base = { id, x: 5, y: 5, w: 40, h: 10, border: 0 }
@@ -188,7 +188,7 @@ export function layerLabel(e: DesignElement): string {
       return i18next.t('designer:layer.typedField', { type: t, key: e.key || i18next.t('designer:layer.unbound'), text: e.text || '' })
     }
     case 'Rect': return i18next.t('designer:type.rect')
-    // 图片：key 空＝未指定（两步式空占位，#329 方案 v2）——图层标签提升辨识
+    // 图片：key 空＝未指定（两步式空占位）——图层标签提升辨识
     case 'Image': return e.key ? i18next.t('designer:layer.imageWithKey', { type: i18next.t('designer:type.image'), key: e.key }) : i18next.t('designer:layer.imageEmpty')
     case 'Line': return i18next.t('designer:type.line')
     case 'Region': return i18next.t('designer:type.region')

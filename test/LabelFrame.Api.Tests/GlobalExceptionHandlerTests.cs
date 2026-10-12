@@ -13,7 +13,7 @@ using Xunit;
 namespace LabelFrame.Api.Tests;
 
 /// <summary>
-/// 共享全局异常处理器分类测试（迭代 50，决策 #107）：
+/// 共享全局异常处理器分类测试：
 /// 请求体反序列化失败（非法 JSON / 非 UTF-8 / 类型不匹配）→ 400 + LF_API_BAD_BODY + 中文消息；
 /// 其余未捕获异常 → 500 + LF_INTERNAL_001（ApiErrorCodes 常量，全仓唯一字面量定义处）。
 /// </summary>

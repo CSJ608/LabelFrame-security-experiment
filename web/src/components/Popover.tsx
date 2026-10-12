@@ -1,7 +1,7 @@
-// 轻量锚定弹出菜单（迭代 104 / #225，仓库首个下拉菜单组件）。
-// 关键实现约束（DESIGN 决策 #152①）：必须 createPortal 到 body ＋ position:fixed 锚定——
+// 轻量锚定弹出菜单（/ ，仓库首个下拉菜单组件）。
+// 关键实现约束（DESIGN ①）：必须 createPortal 到 body ＋ position:fixed 锚定——
 // 工作台卡片 .wb-card 为 overflow:hidden，普通绝对定位菜单会被卡片裁剪（实施已知坑）。
-// 关闭语义（决策 #161 口径）：点击菜单外区域 / Esc / 页面滚动均关闭；菜单项点击由调用方关闭。
+// 关闭语义：点击菜单外区域 / Esc / 页面滚动均关闭；菜单项点击由调用方关闭。
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -97,7 +97,7 @@ export function Popover({ anchor, onClose, ariaLabel, children }: PopoverProps) 
   )
 }
 
-/** 弹出菜单内的菜单项（role=menuitem 的按钮形态；danger = 删除类警示样式，决策 #161）。 */
+/* * 弹出菜单内的菜单项（role=menuitem 的按钮形态；danger = 删除类警示样式）。 */
 export function MenuItem({
   danger,
   children,

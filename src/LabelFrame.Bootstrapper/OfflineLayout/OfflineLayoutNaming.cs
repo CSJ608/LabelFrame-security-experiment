@@ -2,7 +2,7 @@ namespace LabelFrame.Bootstrapper.OfflineLayout;
 
 using LabelFrame.Bootstrapper.Manifest;
 
-/// <summary>离线布局目录命名约定（DESIGN §6.2，决策 #132）——生成（脚本与引导 <c>--layout</c>）与消费（本地源解析）共用。</summary>
+/// <summary>离线布局目录命名约定（DESIGN）——生成（脚本与引导 <c>--layout</c>）与消费（本地源解析）共用。</summary>
 /// <remarks>
 /// <para>
 /// 目录固定文件：清单 = <see cref="ManifestFileName"/>（官方原样字节）、指针 = <see cref="LatestFileName"/>（可选）；

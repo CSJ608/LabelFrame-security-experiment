@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 23 §5.7：Server UI「插件管理」页——列表（名称 / 版本 / pluginId / 大小 / 修改时间 / valid 状态，invalid 红标 + 原因）、
+// Server UI「插件管理」页——列表（名称 / 版本 / pluginId / 大小 / 修改时间 / valid 状态，invalid 红标 + 原因）
 // 上传（multipart，64MB 预检——纯函数阈值由 pluginLimits.test.ts 覆盖，此处 mock 返回控制）、下载、删除（确认后调用 + 刷新）；空态提示。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -115,7 +115,7 @@ describe('插件管理页（迭代 23 §5.4）', () => {
     await screen.findByText('示例插件')
 
     fireEvent.click(screen.getAllByRole('button', { name: /删除/ })[0])
-    // 迭代 93（#151 F-04）：自研 Modal 确认（替代原生 confirm 弹窗）——确认后删除 + 刷新
+    // 自研 Modal 确认（替代原生 confirm 弹窗）——确认后删除 + 刷新
     expect(await screen.findByText('删除插件包')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }))
     await waitFor(() => expect(mocks.server.deletePluginPackage).toHaveBeenCalledWith('sample-1.0.0.lfplugin'))

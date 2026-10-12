@@ -31,9 +31,9 @@ public static class Program
 #endif
 
 #if WINDOWS
-        // Serilog 文件日志（决策 #102，缺陷 #14 修复）：装配收拢到 SerilogSetup，
+        // Serilog 文件日志：装配收拢到 SerilogSetup
         // 必须经 BuildAsync 的 configureBuilder 挂到真实 builder——
-        // 此前 UseSerilog 写在本 builder 上（只用于配置绑定、从不 Build），自迭代 32 起文件日志从未生效。
+        // 此前 UseSerilog 写在本 builder 上（只用于配置绑定、从不 Build），自起文件日志从未生效。
 #endif
 
         var hostLogWriter = OpenHostLogWriter(options);
@@ -54,7 +54,7 @@ public static class Program
         }
 
 #if WINDOWS
-        // 单实例（迭代 44）：已有实例在运行 → 通知其显示界面窗口后退出，不再走到端口监听（此前表现为端口占用启动失败）
+        // 单实例：已有实例在运行 → 通知其显示界面窗口后退出，不再走到端口监听（此前表现为端口占用启动失败）
         using var singleInstance = SingleInstanceGuard.TryAcquire();
         if (singleInstance is null)
         {
@@ -66,12 +66,12 @@ public static class Program
 
         HostInfo($"LabelFrame 启动：监听 {options.ListenUrl}，DPI {options.Dpi}，OpenBrowser={options.OpenBrowser}，ServerUrl={options.ServerUrl ?? "(未配置路由)"}");
 
-        // 出图目录保留清理（迭代 72，决策 #136）：启动时顺带执行一次（无后台任务，对齐 #108 轻量口径；
+        // 出图目录保留清理：启动时顺带执行一次（无后台任务，对齐 轻量口径
         // Windows 窗口客户端与 Linux 无头客户端共用本路径）；清理器永不抛出，失败不影响启动
         new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays, hostLogWriter).CleanupExpired();
 
         // 应用装配（DI + 全部端点 + Web UI 托管）；宿主层职责（界面壳 / 托盘 / 退出）留在 Main。
-        // Windows：Serilog 文件日志经 configureBuilder 挂到 BuildAsync 内部的真实 builder（缺陷 #14 修复）。
+        // Windows：Serilog 文件日志经 configureBuilder 挂到 BuildAsync 内部的真实 builder。
 #if WINDOWS
         var app = await WinHostApp.BuildAsync(
             options,
@@ -85,7 +85,7 @@ public static class Program
 #endif
 
 #if WINDOWS
-        // 界面壳（迭代 44，决策 #99）：窗口形态（WebView2）优先，运行时不可用回退浏览器；
+        // 界面壳：窗口形态（WebView2）优先，运行时不可用回退浏览器
         // OpenBrowser 配置语义演进为「启动时显示界面」（默认开），--autostart 仅托盘不弹界面（D4）
         var localUiUrl = new Uri(UiUrl.ToLocalUiUrl(options.ListenUrl));
         IUiShell? uiShell = null;
@@ -112,7 +112,7 @@ public static class Program
         app.Lifetime.ApplicationStopping.Register(() => HostInfo("ApplicationStopping"));
         app.Lifetime.ApplicationStopped.Register(() => HostInfo("ApplicationStopped"));
 
-        // 统一退出协调器（缺陷 #58）：托盘「退出」与 /api/host/shutdown 共用「优雅停止 + 限时兜底强退」
+        // 统一退出协调器：托盘「退出」与 /api/host/shutdown 共用「优雅停止 + 限时兜底强退」
         var exit = app.Services.GetRequiredService<HostExitCoordinator>();
 
 #if WINDOWS
@@ -125,7 +125,7 @@ public static class Program
             HostInfo("系统托盘已启用（双击或右键托盘图标可打开界面，退出请用托盘菜单）。");
         }
 
-        // 退出清理统一注册（缺陷 #58）：主流程 finally 与强退兜底共用同一入口——
+        // 退出清理统一注册：主流程 finally 与强退兜底共用同一入口——
         // 托盘 WM_QUIT 投递（消息循环退出后在托盘线程内 NIM_DELETE，消除幽灵图标）+ 界面壳释放。
         exit.RegisterCleanup(() =>
         {
@@ -142,7 +142,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            // WinExe 无控制台：失败原因写入 host.log 并以消息框向用户展示中文原因（迭代 44 前只写日志，用户无感知）
+            // WinExe 无控制台：失败原因写入 host.log 并以消息框向用户展示中文原因（前只写日志，用户无感知）
             HostInfo($"LabelFrame 启动失败：{ex}");
             exitCode = 1;
             var friendly = DescribeStartupFailure(ex, options.ListenUrl);
@@ -150,7 +150,7 @@ public static class Program
             if (uiShell is null)
             {
                 // 无界面壳（LABELFRAME_OPEN_BROWSER=0 且 LABELFRAME_TRAY=0）：消息框无处展示，
-                // 启动失败提示同时写控制台 / stderr（决策 #108——此前只入 host.log，控制台不可见）
+                // 启动失败提示同时写控制台 / stderr（——此前只入 host.log，控制台不可见）
                 try
                 {
                     Console.Error.WriteLine($"[LabelFrame] {friendly}");
@@ -178,7 +178,7 @@ public static class Program
 #endif
         finally
         {
-            // 缺陷 #58：RunAsync 在托盘 / 界面消息循环在场时可能不自然返回——能走到本 finally 的都是自然路径。
+            // RunAsync 在托盘 / 界面消息循环在场时可能不自然返回——能走到本 finally 的都是自然路径。
             // 清理统一走协调器（与强退兜底同一入口）；完成后标记自然退出（看门狗收手），再退出进程。
             exit.RunCleanup();
             HostInfo("宿主退出流程完成。");
@@ -220,7 +220,7 @@ public static class Program
             => Task.FromResult(new Core.Transport.PrinterStatusInfo(false, false, false, "当前传输不支持状态查询。"));
     }
 
-    /// <summary>Log 传输 / 宿主日志写入器（WinExe 无控制台，避免 Console 不可用）。host.log 按日轮转（决策 #108）：实际写入 host-yyyyMMdd.log，默认保留 31 个；打开失败回退空写入器（不阻断启动）。</summary>
+    /// <summary>Log 传输 / 宿主日志写入器（WinExe 无控制台，避免 Console 不可用）。host.log 按日轮转：实际写入 host-yyyyMMdd.log，默认保留 31 个；打开失败回退空写入器（不阻断启动）。</summary>
     private static TextWriter OpenHostLogWriter(HostOptions options)
     {
         try

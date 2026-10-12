@@ -28,7 +28,7 @@ export function parseDesign(text: string): { paperW: number; paperH: number; ele
   try {
     data = JSON.parse(text)
   } catch {
-    // 迭代 112（#246）：错误消息 key 化（抛出期即当时界面语言）
+    // 错误消息 key 化（抛出期即当时界面语言）
     throw new Error(i18next.t('designer:importError.jsonParse'))
   }
   const d = data as Partial<DesignFile>

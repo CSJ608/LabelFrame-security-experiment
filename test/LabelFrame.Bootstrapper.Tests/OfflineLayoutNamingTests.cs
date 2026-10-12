@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>离线布局目录命名约定测试（迭代 70 / #89，DESIGN §6.2，决策 #132）——生成与消费共用的单点契约锚定。</summary>
+/// <summary>离线布局目录命名约定测试（/ ，DESIGN）——生成与消费共用的单点契约锚定。</summary>
 public sealed class OfflineLayoutNamingTests
 {
     private static ManifestComponent Component(string id, params string[] urls) =>
@@ -64,7 +64,7 @@ public sealed class OfflineLayoutNamingTests
     [Fact]
     public void Fixed_table_entries_are_stable_contract()
     {
-        // 兜底表为跨形态契约（脚本 make-offline-layout.ps1 与核心库共用）——变更即契约变更（决策 #132）
+        // 兜底表为跨形态契约（脚本 make-offline-layout.ps1 与核心库共用）——变更即契约变更
         var entry = Assert.Single(OfflineLayoutNaming.FixedFileNames);
         Assert.Equal("runtime-webview2", entry.Key);
         Assert.Equal("MicrosoftEdgeWebView2RuntimeInstallerSimpleX64.exe", entry.Value);

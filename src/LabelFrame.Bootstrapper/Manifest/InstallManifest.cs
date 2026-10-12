@@ -3,28 +3,28 @@ using System.Text.Json.Serialization;
 
 namespace LabelFrame.Bootstrapper.Manifest;
 
-/// <summary>安装清单（install manifest，DESIGN §6.2，决策 #115）——由 CI 随发版生成并作为 Release 附件发布，引导程序只读解析。</summary>
+/// <summary>安装清单（install manifest，DESIGN）——由 CI 随发版生成并作为 Release 附件发布，引导程序只读解析。</summary>
 public sealed record InstallManifest(
     int SchemaVersion,
     string LabelframeVersion,
     string GeneratedAt,
     IReadOnlyList<ManifestComponent> Components)
 {
-    /// <summary>引导程序支持的 schema 版本上限（fail-closed：遇到更照新清单拒绝并提示先升级引导程序，§6.2 演进规则）。</summary>
+    /// <summary>引导程序支持的 schema 版本上限（fail-closed：遇到更照新清单拒绝并提示先升级引导程序， 演进规则）。</summary>
     public const int SupportedSchemaVersion = 1;
 
-    /// <summary>schema 允许的组件 type 枚举（§6.2 组件条目表）。</summary>
+    /// <summary>schema 允许的组件 type 枚举（组件条目表）。</summary>
     public static readonly IReadOnlyCollection<string> AllowedTypes = new HashSet<string>(
         ["msi", "lfplugin", "webui-zip", "apk", "runtime", "archive"], StringComparer.Ordinal);
 
-    /// <summary>schema 允许的拓扑标记枚举（§6.3 预设 id + offline / pda 补充语义）。</summary>
+    /// <summary>schema 允许的拓扑标记枚举（预设 id + offline / pda 补充语义）。</summary>
     public static readonly IReadOnlyCollection<string> AllowedTopologies = new HashSet<string>(
         ["standalone", "server-win", "server-docker", "server-linux", "client", "offline", "pda"], StringComparer.Ordinal);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        // 兼容 §6.2 演进规则：新增可选字段 = 兼容（旧引导程序忽略未知字段）
+        // 兼容 演进规则：新增可选字段 = 兼容（旧引导程序忽略未知字段）
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
     };
 
@@ -54,7 +54,7 @@ public sealed record InstallManifest(
 
         if (manifest.SchemaVersion > SupportedSchemaVersion)
         {
-            // fail-closed：schema 超出支持范围即拒绝，提示先升级引导程序（§6.2 演进规则）
+            // fail-closed：schema 超出支持范围即拒绝，提示先升级引导程序（演进规则）
             throw new InstallManifestFormatException(
                 $"清单 schema 版本过新（{manifest.SchemaVersion}，本引导程序支持至 {SupportedSchemaVersion}），请先升级引导程序。");
         }
@@ -161,7 +161,7 @@ public sealed record InstallManifest(
     private static bool IsLowerHex(char c) => c is (>= '0' and <= '9') or (>= 'a' and <= 'f');
 }
 
-/// <summary>清单组件条目（§6.2 组件条目表；字段名与 CI 生成的 camelCase JSON 一致）。</summary>
+/// <summary>清单组件条目（组件条目表；字段名与 CI 生成的 camelCase JSON 一致）。</summary>
 public sealed record ManifestComponent(
     string Id,
     string Type,

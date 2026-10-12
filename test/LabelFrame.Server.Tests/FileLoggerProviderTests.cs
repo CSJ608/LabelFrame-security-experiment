@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// FileLoggerProvider 启动防护与轮转 / 保留测试（决策 #108；大小上限轮转与（日期,序号）序清理为决策 #173 / #291 AC-01）：
+/// FileLoggerProvider 启动防护与轮转 / 保留测试（；大小上限轮转与（日期,序号）序清理为 / ）：
 /// 路径无效不抛异常（宿主可正常启动）、按日文件写入、单文件大小超限切序号文件、单日多次轮转总文件数受限、
 /// 清理按（日期,序号）元组序删最旧（写入中文件不被选中）、轮转失败回退旧文件、通道停用后写入不抛异常。
 /// </summary>
@@ -20,7 +20,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Constructor_with_invalid_path_should_not_throw_and_report_reason()
     {
-        // AC-01：目录不存在且不可创建（父路径是一个文件）——构造不抛异常、通道禁用、给出原因
+        // 目录不存在且不可创建（父路径是一个文件）——构造不抛异常、通道禁用、给出原因
         var blocker = Path.Combine(_directory, "blocker.txt");
         File.WriteAllText(blocker, "占位文件：以其为目录必然创建失败");
         var invalidPath = Path.Combine(blocker, "logs", "server.log");
@@ -49,7 +49,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Startup_should_cleanup_files_over_retention_limit()
     {
-        // AC-02：构造（启动）即清理超期——保留上限含当日文件（与 Serilog retainedFileCountLimit 口径一致），
+        // 构造（启动）即清理超期——保留上限含当日文件（与 Serilog retainedFileCountLimit 口径一致）
         // 6 个按日文件、上限 3 → 删最旧 3 个
         var basePath = Path.Combine(_directory, "server.log");
         foreach (var day in new[] { "20200101", "20200102", "20200103", "20200104", "20200105" })
@@ -99,7 +99,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Size_rotation_should_switch_to_sequence_file_and_seal_old_file()
     {
-        // AC-01（决策 #173）：单文件超上限切当日序号文件继续写（服务不中断）；已封存的旧文件不再增长
+        // 单文件超上限切当日序号文件继续写（服务不中断）；已封存的旧文件不再增长
         var basePath = Path.Combine(_directory, "server.log");
         using var provider = new FileLoggerProvider(basePath, retainedFileCountLimit: 31, maxFileSizeBytes: 4 * 1024);
         var logger = provider.CreateLogger("TestCategory");
@@ -138,7 +138,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Multiple_size_rotations_within_one_day_should_stay_within_file_count_limit()
     {
-        // 决策 #173（评审 B3）：大小轮转分支同样触发清理——单日内多次超限轮转后文件总数不超个数上限；
+        // （评审 B3）：大小轮转分支同样触发清理——单日内多次超限轮转后文件总数不超个数上限
         // 写入中文件按（日期,序号）元组序总在队尾，清理不会删到它（通道保持可用、末行可落盘）
         var basePath = Path.Combine(_directory, "server.log");
         using var provider = new FileLoggerProvider(basePath, retainedFileCountLimit: 3, maxFileSizeBytes: 512);
@@ -157,7 +157,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Cleanup_should_delete_oldest_by_date_then_sequence_and_keep_current_file()
     {
-        // 决策 #173（评审 B2）：清理按（日期, 序号〔基名=0〕）元组序删最旧，替代文件名 Ordinal 串序——
+        // （评审 B2）：清理按（日期, 序号〔基名=0〕）元组序删最旧，替代文件名 Ordinal 串序——
         // Ordinal 序下 ".10" 排在 ".2" 之前、基名文件（当日最旧）排在全部序号文件之后；
         // 6 个文件上限 3 → 删 (20200101,0)、(20200102,0)、(20200102,2)，保留 (20200102,10)、(20200103,0) 与写入中当日文件
         var basePath = Path.Combine(_directory, "server.log");
@@ -190,7 +190,7 @@ public class FileLoggerProviderTests : IDisposable
     [Fact]
     public void Size_rotation_open_failure_should_fall_back_to_old_file_and_keep_channel()
     {
-        // 决策 #173：大小轮转开新文件失败沿用「退回旧文件继续写、下次再试」防护——轮转失败 ≠ 写入失败，通道不自我禁用
+        // 大小轮转开新文件失败沿用「退回旧文件继续写、下次再试」防护——轮转失败 ≠ 写入失败，通道不自我禁用
         var basePath = Path.Combine(_directory, "server.log");
         // 预占当日序号文件路径（目录占位使开新文件必然失败）
         Directory.CreateDirectory(Path.Combine(_directory, $"server-{DateTime.Now:yyyyMMdd}.1.log"));

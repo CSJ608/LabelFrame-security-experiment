@@ -24,13 +24,13 @@ public sealed record TemplateApiOptions(
 /// <summary>模板库端点（Server 与 WinHost 共用）：CRUD + 导入导出 + 预览。</summary>
 public static class TemplateEndpoints
 {
-    /// <summary>单图体积上限（解码后原始字节，决策 #184）：2MB。</summary>
+    /// <summary>单图体积上限（解码后原始字节）：2MB。</summary>
     private const int MaxImageBytes = 2 * 1024 * 1024;
 
-    /// <summary>单模板图片张数上限（决策 #184）：10 张。</summary>
+    /// <summary>单模板图片张数上限：10 张。</summary>
     private const int MaxImageCount = 10;
 
-    /// <summary>单模板图片总量上限（解码后原始字节，决策 #184）：10MB。</summary>
+    /// <summary>单模板图片总量上限（解码后原始字节）：10MB。</summary>
     private const long MaxTotalImageBytes = 10L * 1024 * 1024;
 
     public static IEndpointRouteBuilder MapTemplateApi(this IEndpointRouteBuilder app, TemplateApiOptions options)
@@ -42,7 +42,7 @@ public static class TemplateEndpoints
                 return Results.BadRequest(new ErrorView(options.InvalidRequestCode, "缺少模板 name / contract / layout。"));
             }
 
-            // 三态图片语义（决策 #184，DESIGN §5.1）：缺省 / 显式 null＝保留存量（先读存量再并入，
+            // 三态图片语义（DESIGN）：缺省 / 显式 null＝保留存量（先读存量再并入
             // 与 TemplateStore 的 testData 读-改-写先例同构——两步非同事务存在竞态窗口，单设计器场景可接受）；
             // 空字典＝清空；非空＝全量覆盖（SaveAsync 先删后插既有语义）
             IReadOnlyDictionary<string, byte[]> images;
@@ -82,8 +82,8 @@ public static class TemplateEndpoints
                 return Results.Ok(package);
             }
 
-            // 模板化消息（决策 #164 ③ / #166）：渲染结果与旧内插文案逐字一致（冒号后无空格为既有文案形态）
-            // 参数键 templateName（#242 返修：单码单参数键集——与 ServerService 作业提交链的同码变体统一，
+            // 模板化消息（③ /）：渲染结果与旧内插文案逐字一致（冒号后无空格为既有文案形态）
+            // 参数键 templateName（ ：单码单参数键集——与 ServerService 作业提交链的同码变体统一
             // 否则 en 码表 {{templateName}} 词条对不上 name 变体会回退中文）
             var parameters = new Dictionary<string, string> { ["templateName"] = name };
             return Results.NotFound(new ErrorView(
@@ -159,7 +159,7 @@ public static class TemplateEndpoints
             }
             catch (MissingImageResourceException ex)
             {
-                // 决策 #184：缺资源＝预览侧显式报错（不静默灰占位照打）
+                // 缺资源＝预览侧显式报错（不静默灰占位照打）
                 return Results.BadRequest(new ErrorView(options.ImageInvalid, ex.Message));
             }
 
@@ -170,7 +170,7 @@ public static class TemplateEndpoints
     }
 
     /// <summary>
-    /// 保存请求图片解析（三态，决策 #184）：images 为 null（缺省或显式 null，反序列化不可区分）＝读存量并入＝保留；
+    /// 保存请求图片解析（三态）：images 为 null（缺省或显式 null，反序列化不可区分）＝读存量并入＝保留
     /// 显式字典＝解码 + 硬校验（空字典自然产出空集＝清空，非空＝覆盖，落库走 SaveAsync 先删后插）。
     /// 校验失败抛 <see cref="FormatException"/>（坏 base64，消息为键名）或 <see cref="InvalidOperationException"/>（上限 / 格式，中文消息含键名）。
     /// </summary>

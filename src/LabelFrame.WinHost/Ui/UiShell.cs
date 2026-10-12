@@ -1,7 +1,7 @@
 namespace LabelFrame.WinHost.Ui;
 
 /// <summary>
-/// 界面壳：宿主展示界面的通道抽象（迭代 44，决策 #99）。
+/// 界面壳：宿主展示界面的通道抽象。
 /// 窗口形态 = WebView2 应用窗口；WebView2 运行时不可用时回退浏览器形态（功能不受损）。
 /// </summary>
 internal interface IUiShell : IDisposable
@@ -13,7 +13,7 @@ internal interface IUiShell : IDisposable
     void ShowFatalError(string message);
 }
 
-/// <summary>浏览器形态界面壳：WebView2 运行时不可用时的兜底（迭代 44 前的唯一形态）。</summary>
+/// <summary>浏览器形态界面壳：WebView2 运行时不可用时的兜底（前的唯一形态）。</summary>
 internal sealed class BrowserUiShell : IUiShell
 {
     private readonly Uri _uiUrl;

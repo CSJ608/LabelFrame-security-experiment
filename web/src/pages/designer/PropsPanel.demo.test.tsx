@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 126（#308 AC-05）：「看实时效果」演示全链——临时注入 / 画布实时反映 / 退出自动还原 /
+// 「看实时效果」演示全链——临时注入 / 画布实时反映 / 退出自动还原 /
 // 历史栈零污染 / 零落库。画布为 react-konva 重组件（jsdom 无 2d context），以 props 探针桩替换：
 // 捕获 Designer 传入的 viewState 断言「画布收到的元素」，演示合并与还原在数据层可完整验证；
 // Konva 真实交互由专门画布测试与真机验收覆盖（Designer.test.tsx 同口径）。

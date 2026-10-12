@@ -19,7 +19,7 @@ namespace LabelFrame.AndroidHost;
 /// 宿主配置页（唯一 UI）：主页展示运行状态与设置入口，「连接服务器 / 连接打印机 / 插件管理 / 本机信息」
 /// 子页各自编辑并保存（保存即重启宿主服务生效）；设备号由系统唯一码自动生成只读展示。
 /// 文案面向不懂技术的仓库用户：只说「这里填什么 / 点按钮会发生什么 / 状态意味着什么与下一步」。
-/// 迭代 110（#244，决策 #164 ⑤）：全部 UI 文案经 <c>Resources/values</c>（缺省中文）+
+/// （⑤）：全部 UI 文案经 <c>Resources/values</c>（缺省中文）+
 /// <c>values-en</c> 资源 id 引用，语言跟随系统；错误消息经 <see cref="LfErrorCatalog"/> 按码翻译。
 /// </summary>
 [Activity(Label = "@string/app_name", MainLauncher = true, Exported = true, LaunchMode = LaunchMode.SingleTop,
@@ -67,7 +67,7 @@ public sealed class MainActivity : Activity
     private TextView _serverTestText = null!;
     private TextView _serverSaveHint = null!;
 
-    // 打印机子页（迭代 96 / 决策 #156：品牌选项由内置 Zebra + 已装外置插件动态扩展）
+    // 打印机子页（/ ：品牌选项由内置 Zebra + 已装外置插件动态扩展）
     private RadioGroup _brandGroup = null!;
     private readonly Dictionary<int, string> _brandIds = new(); // 单选项 Id → 品牌（zebra 或插件 id）
     private RadioGroup _connectionTypeGroup = null!;
@@ -81,7 +81,7 @@ public sealed class MainActivity : Activity
     private TextView _printTestText = null!;
     private TextView _printerSaveHint = null!;
 
-    // 插件管理子页（迭代 96 / 决策 #156）
+    // 插件管理子页（/）
     private LinearLayout _installedList = null!;
     private TextView _installedSummary = null!;
     private LinearLayout _serverPackagesList = null!;
@@ -185,14 +185,14 @@ public sealed class MainActivity : Activity
         }
     }
 
-    // ---------- 本地化辅助（迭代 110 / #244，决策 #164 ⑤：文案一律资源 id 引用） ----------
+    // ---------- 本地化辅助（/ ， ⑤：文案一律资源 id 引用） ----------
 
     private string L(int resId) => GetString(resId)!;
 
     private string L(int resId, params object?[] args)
         => string.Format(CultureInfo.InvariantCulture, GetString(resId)!, args);
 
-    /// <summary>错误消息按码翻译：en 态已知码本地翻译、未知码 / 参数不全回退后端中文 message（语义对齐迭代 109）。</summary>
+    /// <summary>错误消息按码翻译：en 态已知码本地翻译、未知码 / 参数不全回退后端中文 message（语义对齐）。</summary>
     private string ResolveError(string? code, IReadOnlyDictionary<string, string>? parameters, string backendMessage)
         => LfErrorCatalog.Resolve(code, parameters, backendMessage, HostLocale.IsEnglish(this));
 
@@ -398,7 +398,7 @@ public sealed class MainActivity : Activity
         content.AddView(Header(L(Resource.String.printer_title)));
         content.AddView(Spacing(10));
 
-        // 打印机品牌（迭代 96 / 决策 #156 / 决策 #95 预埋兑现）：Zebra 内置 + 已装外置插件动态扩展
+        // 打印机品牌（/ / 预埋兑现）：Zebra 内置 + 已装外置插件动态扩展
         content.AddView(FieldLabel(L(Resource.String.printer_brand_label)));
         _brandGroup = new RadioGroup(this);
         _brandGroup.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
@@ -415,7 +415,7 @@ public sealed class MainActivity : Activity
         content.AddView(Spacing(10));
         RunAsync(RefreshBrandOptionsAsync);
 
-        // 连接类型（网口默认且一级路径；蓝牙 / USB 为增量类型，迭代 56 决策 #111）——Zebra 专属，插件品牌隐藏整块
+        // 连接类型（网口默认且一级路径；蓝牙 / USB 为增量类型）——Zebra 专属，插件品牌隐藏整块
         _connectionTypeCard = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _connectionTypeCard.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         _connectionTypeCard.AddView(FieldLabel(L(Resource.String.conn_type_label)));
@@ -461,7 +461,7 @@ public sealed class MainActivity : Activity
         _tcpFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         content.AddView(_tcpFields);
 
-        // 蓝牙参数：MAC 地址手输（迭代 56 预授权决议 1：首版最简）
+        // 蓝牙参数：MAC 地址手输（预授权决议 1：首版最简）
         _bluetoothFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _bluetoothFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         _bluetoothFields.AddView(FieldLabel(L(Resource.String.printer_bt_label)));
@@ -471,7 +471,7 @@ public sealed class MainActivity : Activity
         _bluetoothFields.AddView(Subtle(L(Resource.String.printer_bt_note)));
         content.AddView(_bluetoothFields);
 
-        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误，迭代 56 预授权决议 2）
+        // USB 参数：自动发现锁定第一台（无可选设备给可行动错误，预授权决议 2）
         _usbFields = new LinearLayout(this) { Orientation = Orientation.Vertical };
         _usbFields.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
         var usbNote = TextView(L(Resource.String.printer_usb_note), 12.5f, ColorTextSecondary);
@@ -513,7 +513,7 @@ public sealed class MainActivity : Activity
                 ? id
                 : 0x2001;
 
-    /// <summary>刷新品牌选项（已装外部插件动态扩展，决策 #95「品牌选项卡由已装插件扩展」兑现）。</summary>
+    /// <summary>刷新品牌选项（已装外部插件动态扩展，「品牌选项卡由已装插件扩展」兑现）。</summary>
     private async Task RefreshBrandOptionsAsync()
     {
         var installed = await FetchInstalledPluginsAsync();
@@ -573,7 +573,7 @@ public sealed class MainActivity : Activity
         return button;
     }
 
-    /// <summary>当前选中连接类型对应的存储值（插件品牌固定 tcp——决策 #95 配置结构零变更）。</summary>
+    /// <summary>当前选中连接类型对应的存储值（插件品牌固定 tcp—— 配置结构零变更）。</summary>
     private string SelectedConnectionType()
         => IsPluginBrandSelected()
             ? LabelFrame.AndroidHost.Transport.ZebraSdkTransport.ConnectionTypeTcp
@@ -627,7 +627,7 @@ public sealed class MainActivity : Activity
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                // 错误码翻译（迭代 110 / #244）：已知码本地翻译、未知码回退后端中文 message
+                // 错误码翻译（/）：已知码本地翻译、未知码回退后端中文 message
                 var detail = Truncate(DescribeErrorBody(body));
                 SetResult(_printTestText, L(Resource.String.printer_test_http_error, detail), ColorErr);
                 return;
@@ -660,7 +660,7 @@ public sealed class MainActivity : Activity
                 if (current.Status is "Failed" or "Cancelled")
                 {
                     var failedItem = current.Items?.FirstOrDefault(i2 => i2.ErrorMessage is not null);
-                    // 失败项按码翻译（项级无 params：模板带参的码自然回退中文，语义对齐迭代 109）
+                    // 失败项按码翻译（项级无 params：模板带参的码自然回退中文，语义对齐）
                     var reason = ResolveError(failedItem?.ErrorCode, null, failedItem?.ErrorMessage ?? current.Status);
                     SetResult(_printTestText, PrintFailText(reason), ColorErr);
                     return;
@@ -768,7 +768,7 @@ public sealed class MainActivity : Activity
         }
     }
 
-    // ---------- 插件管理子页（迭代 96 / 决策 #156 ②：已装列表 + 浏览服务端安装 + 卸载，重启生效） ----------
+    // ---------- 插件管理子页（/ ②：已装列表 + 浏览服务端安装 + 卸载，重启生效） ----------
 
     private ScrollView BuildPluginsScreen()
     {
@@ -846,7 +846,7 @@ public sealed class MainActivity : Activity
 
             var buttonRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
             buttonRow.SetPadding(0, Dp(8), 0, 0);
-            // 迭代 104（#225，决策 #161）：卸载 = 销毁类操作——红底白字 danger 视觉，点击先弹原生确认对话框
+            // 卸载 = 销毁类操作——红底白字 danger 视觉，点击先弹原生确认对话框
             var uninstallButton = DangerButton(L(Resource.String.plugins_uninstall), () => ConfirmUninstallPlugin(pluginId, plugin.Name), Dp(88));
             buttonRow.AddView(uninstallButton);
             card.AddView(buttonRow);
@@ -1005,9 +1005,9 @@ public sealed class MainActivity : Activity
     }
 
     /// <summary>
-    /// 卸载确认（迭代 104 / #225，决策 #161：销毁类操作必须先确认）——原生 AlertDialog，danger 文案与视觉：
+    /// 卸载确认（/ ，：销毁类操作必须先确认）——原生 AlertDialog，danger 文案与视觉：
     /// 标题 + 后果说明（含不可恢复语义与自动重启提示）+ 确认按钮红字；确认后才执行卸载（删插件目录并重启打印服务）。
-    /// 迭代 110（#244）：文案双语化，仅换文案来源——danger 视觉（确认红字 / 取消次要色）与确认语义不变。
+    /// 文案双语化，仅换文案来源——danger 视觉（确认红字 / 取消次要色）与确认语义不变。
     /// </summary>
     private void ConfirmUninstallPlugin(string pluginId, string pluginName)
     {
@@ -1081,7 +1081,7 @@ public sealed class MainActivity : Activity
     }
 
     /// <summary>从错误响应 JSON 里取错误视图（码 + 可选 params + 中文消息；取不到返回 null）。
-    /// 形状对齐本地 HTTP / Server 的 ErrorView（迭代 109 加 params，迭代 110 PDA 侧接入）。</summary>
+    /// 形状对齐本地 HTTP / Server 的 ErrorView（加 params，PDA 侧接入）。</summary>
     private static ErrorViewDto? TryReadErrorView(string body)
     {
         try
@@ -1514,7 +1514,7 @@ public sealed class MainActivity : Activity
         return button;
     }
 
-    /// <summary>销毁类操作按钮（卸载，迭代 104 / #225 决策 #161）：红底白字实心 danger 视觉，高度 ≥48dp。</summary>
+    /// <summary>销毁类操作按钮（卸载，/）：红底白字实心 danger 视觉，高度 ≥48dp。</summary>
     private Button DangerButton(string text, Action onClick, int? width = null)
     {
         var button = new Button(this) { Text = text };

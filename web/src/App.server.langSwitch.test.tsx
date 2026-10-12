@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 迭代 114（#260）壳层语言切换器——server 构建（server 无设置页，切换器是唯一界面入口）：
-// - AC-01 在位：server 构建导航尾部同样显示语言控件（两构建统一）；
-// - AC-02 全程无设置页 / F12：点击即点即生效（词条 / <html lang> / localStorage），重载（等价刷新）保持。
+// 壳层语言切换器——server 构建（server 无设置页，切换器是唯一界面入口）：
+// - 在位：server 构建导航尾部同样显示语言控件（两构建统一）
+// - 全程无设置页 / F12：点击即点即生效（词条 / <html lang> / localStorage），重载（等价刷新）保持。
 // 文件级 vi.mock 钉住 server 构建（同 App.server.test.tsx 骨架，K2：跳过 localApi 探测）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

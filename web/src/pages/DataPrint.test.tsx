@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// 迭代 15 §5.4：draft 保留（切 tab / 刷新 / 标签页隔离 / Excel 不保留）+ 调试开关下按钮行为与下载（单张 PNG / zip）
-// 迭代 18 F5：双 base（serverApi / localApi 跟随 deviceMode）+ 本机设备默认选中（hostConfig.deviceId 匹配）+ 单机降级守门
+// draft 保留（切 tab / 刷新 / 标签页隔离 / Excel 不保留）+ 调试开关下按钮行为与下载（单张 PNG / zip）
+// F5：双 base（serverApi / localApi 跟随 deviceMode）+ 本机设备默认选中（hostConfig.deviceId 匹配）+ 单机降级守门
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -46,7 +46,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../lib/api/client', () => ({ serverApi: mocks.server, localApi: mocks.local, setServerBaseUrl: vi.fn() }))
-// 迭代 20：本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
+// 本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
 vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
 const PKG: TemplatePackage = {
@@ -70,7 +70,7 @@ const DONE_JOB: JobView = {
   items: [{ index: 0, status: 'Completed' }],
 }
 
-/** Server 作业视图（迭代 16：无逐张 items，只有汇总字段）。 */
+/* * Server 作业视图（无逐张 items，只有汇总字段）。 */
 const DONE_JOB_SERVER: JobView = {
   jobId: 'job-1',
   requestId: 'r-1',
@@ -89,7 +89,7 @@ const DEVICES: DeviceView[] = [
 let clickSpy: ReturnType<typeof vi.spyOn>
 
 /** 模拟 DataPrint 挂载在 AppProvider 下的切 tab 行为（provider 不卸载，页面卸载重挂）。
- *  迭代 85（#133 C-5）：onOpenJobHistory 注入（进度区「作业历史」指引可点击跳转的断言入口）。 */
+ * （C-5）：onOpenJobHistory 注入（进度区「作业历史」指引可点击跳转的断言入口）。 */
 function Harness({ show, onOpenJobHistory }: { show: boolean; onOpenJobHistory?: () => void }) {
   return (
     <AppProvider>
@@ -135,8 +135,8 @@ afterEach(() => {
 })
 
 /** 挂载链等待超时（ms）：DataPrint 挂载要串行走完「设备探测 → 模板列表 → 模板详情 → testData 预填」多段异步链，
- *  CI 高负载下可能超过 findBy / waitFor 默认 1000ms（迭代 38：ci run 34081028327 偶发超时，统一放宽）。
- *  迭代 96（#183）：3000ms 仍被击穿（实证：「切 tab（页面卸载重挂）保留」找不到 A-01），对齐
+ * CI 高负载下可能超过 findBy / waitFor 默认 1000ms（ci run 34081028327 偶发超时，统一放宽）。
+ * 3000ms 仍被击穿（实证：「切 tab（页面卸载重挂）保留」找不到 ），对齐
  *  本文件竞态用例既有口径放宽到 8000ms；单测总超时由 vitest.config testTimeout（20s）兜住。 */
 const MOUNT_WAIT = { timeout: 8000 }
 
@@ -282,7 +282,7 @@ describe('调试开关与按钮语义（迭代 15 §6.3）', () => {
   })
 })
 
-// 迭代 81（#129 决议，评审 #114 C-1）：「图片预览」名副其实——页内弹层呈现当前字段值的渲染图，
+// （决议，评审 C-1）：「图片预览」名副其实——页内弹层呈现当前字段值的渲染图
 // 弹层内显式「下载」按钮，预览与下载分离；模拟出图（生成图片 / 批量 zip）链路零回归。
 describe('图片预览页内弹层与下载分离（迭代 81 · #129）', () => {
   /** URL 全局桩上的 revokeObjectURL（beforeEach 内 stubGlobal 重建，用例内现取引用）。 */
@@ -461,7 +461,7 @@ describe('目标设备固定本机（迭代 22 决策 1A）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /打印测试（单张）/ }))
     expect(await screen.findByText('已完成 1 / 1 张')).toBeTruthy()
-    // 迭代 84（AC-02）：目标设备显示设备名（与目标设备下拉同源），不再直出设备 ID
+    // 目标设备显示设备名（与目标设备下拉同源），不再直出设备 ID
     expect(screen.getByText(/目标设备：仓库-1 打印电脑（在线）/)).toBeTruthy()
     // 无逐张表格，显示说明行
     expect(screen.getByText(/该作业无逐张明细/)).toBeTruthy()
@@ -487,7 +487,7 @@ describe('目标设备固定本机（迭代 22 决策 1A）', () => {
   })
 })
 
-// 迭代 84（#132，评审 #114 A-3 / B-6）：副标题用户化 + 作业进度目标设备显示设备名（client 构建）。
+// （评审 / B-6）：副标题用户化 + 作业进度目标设备显示设备名（client 构建）。
 describe('打印页称谓与作业进度设备名（迭代 84 · #132）', () => {
   it('AC-01：副标题「填写数据并打印 / Excel 批量打印」，无「测试」字样', async () => {
     await renderDataPrint()
@@ -532,7 +532,7 @@ describe('下载 Excel 模板（迭代 22 §2.1）', () => {
       layout: { ...PKG.layout, elements: [] },
     })
     render(<Harness show />)
-    // 迭代 65（#62）：无字段模板改为说明性提示（不再是「请先绑定字段」），操作区照常渲染；
+    // 无字段模板改为说明性提示（不再是「请先绑定字段」），操作区照常渲染
     // testData 残留键不影响——无输入框渲染，Excel 模板无列可生成维持禁用
     expect(await screen.findByText(/该模板为静态标签（无字段填充）/)).toBeTruthy()
     expect(screen.queryByDisplayValue('A-01')).toBeNull()
@@ -549,7 +549,7 @@ describe('字段显示名渲染（迭代 83 · #131 决议 1：displayName || ke
     expect(screen.queryByText('location')).toBeNull()
     // 占位符同步显示名
     expect(screen.getByPlaceholderText('字段 库位 的值（打印时使用）')).toBeTruthy()
-    // 值按字段名（键）绑定：testData 预填 location=A-01 正常出现在输入框
+    // 值按字段名（键）绑定：testData 预填 location= 正常出现在输入框
     expect(screen.getByDisplayValue('A-01')).toBeTruthy()
     fireEvent.change(screen.getByDisplayValue('A-01'), { target: { value: 'B-02' } })
     fireEvent.click(screen.getByRole('button', { name: /打印测试（单张）/ }))
@@ -643,7 +643,7 @@ describe('连接状态徽标（迭代 80「三名义」③：已加入 / 未加�
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10_000)
       })
-      // 探测周期定时器已触发；其 promise → 徽标渲染链再补两轮空转落定后断言（消除 #183 同类时序敏感）
+      // 探测周期定时器已触发；其 promise → 徽标渲染链再补两轮空转落定后断言（消除 同类时序敏感）
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)
       })
@@ -685,7 +685,7 @@ describe('连接状态徽标（迭代 80「三名义」③：已加入 / 未加�
   })
 })
 
-// 迭代 65（#62）：无字段模板 = 静态标签——合法模板，可在数据与打印页打印测试（空数据提交）
+// 无字段模板 = 静态标签——合法模板，可在数据与打印页打印测试（空数据提交）
 describe('无字段模板（静态标签）打印测试（迭代 65 · #62）', () => {
   /** 无字段模板：contract.fields 空 + 版式无 field 元素 → fieldKeys 为空。 */
   const STATIC_PKG: TemplatePackage = {
@@ -750,7 +750,7 @@ describe('无字段模板（静态标签）打印测试（迭代 65 · #62）', 
   })
 })
 
-// 迭代 91（F-12 · #149）：模板详情加载竞态——cancelled 守卫与同文件预览弹层 previewGenRef 同一标准。
+// （·）：模板详情加载竞态——cancelled 守卫与同文件预览弹层 previewGenRef 同一标准。
 // 场景：首个模板详情慢响应在途，快速切到第二个模板（立即返回）；慢响应随后到达不得覆盖新选择。
 describe('模板详情加载竞态守卫（迭代 91 F-12）', () => {  it('AC-03：快速切换模板（首个慢响应）：字段表单与选中模板始终一致，无错位', async () => {
     const PKG_B: TemplatePackage = {
@@ -776,7 +776,7 @@ describe('模板详情加载竞态守卫（迭代 91 F-12）', () => {  it('AC-0
     // 列表加载后默认选中第一项「模板A」，其详情挂起在途（全量并行负载下放宽等待，见 MOUNT_WAIT 注释）
     await waitFor(() => expect((screen.getAllByRole('combobox')[0] as HTMLSelectElement).value).toBe('模板A'), { timeout: 8000 })
     // 选中值渲染与详情加载 effect 之间存在调度间隙——断言收敛等待而非立即判定
-    //（CI 高负载下两度复现：PR #196 run 35687207583 / PR #207 run 35743386663，#183 残留观察点补治）
+    // （CI 高负载下两度复现： run 35687207583 / run 35743386663， 残留观察点补治）
     await waitFor(() => expect(mocks.local.getTemplate).toHaveBeenCalledWith('模板A'), { timeout: 8000 })
 
     // 快速切到「模板B」：B 立即返回并渲染（字段值 B-99）
@@ -796,7 +796,7 @@ describe('模板详情加载竞态守卫（迭代 91 F-12）', () => {  it('AC-0
   })
 })
 
-// 迭代 85（#133 C-5）：作业进度区指向「作业历史」的纯文字指引改为可点击跳转（onOpenJobHistory → 切作业历史页，
+// （C-5）：作业进度区指向「作业历史」的纯文字指引改为可点击跳转（onOpenJobHistory → 切作业历史页
 // 行可展开逐张 / 汇总明细）——无逐张明细说明与失败汇总提示两处文案均带跳转入口。
 describe('进度区「作业历史」指引可点击跳转（迭代 85 · #133 C-5）', () => {
   it('无逐张明细（服务端形态 / Server 作业）：底部说明中「作业历史」可点击——onOpenJobHistory 回调触发一次', async () => {

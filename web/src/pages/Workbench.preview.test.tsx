@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 迭代 46（2026-09-10 修订：预览列内嵌缩略图）——列表加载后按需拉取全部预览（AC-01）、
-// 会话缓存命中不重复请求（AC-02）、列表刷新后缓存失效并释放 blob URL（AC-03）、
-// 失败态优雅降级（AC-04）、点击缩略图放大且放大不重复请求、遮罩 / Esc 关闭（AC-05）、双模式（服务端 / 单机降级）。
+// （2026-09-10 修订：预览列内嵌缩略图）——列表加载后按需拉取全部预览
+// 会话缓存命中不重复请求、列表刷新后缓存失效并释放 blob URL
+// 失败态优雅降级、点击缩略图放大且放大不重复请求、遮罩 / Esc 关闭、双模式（服务端 / 单机降级）。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链）；URL.createObjectURL / revokeObjectURL 为 jsdom 缺失项，手动打桩。
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -57,7 +57,7 @@ function renderWorkbench() {
 }
 
 function cardOf(name: string): HTMLElement {
-  // 放大浮层标题也含模板名，用卡片名元素定位所属卡片（迭代 48：表格行 → 卡片）
+  // 放大浮层标题也含模板名，用卡片名元素定位所属卡片（表格行 → 卡片）
   return screen.getByText(name).closest('.wb-card') as HTMLElement
 }
 
@@ -68,7 +68,7 @@ const enlargedOf = (name: string) => screen.getByAltText(`模板「${name}」预
 
 /** 冲洗挂载链（探测 → 列表加载 → 预览请求 → blob 渲染）至静默。
  *  挂载链为纯 promise + React 状态更新，但 React 调度走真实宏任务——固定单轮冲洗在高负载
- *  runner 上可能残留未落定的渲染代际（#183 同类时序敏感，届时同步断言 getByText / mock 计数
+ * runner 上可能残留未落定的渲染代际（ 同类时序敏感，届时同步断言 getByText / mock 计数
  *  会偶发失败）。改为有界循环：以「模板行已渲染且相关 mock 调用计数连续两轮不变」为静默条件。 */
 async function flush() {
   const counts = () =>
@@ -174,7 +174,7 @@ describe('工作台模板预览列（迭代 46 修订：内嵌缩略图）', () 
     expect(mocks.server.previewTemplate).toHaveBeenCalledTimes(3)
 
     // 删除一个模板 → 服务端列表少一项 → 重新 load = 新列表周期
-    //（迭代 104 / #225：删除收进 ⋯ 溢出菜单——先开菜单再点删除项，仍走确认 Modal）
+    // （/ ：删除收进 ⋯ 溢出菜单——先开菜单再点删除项，仍走确认 Modal）
     mocks.server.deleteTemplate.mockResolvedValue(undefined)
     mocks.server.listTemplates.mockResolvedValue(TEMPLATES.filter((t) => t.name !== 'Shelf-Tag'))
     fireEvent.click(within(cardOf('Shelf-Tag')).getByRole('button', { name: /更多操作/ }))

@@ -163,7 +163,7 @@ public sealed class ServerEndpointsTests : IDisposable
     [Fact]
     public async Task By_ip_lookup_should_prefer_recently_active_device_when_same_ip()
     {
-        // 缺陷 #46 集成复现：同 IP 双设备号（设备号变更后新设备号从同 IP 注册）——
+        // 集成复现：同 IP 双设备号（设备号变更后新设备号从同 IP 注册）——
         // by-ip 端点须命中最近活跃（新）行，而非先注册的旧行（旧行 stale 但 last_ip 保留）
         using var factory = _factory.WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services =>

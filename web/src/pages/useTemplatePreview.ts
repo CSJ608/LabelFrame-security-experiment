@@ -1,5 +1,5 @@
-// 工作台模板预览缓存（迭代 46，2026-09-10 修订为预览列内嵌缩略图）：会话内「模板名 → blob URL」缓存 + 在途去重 + 周期失效。
-// 路线定稿（Issue #15）：复用既有 POST /api/templates/{name}/preview（按模板 TestData 渲染 PNG），零契约变更。
+// 工作台模板预览缓存（-09-10 修订为预览列内嵌缩略图）：会话内「模板名 → blob URL」缓存 + 在途去重 + 周期失效。
+// 路线定稿（Issue）：复用既有 POST /api/templates/{name}/preview（按模板 TestData 渲染 PNG），零契约变更。
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import i18next from '../i18n'

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Time.Testing;
 namespace LabelFrame.Server.Tests;
 
 /// <summary>
-/// 终态回调（决策 #154）单元测试（FakeTimeProvider + 假发送器驱动，时间与投递确定）：
+/// 终态回调单元测试（FakeTimeProvider + 假发送器驱动，时间与投递确定）：
 /// 投递成功（载荷 schema）、Failed / Expired / 失联回收三终态无漏报、指数退避重试、死信、
 /// 重启恢复（持久化）、非法 scheme 提交拒绝、无回调作业零开销。
 /// </summary>
@@ -24,7 +24,7 @@ public sealed class JobCallbackTests : IDisposable
         _delivery = new JobCallbackDeliveryService(_temp.Db, _time, _sender, NullLogger<JobCallbackDeliveryService>.Instance);
     }
 
-    // ---- AC-02：投递成功 + 载荷 schema ----
+    // ---- ：投递成功 + 载荷 schema ----
 
     [Fact]
     public async Task Completed_job_should_be_delivered_with_payload_schema()
@@ -51,14 +51,14 @@ public sealed class JobCallbackTests : IDisposable
             stored.FinishedAt,
             DateTimeOffset.Parse(root.GetProperty("completedAt").GetString()!, System.Globalization.CultureInfo.InvariantCulture));
 
-        // 视图透出投递状态（AC-04 前半）
+        // 视图透出投递状态（前半）
         var view = await _temp.Service.GetJobAsync(job.JobId);
         Assert.Equal("Delivered", view.CallbackStatus);
         Assert.Equal(1, view.CallbackAttempts);
         Assert.Null(view.CallbackLastError);
     }
 
-    // ---- AC-03：三种终态无漏报 ----
+    // ---- ：三种终态无漏报 ----
 
     [Fact]
     public async Task Failed_job_should_deliver_with_status_and_error()
@@ -115,7 +115,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Equal(claimed.JobId, root.GetProperty("jobId").GetString());
     }
 
-    // ---- AC-04：失败退避重试与死信 ----
+    // ---- ：失败退避重试与死信 ----
 
     [Fact]
     public async Task Failed_delivery_should_backoff_exponentially()
@@ -184,7 +184,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Equal("DeadLetter", view.CallbackStatus);
     }
 
-    // ---- AC-07：重启恢复（投递状态持久化，重启后继续投递） ----
+    // ---- ：重启恢复（投递状态持久化，重启后继续投递） ----
 
     [Fact]
     public async Task Pending_delivery_should_survive_service_restart()
@@ -210,7 +210,7 @@ public sealed class JobCallbackTests : IDisposable
         Assert.Contains("req-restart", sender2.Sent[0].Payload);
     }
 
-    // ---- AC-05：非法 scheme 提交即拒（作业不入队） ----
+    // ---- ：非法 scheme 提交即拒（作业不入队） ----
 
     [Theory]
     [InlineData("file:///etc/passwd")]
@@ -225,7 +225,7 @@ public sealed class JobCallbackTests : IDisposable
         var ex = await Assert.ThrowsAsync<ServerException>(() =>
             _temp.Service.SubmitJobAsync(CreateRequest("req-bad", "dev", callbackUrl)));
 
-        // #242 返修：callbackUrl 校验拆出专属码 LF_SRV_013（原 LF_SRV_002，单码单参数键集）
+        // callbackUrl 校验拆出专属码 LF_SRV_013（原 LF_SRV_002，单码单参数键集）
         Assert.Equal(ServerErrorCodes.InvalidCallbackUrl, ex.Code);
         Assert.Contains("callbackUrl", ex.Message);
         Assert.Null(await _temp.Db.GetJobByRequestIdAsync("req-bad"));

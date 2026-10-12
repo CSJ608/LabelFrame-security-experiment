@@ -5,14 +5,14 @@ namespace LabelFrame.Api;
 /// 约定：LF_TPL_xxx（模板）/ LF_TRANSPORT_xxx（连接）/ LF_PLUGIN_xxx（插件）；
 /// 通用请求 / 作业 / IO 错误沿用 Core 的 LF_API_xxx / LF_JOB_xxx / LF_IO_xxx，服务端专属错误沿用 LF_SRV_xxx。
 /// LF_INTERNAL_001（未捕获异常兜底）与 LF_API_BAD_BODY（请求体反序列化失败）也定义于此——
-/// 全仓仅本注册表一处字面量，其余代码一律引用常量（迭代 50，决策 #107）。
+/// 全仓仅本注册表一处字面量，其余代码一律引用常量。
 /// </summary>
 public static class ApiErrorCodes
 {
     /// <summary>模板不存在（宿主侧模板库查询失败；服务端沿用 LF_SRV_006）。</summary>
     public const string TemplateNotFound = "LF_TPL_001";
 
-    /// <summary>模板图片无效（迭代 132，决策 #184）：保存请求 images 的 base64 / 格式（仅 PNG / JPG / BMP）/ 单图 2MB / 单模板 10 张共 10MB 上限校验失败，或渲染引用的图片资源缺失。</summary>
+    /// <summary>模板图片无效：保存请求 images 的 base64 / 格式（仅 PNG / JPG / BMP）/ 单图 2MB / 单模板 10 张共 10MB 上限校验失败，或渲染引用的图片资源缺失。</summary>
     public const string TemplateImageInvalid = "LF_TPL_002";
 
     /// <summary>连接配置无效（pluginId / 参数校验失败）。</summary>

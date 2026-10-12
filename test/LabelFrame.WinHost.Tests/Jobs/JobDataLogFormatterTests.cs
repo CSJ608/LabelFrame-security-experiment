@@ -2,7 +2,7 @@ using LabelFrame.WinHost.Jobs;
 
 namespace LabelFrame.WinHost.Tests.Jobs;
 
-/// <summary>作业数据留痕格式化单测（迭代 74，决策 #139）：单张 / 批量去重 / 混合 / 键序无关 / 截断 / 空数据。</summary>
+/// <summary>作业数据留痕格式化单测：单张 / 批量去重 / 混合 / 键序无关 / 截断 / 空数据。</summary>
 public class JobDataLogFormatterTests
 {
     private static Dictionary<string, string> Data(params (string Key, string Value)[] entries)

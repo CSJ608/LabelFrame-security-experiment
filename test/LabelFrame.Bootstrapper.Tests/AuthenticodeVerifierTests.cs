@@ -4,7 +4,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// Authenticode 发布者验签测试（决策 #151，#173）：发布者策略（CN 提取 / 比对）纯函数矩阵 +
+/// Authenticode 发布者验签测试：发布者策略（CN 提取 / 比对）纯函数矩阵 +
 /// WinVerifyTrust 互操作冒烟（系统自带微软签名文件——验签器真实链路锚点）。
 /// </summary>
 public sealed class AuthenticodeVerifierTests

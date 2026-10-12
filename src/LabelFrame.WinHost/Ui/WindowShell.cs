@@ -4,7 +4,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace LabelFrame.WinHost.Ui;
 
 /// <summary>
-/// 窗口形态界面壳（迭代 44，决策 #99 D1=A）：独立 STA UI 线程 + WinForms 主窗体 + WebView2 控件，
+/// 窗口形态界面壳（D1=A）：独立 STA UI 线程 + WinForms 主窗体 + WebView2 控件
 /// 加载本地 UI 地址（HTTP 未就绪先显示加载态，就绪后自动导航）。
 /// 关闭窗口 = 隐藏到托盘、服务常驻（D3）；托盘「打开界面」/ 单实例二次启动 = 显示并前置。
 /// WebView2 运行时不可用时工厂返回 null，由调用方回退 <see cref="BrowserUiShell"/>（D2 兜底）。
@@ -295,7 +295,7 @@ internal sealed class WindowUiShell : IUiShell
         {
             try
             {
-                // 用户数据目录必须在可写位置（Program Files 下不可写），决策 #99
+                // 用户数据目录必须在可写位置（Program Files 下不可写）
                 var userDataFolder = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "LabelFrame",

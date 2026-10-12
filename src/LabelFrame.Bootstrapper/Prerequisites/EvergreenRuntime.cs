@@ -3,7 +3,7 @@ namespace LabelFrame.Bootstrapper.Prerequisites;
 using LabelFrame.Bootstrapper.Manifest;
 using LabelFrame.Bootstrapper.OfflineLayout;
 
-/// <summary>evergreen 载荷源解析结果（决策 #151）。</summary>
+/// <summary>evergreen 载荷源解析结果。</summary>
 /// <param name="LocalPath">本地文件源（离线布局目录在位文件；null = 无本地源）。</param>
 /// <param name="Urls">远程 URL 序列（清单 urls 顺序；空 = 无远程源）。</param>
 public sealed record EvergreenSource(string? LocalPath, IReadOnlyList<string> Urls)
@@ -13,7 +13,7 @@ public sealed record EvergreenSource(string? LocalPath, IReadOnlyList<string> Ur
 }
 
 /// <summary>
-/// evergreen runtime（恒变直链，无可钉哈希）获取编排（决策 #151，DESIGN §6.9「evergreen 获取与验签机制」）：
+/// evergreen runtime（恒变直链，无可钉哈希）获取编排（DESIGN 「evergreen 获取与验签机制」）：
 /// 源解析（本地布局文件优先 → urls 逐源）与「下载 / 取本地 → Authenticode 发布者验签」的通用流程；
 /// 由 PayloadTool 在包执行期（引擎提权上下文）消费。
 /// </summary>
@@ -74,7 +74,7 @@ public static class EvergreenRuntime
 
     /// <summary>
     /// BA 侧 <c>[WebView2Source]</c> 变量值（纯函数）：布局目录本地文件在位 → 本地路径；否则清单 urls 顺序拼接；
-    /// 清单缺 evergreen 条目 → 空串（工具按官方 fwlink 兜底）。源序契约 = §6.10（[布局文件] ++ urls）。
+    /// 清单缺 evergreen 条目 → 空串（工具按官方 fwlink 兜底）。源序契约 = （[布局文件] ++ urls）。
     /// </summary>
     /// <param name="manifest">当轮加载的安装清单（null 视为缺条目）。</param>
     /// <param name="localSourceDirectory">布局目录（清单来源为本地路径时非空；null = 无布局）。</param>
@@ -96,7 +96,7 @@ public static class EvergreenRuntime
                 var candidate = Path.Combine(localSourceDirectory, fileName);
                 if (fileExists(candidate))
                 {
-                    return candidate; // 布局本地文件优先（离线首装零外网，§6.10）
+                    return candidate;  // 布局本地文件优先（离线首装零外网）
                 }
             }
         }
@@ -109,7 +109,7 @@ public static class EvergreenRuntime
         || value.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>evergreen 载荷获取结果（决策 #151）。</summary>
+/// <summary>evergreen 载荷获取结果。</summary>
 /// <param name="Outcome">结果类别。</param>
 /// <param name="VerifiedPath">验签通过的安装器路径（成功时非空：本地源原路径或下载临时文件）。</param>
 /// <param name="SignerSubject">验签通过的签名者主体（日志留痕）。</param>
@@ -138,7 +138,7 @@ public enum EvergreenAcquireOutcome
 }
 
 /// <summary>
-/// evergreen 载荷获取器（决策 #151）：按源序（本地优先 → urls）获取并做 Authenticode 发布者验签，
+/// evergreen 载荷获取器：按源序（本地优先 → urls）获取并做 Authenticode 发布者验签
 /// 任一源验签通过即返回；验签失败 / 下载失败换下一源，全源耗尽 fail-closed。
 /// 下载与文件探测以委托注入（测试锚定）；验签器注入（测试用假验签器）。
 /// </summary>

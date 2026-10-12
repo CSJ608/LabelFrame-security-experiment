@@ -5,7 +5,7 @@ namespace LabelFrame.Bootstrapper.Wizard;
 /// </summary>
 /// <typeparam name="TPage">向导分页类型（BA 侧为 <c>IWizardPage</c>）。</typeparam>
 /// <remarks>
-/// 迭代 60 返修引入（Issue #53 验收回流）：原 WizardForm 以「增量」语义导航（<c>target = currentIndex + delta</c>），
+/// 原 WizardForm 以「增量」语义导航（<c>target = currentIndex + delta</c>）
 /// 构造期 <c>Navigate(0)</c> 意图「进入首页」，实际计算 <c>-1 + 0 = -1</c> 被越界守卫静默拒绝——首页从未装配、
 /// 索引停在 -1，向导带着空白内容区进入消息循环，点「下一步」即 <see cref="ArgumentOutOfRangeException"/>。
 /// 本类改用「绝对索引」语义收口装配入口（<see cref="TryNavigateTo"/>，0 = 首页），显式暴露装配状态
@@ -48,7 +48,7 @@ public sealed class WizardNavigator<TPage> where TPage : class
         ? _pages[CurrentIndex]
         : throw new InvalidOperationException($"向导尚未装配页面（当前索引 {CurrentIndex}），禁止访问当前页。");
 
-    /// <summary>窥视指定页（按需惰性装配但不导航）：迭代 95（#151）两层问卷——向导壳查询目标页 <c>ShouldSkip</c> 以越过不适用页。</summary>
+    /// <summary>窥视指定页（按需惰性装配但不导航）：两层问卷——向导壳查询目标页 <c>ShouldSkip</c> 以越过不适用页。</summary>
     public TPage Peek(int pageIndex)
     {
         if (pageIndex < 0 || pageIndex >= _pageFactories.Length)

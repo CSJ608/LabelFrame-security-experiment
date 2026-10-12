@@ -15,12 +15,12 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Jobs;
 
 /// <summary>
-/// 作业提交服务：校验契约数据 → 按当前连接的打印方式分派（§5.4.3）——
+/// 作业提交服务：校验契约数据 → 按当前连接的打印方式分派——
 /// image（默认 / 缺失 / 非法回退）：Skia 整版渲染 1bpp 位图 → ^GF 编码入队（既有路径）；
 /// native：插件文档编译器逐张编译为品牌原生指令后入队（产物写 LabelJobItem.Zpl，语义 = 持久化的打印机指令）。
-/// 任一标签校验 / 渲染 / 编译失败则整体拒绝（缺数据不打半张）；编译失败显式失败不回退图片（§5.4.4）。
+/// 任一标签校验 / 渲染 / 编译失败则整体拒绝（缺数据不打半张）；编译失败显式失败不回退图片。
 /// Log 连接 = 模拟打印：提交时同时把渲染 PNG 保存到 print\{jobId}\（原生指令路径无渲染位图，仅留痕作业数据），
-/// 并留痕作业数据（模板名 + 数据集合，迭代 74 决策 #139）。
+/// 并留痕作业数据（模板名 + 数据集合）。
 /// </summary>
 public sealed class JobSubmissionService
 {
@@ -74,7 +74,7 @@ public sealed class JobSubmissionService
             return SubmitJobResult.Failure(JobErrorCodes.InvalidRequest, "缺少 requestId（幂等键）。");
         }
 
-        // 按当前连接分派（§5.4.3）：打印方式是连接级属性，同一 Server 作业投给不同客户端按各自连接方式出纸
+        // 按当前连接分派：打印方式是连接级属性，同一 Server 作业投给不同客户端按各自连接方式出纸
         var config = _transportManager.CurrentConfig;
         var rawPrintMode = config.Params.TryGetValue(TransportPrintMode.ParameterKey, out var raw) ? raw : null;
         var printMode = TransportPrintMode.Resolve(rawPrintMode);
@@ -83,7 +83,7 @@ public sealed class JobSubmissionService
         IReadOnlyList<RenderItem>? renderedItems = null;
         if (printMode == TransportPrintMode.Native)
         {
-            // 幂等短路（§5.4.3：重放不重新编译）：同 requestId 已有作业直接返回，编译调用零增加；
+            // 幂等短路（重放不重新编译）：同 requestId 已有作业直接返回，编译调用零增加
             // 图片路径维持既有「先渲染后入队幂等」顺序，行为零回归
             var existing = await _queue.GetByRequestIdAsync(request.RequestId!, cancellationToken);
             if (existing is not null)
@@ -91,7 +91,7 @@ public sealed class JobSubmissionService
                 return SubmitJobResult.Success(existing, created: false);
             }
 
-            // 存量异常配置兜底（§5.4.2：手改 connection.json / 插件降级后能力消失）：
+            // 存量异常配置兜底（手改 connection.json / 插件降级后能力消失）：
             // native 但插件无编译能力 → 显式失败（LF_ENC_003），不静默按图片打印
             var compiler = _pluginRegistry.GetCommandCompiler(config.PluginId);
             if (compiler is null)
@@ -131,10 +131,10 @@ public sealed class JobSubmissionService
                 SaveLogPrintImages(job.Id, renderedItems);
             }
 
-            // 留痕作业数据（模板名 + 数据集合，迭代 74 决策 #139；与出图同判定点、互不干扰）
+            // 留痕作业数据（模板名 + 数据集合，；与出图同判定点、互不干扰）
             LogJobData(job.Id, request);
 
-            // 落盘后顺带执行出图目录保留清理（迭代 72，决策 #136；清理器永不抛出，不打断打印链路）
+            // 落盘后顺带执行出图目录保留清理（清理器永不抛出，不打断打印链路）
             _printRetentionCleaner?.CleanupExpired();
         }
 
@@ -195,7 +195,7 @@ public sealed class JobSubmissionService
             }
             catch (MissingImageResourceException ex)
             {
-                // 决策 #184（迭代 132）：缺资源＝打印链显式失败（消息含键名），不静默灰占位照打
+                // 缺资源＝打印链显式失败（消息含键名），不静默灰占位照打
                 return new RenderResult(null, JobErrorCodes.InvalidRequest, ex.Message, null);
             }
         }
@@ -204,9 +204,9 @@ public sealed class JobSubmissionService
     }
 
     /// <summary>
-    /// 原生指令路径（§5.4.3 / §5.4.4）：契约校验后逐张调用插件编译器，产物即该 Item 的最终指令
+    /// 原生指令路径（/）：契约校验后逐张调用插件编译器，产物即该 Item 的最终指令
     /// （整页自包含，宿主不包装追加）；任一标签编译失败整体拒绝（缺数据不打半张），显式失败不回退图片。
-    /// 编译输入 = 原始 LabelDocument（版式 + 数据；编译器内部完成版式解析，§5.4.1）；图片资源通道
+    /// 编译输入 = 原始 LabelDocument（版式 + 数据；编译器内部完成版式解析）；图片资源通道
     /// LabelDocument.Images 首版保持缺省——品牌编译器按裁剪原则不消费图片元素，首个需要图片资源的
     /// 实现迭代在此按需填充（不改契约）。
     /// </summary>
@@ -256,7 +256,7 @@ public sealed class JobSubmissionService
             }
             catch (Exception ex)
             {
-                // 意外异常映射为同一失败语义（§5.4.1：不透出堆栈）
+                // 意外异常映射为同一失败语义（不透出堆栈）
                 return new CompileResult(
                     null,
                     JobErrorCodes.CommandCompileFailed,
@@ -266,7 +266,7 @@ public sealed class JobSubmissionService
 
             if (string.IsNullOrWhiteSpace(result.Command))
             {
-                // 预期内失败走结果（§5.4.1）；消息含问题码与中文原因（Server 路由回报 Failed 只带文本）
+                // 预期内失败走结果；消息含问题码与中文原因（Server 路由回报 Failed 只带文本）
                 var code = string.IsNullOrWhiteSpace(result.ErrorCode) ? JobErrorCodes.CommandCompileFailed : result.ErrorCode;
                 var reason = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "编译器未产出指令" : result.ErrorMessage;
                 return new CompileResult(

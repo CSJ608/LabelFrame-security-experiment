@@ -4,7 +4,7 @@ using Xunit;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// TrayMenuPresenter（托盘右键菜单显示器）单元测试（迭代 115，#263，AC-01）：
+/// TrayMenuPresenter（托盘右键菜单显示器）单元测试：
 /// Win32 通知图标菜单标准前置模式调用时序——SetForegroundWindow(owner) 先于 TrackPopupMenu、
 /// PostMessage(owner, WM_NULL) 后于菜单关闭（TrackPopupMenu 返回）；菜单模态期间重入早退不嵌套；
 /// 菜单关闭后可再次弹出。
@@ -16,7 +16,7 @@ public sealed class TrayMenuPresenterTests
     [Fact]
     public void ShowMenu_invokes_standard_foreground_pattern_in_order()
     {
-        // 断言链（AC-01）：前置 owner → 菜单弹出（owner 为 owner 窗口、TPM_RETURNCMD）→ 菜单关闭（替身返回）→ WM_NULL 投递
+        // 断言链：前置 owner → 菜单弹出（owner 为 owner 窗口、TPM_RETURNCMD）→ 菜单关闭（替身返回）→ WM_NULL 投递
         var calls = new List<string>();
         var owner = Owner;
         var presenter = new TrayMenuPresenter(

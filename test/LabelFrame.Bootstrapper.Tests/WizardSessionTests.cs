@@ -86,7 +86,7 @@ public sealed class WizardSessionTests
         var plan = session.BuildPlan();
 
         Assert.Equal(TopologyPreset.Client, plan.Preset);
-        // client 预设含 aspnetcore（迭代 62 二次返修，决策 #129——WinHost 亦 Sdk.Web 隐式依赖）
+        // client 预设含 aspnetcore（二次，——WinHost 亦 Sdk.Web 隐式依赖）
         Assert.Equal(
             new[] { "runtime-desktop", "runtime-aspnetcore", "runtime-webview2", "client-msi", "plugin-zebra" }.ToList(),
             plan.Components.Select(item => item.Component.Id).ToList());
@@ -111,7 +111,7 @@ public sealed class WizardSessionTests
         Assert.Contains("本机角色", ex.Message);
     }
 
-    // ---- 隐式优先源目录（迭代 70 / #89，决策 #135）：本地清单所在目录 = 布局目录 ----
+    // ---- 隐式优先源目录（/）：本地清单所在目录 = 布局目录 ----
 
     [Fact]
     public async Task Local_manifest_source_resolves_local_source_directory()
@@ -128,7 +128,7 @@ public sealed class WizardSessionTests
     [Fact]
     public async Task Url_manifest_source_has_no_local_source_directory()
     {
-        // AC-03 回归锚点：URL 清单（默认稳定通道形态）→ 无本地源，纯 urls，行为与现状一致
+        // 回归锚点：URL 清单（默认稳定通道形态）→ 无本地源，纯 urls，行为与现状一致
         using var handler = new RecordingHttpMessageHandler(File.ReadAllText(FixturePath("install-manifest.current.json")));
         using var http = new HttpClient(handler);
         var session = new WizardSession

@@ -48,7 +48,7 @@ describe('snapping 智能参考线吸附', () => {
   })
 })
 
-// 迭代 130（#323）：模型盒域吸附链路——被拖盒 / 参考线候选 / 落点提交统一切模型 mm 域，
+// 模型盒域吸附链路——被拖盒 / 参考线候选 / 落点提交统一切模型 mm 域
 // 落点与参考线 / 网格 mm 值一致（残差 ≤ 0.005mm，即两位舍入级别）。
 describe('模型盒域吸附（elementModelRect + commitDragPosition）', () => {
   /** 复刻 CanvasViewport 拖动链：节点原点拖到 nodeX → computeSnap（模型盒）→ 落点提交。 */

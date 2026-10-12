@@ -11,7 +11,7 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests;
 
 /// <summary>
-/// 出图目录保留清理测试（迭代 72，决策 #136；Issue #107 AC-01~AC-04）：
+/// 出图目录保留清理测试（Issue ~）：
 /// 超期删除 / 保留期内不删 / 关闭语义（≤0）/ 清理失败降级留痕（含打印主链路不受影响）。
 /// </summary>
 public class PrintImageRetentionCleanerTests
@@ -28,11 +28,11 @@ public class PrintImageRetentionCleanerTests
 
             new PrintImageRetentionCleaner(root, retentionDays: 31, log).CleanupExpired();
 
-            // 超期作业目录连同内部 PNG 删除；当日作业保留（AC-01 / AC-02）
+            // 超期作业目录连同内部 PNG 删除；当日作业保留（/）
             Assert.False(Directory.Exists(expired));
             Assert.False(File.Exists(Path.Combine(expired, "label-1.png")));
             Assert.True(Directory.Exists(retained));
-            // 清理摘要一行留痕（AC-01）
+            // 清理摘要一行留痕
             Assert.Contains("出图目录清理：删除超期作业目录 1 个", log.ToString());
         }
         finally
@@ -78,7 +78,7 @@ public class PrintImageRetentionCleanerTests
 
             new PrintImageRetentionCleaner(root, retentionDays, log).CleanupExpired();
 
-            // ≤0 = 不清理（关闭语义，AC-03）
+            // ≤0 = 不清理（关闭语义）
             Assert.True(Directory.Exists(expired));
             Assert.True(File.Exists(Path.Combine(expired, "label-1.png")));
             Assert.DoesNotContain("出图目录清理", log.ToString());
@@ -99,7 +99,7 @@ public class PrintImageRetentionCleanerTests
             var log = new StringWriter();
             var cleaner = new PrintImageRetentionCleaner(root, retentionDays: 31, log);
 
-            // 目录内文件被占用（独占句柄）→ 递归删除失败（AC-04 场景：占用 / 权限失败）
+            // 目录内文件被占用（独占句柄）→ 递归删除失败（场景：占用 / 权限失败）
             using (var hold = new FileStream(
                 Path.Combine(expired, "label-1.png"), FileMode.Open, FileAccess.Read, FileShare.None))
             {
@@ -117,7 +117,7 @@ public class PrintImageRetentionCleanerTests
     }
 
     /// <summary>
-    /// 清理失败不影响打印与出图主链路（AC-04）：提交服务挂接的清理器遇被占用超期目录时，
+    /// 清理失败不影响打印与出图主链路：提交服务挂接的清理器遇被占用超期目录时
     /// 模拟打印仍成功、当日出图正常落盘、不抛异常。
     /// </summary>
     [Fact]

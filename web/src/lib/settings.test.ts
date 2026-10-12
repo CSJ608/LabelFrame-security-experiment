@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// settings 单测（迭代 18 F2 重写）：serverBase 兜底 = localStorage > 默认 127.0.0.1:53961；
-// 移除迭代 15 方案 B 残留检测（比较基准已随 DEFAULT_BASE_URL 变更失效）。
+// settings 单测（F2 重写）：serverBase 兜底 = localStorage > 默认 127.0.0.1:53961
+// 移除方案 B 残留检测（比较基准已随 DEFAULT_BASE_URL 变更失效）。
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BASE_URL } from './api/types'
 import { getBaseUrl, setBaseUrl } from './settings'
@@ -28,7 +28,7 @@ describe('getBaseUrl（localStorage 兜底，默认服务端地址）', () => {
   })
 
   it('存储值等于默认值（旧版残留 53960 已不是默认）→ 原样返回存储值', () => {
-    // 迭代 15 方案 B 已移除：非本机来源不再忽略旧默认值
+    // 方案 B 已移除：非本机来源不再忽略旧默认值
     setBaseUrl('http://127.0.0.1:53960')
     expect(getBaseUrl()).toBe('http://127.0.0.1:53960')
   })

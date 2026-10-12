@@ -5,7 +5,7 @@ using LabelFrame.Bootstrapper.Prerequisites;
 
 namespace LabelFrame.Bootstrapper.Placement;
 
-/// <summary>落位决策结果（.lfplugin 的 #123 版本比较口径：覆盖 / 同版幂等 / 降级拒绝）。</summary>
+/// <summary>落位决策结果（lfplugin 的 版本比较口径：覆盖 / 同版幂等 / 降级拒绝）。</summary>
 public enum PlacementOutcome
 {
     /// <summary>已解压落位（新装或新版本覆盖）。</summary>
@@ -18,7 +18,7 @@ public enum PlacementOutcome
     RefusedDowngrade,
 }
 
-/// <summary>卸载清理结果（迭代 69，决策 #133；容错口径 = 清理失败不阻断卸载主链，调用方记日志即可）。</summary>
+/// <summary>卸载清理结果（容错口径 = 清理失败不阻断卸载主链，调用方记日志即可）。</summary>
 public enum PlacementCleanupOutcome
 {
     /// <summary>落位目录已删除（父目录按「已空才移除」口径尽力处理）。</summary>
@@ -32,19 +32,19 @@ public enum PlacementCleanupOutcome
 }
 
 /// <summary>
-/// 非 MSI 组件落位（迭代 62，决策 #124 机制 A：ExePackage 包装解压工具；本类为工具内核，net48 / net10 双腿可测）。
+/// 非 MSI 组件落位（机制 A：ExePackage 包装解压工具；本类为工具内核，net48 / net10 双腿可测）。
 /// 目标目录约定对齐 DEPLOY §5 / §6 与 <c>InstallTargets</c>：webui zip → <c>plugins\web-ui</c>；<c>.lfplugin</c> → <c>plugins\&lt;pluginId&gt;\</c>。
 /// </summary>
 /// <remarks>
 /// zip 均按「清空目标目录后整包解压」执行（目录内容完全由包拥有，避免覆盖残留陈旧文件）；
-/// <c>.lfplugin</c> 额外执行 #123 版本比较——包内 manifest.json.version 与已装目录 manifest.json.version：
-/// 新版本覆盖、相同版本幂等跳过、旧版本拒绝。比较语义对齐决策 #123（双方可解析 <see cref="Version"/> 按其比较，否则字符串 Ordinal）。
-/// 卸载清理（迭代 69，决策 #133）：<see cref="CleanPlacement"/> 与落位动作同目标对称——只清 Bundle 落位目录，父目录已空才移除。
+/// <c>.lfplugin</c> 额外执行 版本比较——包内 manifest.json.version 与已装目录 manifest.json.version：
+/// 新版本覆盖、相同版本幂等跳过、旧版本拒绝。比较语义对齐（双方可解析 <see cref="Version"/> 按其比较，否则字符串 Ordinal）。
+/// 卸载清理：<see cref="CleanPlacement"/> 与落位动作同目标对称——只清 Bundle 落位目录，父目录已空才移除。
 /// </remarks>
 public static class PayloadPlacer
 {
     /// <summary>webui zip：覆盖落位（无独立版本概念，重跑重写同内容）。</summary>
-    /// <param name="bundleVersion">Bundle 版本（迭代 69，决策 #133）：非空时落位成功后写落位凭据文件（§6.8「落位凭据」）；空 = 不写（无 Bundle 语境的调用）。</param>
+    /// <param name="bundleVersion">Bundle 版本：非空时落位成功后写落位凭据文件（「落位凭据」）；空 = 不写（无 Bundle 语境的调用）。</param>
     public static PlacementOutcome PlaceArchive(string archivePath, string targetDir, string? bundleVersion = null)
     {
         ValidateArchive(archivePath);
@@ -53,8 +53,8 @@ public static class PayloadPlacer
         return PlacementOutcome.Placed;
     }
 
-    /// <summary>.lfplugin：包内 manifest.json 版本与已装版本比较后落位（#123 口径）。</summary>
-    /// <param name="bundleVersion">Bundle 版本（迭代 69，决策 #133）：非空时落位成功后写落位凭据文件；同版幂等跳过与降级拒绝不写（目录未变）。</param>
+    /// <summary>.lfplugin：包内 manifest.json 版本与已装版本比较后落位。</summary>
+    /// <param name="bundleVersion">Bundle 版本：非空时落位成功后写落位凭据文件；同版幂等跳过与降级拒绝不写（目录未变）。</param>
     public static PlacementOutcome PlacePlugin(string archivePath, string targetDir, string? bundleVersion = null)
     {
         ValidateArchive(archivePath);
@@ -87,7 +87,7 @@ public static class PayloadPlacer
     }
 
     /// <summary>
-    /// 卸载清理（迭代 69，决策 #133）：删除 Bundle 落位的目标目录——清理边界 = 只清本目录，
+    /// 卸载清理：删除 Bundle 落位的目标目录——清理边界 = 只清本目录
     /// <c>plugins</c> 父目录内其余内容（平铺手动 DLL、第三方插件子目录）永不触碰；父目录仅在清理后已空时一并移除
     /// （非空即保留 = 用户资产在则留）。目录不存在 = 幂等成功；删除失败 = 尽力而为（<see cref="PlacementCleanupOutcome.FailedBestEffort"/>，
     /// 调用方日志留痕、不视作卸载失败）。凭据文件随目录消亡（无记账漂移）。
@@ -146,7 +146,7 @@ public static class PayloadPlacer
     }
 
     /// <summary>
-    /// 写落位凭据文件（迭代 69，决策 #133，§6.8「落位凭据」）：内容 = Bundle 版本——「Bundle 落位清单」的凭据形态，
+    /// 写落位凭据文件（「落位凭据」）：内容 = Bundle 版本——「Bundle 落位清单」的凭据形态
     /// 只有 Bundle 落位的目录携带；清理包检测比对凭据与 WixBundleVersion 判定 Present。尽力而为：写入失败日志留痕不阻断落位
     /// （后续卸载清理退化为不触发，重装覆盖兜底）。
     /// </summary>
@@ -188,7 +188,7 @@ public static class PayloadPlacer
             : null;
     }
 
-    /// <summary>版本比较（#123 语义；迭代 64 起委托统一实现 <see cref="LabelFrame.Bootstrapper.Upgrade.VersionSemantics"/>——§6.8 / §6.11 单一语义，签名保留兼容既有调用与测试）。&gt;0 = 左新，&lt;0 = 左旧。</summary>
+    /// <summary>版本比较（语义；起委托统一实现 <see cref="LabelFrame.Bootstrapper.Upgrade.VersionSemantics"/>—— / 单一语义，签名保留兼容既有调用与测试）。&gt;0 = 左新，&lt;0 = 左旧。</summary>
     public static int ComparePluginVersions(string left, string right)
         => LabelFrame.Bootstrapper.Upgrade.VersionSemantics.Compare(left, right);
 

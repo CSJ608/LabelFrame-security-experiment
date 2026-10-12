@@ -72,7 +72,7 @@ public class JobSubmissionServiceTests
     [Fact]
     public async Task Direct_submit_with_callback_url_should_be_accepted_and_ignored()
     {
-        // 直连模式（决策 #154）：SubmitJobRequest 为三端共用契约，callbackUrl 字段接受但忽略——
+        // 直连模式：SubmitJobRequest 为三端共用契约，callbackUrl 字段接受但忽略——
         // 受理成功、作业照常创建进入队列，本地作业模型无回调概念（不产生出站回调）
         var (service, store, _) = CreateService();
         var request = CreateRequest("req-cb-direct", new Dictionary<string, string>
@@ -209,7 +209,7 @@ public class JobSubmissionServiceTests
         Assert.Contains("^GF", stored!.Items[0].Zpl);
     }
 
-    // ── 迭代 74：Log 模式作业数据留痕（模板名 + 数据集合，决策 #139）──
+    // ── ：Log 模式作业数据留痕（模板名 + 数据集合）──
 
     private static SubmitJobRequest CreateNamedRequest(string requestId, params IReadOnlyDictionary<string, string>[] labels) => new(
         requestId,
@@ -292,7 +292,7 @@ public class JobSubmissionServiceTests
 
         var result = await service.SubmitAsync(request);
 
-        // 真实传输路径零变化：作业照常创建，但不出现数据留痕（AC-04）
+        // 真实传输路径零变化：作业照常创建，但不出现数据留痕
         Assert.NotNull(result.Job);
         Assert.True(result.Created);
         Assert.NotNull(await store.GetJobAsync(result.Job!.Id));

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>「角色 + 开关 → 组件集合」全矩阵（AC-02：对照 DESIGN §6.3 映射表；含 AC-01 场景。迭代 95 / #151 问卷收敛为本机角色三选，server-docker / server-linux 用例移除）。</summary>
+/// <summary>「角色 + 开关 → 组件集合」全矩阵（对照 DESIGN 映射表；含 场景。/ 问卷收敛为本机角色三选，server-docker / server-linux 用例移除）。</summary>
 public sealed class TopologyResolverTests
 {
     private readonly TopologyResolver _resolver = new();
@@ -22,12 +22,12 @@ public sealed class TopologyResolverTests
     private static void AssertIds(TopologyPlan plan, params string[] expected) =>
         Assert.Equal(expected.ToList(), plan.Components.Select(item => item.Component.Id).ToList());
 
-    // ---- AC-01：当前清单形态（迭代 63 起产物：plugin-zebra 官方插件条目已收录）----
+    // ---- ：当前清单形态（起产物：plugin-zebra 官方插件条目已收录）----
 
     [Fact]
     public void Resolve_current_manifest_standalone_zebra_webui_should_be_server_client_webui_plugin()
     {
-        // AC-01：单机一体 + Zebra + 带管理界面 → Server MSI + Client MSI + 管理界面 zip + Zebra 官方插件
+        // 单机一体 + Zebra + 带管理界面 → Server MSI + Client MSI + 管理界面 zip + Zebra 官方插件
         var plan = _resolver.Resolve(Current, TopologyPreset.Standalone, Options(["zebra"], webUi: true));
 
         AssertIds(plan, "server-msi", "client-msi", "webui", "plugin-zebra");
@@ -46,12 +46,12 @@ public sealed class TopologyResolverTests
         AssertIds(plan, "server-msi", "client-msi");
     }
 
-    // ---- AC-02：全矩阵（full fixture：含 runtime 条目 + dependsOn 闭包 + plugin-zebra 条目）----
+    // ---- ：全矩阵（full fixture：含 runtime 条目 + dependsOn 闭包 + plugin-zebra 条目）----
 
     [Fact]
     public void Resolve_standalone_default_should_include_core_with_dependency_closure()
     {
-        // 单机一体核心：runtime-desktop、runtime-aspnetcore（server-msi 依赖闭包，迭代 62 返修）、runtime-webview2、server-msi、client-msi
+        // 单机一体核心：runtime-desktop、runtime-aspnetcore（server-msi 依赖闭包）、runtime-webview2、server-msi、client-msi
         var plan = _resolver.Resolve(Full, TopologyPreset.Standalone, Options());
 
         AssertIds(plan, "runtime-desktop", "runtime-aspnetcore", "server-msi", "runtime-webview2", "client-msi");
@@ -95,7 +95,7 @@ public sealed class TopologyResolverTests
     [Fact]
     public void Resolve_client_default_should_include_runtimes_and_client_msi()
     {
-        // 追加客户端核心（迭代 62 二次返修补 aspnetcore，决策 #129——WinHost 亦 Sdk.Web）：
+        // 追加客户端核心（WinHost 亦 Sdk.Web）：
         // runtime-desktop、runtime-aspnetcore、runtime-webview2、client-msi
         var plan = _resolver.Resolve(Full, TopologyPreset.Client, Options());
 
@@ -148,7 +148,7 @@ public sealed class TopologyResolverTests
         Assert.Contains("WebView2", Assert.Single(plan.Components, item => item.Component.Id == "runtime-webview2").InstallTarget, StringComparison.Ordinal);
     }
 
-    // ---- 角色适用性（迭代 95 / #151 两层问卷：打印机 / 地址 / 管理界面页跳过依据）----
+    // ---- 角色适用性（/ 两层问卷：打印机 / 地址 / 管理界面页跳过依据）----
 
     [Fact]
     public void Role_applicability_should_cover_three_questionnaire_roles()

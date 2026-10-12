@@ -2,10 +2,10 @@ using Microsoft.Win32;
 
 namespace LabelFrame.Bootstrapper.Prerequisites;
 
-/// <summary>运行时前置探测结果（DESIGN §6.9 检测口径；BA 在 engine.Detect() 前写入 Burn 探测变量）。</summary>
+/// <summary>运行时前置探测结果（DESIGN 检测口径；BA 在 engine.Detect 前写入 Burn 探测变量）。</summary>
 /// <param name="DesktopRuntimeInstalled">.NET 10 Desktop Runtime（x64）是否已装（文件版本探测，≥ 10.0.0，latestMajor 前滚）。</param>
 /// <param name="DesktopRuntimeVersion">已装的最高 Desktop Runtime 版本（目录名原样；未装为 null）。</param>
-/// <param name="AspNetCoreRuntimeInstalled">ASP.NET Core Runtime（x64）是否已装（文件版本探测，机制同 Desktop；迭代 62 返修，决策 #128——Server 组件 Sdk.Web 隐式 FrameworkReference 所需）。</param>
+/// <param name="AspNetCoreRuntimeInstalled">ASP.NET Core Runtime（x64）是否已装（文件版本探测，机制同 Desktop；，——Server 组件 Sdk.Web 隐式 FrameworkReference 所需）。</param>
 /// <param name="AspNetCoreRuntimeVersion">已装的最高 ASP.NET Core Runtime 版本（目录名原样；未装为 null）。</param>
 /// <param name="WebView2Installed">WebView2 Evergreen 是否已装（EdgeUpdate Clients pv 注册表，HKLM + HKCU 双查）。</param>
 public sealed record RuntimeProbeResult(
@@ -16,8 +16,8 @@ public sealed record RuntimeProbeResult(
     bool WebView2Installed);
 
 /// <summary>
-/// 运行时前置探测（迭代 62，决策 #124；迭代 62 返修补 AspNetCore 腿，决策 #128）：.NET Desktop / ASP.NET Core Runtime 用
-/// <b>文件版本探测</b>（注册表 sharedfx 实证不可靠——运行时已装而键不存在，见 §6.9 与本仓 MSI 注释）；
+/// 运行时前置探测（含 ASP.NET Core 腿）：.NET Desktop / ASP.NET Core Runtime 用
+/// <b>文件版本探测</b>（注册表 sharedfx 实证不可靠——运行时已装而键不存在，见 与本仓 MSI 注释）
 /// WebView2 用<b>注册表探测</b>（对齐 MSI 侧 WEBVIEW2_HKLM / WEBVIEW2_HKCU 先例）。
 /// 目录枚举与注册表读取以委托注入（net10 测试腿可注入假探针；net48 BA 腿用默认实现）。
 /// </summary>
@@ -26,7 +26,7 @@ public sealed class RuntimeProbe
     /// <summary>Desktop Runtime 最低版本（对齐 MSI 侧 NetCoreCheck：desktop / 10.0.0 / latestMajor 前滚）。</summary>
     public const string DesktopRuntimeMinimumVersion = "10.0.0";
 
-    /// <summary>ASP.NET Core Runtime 最低版本（对齐 MSI 侧 NetCoreCheck：aspnetcore / 10.0.0 / latestMajor 前滚，决策 #128）。</summary>
+    /// <summary>ASP.NET Core Runtime 最低版本（对齐 MSI 侧 NetCoreCheck：aspnetcore / 10.0.0 / latestMajor 前滚）。</summary>
     public const string AspNetCoreRuntimeMinimumVersion = "10.0.0";
 
     /// <summary>WebView2 Evergreen per-machine 注册表值（WOW6432Node 视图；MSI 侧 WEBVIEW2_HKLM 同键）。</summary>
@@ -63,7 +63,7 @@ public sealed class RuntimeProbe
             ProbeWebView2());
     }
 
-    /// <summary>文件版本探测：版本目录名按 <see cref="Version"/> 解析取最大，与最低版本比较（latestMajor 前滚 = 大版本 ≥ 即满足；Desktop / AspNetCore 同机制，决策 #128）。</summary>
+    /// <summary>文件版本探测：版本目录名按 <see cref="Version"/> 解析取最大，与最低版本比较（latestMajor 前滚 = 大版本 ≥ 即满足；Desktop / AspNetCore 同机制）。</summary>
     private static (bool Installed, string? Version) ProbeNetRuntime(Func<IReadOnlyList<string>> enumerateVersions, string minimumVersion)
     {
         var minimum = ParseVersion(minimumVersion);

@@ -97,12 +97,12 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Enforce_size_limit_should_delete_oldest_rows_and_reclaim_disk_space()
     {
-        // #291 AC-02 / AC-03（决策 #173，KB 级阈值直测 store 量闸）：库文件超阈值按大小删最旧直至回到阈值内——
+        // / （KB 级阈值直测 store 量闸）：库文件超阈值按大小删最旧直至回到阈值内——
         // 全部行均为刚写入的新行（远新于 90 天保留期）仍被删除，证明量闸不受保留期下限约束（有意行为）；
         // 度量口径 = logs.db + logs.db-wal 合计（VACUUM + wal_checkpoint(TRUNCATE) 之后取值——DELETE 后主文件不收缩）
         using var logDb = new TempLogDb();
         // 峰值约为阈值的 2.5 倍：既有收敛余量（每轮删 max(1000, 行数/10)，轮数上限 10），
-        // 又保证「回收后 < 峰值一半」（AC-03）与「收敛后仍留存大量新行」两个断言都有富余
+        // 又保证「回收后 < 峰值一半」与「收敛后仍留存大量新行」两个断言都有富余
         const int rowCount = 9000;
         var lines = Enumerable.Range(1, rowCount).Select(i => $"size-gate-{i:000000}-{new string('s', 160)}").ToList();
         await logDb.Store.AppendAsync("pda-1", lines, CancellationToken.None);
@@ -131,7 +131,7 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Enforce_size_limit_on_empty_db_smaller_than_threshold_should_return_warning()
     {
-        // #296 留观项②锚定：表已空 / 无行可删而库文件仍超阈值（阈值小于空库体积）——返回异常态警告交调用方记录，
+        // 留观项②锚定：表已空 / 无行可删而库文件仍超阈值（阈值小于空库体积）——返回异常态警告交调用方记录
         // 不抛出、不无限重试；正常收敛路径警告为 null（见上测断言）
         using var logDb = new TempLogDb();
 
@@ -145,7 +145,7 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Cleanup_service_should_enforce_logs_db_size_gate_after_retention_cleanup()
     {
-        // #291 AC-02 编排（决策 #173，MB 级阈值走 ServerOptions）：按期删（时间闸）不变 → 量闸接管大小维度；
+        // 编排（MB 级阈值走 ServerOptions）：按期删（时间闸）不变 → 量闸接管大小维度
         // 全部行均为新行（按期删除零命中），CleanupAsync 后合计仍回到阈值内——两道闸先后生效
         using var logDb = new TempLogDb();
         var lines = Enumerable.Range(1, 8000).Select(i => new string('b', 300)).ToList();
@@ -165,7 +165,7 @@ public class DataCleanupServiceTests
     [Fact]
     public async Task Cleanup_service_without_size_gate_should_keep_all_recent_logs()
     {
-        // 回归（决策 #173）：LogsDbMaxSizeMB = 0 / 负 = 关闭量闸——按期行为与现状一致，新行全保留
+        // 回归：LogsDbMaxSizeMB = 0 / 负 = 关闭量闸——按期行为与现状一致，新行全保留
         using var logDb = new TempLogDb();
         var lines = Enumerable.Range(1, 300).Select(i => $"regression-{i}").ToList();
         await logDb.Store.AppendAsync("pda-1", lines, CancellationToken.None);
@@ -182,7 +182,7 @@ public class DataCleanupServiceTests
     [Fact]
     public void Server_options_log_size_limits_defaults_and_environment_overrides()
     {
-        // #291 AC-04（决策 #173）：两个新配置项默认值与环境变量覆盖（有效 / 无效 / 缺省三态，对齐既有模式）
+        // 两个新配置项默认值与环境变量覆盖（有效 / 无效 / 缺省三态，对齐既有模式）
         var options = new ServerOptions();
         Assert.Equal(50, options.LogFileMaxSizeMB);
         Assert.Equal(256, options.LogsDbMaxSizeMB);

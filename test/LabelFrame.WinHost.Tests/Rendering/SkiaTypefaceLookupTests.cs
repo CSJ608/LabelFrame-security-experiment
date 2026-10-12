@@ -8,21 +8,21 @@ using SkiaSharp;
 namespace LabelFrame.WinHost.Tests.Rendering;
 
 /// <summary>
-/// SkiaTypefaceLookup 回退策略单测（迭代 113，#243）：
-/// AC-01 非中文字符按实际字符匹配（假名 / 韩文样本，存在性探测 + 缺失跳过，不假绿）；
-/// AC-02 中文样本与修复前基线（硬编码 MatchCharacter('中')）渲染逐字节一致（位图哈希对比防回归）。
+/// SkiaTypefaceLookup 回退策略单测：
+/// 非中文字符按实际字符匹配（假名 / 韩文样本，存在性探测 + 缺失跳过，不假绿）
+/// 中文样本与修复前基线（硬编码 MatchCharacter（'中'））渲染逐字节一致（位图哈希对比防回归）。
 /// </summary>
 public class SkiaTypefaceLookupTests
 {
     private const string ChineseSample = "5m门架O20起升拉线固定支架";
 
-    // —— AC-02：中文零回归 ——
+    // —— ：中文零回归 ——
 
     [Fact]
     public void Chinese_sample_typeface_should_match_pre_fix_fallback()
     {
         var sample = ChineseSample;
-        // 修复前基线逻辑（#243 前）：任一非 ASCII → 固定以『中』匹配系统回退字体
+        // 修复前基线逻辑（前）：任一非 ASCII → 固定以『中』匹配系统回退字体
         using var legacy = LegacyChineseTypeface();
         using var current = SkiaTypefaceLookup.CreateTypeface(null!, sample);
 
@@ -67,7 +67,7 @@ public class SkiaTypefaceLookupTests
         Assert.True(ink > 500, $"中文标签应有足量墨迹：{ink}");
     }
 
-    // —— AC-01：非中文字符按实际字符匹配（存在性探测 + 缺失跳过，不假绿） ——
+    // —— ：非中文字符按实际字符匹配（存在性探测 + 缺失跳过，不假绿） ——
 
     [SkippableFact]
     public void Kana_sample_should_fall_back_by_actual_kana_character()
@@ -124,7 +124,7 @@ public class SkiaTypefaceLookupTests
         Assert.Equal(preferred.FamilyName, actual.FamilyName);
     }
 
-    /// <summary>复刻修复前（#243 前）的中文回退路径：任一非 ASCII 固定以『中』匹配。</summary>
+    /// <summary>复刻修复前（前）的中文回退路径：任一非 ASCII 固定以『中』匹配。</summary>
     private static SKTypeface LegacyChineseTypeface()
         => SKFontManager.Default.MatchCharacter('中')
             ?? SKTypeface.FromFamilyName(LabelTextElement.DefaultFontFamily)

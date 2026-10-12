@@ -1,18 +1,18 @@
 // @vitest-environment jsdom
-// 迭代 45：工作台模板名搜索——子串匹配、大小写不敏感，与分组过滤叠加生效；清空恢复完整列表。
+// 工作台模板名搜索——子串匹配、大小写不敏感，与分组过滤叠加生效；清空恢复完整列表。
 // mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链）。
-// 迭代 85（#133 C-4）：卡片「打印」直达入口——每张卡片均有打印按钮、点击回调携带模板名；双击卡片仍进设计器。
-// 迭代 104（#225）：卡片脚收纳回归——「编辑」主色列首＋「打印」常驻＋⋯ 溢出菜单（导出 / 删除）；
-//   删除仍走确认 Modal（含「不可恢复」）。AC-01 视觉裁剪（196px 最窄轨道下无按钮被裁）以结构断言＋样式走查自证：
+// （C-4）：卡片「打印」直达入口——每张卡片均有打印按钮、点击回调携带模板名；双击卡片仍进设计器。
+// 卡片脚收纳回归——「编辑」主色列首＋「打印」常驻＋⋯ 溢出菜单（导出 / 删除）
+// 删除仍走确认 Modal（含「不可恢复」）。 视觉裁剪（196px 最窄轨道下无按钮被裁）以结构断言＋样式走查自证：
 //   卡片脚恒 3 枚按钮（两常驻 flex:1 ＋ ⋯ 图标按钮 .wb-more 不占弹性宽度）、菜单 portal 挂 body 直下且 fixed
-//   （脱离 .wb-card overflow:hidden）——浏览器实测（逐级缩窗）留待 #225 AC-07 验收走查，本文件不伪装视觉验证。
+// （脱离 .wb-card overflow:hidden）——浏览器实测（逐级缩窗）留待 验收走查，本文件不伪装视觉验证。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { TemplateSummary } from '../lib/api/types'
 import { AppProvider } from '../state/AppContext'
 import { Workbench } from './Workbench'
-// 迭代 96（#183）：挂载链（AppContext 启动链 → 模板列表加载）为多段 promise + React 真实宏任务
+// 挂载链（AppContext 启动链 → 模板列表加载）为多段 promise + React 真实宏任务
 // 调度，CI 高负载 runner 上偶发超过 findBy / waitFor 默认 1000ms；统一放宽到 8000ms（与
 // JobHistory / DataPrint / Settings 同口径），单测总超时由 vitest.config testTimeout（20s）兜住。
 configure({ asyncUtilTimeout: 8000 })
@@ -54,7 +54,7 @@ function renderWorkbench(handlers?: { onOpenPrint?: (name: string) => void }) {
   )
 }
 
-/** 取指定模板名所在卡片的容器（.wb-card）——迭代 85 / 104 各 describe 共用。 */
+/* * 取指定模板名所在卡片的容器（wb-card）—— 各 describe 共用。 */
 function cardOf(name: string): HTMLElement {
   return screen.getByText(name).closest('.wb-card') as HTMLElement
 }
@@ -68,7 +68,7 @@ beforeEach(() => {
   mocks.local.getTransport.mockResolvedValue({ mode: 'Log', params: {} })
   mocks.server.listTemplates.mockResolvedValue(TEMPLATES)
   mocks.local.listTemplates.mockResolvedValue(TEMPLATES)
-  // 迭代 104：预览缓存链（previewTemplate → URL.createObjectURL）——jsdom 未实现 createObjectURL，全局桩
+  // 预览缓存链（previewTemplate → URL.createObjectURL）——jsdom 未实现 createObjectURL，全局桩
   // （DataPrint.test 同口径）；未桩时 ensure 走 .catch 落错误占位、不影响断言，桩后链路完整
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() })
   mocks.server.previewTemplate.mockResolvedValue({ blob: new Blob(['png']) })
@@ -131,7 +131,7 @@ describe('工作台模板名搜索（迭代 45）', () => {
   })
 })
 
-// 迭代 85（#133 C-4，决议 1）：模板卡片「打印」直达——跳「数据与打印」页并预选该模板；双击卡片仍进设计器。
+// （C-4，决议 1）：模板卡片「打印」直达——跳「数据与打印」页并预选该模板；双击卡片仍进设计器。
 describe('模板卡片打印直达（迭代 85 · #133 C-4）', () => {
   it('AC-01：每张卡片操作区均有「打印」按钮——点击回调携带该模板名（App 侧据此预选并跳数据与打印页）', async () => {
     const onOpenPrint = vi.fn()
@@ -170,9 +170,9 @@ describe('模板卡片打印直达（迭代 85 · #133 C-4）', () => {
   })
 })
 
-// 迭代 104（#225）：卡片脚收纳——「编辑」升主操作（修订决策 #152①），导出 / 删除收进 ⋯ 溢出菜单；
+// 卡片脚收纳——「编辑」升主操作（修订①），导出 / 删除收进 ⋯ 溢出菜单
 // 修复四按钮平铺（最小需宽约 216px）超出最窄卡片可用宽度 176px 致「删除」被 .wb-card overflow:hidden
-// 裁剪不可见不可点的回归（AC-01 / AC-02）。
+// 裁剪不可见不可点的回归（/）。
 describe('卡片脚操作收纳（迭代 104 · #225）', () => {
   it('卡片脚 = 编辑（唯一主色）＋ 打印（普通）＋ ⋯ 图标按钮，恒 3 枚；导出 / 删除不在卡片脚平铺', async () => {
     renderWorkbench()
@@ -181,7 +181,7 @@ describe('卡片脚操作收纳（迭代 104 · #225）', () => {
     const editBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '编辑' }) as HTMLButtonElement
     const printBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: '打印' }) as HTMLButtonElement
     const moreBtn = within(cardOf('Shelf-Tag')).getByRole('button', { name: /更多操作/ }) as HTMLButtonElement
-    // 主操作归属（修订决策 #152①）：编辑 = primary；打印 = 普通按钮
+    // 主操作归属（修订①）：编辑 = primary；打印 = 普通按钮
     expect(editBtn.className).toContain('primary')
     expect(printBtn.className).not.toContain('primary')
     expect(moreBtn.getAttribute('aria-haspopup')).toBe('menu')
@@ -208,7 +208,7 @@ describe('卡片脚操作收纳（迭代 104 · #225）', () => {
   })
 })
 
-// 迭代 104（#225）：⋯ 溢出菜单交互（AC-01 / AC-03）——菜单项可达、Esc / 外部点击关闭、动作触发即收起。
+// ⋯ 溢出菜单交互（/）——菜单项可达、Esc / 外部点击关闭、动作触发即收起。
 describe('⋯ 溢出菜单（迭代 104 · #225）', () => {
   it('点 ⋯ 打开：菜单 portal 挂 body 直下 + fixed（防 .wb-card overflow 裁剪），含导出与 danger 删除菜单项', async () => {
     renderWorkbench()
@@ -262,8 +262,8 @@ describe('⋯ 溢出菜单（迭代 104 · #225）', () => {
   })
 })
 
-// 迭代 104（#225，决策 #161）：删除 = 销毁类操作——菜单内删除项点击仍走既有确认 Modal
-//（含「不可恢复」文案、确认按钮 danger），确认后才调删除接口（AC-03）。
+// 删除 = 销毁类操作——菜单内删除项点击仍走既有确认 Modal
+// （含「不可恢复」文案、确认按钮 danger），确认后才调删除接口。
 describe('删除确认流（迭代 104 · #225）', () => {
   it('菜单内点「删除」→ 菜单收起 → 确认 Modal（不可恢复文案、danger 确认按钮）→ 确认后调删除接口', async () => {
     renderWorkbench()

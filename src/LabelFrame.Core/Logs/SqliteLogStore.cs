@@ -12,7 +12,7 @@ public sealed class SqliteLogStore
     /// <summary>量闸循环轮数上限：防止 VACUUM 后仍不收敛（如阈值小于空库体积）时无限删库。</summary>
     private const int SizeLimitMaxRounds = 10;
 
-    /// <summary>VACUUM 命令超时（秒）：默认 5s 与 /api/logs 并发写撞锁即失败，放大到 60s（决策 #173）。</summary>
+    /// <summary>VACUUM 命令超时（秒）：默认 5s 与 /api/logs 并发写撞锁即失败，放大到 60s。</summary>
     private const int VacuumTimeoutSeconds = 60;
 
     private readonly string _connectionString;
@@ -48,7 +48,7 @@ public sealed class SqliteLogStore
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    /// <summary>追加设备日志（按行拆分入库：lines 各元素及元素内换行符均按物理行拆为独立记录，决策 #106）。</summary>
+    /// <summary>追加设备日志（按行拆分入库：lines 各元素及元素内换行符均按物理行拆为独立记录）。</summary>
     public async Task AppendAsync(string deviceId, IReadOnlyList<string> lines, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(deviceId) || lines.Count == 0)
@@ -141,13 +141,13 @@ public sealed class SqliteLogStore
     }
 
     /// <summary>量闸执行结果：累计删除行数 + 异常态警告（null = 无异常；VACUUM 失败 / 表空仍超阈等，
-    /// 由调用方经 ILogger 记录——Core 库无日志抽象，服务宿主可能无控制台，#296 留观项②）。</summary>
+    /// 由调用方经 ILogger 记录——Core 库无日志抽象，服务宿主可能无控制台， 留观项②）。</summary>
     public sealed record SizeLimitResult(int DeletedRows, string? VacuumWarning);
 
     /// <summary>
-    /// logs.db 按量闸（决策 #173）：库文件（logs.db + logs.db-wal 合计）超过 <paramref name="maxBytes"/> 时，
+    /// logs.db 按量闸：库文件（logs.db + logs.db-wal 合计）超过 <paramref name="maxBytes"/> 时
     /// 循环「删一批最旧 → VACUUM → wal_checkpoint(TRUNCATE)」直至合计回到阈值内 / 表已空 / 轮数上限。
-    /// 按大小删最旧不受保留期下限约束（AC-02 有意行为）；返回累计删除行数与异常态警告。
+    /// 按大小删最旧不受保留期下限约束（有意行为）；返回累计删除行数与异常态警告。
     /// 收敛判据只取 VACUUM + checkpoint 之后的合计大小——DELETE 之后主文件不会缩小（空闲页仅库内复用），
     /// 以删除间歇的文件大小判断收敛会在首次超阈即删空全表。
     /// </summary>

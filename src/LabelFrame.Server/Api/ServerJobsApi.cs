@@ -28,7 +28,7 @@ app.MapPost("/api/jobs", async (SubmitJobRequest? request, ServerService svc, Ca
     }
     catch (ServerException ex)
     {
-        // 设备未注册 / 按 IP 未找到设备均 404（#242 返修：by-ip 拆码 LF_SRV_012 后两码都映射 404，HTTP 语义不变）
+        // 设备未注册 / 按 IP 未找到设备均 404（by-ip 拆码 LF_SRV_012 后两码都映射 404，HTTP 语义不变）
         return ex.Code is ServerErrorCodes.DeviceNotFound or ServerErrorCodes.DeviceNotFoundByIp
             ? Results.NotFound(new ErrorView(ex.Code, ex.Message, Params: ex.Parameters))
             : Results.BadRequest(new ErrorView(ex.Code, ex.Message, Params: ex.Parameters));
@@ -107,7 +107,7 @@ app.MapPost("/api/devices/{deviceId}/jobs/{jobId}/result", async (string deviceI
     }
 });
 
-// 进度增量上报：仅 Claimed 接受，计数 max 单调；终态幂等 no-op。错误语义与 result 端点一致（决策 #101）。
+// 进度增量上报：仅 Claimed 接受，计数 max 单调；终态幂等 no-op。错误语义与 result 端点一致。
 app.MapPost("/api/devices/{deviceId}/jobs/{jobId}/progress", async (string deviceId, string jobId, ReportProgressRequest? progress, ServerService svc, CancellationToken ct) =>
 {
     if (progress is null)

@@ -80,7 +80,7 @@ public class PluginInstallerTests
     [Fact]
     public async Task Install_non_zip_message_should_be_chinese_and_actionable()
     {
-        // 四类高频之一：非 zip → 具体中文可行动消息（不直出英文框架原话，决策 #107）
+        // 四类高频之一：非 zip → 具体中文可行动消息（不直出英文框架原话）
         var (installer, _, pluginsDir) = Create();
         try
         {
@@ -390,12 +390,12 @@ public class PluginInstallerTests
         }
     }
 
-    // ---- 官方插件体系（迭代 63，决策 #123）：官方 id 放行 + 覆盖安装版本比较 + 真实装配 ----
+    // ---- 官方插件体系：官方 id 放行 + 覆盖安装版本比较 + 真实装配 ----
 
     [Fact]
     public async Task Install_official_package_should_pass_builtin_check_and_load_after_restart()
     {
-        // 官方 id（labelframe-transport-zebra）不再与内置冲突（zebra 已外置）；安装后重启装配可用（AC-02 装配面）
+        // 官方 id（labelframe-transport-zebra）不再与内置冲突（zebra 已外置）；安装后重启装配可用（装配面）
         var (installer, registry, pluginsDir) = Create();
         try
         {
@@ -488,7 +488,7 @@ public class PluginInstallerTests
     [Fact]
     public async Task Install_thirdparty_same_version_should_still_overwrite()
     {
-        // 第三方插件维持「覆盖安装不做版本比较」（决策 #72 4A）：同版本重装仍替换目录（marker 消失）
+        // 第三方插件维持「覆盖安装不做版本比较」（4A）：同版本重装仍替换目录（marker 消失）
         var (installer, _, pluginsDir) = Create();
         try
         {

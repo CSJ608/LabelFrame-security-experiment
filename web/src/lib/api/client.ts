@@ -1,6 +1,6 @@
-// fetch 封装（迭代 18 F1：双 base）：
+// fetch 封装（F1：双 base）：
 // - serverApi：服务端地址（机器级配置 > localStorage 兜底 > 默认 127.0.0.1:53961）——模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz；
-//   迭代 86（#142，a 案）：client 构建下机器级配置 serverUrl 为空 = 未配置服务端——AppContext 不探测（connected 恒 false、
+// （a 案）：client 构建下机器级配置 serverUrl 为空 = 未配置服务端——AppContext 不探测（connected 恒 false
 //   单机降级 localApi），serverApi 不以空串 base 冒充同源服务端探测 / 拉数据；server 构建同源相对路径语义不变；
 // - localApi：页面来源（托管本页的 LabelFrame Client，127.0.0.1:53960）——transport / printer / host/config 本机接口；
 //   业务 API 同时保留（单机降级：Server 不可达时模板 / 作业 / 日志走本机 WinHost 全套 API）。
@@ -39,7 +39,7 @@ import i18next from '../../i18n'
 
 // ── base 解析 ──
 
-// 迭代 20（K1）：server 构建下 serverApi base 固定同源相对路径（''，不读 localStorage / 机器级配置）——
+// （K1）：server 构建下 serverApi base 固定同源相对路径（''，不读 localStorage / 机器级配置）——
 // Server UI 由服务端托管，同源即可访问 API；局域网其他机器访问 http://<服务端IP>:53961 时避免回环地址
 // 错连到访问者本机、或 localStorage 残留旧值错连到客户端 WinHost。client 构建保持现状。
 let serverBaseUrl = UI_MODE === 'server' ? '' : getBaseUrl()
@@ -62,7 +62,7 @@ export function getLocalBaseUrl(): string {
   return DEFAULT_LOCAL_BASE_URL
 }
 
-// ── 请求超时（迭代 91 F-01 · #149 a 案决议）──
+// ── 请求超时（· a 案决议）──
 
 /** 超时分档：normal = 普通请求（列表 / 保存 / 提交等）；heavy = 出图 / 导入导出 / 安装包等大负载端点放宽档。
  *  导出为可变对象：单测注入秒级短超时验证超时分支（不真实等待 30s / 120s）。 */
@@ -86,7 +86,7 @@ function createRequestTimeout(timeoutMs: number) {
 }
 
 /** fetch 传输层失败归一化：超时 → ApiError('TIMEOUT')；其余（不可达 / 连接被拒）→ 既有 NETWORK_ERROR（语义不变）。
- *  迭代 111（#245）：兜底文案 key 化（common.api.* 词条，读 i18next 单例当前语言——错误在请求失败期构造，
+ * 兜底文案 key 化（common.api.* 词条，读 i18next 单例当前语言——错误在请求失败期构造
  *  语言即当时界面语言；zh-CN 值与原硬编码逐字一致）。 */
 function transportError(t: ReturnType<typeof createRequestTimeout>, timeoutMs: number, base: () => string, label: '服务端' | '本机客户端'): ApiError {
   const targetKey = label === '服务端' ? 'api.targetServer' : 'api.targetLocalClient'
@@ -101,7 +101,7 @@ function transportError(t: ReturnType<typeof createRequestTimeout>, timeoutMs: n
 
 function makeRequest(base: () => string, label: '服务端' | '本机客户端') {
   return async function request<T>(path: string, init?: RequestInit, timeoutMs = requestTimeouts.normal): Promise<T> {
-    // 迭代 91（F-01）：默认 30s 超时——后端挂起（接了不回）不再无限「处理中…」；
+    // 默认 30s 超时——后端挂起（接了不回）不再无限「处理中…」
     // 出图 / 上传类大负载端点在调用处传 requestTimeouts.heavy（120s 放宽档）。
     const timeout = createRequestTimeout(timeoutMs)
     try {
@@ -142,7 +142,7 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
   }
 }
 
-/** 解析 Content-Disposition 下载文件名（迭代 102 · #220）。
+/* * 解析 Content-Disposition 下载文件名（·）。
  *  后端 ASP.NET Core 对非 ASCII 文件名按 RFC 6266/5987 同时发两个参数——
  *  `filename=____.lfpkg`（ASCII 回退值，非 ASCII 字符替换为 _）与 `filename*=UTF-8''%E4%B8%AD...`（百分号编码，无损）。
  *  优先解析 filename* 并 decodeURIComponent 还原中文；无 / 畸形 / 非 UTF-8 的 filename* 回退现行为 filename=，
@@ -163,7 +163,7 @@ function parseDispositionFilename(disposition: string): string | null {
 }
 
 /** 下载型端点（render-image / render-images / 模板导出）：返回 blob + Content-Disposition 文件名，错误解析 ErrorView。
- *  迭代 91（F-01）：超时覆盖整个下载过程（含 res.blob() 响应体读取）——大负载端点调用处传 heavy 档。 */
+ * 超时覆盖整个下载过程（含 res.blob 响应体读取）——大负载端点调用处传 heavy 档。 */
 function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端') {
   return async function fetchBlob(
     path: string,
@@ -201,7 +201,7 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
         throw transportError(timeout, timeoutMs, base, label)
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
-      // 迭代 102（#220）：优先 filename*（RFC 5987）还原中文，回退链 filename= → fallbackName
+      // 优先 filename*（RFC 5987）还原中文，回退链 filename= → fallbackName
       const filename = parseDispositionFilename(disposition) ?? fallbackName
       return { blob, filename }
     } finally {
@@ -236,7 +236,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
         body: JSON.stringify(pkg),
       }),
     deleteTemplate: (name: string) => request<void>(`/api/templates/${encodeURIComponent(name)}`, { method: 'DELETE' }),
-    /** 迭代 91（F-09）：改走 makeFetchBlob 同构——失败解析后端 ErrorView 呈现真实原因（不再固定 EXPORT_FAILED
+    /* * ：改走 makeFetchBlob 同构——失败解析后端 ErrorView 呈现真实原因（不再固定 EXPORT_FAILED
      *  吞掉后端信息），Content-Disposition 解析收敛到 fetchBlob 一处；模板导出为大负载端点，挂 heavy 档超时。 */
     exportTemplate: (name: string): Promise<{ blob: Blob; filename: string }> =>
       fetchBlob(
@@ -258,7 +258,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
       return request<ExcelImportResult>('/api/import/excel', { method: 'POST', body: form }, requestTimeouts.heavy)
     },
 
-    /** 下载 Excel 模板（迭代 22：Server 与 WinHost 都实现）——按契约字段 + testData 生成 xlsx 供直接套用导入。 */
+    /* * 下载 Excel 模板（Server 与 WinHost 都实现）——按契约字段 + testData 生成 xlsx 供直接套用导入。 */
     excelTemplate: (columns: { key: string; displayName: string }[], sampleRow: Record<string, string>) =>
       fetchBlob(
         '/api/import/excel-template',
@@ -282,14 +282,14 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
     retryJobItem: (jobId: string, index: number) =>
       request<JobView>(`/api/jobs/${encodeURIComponent(jobId)}/items/${index}/retry`, { method: 'POST' }),
 
-    /** 作业历史（迭代 18 F6 / B10）：默认 100、上限 500，倒序；迭代 22：可选 deviceId 过滤（客户端 UI 传本机 ID 只看自己）。 */
+    /* * 作业历史（F6 / B10）：默认 100、上限 500，倒序；：可选 deviceId 过滤（客户端 UI 传本机 ID 只看自己）。 */
     getJobs: (limit = 100, deviceId?: string) => {
       const params = new URLSearchParams({ limit: String(limit) })
       if (deviceId) params.set('deviceId', deviceId)
       return request<JobView[]>(`/api/jobs?${params.toString()}`)
     },
 
-    /** 设备 / 客户端目录（迭代 16，Server）；404 / 失败 = 单机 WinHost，前端降级为单机模式。 */
+    /* * 设备 / 客户端目录（Server）；404 / 失败 = 单机 WinHost，前端降级为单机模式。 */
     listDevices: () => request<DeviceView[]>('/api/devices'),
 
     renderImage: (req: SubmitJobRequest) =>
@@ -299,7 +299,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
         body: JSON.stringify(req),
       }, 'label-print.png', i18next.t('api.renderFailed'), requestTimeouts.heavy),
 
-    /** 模板预览 PNG（迭代 46：按模板 TestData 渲染，工作台预览列用；Server 与 WinHost 双宿主已实现，
+    /* * 模板预览 PNG（：按模板 TestData 渲染，工作台预览列用；Server 与 WinHost 双宿主已实现
      *  模板不存在等业务失败由调用方按失败态处理）。与 renderImage 同构的 blob 封装。
      *  空 JSON 体 + 显式 Content-Type 必须携带：旧版 Server 对无 Content-Type 的裸 POST 按路由不匹配
      *  返回空体 404（2026-09-10 真机验收发现——新版宽容、旧版不宽容，显式携带两端通吃）。 */
@@ -312,7 +312,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
         requestTimeouts.heavy,
       ),
 
-    /** 调试批量出图：后端渲染全部标签为 PNG 打包 zip 下载（迭代 15，不建作业）。 */
+    /* * 调试批量出图：后端渲染全部标签为 PNG 打包 zip 下载（不建作业）。 */
     renderImages: (req: SubmitJobRequest) =>
       fetchBlob('/api/print/render-images', {
         method: 'POST',
@@ -333,11 +333,11 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
 const serverRequest = makeRequest(getServerBaseUrl, '服务端')
 const serverFetchBlob = makeFetchBlob(getServerBaseUrl, '服务端')
 
-/** 服务端 API（模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz → 服务端地址；迭代 22：+ 客户端安装包；迭代 23：+ 插件包）。 */
+/* * 服务端 API（模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz → 服务端地址；：+ 客户端安装包；：+ 插件包）。 */
 export const serverApi = {
   ...makeBusinessApi(getServerBaseUrl, '服务端'),
 
-  // ── 客户端下载分发（迭代 22 §5.4：仅 Server 实现；路径穿越防护在后端）──
+  // ── 客户端下载分发（仅 Server 实现；路径穿越防护在后端）──
   listClientPackages: () => serverRequest<ClientPackageInfo[]>('/api/client-packages'),
   uploadClientPackage: (file: File) => {
     const form = new FormData()
@@ -346,7 +346,7 @@ export const serverApi = {
   },
   deleteClientPackage: (fileName: string) => serverRequest<void>(`/api/client-packages/${encodeURIComponent(fileName)}`, { method: 'DELETE' }),
 
-  // ── PDA（Android 宿主）安装包分发（迭代 59 决策 #119：仅 Server 实现；与客户端安装包同模式）──
+  // ── PDA（Android 宿主）安装包分发（仅 Server 实现；与客户端安装包同模式）──
   listPdaPackages: () => serverRequest<PdaPackageInfo[]>('/api/pda-packages'),
   uploadPdaPackage: (file: File) => {
     const form = new FormData()
@@ -355,10 +355,10 @@ export const serverApi = {
   },
   deletePdaPackage: (fileName: string) => serverRequest<void>(`/api/pda-packages/${encodeURIComponent(fileName)}`, { method: 'DELETE' }),
 
-  // ── 本机 IPv4 候选（迭代 118 · #272：下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）──
+  // ── 本机 IPv4 候选（· ：下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）──
   listServerIpv4Candidates: () => serverRequest<Ipv4Candidates>('/api/server/ipv4-candidates'),
 
-  // ── 插件包分发（迭代 23 §2.1：仅 Server 实现；64MB 上限与校验在后端，前端按 sizeBytes 预检）──
+  // ── 插件包分发（仅 Server 实现；64MB 上限与校验在后端，前端按 sizeBytes 预检）──
   listPluginPackages: () => serverRequest<PluginPackageInfo[]>('/api/plugin-packages'),
   uploadPluginPackage: (file: File) => {
     const form = new FormData()
@@ -382,12 +382,12 @@ export function clientPackageDownloadUrl(fileName: string): string {
   return `${getServerBaseUrl()}/api/client-packages/${encodeURIComponent(fileName)}`
 }
 
-/** PDA（Android 宿主）安装包下载 URL（迭代 59：Server UI「下载中心」页与二维码共用；server 构建下 base 为空 = 同源相对路径）。 */
+/* * PDA（Android 宿主）安装包下载 URL（Server UI「下载中心」页与二维码共用；server 构建下 base 为空 = 同源相对路径）。 */
 export function pdaPackageDownloadUrl(fileName: string): string {
   return `${getServerBaseUrl()}/api/pda-packages/${encodeURIComponent(fileName)}`
 }
 
-/** 插件包下载 URL（迭代 23：Server UI「插件管理」页下载链接；与 clientPackageDownloadUrl 同模式）。 */
+/* * 插件包下载 URL（Server UI「插件管理」页下载链接；与 clientPackageDownloadUrl 同模式）。 */
 export function pluginPackageDownloadUrl(fileName: string): string {
   return `${getServerBaseUrl()}/api/plugin-packages/${encodeURIComponent(fileName)}`
 }
@@ -398,7 +398,7 @@ const localRequest = makeRequest(getLocalBaseUrl, '本机客户端')
 export const localApi = {
   ...makeBusinessApi(getLocalBaseUrl, '本机客户端'),
 
-  // ── 连接管理（迭代 15 恢复，F3）──
+  // ── 连接管理（恢复，F3）──
   getTransport: () => localRequest<TransportConfig>('/api/transport'),
   setTransport: (req: TransportApplyRequest) =>
     localRequest<TransportResult>('/api/transport', {
@@ -413,11 +413,11 @@ export const localApi = {
       body: JSON.stringify({ ...req, testOnly: true }),
     }),
 
-  // ── 打印机（迭代 15 恢复，F4）──
+  // ── 打印机（恢复，F4）──
   getPrinterStatus: () => localRequest<PrinterStatus>('/api/printer/status'),
   testPrinter: () => localRequest<PrinterTestResult>('/api/printer/test', { method: 'POST' }),
 
-  // ── 机器级配置（迭代 18 F2 / B6）──
+  // ── 机器级配置（F2 / B6）──
   getHostConfig: () => localRequest<HostConfig>('/api/host/config'),
   setHostConfig: (cfg: HostConfig) =>
     localRequest<void>('/api/host/config', {
@@ -426,7 +426,7 @@ export const localApi = {
       body: JSON.stringify(cfg),
     }),
 
-  // ── 批次作业设置（迭代 24 §4.3：仅 WinHost 实现；GET Normalize 兜底、POST 校验 400 + 仅回环，保存即生效；旧 WinHost 404）──
+  // ── 批次作业设置（仅 WinHost 实现；GET Normalize 兜底、POST 校验 400 + 仅回环，保存即生效；旧 WinHost 404）──
   getPrintSettings: () => localRequest<PrintSettings>('/api/host/print-settings'),
   setPrintSettings: (s: PrintSettings) =>
     localRequest<void>('/api/host/print-settings', {
@@ -435,7 +435,7 @@ export const localApi = {
       body: JSON.stringify(s),
     }),
 
-  // ── 客户端插件安装 / 卸载（迭代 23 §2.2/§2.3：仅 WinHost 实现；失败 400 ErrorView；旧 WinHost 404）──
+  // ── 客户端插件安装 / 卸载（/：仅 WinHost 实现；失败 400 ErrorView；旧 WinHost 404）──
   listInstalledPlugins: () => localRequest<InstalledPluginInfo[]>('/api/plugins/installed'),
   /** 安装插件包（multipart；file 保留原始文件名——服务端下载后 `new File([blob], fileName)` 传入）。 */
   installPlugin: (file: File) => {
@@ -452,7 +452,7 @@ export const localApi = {
 }
 
 /** 探测任意地址的 /healthz（设置页「测试连接」用输入值探测，不保存；5s 超时防挂起）。
- *  迭代 86（#142，a 案）：空地址不发起网络探测直接判失败——空串 base 落同源会打到本机 WinHost /healthz 200，
+ * （a 案）：空地址不发起网络探测直接判失败——空串 base 落同源会打到本机 WinHost /healthz 200
  *  谎报「该地址可访问服务端」；未配置服务端地址的终态判定在 AppContext（空地址 = 未连接单机模式，不探测）。 */
 export async function probeHealthz(url: string): Promise<boolean> {
   const cleaned = url.trim().replace(/\/+$/, '')

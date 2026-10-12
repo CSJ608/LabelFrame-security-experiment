@@ -26,7 +26,7 @@ export const SNAP_THRESHOLD = 8
 /**
  * 元素模型盒（逻辑 px，相对 layer）：按模型 mm 坐标纯函数计算，脱离 Konva 渲染包围盒。
  *
- * 根因（迭代 130 · #323）：getClientRect 默认把居中描边半线宽计入盒外——线（默认 0.5mm）
+ * 根因（·）：getClientRect 默认把居中描边半线宽计入盒外——线（默认 0.5mm）
  * 每侧外扩 0.25mm、矩形 / 容器边框（默认 0.3mm）每侧 0.15mm、图片占位描边每侧 0.125mm——
  * 吸附候选与落点提交取渲染盒会把外扩传染给 mm 坐标（用户报告「自动对齐后偏差约 0.2」）。
  * 宽高镜像 ElementNode 的渲染下限钳制（Math.max(2, pxv(w))），保证候选盒与画布视觉宽度一致。
@@ -41,7 +41,7 @@ export function elementModelRect(e: DesignElement, ox: number, oy: number): Snap
 }
 
 /**
- * 选中元素联合包围盒（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）：多选拖动的吸附单位。
+ * 选中元素联合包围盒（返工 · ——用户拍板「整体刚性」）：多选拖动的吸附单位。
  * 各元素 elementModelRect 的 min/max 包络；空集返回 {0,0,0,0}（调用方保证非空，防御性退化）。
  */
 export function unionModelRect(els: readonly DesignElement[], ox: number, oy: number): SnapRect {
@@ -61,7 +61,7 @@ export function unionModelRect(els: readonly DesignElement[], ox: number, oy: nu
 }
 
 /**
- * 参考线候选盒构造（迭代 131 返工 · #324 方案 v2）：排除 excludeIds 后的元素模型盒列表。
+ * 参考线候选盒构造（返工 ·）：排除 excludeIds 后的元素模型盒列表。
  * 单选 = 仅排除被拖元素自身；多选 = 排除全部选中元素（组内零参与——不作被拖盒也不作候选）。
  * 单选 snapNode 与多选联合盒吸附共用本算式，组件与单测共用真实代码路径。
  */

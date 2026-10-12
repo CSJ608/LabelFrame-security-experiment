@@ -5,7 +5,7 @@ using Android.Util;
 namespace LabelFrame.AndroidHost;
 
 /// <summary>
-/// 全局崩溃捕获（决策 #105）：Java 层默认未捕获异常处理器 + .NET <see cref="AppDomain"/>.UnhandledException。
+/// 全局崩溃捕获：Java 层默认未捕获异常处理器 + .NET <see cref="AppDomain"/>.UnhandledException。
 /// 崩溃完整堆栈经 <see cref="HostLog"/> 写 logcat（Error）与本地滚动日志；
 /// 另落一份崩溃摘要到应用私有目录（<c>{FilesDir}/crash/crash-yyyyMMdd-HHmmss.txt</c>，保留最近数份），
 /// 下次启动可读（服务启动时若检测到上一次运行的摘要会记录 Warn 提示取证）。

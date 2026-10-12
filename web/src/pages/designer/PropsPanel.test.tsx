@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 迭代 32 P1-4：设计器属性面板组件测试——不同元素类型（文本 / 条码 / 二维码）选中时渲染对应属性控件，
+// P1-4：设计器属性面板组件测试——不同元素类型（文本 / 条码 / 二维码）选中时渲染对应属性控件
 // 改值经 onChange 回调驱动状态更新（画布重绘的数据源）；多选对齐 / 删除；预览锁定与空态。
 // PropsPanel 为纯 props 驱动组件（不依赖 Konva 画布 / api client），直接以最小 props 真实渲染。
 
@@ -12,8 +12,8 @@ import { deriveFieldInfos } from '../../lib/design/fields'
 import { PropsPanel } from './PropsPanel'
 import { SidePanel } from './SidePanel'
 
-// 迭代 126（#308）：「?」文档点用例为 client 构建语义断言（[data-help] 在场），显式注入 client 分支
-// （VITE_UI_MODE=server 整仓测试时保持稳定）；迭代 129（#320）撤门后双构建同渲染，server 分支
+// 「?」文档点用例为 client 构建语义断言（[data-help] 在场），显式注入 client 分支
+// （VITE_UI_MODE=server 整仓测试时保持稳定）；撤门后双构建同渲染，server 分支
 // 断言面由 HelpDot.server.test.tsx 专项覆盖
 vi.mock('../../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
@@ -235,7 +235,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     renderProps([{ ...defaultElement('Line', 'l1') }], ['l1'])
     expect(document.querySelector('[data-help="designer.line"]')).toBeTruthy()
     cleanup()
-    // 迭代 132（#329）：图片元素改挂专属 designer.image 锚点（compat 组收敛为仅容器）
+    // 图片元素改挂专属 designer.image 锚点（compat 组收敛为仅容器）
     renderProps([{ ...defaultElement('Image', 'i1') }], ['i1'])
     expect(document.querySelector('[data-help="designer.image"]')).toBeTruthy()
   })
@@ -247,7 +247,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
     fireEvent.click(alignDot)
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeTruthy()
-    // #316 AC-01：气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
+    // 气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
     expect(dialog.getAttribute('aria-label')).toBe('对齐')
     expect(within(dialog).queryByText('对齐')).toBeNull()
     expect(within(dialog).getByText(/多选至少 2 个元素时出现/)).toBeTruthy()
@@ -278,7 +278,7 @@ describe('多选对齐与删除', () => {
   })
 })
 
-// ---------- 迭代 132（#329，决策 #184）：图片元素属性组（查看 / 更换 / 移除 / 缺资源提示） ----------
+// ---------- ：图片元素属性组（查看 / 更换 / 移除 / 缺资源提示） ----------
 
 const imageEl = { ...defaultElement('Image', 'i1'), key: 'logo.png' } as DesignElement
 const IMAGE_ASSETS: Record<string, ImageAsset> = {
@@ -311,7 +311,7 @@ describe('图片元素属性组（迭代 132 · #329）', () => {
     expect(screen.getByText('图片资源：logo.png · 320×200 px')).toBeTruthy()
     expect(screen.getByRole('button', { name: '更换图片' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '移除图片' })).toBeTruthy()
-    // compat 组收敛为仅容器（#329）：图片元素不挂 designer.compat 锚点，改挂 designer.image
+    // compat 组收敛为仅容器：图片元素不挂 designer.compat 锚点，改挂 designer.image
     expect(document.querySelector('[data-help="designer.image"]')).toBeTruthy()
     expect(document.querySelector('[data-help="designer.compat"]')).toBeNull()
   })

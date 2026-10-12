@@ -11,7 +11,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-/** 文件大小人类可读（B / KB / MB / GB；迭代 22 安装包列表共用）。 */
+/* * 文件大小人类可读（B / KB / MB / GB；安装包列表共用）。 */
 export function formatSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '—'
   if (bytes < 1024) return `${bytes} B`

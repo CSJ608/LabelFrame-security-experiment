@@ -32,7 +32,7 @@ public class ZebraPrinterTransportTests
         Assert.Contains("Zebra", exception.Message);
     }
 
-    // 以下两项锚定 SDK 5.0.3685 升级（迭代 56）后的行为口径：失败消息含目标与具体原因（决策 #108 / #109 不泛化）
+    // 以下两项锚定 SDK 5.0.3685 升级后的行为口径：失败消息含目标与具体原因（/ 不泛化）
 
     [Fact]
     public async Task TestAsync_to_unreachable_printer_should_return_failure_with_target()

@@ -3,7 +3,7 @@ using System.Runtime.Loader;
 
 namespace LabelFrame.Core.Transport.Plugins;
 
-/// <summary>发现的插件：插件实例 + 来源 DLL 路径 + 所在 AssemblyLoadContext（生命周期根，调用方须强持有——见决策 #127）。</summary>
+/// <summary>发现的插件：插件实例 + 来源 DLL 路径 + 所在 AssemblyLoadContext（生命周期根，调用方须强持有——见）。</summary>
 public sealed record DiscoveredPlugin(ITransportPlugin Plugin, string AssemblyPath, AssemblyLoadContext LoadContext);
 
 /// <summary>目录加载结果：成功发现的插件 + 逐 DLL 加载失败信息（loadError 结构化透出）。</summary>
@@ -12,13 +12,13 @@ public sealed record PluginDirectoryLoadResult(
     IReadOnlyList<(string AssemblyPath, string Error)> Errors);
 
 /// <summary>
-/// 外部传输插件目录加载器（加载生命周期口径 = 决策 #127，DESIGN §6.8「加载生命周期」）：
+/// 外部传输插件目录加载器（加载生命周期口径 = ，DESIGN 「加载生命周期」）：
 /// 安装包子目录按「包目录单 collectible ALC 整体加载」——目录内全部 DLL 字节加载（LoadFromStream）进同一 ALC
 /// 并预载全部伴生依赖（首用零惰性解析窗口），跨程序集发现 <see cref="ITransportPlugin"/>；
 /// 无插件产出的目录显式 <see cref="AssemblyLoadContext.Unload"/> 丢弃（确定性释放）。
 /// 平铺手动 DLL 维持逐 DLL 独立 ALC（同居目录多插件互不污染），伴生依赖经 Resolving 惰性解析。
 /// 两条路径的 ALC 根都随发现结果返回——<b>调用方（注册表）必须显式强持有</b>：collectible ALC 被丢弃后
-/// GC 会发起卸载破坏其状态机，此后任何 LoadFromStream（含惰性解析）抛 VerifyIsAlive（迭代 63 返修根因）。
+/// GC 会发起卸载破坏其状态机，此后任何 LoadFromStream（含惰性解析）抛 VerifyIsAlive。
 /// 字节加载不锁插件文件（Windows LoadFromAssemblyPath 会锁 DLL）——卸载 = 删除插件文件 / 目录即可立即删除、
 /// 覆盖安装可直接替换，运行中进程继续使用内存镜像，重启后按新文件装配。
 /// </summary>

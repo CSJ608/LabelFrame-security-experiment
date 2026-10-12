@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>卸载清理（迭代 69，决策 #133，DESIGN §6.8「卸载清理」）：与落位同目标对称 + 清理边界（用户资产不误伤）。</summary>
+/// <summary>卸载清理（DESIGN 「卸载清理」）：与落位同目标对称 + 清理边界（用户资产不误伤）。</summary>
 public sealed class PayloadCleanupTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"labelframe-cleanup-{Guid.NewGuid():N}");
@@ -21,7 +21,7 @@ public sealed class PayloadCleanupTests : IDisposable
     [Fact]
     public void Clean_after_place_should_remove_target_and_empty_parent()
     {
-        // AC-01 核心：装 → 卸载，Bundle 落位目录（web-ui 与 zebra 插件）清理干净
+        // 核心：装 → 卸载，Bundle 落位目录（web-ui 与 zebra 插件）清理干净
         var webUiTarget = Path.Combine(_root, "server", "plugins", "web-ui");
         var pluginTarget = Path.Combine(_root, "Client", "plugins", "labelframe-transport-zebra");
         Assert.Equal(PlacementOutcome.Placed, PayloadPlacer.PlaceArchive(CreateWebUiZip(), webUiTarget));
@@ -48,7 +48,7 @@ public sealed class PayloadCleanupTests : IDisposable
     [Fact]
     public void Place_with_bundle_version_should_write_placement_marker()
     {
-        // 落位凭据（决策 #133，§6.8）：Bundle 落位的目录携带 .labelframe-bundle-placement（内容 = Bundle 版本）——
+        // 落位凭据：Bundle 落位的目录携带 .labelframe-bundle-placement（内容 = Bundle 版本）——
         // 清理包检测比对凭据与 Bundle 版本判定「本版本落位在位」
         var pluginTarget = Path.Combine(_root, "Client", "plugins", "labelframe-transport-zebra");
         var webUiTarget = Path.Combine(_root, "server", "plugins", "web-ui");
@@ -99,7 +99,7 @@ public sealed class PayloadCleanupTests : IDisposable
     [Fact]
     public void Clean_should_not_touch_user_placed_third_party_assets()
     {
-        // AC-03：用户手动放置的第三方插件 DLL（平铺 + 子目录）卸载后保留（不误伤）
+        // 用户手动放置的第三方插件 DLL（平铺 + 子目录）卸载后保留（不误伤）
         var pluginsDir = Path.Combine(_root, "Client", "plugins");
         var zebraTarget = Path.Combine(pluginsDir, "labelframe-transport-zebra");
         Assert.Equal(PlacementOutcome.Placed, PayloadPlacer.PlacePlugin(CreatePluginZip("1.2.0"), zebraTarget));
@@ -121,7 +121,7 @@ public sealed class PayloadCleanupTests : IDisposable
     [Fact]
     public void Uninstall_then_reinstall_without_brand_should_leave_brand_dir_absent()
     {
-        // AC-02 组件集合口径（落位内核序列）：装（选 Zebra）→ 卸载清理 → 重装不选 Zebra（只落 webui）→ 品牌目录不存在
+        // 组件集合口径（落位内核序列）：装（选 Zebra）→ 卸载清理 → 重装不选 Zebra（只落 webui）→ 品牌目录不存在
         var webUiTarget = Path.Combine(_root, "server", "plugins", "web-ui");
         var zebraTarget = Path.Combine(_root, "Client", "plugins", "labelframe-transport-zebra");
 
@@ -138,7 +138,7 @@ public sealed class PayloadCleanupTests : IDisposable
     [Fact]
     public void Reinstall_after_clean_should_place_same_version_without_refusal()
     {
-        // AC-04 关联口径：卸载清理后再装同版本 = 全新落位（不命中「同版幂等跳过」，更不「降级拒绝」——目录既已清理）
+        // 关联口径：卸载清理后再装同版本 = 全新落位（不命中「同版幂等跳过」，更不「降级拒绝」——目录既已清理）
         var target = Path.Combine(_root, "p-reinstall");
         Assert.Equal(PlacementOutcome.Placed, PayloadPlacer.PlacePlugin(CreatePluginZip("1.2.0"), target));
         Assert.Equal(PlacementCleanupOutcome.Cleaned, PayloadPlacer.CleanPlacement(target));

@@ -4,7 +4,7 @@ using Xunit;
 namespace LabelFrame.Bootstrapper.Tests;
 
 /// <summary>
-/// 向导导航状态机（迭代 60 返修，Issue #53 验收回流）：原 WizardForm 增量导航 <c>Navigate(0)</c>
+/// 向导导航状态机（Issue 验收回流）：原 WizardForm 增量导航 <c>Navigate（0）</c>
 /// 被越界守卫静默拒绝（-1 + 0 = -1），首页从未装配、点「下一步」即索引越界——
 /// 本套锁定绝对索引装配 / 惰性创建 / 前进后退复用 / 越界防御 / 未装配防御 / 工厂异常不吞。
 /// </summary>

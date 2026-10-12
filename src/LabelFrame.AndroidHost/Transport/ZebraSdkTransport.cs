@@ -8,10 +8,10 @@ using Zebra.Sdk.Printer.Discovery;
 namespace LabelFrame.AndroidHost.Transport;
 
 /// <summary>
-/// Zebra 官方 Link-OS SDK 传输（迭代 56，决策 #111）：连接类型 tcp（默认）/ bluetooth（SPP 按 MAC 手输）/ usb
+/// Zebra 官方 Link-OS SDK 传输：连接类型 tcp（默认）/ bluetooth（SPP 按 MAC 手输）/ usb
 /// （OTG 自动发现并锁定第一台 Zebra 设备）。每次发送 / 测试 / 状态查询独立建连（与裸 socket 时代行为一致，不持有长连接）。
 /// 状态与连接测试直接切 SDK <c>PrinterStatus</c> 语义（GetCurrentStatus 官方布尔属性），不保留 ~HS 手撕双轨；
-/// 缺纸 / 暂停口径与迭代 55（决策 #109）实证结论对齐，Message 最小口径只报缺纸与暂停。
+/// 缺纸 / 暂停口径与实证结论对齐，Message 最小口径只报缺纸与暂停。
 /// </summary>
 public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider, ITestableTransport
 {
@@ -44,7 +44,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
 
     /// <summary>
     /// 按配置创建 SDK 传输。存量 tcp 配置（tcp_host / tcp_port 键）无感迁移：SDK TCP 路径读取同一配置，
-    /// 已装设备升级后零操作可用（AC-03）。配置缺参数（蓝牙未填 MAC 等）不在此抛错——传输在每次操作时
+    /// 已装设备升级后零操作可用。配置缺参数（蓝牙未填 MAC 等）不在此抛错——传输在每次操作时
     /// 校验并给出可行动中文提示，允许先保存配置后补参数。
     /// </summary>
     public static ZebraSdkTransport Create(LabelHostConfig config, Context context) => new(
@@ -55,7 +55,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
         context);
 
     /// <summary>
-    /// 按参数创建 SDK 传输（内置 zebra 插件路径，迭代 96 / 决策 #156——参数模型即
+    /// 按参数创建 SDK 传输（内置 zebra 插件路径，/ ——参数模型即
     /// { brand, connectionType, host, port } 配置结构）。语义与 <see cref="Create(LabelHostConfig, Context)"/> 一致。
     /// </summary>
     public static ZebraSdkTransport Create(string connectionType, string host, int port, string bluetoothMac, Context context) => new(
@@ -112,8 +112,8 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
         }
     }
 
-    /// <summary>ITestableTransport：连接测试走 SDK PrinterStatus 语义（不保留 ~HS 双轨，迭代 56 预授权决议 3）。
-    /// 成功返回 null；失败返回含目标与具体原因的中文错误消息（对齐决策 #108 不泛化）。</summary>
+    /// <summary>ITestableTransport：连接测试走 SDK PrinterStatus 语义（不保留 ~HS 双轨，预授权决议 3）。
+    /// 成功返回 null；失败返回含目标与具体原因的中文错误消息（对齐 不泛化）。</summary>
     public Task<string?> TestAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -134,7 +134,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
     /// <inheritdoc />
     /// <remarks>
     /// SDK 路径：ZebraPrinterFactory.GetInstance(connection).GetCurrentStatus()——isPaperOut / isPaused 为
-    /// 官方布尔属性（字段映射由 SDK 维护，迭代 55 决策 #109 口径）；Message 最小口径只报缺纸 / 暂停。
+    /// 官方布尔属性（字段映射由 SDK 维护， 口径）；Message 最小口径只报缺纸 / 暂停。
     /// </remarks>
     public Task<PrinterStatusInfo> GetStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -212,7 +212,7 @@ public sealed class ZebraSdkTransport : IPrintTransport, IPrinterStatusProvider,
 
     private Connection OpenUsb()
     {
-        // 自动发现锁定第一台 Zebra 设备（迭代 56 预授权决议 2）：发现器为 Java 回调式，阻塞等待有界超时
+        // 自动发现锁定第一台 Zebra 设备（预授权决议 2）：发现器为 Java 回调式，阻塞等待有界超时
         var found = new DiscoveredPrinter?[1];
         var error = new string?[1];
         using var completed = new ManualResetEventSlim(false);

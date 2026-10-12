@@ -17,7 +17,7 @@ using Xunit;
 namespace LabelFrame.WinHost.Integration;
 
 /// <summary>
-/// 测试页传输错误分类 HTTP 集成测试（迭代 50，决策 #107）：
+/// 测试页传输错误分类 HTTP 集成测试：
 /// connection.json 预置 tcp9100 指向已关闭的本机回环端口（启动加载不测试连接，与生产一致），
 /// POST /api/printer/test 发送失败 → 非 500：400 + LF_TRANSPORT_TEST_FAILED +
 /// 消息含目标地址（host:port）与失败原因；客户端 ILogger 留痕（经测试注入的日志收集器断言）。

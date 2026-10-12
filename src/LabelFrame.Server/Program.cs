@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 var serverOptions = new ServerOptions();
 builder.Configuration.GetSection("Server").Bind(serverOptions);
 serverOptions.ApplyEnvironmentOverrides();
-// 文本日志通道（决策 #108；大小上限决策 #173）：按日 + 单文件大小轮转 + 个数保留上限；
+// 文本日志通道（大小上限）：按日 + 单文件大小轮转 + 个数保留上限
 // 路径无效（目录不可创建 / 磁盘不可用）不崩溃——跳过文件通道、控制台输出中文告警（含配置项名与降级事实），宿主正常启动。
 if (!string.IsNullOrWhiteSpace(serverOptions.LogFilePath))
 {
@@ -61,7 +61,7 @@ await logStore.InitializeAsync();
 var notifier = new PendingJobNotifier();
 var timeProvider = TimeProvider.System;
 // ServerService 经 DI 工厂构造：注入宿主 ILogger<ServerService>（含文件日志通道），
-// 业务事件日志（作业创建 / 认领 / 终态，决策 #108）与框架日志走同一条管道，级别经标准 Logging:LogLevel 可降级。
+// 业务事件日志（作业创建 / 认领 / 终态）与框架日志走同一条管道，级别经标准 Logging:LogLevel 可降级。
 var clientPackages = new ClientPackagesService(serverOptions.ClientPackagesPath);
 var pdaPackages = new PdaPackagesService(serverOptions.PdaPackagesPath);
 var pluginPackages = new PluginPackagesService(serverOptions.PluginPackagesPath);
@@ -93,7 +93,7 @@ builder.Services.AddHostedService(sp => new DataCleanupService(db, logStore, ser
 builder.Services.AddHostedService(sp => new PendingJobExpirationService(db, serverOptions, timeProvider, sp.GetRequiredService<ILogger<PendingJobExpirationService>>()));
 // Claimed 超时回收扫描（超时关闭时任务直接退出）；回收为终态即最终，不重新投递
 builder.Services.AddHostedService(sp => new ClaimedJobTimeoutService(db, serverOptions, timeProvider, sp.GetRequiredService<ILogger<ClaimedJobTimeoutService>>()));
-// 终态回调投递（决策 #154）：独立发送器（加固 HttpClient）+ 周期扫描；指数退避至多 5 次、超限死信、状态持久化（重启续投）
+// 终态回调投递：独立发送器（加固 HttpClient）+ 周期扫描；指数退避至多 5 次、超限死信、状态持久化（重启续投）
 builder.Services.AddSingleton<IJobCallbackSender>(_ => new HttpJobCallbackSender());
 builder.Services.AddHostedService(sp => new JobCallbackDeliveryService(db, timeProvider, sp.GetRequiredService<IJobCallbackSender>(), sp.GetRequiredService<ILogger<JobCallbackDeliveryService>>()));
 // Skia 渲染器实例单例：DI 与共享端点（模板预览 / 调试出图）共用同一实例
@@ -140,7 +140,7 @@ app.MapGet("/api/server/info", (ServerOptions options) =>
         version = ServerOptions.ProductVersion,
     }));
 
-// ---- 本机 IPv4 候选（迭代 118 · #272：下载中心「连接信息」卡地址候选；只读枚举，
+// ---- 本机 IPv4 候选（· ：下载中心「连接信息」卡地址候选；只读枚举
 //      协议与端口由前端按当前 origin 拼装——本接口只给 IP 候选，不拼完整地址）----
 app.MapGet("/api/server/ipv4-candidates", () => Results.Ok(new { candidates = LocalIpv4Candidates.Enumerate() }));
 

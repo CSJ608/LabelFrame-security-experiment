@@ -48,7 +48,7 @@ export function logicToContentMm(x: number, y: number, preview: boolean): { x: n
 }
 
 /**
- * 拖动落点提交（迭代 130 · #323 模型盒域）：Konva 节点原点（= 元素模型盒原点，逻辑 px）
+ * 拖动落点提交（· 模型盒域）：Konva 节点原点（= 元素模型盒原点，逻辑 px）
  * → 内容 mm（两位舍入）。CanvasViewport.handleDragEnd 与单测共用本算式，保证测试执行真实代码路径；
  * 旧口径取渲染包围盒左上角，被居中描边半线宽外扩带偏（线 −0.25mm / 边框 −0.15mm）。
  */
@@ -57,7 +57,7 @@ export function commitDragPosition(nodeX: number, nodeY: number, preview: boolea
   return { x: r2(pos.x), y: r2(pos.y) }
 }
 
-/** 多选拖动松手提交入参（迭代 131 返工 · #324 方案 v2——用户拍板「整体刚性」）。 */
+/* * 多选拖动松手提交入参（返工 · ——用户拍板「整体刚性」）。 */
 export interface MultiDragRigidArgs {
   /** 主导（被拖）元素 id（须在 items 中，缺失时 Δ 按 0 处理＝不动提交）。 */
   leaderId: string
@@ -80,7 +80,7 @@ export interface MultiDragRigidResult {
 }
 
 /**
- * 多选拖动松手提交（迭代 131 返工 · #324 方案 v2，用户拍板「整体刚性」，复用 #323 commitDragPosition 口径）：
+ * 多选拖动松手提交（返工 · ，用户拍板「整体刚性」，复用 commitDragPosition 口径）：
  * Δ = 主导终态 − 主导初始（dragStart 快照基准的总位移口径，对 dragend「保持末次 dragmove 位置」与
  * 「被指针覆盖」两种时序均自洽）；补丁 = 各元素 commitDragPosition(初始节点坐标 + Δ)——组内任意两
  * 元素模型坐标差与拖前逐对相等（同 Δ 刚性，两位舍入残差 ≤0.01mm）。CanvasViewport.handleDragEnd

@@ -1,10 +1,10 @@
-// 分步气泡引导（迭代 119 · #276，决策 #170①②：spotlight 形态、自研实现，复用 Popover portal 经验）。
+// 分步气泡引导（· ，①②：spotlight 形态、自研实现，复用 Popover portal 经验）。
 // 结构：全屏遮罩层（拦截其余区域交互）+ box-shadow 巨影法 spotlight 挖洞（无需 SVG mask）+ 定位气泡；
-// createPortal 到 body（决策 #152①：fixed 锚定脱离 overflow 祖先裁剪）。步骤定义为 lib/guide.ts 纯数据。
-// 切页必须经调用方注入的 switchTab（#150 设计器离开守卫统一入口），组件内不做裸 setTab。
-// 退出语义（#170 ⑧⑨）：「跳过」/ Esc / 「完成」共用 onFinish——首见标记是否写入由调用方决定
+// createPortal 到 body（①：fixed 锚定脱离 overflow 祖先裁剪）。步骤定义为 lib/guide.ts 纯数据。
+// 切页必须经调用方注入的 switchTab（设计器离开守卫统一入口），组件内不做裸 setTab。
+// 退出语义（⑧⑨）：「跳过」/ Esc / 「完成」共用 onFinish——首见标记是否写入由调用方决定
 // （首见与重放均写标记，setItem 幂等，重放不改变已看状态）。
-// 已知边界（#276 方案 v1 风险记录）：Esc 为 document 级监听，与 Modal / Popover 同键并存时同帧双响应
+// 已知边界（风险记录）：Esc 为 document 级监听，与 Modal / Popover 同键并存时同帧双响应
 // ——引导激活期间遮罩已拦截打开 Modal 的常规路径，仅「重放 + 设计器 dirty」边缘场景可达，不做监听互斥；
 // 引导期间不做滚动跟随（锚点全选不滚动区，遮罩拦截滚动），窄窗口气泡翻转 / 贴边沿用 Popover 视口约束。
 
@@ -41,7 +41,7 @@ interface GuideProps {
   open: boolean
   /** 当前激活 tab（App Shell 状态；用于步骤切页判等）。 */
   tab: TabId
-  /** 切页回调——调用方必须传 App 的 switchTab（#150 设计器离开守卫统一入口）。 */
+  /* * 切页回调——调用方必须传 App 的 switchTab（设计器离开守卫统一入口）。 */
   onSwitchTab: (id: TabId) => void
   /** 结束回调（跳过 / Esc / 完成共用）。 */
   onFinish: () => void
@@ -61,7 +61,7 @@ export function Guide({ open, tab, onSwitchTab, onFinish }: GuideProps) {
     if (open) setStepIndex(0)
   }, [open])
 
-  // 步骤驱动（仅在步骤变更时执行一次）：目标 tab 与当前不一致时经 switchTab 切页（#150 离开守卫统一入口）。
+  // 步骤驱动（仅在步骤变更时执行一次）：目标 tab 与当前不一致时经 switchTab 切页（离开守卫统一入口）。
   // tab / onSwitchTab 经 ref 取最新值而不入依赖——引导打开期间用户自行导航（键盘 Tab 聚焦导航等遮罩外路径）
   // 不被拽回步骤页，切页只由「上一步 / 下一步」驱动。
   const tabRef = useRef(tab)
@@ -134,7 +134,7 @@ export function Guide({ open, tab, onSwitchTab, onFinish }: GuideProps) {
     return () => window.removeEventListener('resize', compute)
   }, [open, anchorEl, stepIndex])
 
-  // Esc = 跳过本轮并写标记（#170 ⑨，与 Modal「Esc=取消」语义对齐；document 级监听同 Modal/Popover 先例）
+  // Esc = 跳过本轮并写标记（⑨，与 Modal「Esc=取消」语义对齐；document 级监听同 Modal/Popover 先例）
   useEffect(() => {
     if (!open) return
     const onKey = (ev: KeyboardEvent) => {

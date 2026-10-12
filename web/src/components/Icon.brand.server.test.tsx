@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 品牌 v02（#288，AC-05）server 分支守门：导航 logo 不是 UI 模式裁剪面（App.tsx 导航区无条件渲染，
+// 品牌 v02server 分支守门：导航 logo 不是 UI 模式裁剪面（App.tsx 导航区无条件渲染
 // client / server 双构建同源）——守门点 = server 构建（VITE_UI_MODE=server 分支）导航同样渲染 v02
 // 新标（深青 #123B3C 微型几何 + 珊瑚 #D96C4F 剥离角），防止品牌替换被误加 isServerUi 裁剪或回归旧标。
 

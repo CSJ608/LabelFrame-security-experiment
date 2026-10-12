@@ -7,7 +7,7 @@ namespace LabelFrame.Server;
 /// <summary>
 /// Server 业务服务：设备注册 / 心跳、作业定向投递（宿主轮询领取）、结果回报、集中查询。
 /// 设备离线时作业在 Server 暂存（Pending），上线轮询即领取。
-/// 业务事件日志（决策 #108）：作业创建 / 认领 / 回报终态各一条 INFO（作业粒度，含标识字段），
+/// 业务事件日志：作业创建 / 认领 / 回报终态各一条 INFO（作业粒度，含标识字段）
 /// 默认 INFO，可经标准 Logging:LogLevel 按类别 LabelFrame.Server.ServerService 降级。
 /// </summary>
 public sealed partial class ServerService : IDisposable
@@ -47,7 +47,7 @@ public sealed partial class ServerService : IDisposable
         _logger = (ILogger?)logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
     }
 
-    // ---- 业务事件日志（决策 #108）：[LoggerMessage] 源生成，默认 INFO、级别可配 ----
+    // ---- 业务事件日志：[LoggerMessage] 源生成，默认 INFO、级别可配 ----
 
     [LoggerMessage(Level = LogLevel.Information, Message = "作业已创建：jobId={JobId}，requestId={RequestId}，目标设备={TargetDeviceId}，标签数={TotalItems}")]
     private partial void LogJobCreated(string jobId, string requestId, string targetDeviceId, int totalItems);
@@ -62,7 +62,7 @@ public sealed partial class ServerService : IDisposable
     private DateTimeOffset? PendingTtlCutoff(DateTimeOffset now)
         => _options?.PendingJobTtl is { } ttl ? now - ttl : null;
 
-    /// <summary>模板化领域异常构造（决策 #164 ③ / #166）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
+    /// <summary>模板化领域异常构造（③ /）：模板 + 参数，message 渲染后与旧内插文案等价，参数随异常透传 ErrorView.params。</summary>
     private static ServerException Templated(string code, string template, Dictionary<string, string> parameters)
         => new(code, ErrorMessageTemplates.Format(template, parameters), parameters);
 
@@ -126,8 +126,8 @@ public sealed partial class ServerService : IDisposable
             throw new ServerException(ServerErrorCodes.InvalidRequest, "缺少 requestId（幂等键）。");
         }
 
-        // 终态回调地址校验（决策 #154）：scheme 白名单仅 http/https，提交即拒（作业不入队）——
-        // 空串 / 纯空白 / 裸字符串 / file:// 等一律拒绝（#242 返修：从 LF_SRV_002 拆出专属码 LF_SRV_013，参数键 callbackUrl 单码单键集）
+        // 终态回调地址校验：scheme 白名单仅 http/https，提交即拒（作业不入队）——
+        // 空串 / 纯空白 / 裸字符串 / file:// 等一律拒绝（从 LF_SRV_002 拆出专属码 LF_SRV_013，参数键 callbackUrl 单码单键集）
         if (request.CallbackUrl is not null && !JobCallbackUrl.IsAllowed(request.CallbackUrl))
         {
             throw Templated(
@@ -151,7 +151,7 @@ public sealed partial class ServerService : IDisposable
             var byIp = await _db.FindDeviceByIpAsync(normalizedIp, cancellationToken);
             if (byIp is null)
             {
-                // #242 返修：按 IP 未找到与「设备未注册（LF_SRV_001 {deviceId}）」语义不同——拆码 LF_SRV_012，各自单参数键集
+                // 按 IP 未找到与「设备未注册（LF_SRV_001 {deviceId}）」语义不同——拆码 LF_SRV_012，各自单参数键集
                 throw Templated(ServerErrorCodes.DeviceNotFoundByIp, "按 IP 未找到设备：{ip}。", new() { ["ip"] = request.TargetIp });
             }
 
@@ -214,7 +214,7 @@ public sealed partial class ServerService : IDisposable
     public async Task<IReadOnlyList<ClaimedJob>> ClaimPendingJobsAsync(string deviceId, string? lastIp = null, CancellationToken cancellationToken = default)
     {
         // 并发安全由 DB 层保证（圈定为单条 UPDATE ... RETURNING 原子操作），无需进程内串行化；
-        // 心跳与圈定合并为单个写事务（迭代 39 写合批，减少一次单写锁排队）
+        // 心跳与圈定合并为单个写事务（写合批，减少一次单写锁排队）
         var now = _time.GetUtcNow();
         var (touched, jobs) = await _db.TouchAndClaimPendingJobsAsync(
             deviceId, now, NormalizeIpText(lastIp), limit: 10, PendingTtlCutoff(now), cancellationToken);
@@ -278,7 +278,7 @@ public sealed partial class ServerService : IDisposable
                 cancellationToken);
         LogJobFinished(jobId, deviceId, job.RequestId, updated!.Status.ToString(), report.CompletedItems ?? 0, report.FailedItems ?? 0, report.ErrorMessage);
 
-        // 终态回调登记（决策 #154，三处终态转移点之一）：异步投递，不内联在回报路径中——
+        // 终态回调登记（三处终态转移点之一）：异步投递，不内联在回报路径中——
         // 外部端点慢 / 挂不影响宿主回报；幂等登记，重复到达安全
         if (updated.CallbackUrl is not null)
         {
@@ -364,7 +364,7 @@ public sealed partial class ServerService : IDisposable
             ? DeviceStatus.Offline
             : IsOnline(device, _time.GetUtcNow()) ? DeviceStatus.Online : DeviceStatus.Offline;
 
-        // 终态回调投递状态（决策 #154）：无回调地址的作业不查投递表（绝大多数作业零开销）
+        // 终态回调投递状态：无回调地址的作业不查投递表（绝大多数作业零开销）
         JobCallbackTask? callback = job.CallbackUrl is null ? null : await _db.GetJobCallbackAsync(job.Id, cancellationToken);
         return new ServerJobView(
             job.Id,

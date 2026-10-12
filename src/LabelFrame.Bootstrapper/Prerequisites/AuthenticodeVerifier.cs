@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-/// <summary>Authenticode 验签结果（发布者验签决策的输入，决策 #151）。</summary>
+/// <summary>Authenticode 验签结果（发布者验签决策的输入）。</summary>
 /// <param name="SignatureValid">签名与证书链是否完整有效（WinVerifyTrust 通过；文件被改动 / 签名缺失 / 链不受信 = false）。</param>
 /// <param name="SignerSubject">签名者证书主体（完整 RDN，如 <c>CN=Microsoft Corporation, O=…, C=US</c>）；签名无效时为 null。</param>
 /// <param name="TrustStatus">WinVerifyTrust 返回的 HRESULT（0 = 有效）。</param>
@@ -28,7 +28,7 @@ public interface IAuthenticodeVerifier
 }
 
 /// <summary>
-/// 发布者策略（纯函数，决策 #151）：evergreen 载荷防投毒 = 签名链完整（WinVerifyTrust）+ 签名者主体
+/// 发布者策略（纯函数）：evergreen 载荷防投毒 = 签名链完整（WinVerifyTrust）+ 签名者主体
 /// CN 等于期望发布者双条件——伪造微软签名非可行攻击，对厂商轮换免疫。
 /// </summary>
 public static class AuthenticodePublisherPolicy
@@ -102,7 +102,7 @@ public static class AuthenticodePublisherPolicy
 }
 
 /// <summary>
-/// WinVerifyTrust 实现（决策 #151）：GENERIC_VERIFY_V2 验证签名与链完整（不做联网吊销检查——安装期离线友好），
+/// WinVerifyTrust 实现：GENERIC_VERIFY_V2 验证签名与链完整（不做联网吊销检查——安装期离线友好）
 /// 以 <c>WTD_STATEACTION_VERIFY</c> 取状态数据读签名者证书主体，收尾以 <c>WTD_STATEACTION_CLOSE</c> 释放。
 /// </summary>
 public sealed class WinTrustAuthenticodeVerifier : IAuthenticodeVerifier

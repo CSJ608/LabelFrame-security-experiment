@@ -4,7 +4,7 @@ using SkiaSharp;
 namespace LabelFrame.Rendering;
 
 /// <summary>
-/// 字宽度量默认实现（Skia，决策 #110）：字型查找与渲染器同源（SkiaTypefaceLookup，含中文回退）、
+/// 字宽度量默认实现（Skia）：字型查找与渲染器同源（SkiaTypefaceLookup，含中文回退）
 /// 加粗口径一致（Embolden），在参考比例下做矢量度量后换算毫米——结果与渲染 DPI 无关（线性缩放）。
 /// 无状态，进程内单例复用。
 /// </summary>

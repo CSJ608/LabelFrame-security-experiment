@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LabelFrame.Bootstrapper.Tests;
 
-/// <summary>问卷只读契约断言（#53 AC-03 起源；决策 #124 修订为「确认前只读」——执行边界 = 确认页「安装」后 Engine.Plan + Apply）。</summary>
+/// <summary>问卷只读契约断言（起源； 修订为「确认前只读」——执行边界 = 确认页「安装」后 Engine.Plan + Apply）。</summary>
 /// <remarks>执行能力不在会话层：会话（问卷）保持零下载 / 零安装 / 零系统改动；真装由 BA 调 Burn 引擎承担。</remarks>
 public sealed class QuestionnaireContractTests
 {
@@ -106,7 +106,7 @@ public sealed class QuestionnaireContractTests
     [Fact]
     public void Execute_boundary_notice_should_state_readonly_before_confirm()
     {
-        // #124 执行边界 UI 明示（#151 精简表述、语义不变）：确认页可见行必须含「点击「安装」前不下载 / 不安装 / 不改动系统」语义
+        // 执行边界 UI 明示（精简表述、语义不变）：确认页可见行必须含「点击「安装」前不下载 / 不安装 / 不改动系统」语义
         Assert.Contains("「安装」前", ExecuteBoundaryNotice.Banner, StringComparison.Ordinal);
         Assert.Contains("不会下载", ExecuteBoundaryNotice.Banner, StringComparison.Ordinal);
         Assert.Contains("不安装", ExecuteBoundaryNotice.Banner, StringComparison.Ordinal);

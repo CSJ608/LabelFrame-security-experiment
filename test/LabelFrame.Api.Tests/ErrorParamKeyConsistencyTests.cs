@@ -1,4 +1,4 @@
-// #242 返修防复发断言（决策 #166 ⑥「单码单参数键集」，2026-09-29）：
+// 防复发断言（「单码单参数键集」）：
 // 解析 src 全部 C# 源码中「携带 params 的错误构造调用点」——两种既有惯用法：
 //   ① Templated(码, "模板{key}", new() { ["key"] = … })（ServerService / LabelJobQueue 私有助手）；
 //   ② new Dictionary<string, string> { ["key"] = … } + 邻近 ErrorView / LabelJobException 构造（端点层 / AndroidHost）。

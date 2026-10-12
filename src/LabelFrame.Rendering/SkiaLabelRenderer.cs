@@ -165,7 +165,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         int dpi)
     {
         LabelElementContent.TryGet(text, document.Data, out var value);
-        // 区域水平锚定按实测文本宽度计算（决策 #110）：度量与绘制同源（字型查找 / 加粗一致）
+        // 区域水平锚定按实测文本宽度计算：度量与绘制同源（字型查找 / 加粗一致）
         var bounds = LabelLayoutResolver.ResolveBounds(text, regions, SkiaTextWidthMeasurer.Instance, value);
         var x = ToDots(bounds.XMm, dpi);
         var y = ToDots(bounds.YMm, dpi);
@@ -173,10 +173,10 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
         // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致，迭代 89 #147），非锚定文本维持决策 A 兜底
+        // 自动高度即字高，格顶语义与锚定偏移一致，），非锚定文本维持决策 A 兜底
         // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致）。
         // 锚定路径此前误用兜底框再按 VerticalAlign 居中，字形比锚定盒中心下沉 (兜底框高 − 字高)/2，
-        // 小字号时约 1.5–2 字高，穿出锚定盒底边（真机陪验 #120 取证）。
+        // 小字号时约 1.5–2 字高，穿出锚定盒底边（真机陪验 取证）。
         var anchored = text.RegionId is not null && regions.ContainsKey(text.RegionId);
         var boxHeightMm = text.HeightMm > 0
             ? text.HeightMm
@@ -525,8 +525,8 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         IReadOnlyDictionary<string, LabelRegionElement> regions,
         int dpi)
     {
-        // #329 方案 v2：SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框），
-        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（决策 #184 拍板 4-A 不变）
+        // SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框）
+        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（拍板 4-A 不变）
         if (string.IsNullOrEmpty(image.SourceKey))
         {
             return;
@@ -554,7 +554,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                // 线性采样：大幅缩小（原图 >> 元素盒）时防混叠失真（决策 #184）；
+                // 线性采样：大幅缩小（原图 >> 元素盒）时防混叠失真
                 // SkiaSharp 3.x 采样选项走 DrawImage(SKImage, rect, SKSamplingOptions)——SKPaint.FilterQuality 已废弃
                 using var monochrome = SKImage.FromBitmap(source);
                 canvas.DrawImage(monochrome, new SKRect(x, y, x + width, y + height), MonochromeSampling);
@@ -569,7 +569,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             return;
         }
 
-        // 决策 #184：缺资源＝渲染侧显式报错（预览 / 出图 / 打印链失败并透出键名中文消息），
+        // 缺资源＝渲染侧显式报错（预览 / 出图 / 打印链失败并透出键名中文消息）
         // 不再画灰占位框照打；设计器画布的占位框由前端自行呈现（属性面板提示可重新上传修复）
         throw new MissingImageResourceException(image.SourceKey);
     }
@@ -579,7 +579,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
 
     /// <summary>
     /// 解码图片并按 luma 阈值 128 单色化（黑白 BGRA，不透明）：与整版 1bpp 转换（ToLabelBitmap）同阈值同源，
-    /// 使预览 PNG 与打印输出一致（决策 #184——此前预览编码彩色画布、打印 1bpp 阈值，本就不一致）；
+    /// 使预览 PNG 与打印输出一致（——此前预览编码彩色画布、打印 1bpp 阈值，本就不一致）
     /// 透明区按白处理（出纸无墨）。解码失败返回 null（由调用方按缺资源口径处理）。
     /// </summary>
     private static SKBitmap? DecodeMonochrome(byte[] bytes)
