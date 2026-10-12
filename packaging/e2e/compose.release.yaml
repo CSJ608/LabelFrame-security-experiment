@@ -2,7 +2,7 @@ name: labelframe-release-e2e
 
 services:
   labelframe-server:
-    image: "${LABELFRAME_SERVER_IMAGE:-ghcr.io/marci-labs/labelframe-server}:${LABELFRAME_VERSION:-0.35.0}"
+    image: "${LABELFRAME_SERVER_IMAGE:-ghcr.io/marci-labs/labelframe-server}:${LABELFRAME_VERSION:-0.36.0}"
     init: true
     restart: unless-stopped
     ports:
@@ -19,7 +19,7 @@ services:
       - server-data:/var/lib/labelframe/server
 
   labelframe-client:
-    image: "${LABELFRAME_CLIENT_IMAGE:-ghcr.io/marci-labs/labelframe-client}:${LABELFRAME_VERSION:-0.35.0}"
+    image: "${LABELFRAME_CLIENT_IMAGE:-ghcr.io/marci-labs/labelframe-client}:${LABELFRAME_VERSION:-0.36.0}"
     init: true
     restart: unless-stopped
     depends_on:
