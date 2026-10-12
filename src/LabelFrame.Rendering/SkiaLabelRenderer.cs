@@ -19,22 +19,15 @@ public interface ILabelBitmapRenderer
     byte[] RenderLabelBitmapPng(LabelDocument document, int dpi = 203, IReadOnlyDictionary<string, byte[]>? templateImages = null);
 }
 
-/// <summary>
-/// SkiaSharp 后端渲染器：与前端 canvas 渲染同源（自动换行 / 行距 / 溢出处理 / 字体族 /
-/// 左中右对齐 / 双边内边距 / 边框、线条、区域、ZXing 条码二维码参数、模板图片），
-/// 输出 1bpp 位图，用于图片打印与调试。
-/// 整版渲染中间态（SKBitmap 像素内存 + 托管像素暂存数组）按尺寸池化复用，
-/// 降低大批量打印时每张 1-5MB 的分配与 GC 压力；输出 LabelBitmap / PNG 始终为新分配，行为不变。
-/// </summary>
+/// <summary>Skia 整版渲染器：与前端 canvas 渲染同源，输出 1bpp 位图与 PNG；中间态按尺寸池化复用。</summary>
 public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
 {
-    /// <summary>池上限：留出并发渲染（多请求提交 + 出图 / 预览）的余量，超出即释放不再复用。</summary>
     private const int MaxPooledSurfaces = 4;
 
     private readonly object _surfacePoolLock = new();
     private readonly Stack<(SKBitmap Bitmap, byte[] Pixels)> _surfacePool = new();
 
-    /// <summary>租用整版渲染中间态：优先取「尺寸与暂存长度都匹配」的池化项（像素内存复用，内容由 Clear 全量重置）；无则新分配。</summary>
+    /// <summary>租用渲染中间态：尺寸全匹配的池化项复用，否则新分配；租用方须先整面 Clear 再绘制（池化复用前提）。</summary>
     private (SKBitmap Bitmap, byte[] Pixels) RentSurface(int width, int height)
     {
         lock (_surfacePoolLock)
@@ -57,7 +50,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         return (bitmap, new byte[bitmap.RowBytes * height]);
     }
 
-    /// <summary>归还中间态：池未满则复用，尺寸 / 容量溢出时释放。</summary>
     private void ReturnSurface(SKBitmap bitmap, byte[] pixels)
     {
         lock (_surfacePoolLock)
@@ -172,11 +164,8 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var boxWidth = ToDots(bounds.WidthMm, dpi);
         var padH = ToDots(text.EffectivePaddingHMm, dpi);
         var padV = ToDots(text.EffectivePaddingVMm, dpi);
-        // 框高：显式块高用块高；无 heightMm 时——锚定文本的绘制框 = 解析锚定框（bounds.HeightMm，
-        // 自动高度即字高，格顶语义与锚定偏移一致），非锚定文本维持决策 A 兜底
-        // max(字高 + 2×最大双边内边距, 10mm)（与前端读回兜底一致）。
-        // 锚定路径此前误用兜底框再按 VerticalAlign 居中，字形比锚定盒中心下沉 (兜底框高 − 字高)/2，
-        // 小字号时约 1.5–2 字高，穿出锚定盒底边（真机陪验 取证）。
+        // 框高取值：显式 heightMm > 锚定框高（bounds.HeightMm）> 非锚定兜底 max(字高 + 2×最大边距, 10mm)（与前端一致）；
+        // 锚定路径禁改用兜底框再垂直居中——字形会较锚定盒中心下沉、小字号穿出盒底（曾有真机缺陷）。
         var anchored = text.RegionId is not null && regions.ContainsKey(text.RegionId);
         var boxHeightMm = text.HeightMm > 0
             ? text.HeightMm
@@ -185,7 +174,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var boxHeight = ToDots(boxHeightMm, dpi);
         using var typeface = SkiaTypefaceLookup.CreateTypeface(text.FontFamily, value);
 
-        // 边框 = 元素框；内边距在框内（与前端 ElementNode 一致）
+        // 边框 = 元素框、内边距在框内，与前端 ElementNode 一致（跨端渲染同源契约）
         if (text.BorderMm > 0 && boxWidth > 0)
         {
             using var borderPaint = new SKPaint
@@ -205,7 +194,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
 
         var innerX = (float)(x + padH);
         var innerY = (float)(y + padV);
-        // 内容区 = 元素框减去 paddingH / paddingV（0 = 宽度不限）
         var innerW = boxWidth > 0 ? Math.Max(1, boxWidth - 2 * padH) : 0;
         var innerH = Math.Max(1, boxHeight - 2 * padV);
         var baseFontSize = Math.Max(1f, ToDots(text.FontHeightMm, dpi));
@@ -216,7 +204,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         List<string> lines;
         if (text.Wrap)
         {
-            // wrap=true：按框宽自动换行；若整体超高则整体缩小至能放下（最小 1.5mm），避免打印丢字
             lines = WrapLines(value, typeface, fontSize, innerW, text.Bold);
             var totalHeight = lines.Count * fontSize * lineHeightFactor;
             var guard = 0;
@@ -229,12 +216,10 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         }
         else if (text.FitMode == LabelFitMode.Overflow)
         {
-            // wrap=false + overflow：单行、不缩小、按框裁剪（隐藏溢出）
             lines = [value];
         }
         else
         {
-            // wrap=false + shrink（默认）：单行，超出框宽 / 框高按比例缩小至最小 1.5mm
             lines = [value];
             using var measureFont = new SKFont(typeface, fontSize) { Embolden = text.Bold };
             var measuredWidth = measureFont.MeasureText(value);
@@ -253,7 +238,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var fm = font.Metrics;
         var lineHeightPx = fontSize * lineHeightFactor;
         var totalHeightPx = lines.Count * lineHeightPx;
-        // 与前端一致：文本在元素框内按 verticalAlign 垂直对齐（Top / Middle / Bottom）
+        // 垂直对齐（Top / Middle / Bottom）语义与前端一致
         var startY = innerY;
         switch (text.VerticalAlign)
         {
@@ -327,7 +312,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             {
                 if (font.MeasureText(word) > maxWidth)
                 {
-                    // 超宽单词 / 无空格中文：按字拆行
                     if (current.Length > 0)
                     {
                         lines.Add(current.ToString());
@@ -393,7 +377,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var boxHeight = Math.Max(1, ToDots(bounds.HeightMm, dpi));
         var padH = ToDots(barcode.EffectivePaddingHMm, dpi);
         var padV = ToDots(barcode.EffectivePaddingVMm, dpi);
-        // 内容区 = 元素框减去 paddingH / paddingV
         var contentX = x + padH;
         var contentY = y + padV;
         var contentW = Math.Max(1, boxWidth - 2 * padH);
@@ -411,8 +394,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             canvas.DrawRect(new SKRect(x, y, x + boxWidth, y + boxHeight), borderPaint);
         }
 
-        // displayValue=true：底部绘制数值文字（字号取框高比例，最小 1.5mm），条码占剩余高度；
-        // displayValue=false：仅条码（PureBarcode，不绘制文字）
+        // displayValue 的数值文字由渲染器自绘；ZXing 侧 PureBarcode=true 屏蔽其内建文字（字体一致性）
         var textSize = 0f;
         var textBand = 0f;
         if (barcode.DisplayValue)
@@ -476,7 +458,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         var boxSize = Math.Max(1, ToDots(bounds.WidthMm, dpi));
         var padH = ToDots(qrCode.EffectivePaddingHMm, dpi);
         var padV = ToDots(qrCode.EffectivePaddingVMm, dpi);
-        // 内容区 = 元素框减去 paddingH / paddingV；二维码保持正方形并居中
+        // 二维码须保持正方形（可扫前提）并居中
         var contentW = Math.Max(1, boxSize - 2 * padH);
         var contentH = Math.Max(1, boxSize - 2 * padV);
         var contentSize = Math.Min(contentW, contentH);
@@ -525,8 +507,8 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         IReadOnlyDictionary<string, LabelRegionElement> regions,
         int dpi)
     {
-        // SourceKey 空＝未指定图片（两步式空占位）——整元素跳过（含边框）
-        // 「未指定＝不存在于打印面」；key 非空缺资源才走下方显式报错（不变）
+        // SourceKey 空＝未指定：整元素跳过（含边框，「未指定即不存在于打印面」）；
+        // key 非空缺资源才显式报错——两条路径语义不同，不可合并
         if (string.IsNullOrEmpty(image.SourceKey))
         {
             return;
@@ -554,8 +536,8 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             using var source = DecodeMonochrome(bytes);
             if (source is not null)
             {
-                // 线性采样：大幅缩小（原图 >> 元素盒）时防混叠失真
-                // SkiaSharp 3.x 采样选项走 DrawImage(SKImage, rect, SKSamplingOptions)——SKPaint.FilterQuality 已废弃
+                // 线性采样：大幅缩小时防混叠失真；SkiaSharp 3.x 采样走
+                // DrawImage(SKImage, rect, SKSamplingOptions)——SKPaint.FilterQuality 已废弃
                 using var monochrome = SKImage.FromBitmap(source);
                 canvas.DrawImage(monochrome, new SKRect(x, y, x + width, y + height), MonochromeSampling);
                 return;
@@ -569,19 +551,13 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             return;
         }
 
-        // 缺资源＝渲染侧显式报错（预览 / 出图 / 打印链失败并透出键名中文消息）
-        // 不再画灰占位框照打；设计器画布的占位框由前端自行呈现（属性面板提示可重新上传修复）
+        // 缺资源＝渲染侧显式报错（预览 / 出图 / 打印链一致失败并透出键名消息），不画灰占位照打
         throw new MissingImageResourceException(image.SourceKey);
     }
 
-    /// <summary>单色图片缩放采样（Linear）：黑 / 白硬边缩小仍保边缘锐度。</summary>
     private static readonly SKSamplingOptions MonochromeSampling = new(SKFilterMode.Linear);
 
-    /// <summary>
-    /// 解码图片并按 luma 阈值 128 单色化（黑白 BGRA，不透明）：与整版 1bpp 转换（ToLabelBitmap）同阈值同源，
-    /// 使预览 PNG 与打印输出一致（——此前预览编码彩色画布、打印 1bpp 阈值，本就不一致）
-    /// 透明区按白处理（出纸无墨）。解码失败返回 null（由调用方按缺资源口径处理）。
-    /// </summary>
+    /// <summary>解码图片并按 luma 阈值 128 单色化；阈值须与 ToLabelBitmap 同源——预览与打印输出一致依赖它。</summary>
     private static SKBitmap? DecodeMonochrome(byte[] bytes)
     {
         using var source = SKBitmap.Decode(bytes);
@@ -601,7 +577,6 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         Marshal.Copy(dest.GetPixels(), staging, 0, staging.Length);
         for (var offset = 0; offset < staging.Length; offset += 4)
         {
-            // BGRA 布局：B=0 G=1 R=2（与 ToLabelBitmap 同读取序）
             var luma = (staging[offset + 2] * 299 + staging[offset + 1] * 587 + staging[offset] * 114) / 1000;
             var value = luma < 128 ? (byte)0 : byte.MaxValue;
             staging[offset] = value;
@@ -674,10 +649,10 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             {
                 var bit = (labelBitmap.Pixels[y * labelBitmap.RowBytes + (x >> 3)] & (0x80 >> (x & 7))) != 0;
                 var offset = (y * labelBitmap.Width + x) * 4;
-                bytes[offset] = bit ? (byte)0 : byte.MaxValue;     // B
-                bytes[offset + 1] = bit ? (byte)0 : byte.MaxValue; // G
-                bytes[offset + 2] = bit ? (byte)0 : byte.MaxValue; // R
-                bytes[offset + 3] = byte.MaxValue;                 // A
+                bytes[offset] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 1] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 2] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 3] = byte.MaxValue;
             }
         }
 

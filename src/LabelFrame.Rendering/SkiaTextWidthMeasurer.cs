@@ -3,17 +3,12 @@ using SkiaSharp;
 
 namespace LabelFrame.Rendering;
 
-/// <summary>
-/// 字宽度量默认实现（Skia）：字型查找与渲染器同源（SkiaTypefaceLookup，含中文回退）
-/// 加粗口径一致（Embolden），在参考比例下做矢量度量后换算毫米——结果与渲染 DPI 无关（线性缩放）。
-/// 无状态，进程内单例复用。
-/// </summary>
+/// <summary>字宽度量默认实现（Skia）：与渲染器共用同一字型查找与加粗口径（SkiaTypefaceLookup），保证度量结果与实际绘制一致。</summary>
 public sealed class SkiaTextWidthMeasurer : ITextWidthMeasurer
 {
-    /// <summary>度量参考比例（像素 / 毫米）：矢量度量线性，取较大比例降低舍入误差。</summary>
+    /// <summary>度量参考比例（像素 / 毫米）：矢量度量线性换算，取较大比例以降低舍入误差。</summary>
     private const double ReferencePxPerMm = 16;
 
-    /// <summary>无状态实现，进程内单例。</summary>
     public static SkiaTextWidthMeasurer Instance { get; } = new();
 
     /// <inheritdoc />

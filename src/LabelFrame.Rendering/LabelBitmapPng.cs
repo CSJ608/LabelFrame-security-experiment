@@ -20,10 +20,10 @@ public static class LabelBitmapPng
             {
                 var bit = (bitmap.Pixels[y * bitmap.RowBytes + (x >> 3)] & (0x80 >> (x & 7))) != 0;
                 var offset = (y * bitmap.Width + x) * 4;
-                bytes[offset] = bit ? (byte)0 : byte.MaxValue;     // B
-                bytes[offset + 1] = bit ? (byte)0 : byte.MaxValue; // G
-                bytes[offset + 2] = bit ? (byte)0 : byte.MaxValue; // R
-                bytes[offset + 3] = byte.MaxValue;                 // A
+                bytes[offset] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 1] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 2] = bit ? (byte)0 : byte.MaxValue;
+                bytes[offset + 3] = byte.MaxValue;
             }
         }
 
