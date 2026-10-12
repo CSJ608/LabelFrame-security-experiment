@@ -221,9 +221,14 @@ internal sealed class WindowUiShell : IUiShell
             ClientSize = new Size(1280, 800);
             try
             {
-                if (!string.IsNullOrEmpty(Environment.ProcessPath))
+                // 深色任务栏可辨优先用白色变体（与托盘一致）；资源异常回退 exe 应用图标
+                var icon = TrayIconService.TryLoadTrayIcon(_log)
+                    ?? (string.IsNullOrEmpty(Environment.ProcessPath)
+                        ? null
+                        : System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath));
+                if (icon is not null)
                 {
-                    Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath);
+                    Icon = icon;
                 }
             }
             catch

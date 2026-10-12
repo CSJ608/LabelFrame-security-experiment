@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace LabelFrame.WinHost;
@@ -5,6 +6,7 @@ namespace LabelFrame.WinHost;
 /// <summary>
 /// 系统托盘图标（原生 P/Invoke 实现，无 WinForms 依赖）。
 /// 隐藏窗口接收 Shell_NotifyIcon 回调：右键菜单（打开界面 / 退出）、双击打开界面。
+/// 图标用程序集内嵌的白色托盘变体（深色任务栏可辨；加载失败回退 exe 应用图标）。
 /// </summary>
 public sealed class TrayIconService : IDisposable
 {
@@ -19,7 +21,18 @@ public sealed class TrayIconService : IDisposable
     private const uint WM_RBUTTONUP = 0x0205;
     private const uint WM_QUIT = 0x0012;
 
+    private const int SM_CXSMICON = 49;
+
     private const string WindowClass = "LabelFrameTrayWindow";
+
+    /// <summary>程序集内嵌托盘图标资源名（csproj LogicalName 固定，勿随默认命名空间漂移）。</summary>
+    internal const string TrayIconResourceName = "LabelFrame.brand.tray-white.ico";
+
+    /// <summary>
+    /// explorer 重启后系统广播的消息号（重启会销毁全部托盘图标，收到即须重新 NIM_ADD，
+    /// 否则图标永久消失——窗口隐藏型应用将彻底失联）。
+    /// </summary>
+    private static readonly uint TaskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATA
@@ -98,6 +111,12 @@ public sealed class TrayIconService : IDisposable
     [DllImport("user32.dll")]
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
 
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint RegisterWindowMessage(string lpString);
+
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
@@ -109,6 +128,7 @@ public sealed class TrayIconService : IDisposable
     private readonly TrayMenuPresenter _menuPresenter;
     private IntPtr _hwnd;
     private WndProcDelegate? _wndProc; // 防止委托被 GC
+    private NOTIFYICONDATA _activeNid; // 托盘线程内：NIM_ADD 后登记、NIM_DELETE 后清空（cbSize=0），TaskbarCreated 据此重注册
     private int _disposed;
 
     /// <summary>创建托盘服务（可选日志回调；quitSignaler / menuPresenter 可注入观测替身，默认自建）。</summary>
@@ -156,7 +176,10 @@ public sealed class TrayIconService : IDisposable
                 return;
             }
 
-            var icon = LoadIcon(instance, new IntPtr(0x7F00)); // IDI_APPLICATION
+            // 白色托盘变体持有至 NIM_DELETE（Icon 释放即销毁 HICON，图标期间句柄必须存活）；
+            // 加载失败回退 exe 应用图标（彩色版），托盘功能不受资源问题影响
+            using var trayIcon = TryLoadTrayIcon(_log);
+            var icon = trayIcon?.Handle ?? LoadIcon(instance, new IntPtr(0x7F00)); // IDI_APPLICATION
             var nid = new NOTIFYICONDATA
             {
                 cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
@@ -168,6 +191,8 @@ public sealed class TrayIconService : IDisposable
                 szTip = "LabelFrame 标签打印",
             };
             Shell_NotifyIcon(NIM_ADD, ref nid);
+            _activeNid = nid;
+            _log?.Invoke($"托盘就绪（TaskbarCreated 消息号 = {TaskbarCreatedMessage}）。");
 
             // 登记托盘线程（缺陷 #58）：Dispose 据此投递 WM_QUIT——消息循环退出后在托盘线程内执行 NIM_DELETE
             _quitSignaler.RegisterLoopThread(GetCurrentThreadId(), Thread.CurrentThread);
@@ -179,6 +204,7 @@ public sealed class TrayIconService : IDisposable
             }
 
             Shell_NotifyIcon(NIM_DELETE, ref nid);
+            _activeNid = default;
             if (_hwnd != IntPtr.Zero)
             {
                 DestroyWindow(_hwnd);
@@ -189,6 +215,39 @@ public sealed class TrayIconService : IDisposable
         {
             // 托盘异常只记录日志，不让宿主进程崩溃（WinExe 无窗口，用户看不到错误弹窗）
             _log?.Invoke($"托盘服务异常：{ex}");
+        }
+    }
+
+    /// <summary>
+    /// 加载内嵌托盘变体图标：按系统托盘槽尺寸（SM_CXSMICON，随 DPI）让 GDI+ 选最接近帧。
+    /// 资源缺失 / 解析失败返回 null（调用方回退应用图标），任何异常不外抛。
+    /// </summary>
+    internal static Icon? TryLoadTrayIcon(Action<string>? log = null)
+    {
+        try
+        {
+            var stream = typeof(TrayIconService).Assembly.GetManifestResourceStream(TrayIconResourceName);
+            if (stream is null)
+            {
+                log?.Invoke($"托盘图标资源缺失（{TrayIconResourceName}），回退应用图标。");
+                return null;
+            }
+
+            using (stream)
+            {
+                var size = GetSystemMetrics(SM_CXSMICON);
+                if (size <= 0)
+                {
+                    size = 16;
+                }
+
+                return new Icon(stream, new Size(size, size));
+            }
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"托盘图标加载失败，回退应用图标：{ex.Message}");
+            return null;
         }
     }
 
@@ -204,6 +263,22 @@ public sealed class TrayIconService : IDisposable
             else if (mouseMsg == WM_LBUTTONDBLCLK)
             {
                 openUi();
+            }
+
+            return IntPtr.Zero;
+        }
+
+        if (msg == TaskbarCreatedMessage)
+        {
+            if (_activeNid.cbSize != 0)
+            {
+                _log?.Invoke("收到 TaskbarCreated（explorer 重启），重新注册托盘图标。");
+                var nid = _activeNid;
+                Shell_NotifyIcon(NIM_ADD, ref nid);
+            }
+            else
+            {
+                _log?.Invoke($"收到 TaskbarCreated（消息号 {TaskbarCreatedMessage}）但无活动托盘项，忽略。");
             }
 
             return IntPtr.Zero;

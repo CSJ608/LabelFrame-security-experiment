@@ -47,6 +47,13 @@
     <Compile Remove="Transport\ZebraPluginMigration.cs" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows10.0.26100'">
+    <!-- 托盘专用白色变体（深色任务栏可辨；应用图标面仍用彩色版）——TrayIconService 经
+         程序集资源加载，LogicalName 固定避免默认命名空间前缀 -->
+    <EmbeddedResource Include="..\..\assets\brand\tray-white.ico" LogicalName="LabelFrame.brand.tray-white.ico" />
+    <InternalsVisibleTo Include="LabelFrame.WinHost.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\LabelFrame.Core\LabelFrame.Core.csproj" />
     <ProjectReference Include="..\LabelFrame.Api\LabelFrame.Api.csproj" />
