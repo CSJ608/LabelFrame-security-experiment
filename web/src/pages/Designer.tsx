@@ -1,7 +1,7 @@
 // 设计器（核心页面壳）：顶栏（模板名 / 分组 / 纸张 / DPI / 预览 / 保存）+ 左栏（控件 / 字段 / 图层）
 // + 画布 + 右栏（属性 / 测试数据 Tab）。stateRef 为同步真相（事件回调内先更新再 setState），
 // 历史为快照式；dirty（历史栈有已提交更改）时离开走三选 Modal，无编辑直接离开不弹窗。
-// 编排拆分（迭代 140）：元素操作 / 深链演示 / 图片资源 / 保存 / 离开保护下沉 pages/designer/* hooks，机制层 lib/design/ 不动。
+// 编排拆分：元素操作 / 深链演示 / 图片资源 / 保存 / 离开保护下沉 pages/designer/* hooks，机制层 lib/design/ 不动。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'

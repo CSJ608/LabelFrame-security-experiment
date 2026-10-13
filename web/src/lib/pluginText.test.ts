@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// 插件自描述文案展示端翻译防线（决策 #192，#366/#368）：
-// ① zh 词条 = 官方插件 spec 原文逐字一致（AC 词条层锚点——fixture 镜像 dotnet 插件源码的键与中文原文，
-//    漂移即红；#368 起插件级键由 ITransportPlugin DIM 声明，spec 键与插件级键统一由插件侧维护）；
+// 插件自描述文案展示端翻译防线：
+// ① zh 词条 = 官方插件 spec 原文逐字一致（词条层锚点——fixture 镜像 dotnet 插件源码的键与中文原文，
+//    漂移即红；插件级键由 ITransportPlugin DIM 声明，spec 键与插件级键统一由插件侧维护）；
 // ② pluginText 词条命中 / 回退语义与包名映射（pluginPackageName）回退语义。
 
 import { describe, expect, it } from 'vitest'

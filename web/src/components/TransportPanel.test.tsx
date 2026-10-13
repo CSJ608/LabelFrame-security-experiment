@@ -12,7 +12,7 @@ import i18next from '../i18n'
 import { TransportPluginParamsEditor } from './TransportPanel'
 import type { PluginParamValue, PluginParams, TransportPluginInfo } from '../lib/api/types'
 
-/** 后端 Zebra 插件 spec 形态镜像（含条件可见性声明与展示端翻译键——决策 #192）。 */
+/** 后端 Zebra 插件 spec 形态镜像（含条件可见性声明与展示端翻译键）。 */
 const ZEBRA: TransportPluginInfo = {
   id: 'labelframe-transport-zebra',
   displayName: 'Zebra',

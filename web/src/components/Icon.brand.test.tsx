@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 品牌承形色重设计（迭代 139）：导航 LabelLogo「剥离 / Peel & Feed」微型几何换承形色——
+// 品牌承形色重设计：导航 LabelLogo「剥离 / Peel & Feed」微型几何换承形色——
 // 24px 方形 viewBox、珊瑚 #C9553B 标签体 + 深青 #123B3C 剥离角（母版 assets/brand/symbol-color-24.svg，
 // 固定填充不走 currentColor/--accent，--accent 测量蓝是界面语言非品牌标识；珊瑚在深浅背景
 // 对比度均 ≥3.5:1，无需主题切换）；index.html favicon 外链最小集不变化。

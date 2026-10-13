@@ -33,11 +33,12 @@
 | lib/design | `types.ts` / `model.ts` / `fields.ts` | 7 型元素模型（Text / Barcode / QrCode / Rect / Image / Line / Region）与默认值、内容态判别（`elementContentState`，不依赖本地化字符串比较）、容器锚定重算（`containerRegionIdFor`：中心点落入 Region 即锚定）、契约字段自动推导（`deriveFieldInfos`，字段填充元素按序去重、显示名取首个非空） |
 | lib/design | `barcode.ts` / `imageCompress.ts` / `format.ts` | 条码 / 二维码 canvas 渲染（JsBarcode CODE128 / qrcode-generator，未绑定占位框）；上传图片浏览器内压缩（>1MB 降采样长边 ≤2000px + 重编码 JPEG q0.85 / BMP→PNG，产物仍超限且无透明通道才转 JPEG）；设计 JSON 交换格式（`labelframe-web-design` v1）导入导出 |
 | lib | `transport.ts` | 连接方式的显示与参数逻辑：模式 / 插件标签（随语言）、旧模式 ↔ 插件 id 映射、徽标格式化、插件参数 spec 工具（条件可见性 `isSpecVisible` 与后端逐条对齐） |
+| lib | `pluginText.ts` | 插件自描述文案展示端翻译（决策 #192）：有键且 pluginLabels 域有词条 → 当前语言词条、否则原文回退；键由插件侧声明（spec `labelKey` / `hintKey` 与接口 DIM），本模块不拼键；插件管理页包名映射 `pluginPackageName` 按 pluginId 查词条（manifest 键通道待「插件包内嵌词条」机制） |
 | lib | `guide.ts` / `help.ts` / `helpLink.ts` | 新手引导纯数据（五步、localStorage 首见标记 `labelframe.guide.client.v1`，决策 #170）；帮助体系 V3 纯数据（`HELP_PAGES` 八页、演示预设 `HELP_DEMO_PRESETS`、深链示例元素 `HELP_LINK_ELEMENTS`，决策 #176 / #178 / #179）；深链页内轮询 hook（80ms / 4s） |
 | lib | `settings.ts` / `clipboard.ts` / `connection.ts` / `download.ts` / `errorLogging.ts` / `jobStatus.ts` / `pluginLimits.ts` / `update.ts` / `deviceDisplay.ts` / `excel/mapping.ts` | 服务端地址 localStorage 兜底；剪贴板降级（Clipboard API → execCommand / 一次性 paste 捕获）；下载中心默认地址选择；blob 下载；全局错误 console 留痕；作业状态文案 hook；插件包 64MB 预检；客户端检查更新版本比较；设备显示名回退 |
 | i18n | `index.ts` / `errorMessages.ts` | i18n 基座（决策 #165）：13 个域命名空间、zh-CN 源语言 + en 全覆盖（vitest 断言）、`fallbackLng`/`fallbackNS: common`、语言切换单点 `changeLocale`（持久化 + `<html lang>` / `<title>` 同步）；LF_* 错误码展示端翻译（zh 直接后端 message，en 已知码按码表插值、参数不全回退后端中文，决策 #166） |
 | components | `Modal` / `Popover` / `HelpDot` / `Guide` / `Icon` / `TransportPanel` / `ErrorBoundary` | 通用组件：模态框（Esc / 遮罩关闭）；锚定弹出菜单（portal + fixed，防 `overflow:hidden` 裁剪——决策 #152）；「?」就地文档点（受控气泡，与帮助文章同源词条）；分步气泡引导（spotlight box-shadow 挖洞，自研）；内联 SVG 图标集；设置页连接方式完整面板；渲染异常错误页 |
-| pages | `Designer.tsx`（1,169 行，全仓最大前端文件）+ `designer/` 四件 | 设计器页：顶栏 / 左栏（控件 / 字段 / 图层）/ 画布 / 右栏（属性 / 测试数据）三栏 + 三个 Modal（覆盖确认 / 离开三选 / 快捷键）；`CanvasViewport`（react-konva 画布：拖动高频操作直走 Konva 实例、dragend 才提交状态）、`ElementNode`（元素声明式渲染，图片三态）、`PropsPanel`（分组属性 + 文档点 + 演示插槽）、`SidePanel`、`shortcuts` |
+| pages | `Designer.tsx`（563 行编排壳）+ `designer/` 组件与 hooks | 设计器页：顶栏 / 左栏（控件 / 字段 / 图层）/ 画布 / 右栏（属性 / 测试数据）三栏 + 三个 Modal（覆盖确认 / 离开三选 / 快捷键）；编排已拆 hooks——`useDesignerActions`（元素操作）/ `useHelpLinkDraft`（深链演示）/ `useImageAssets`（图片资源）/ `useTemplateSave`（保存）/ `useLeaveGuard`（离开保护）＋ `designState` / `images` 纯逻辑（机制层 lib/design/ 不动）；画布组件 `CanvasViewport`（react-konva：拖动高频操作直走 Konva 实例、dragend 才提交状态）、`ElementNode`（元素声明式渲染，图片三态）、`PropsPanel`（分组属性 + 文档点 + 演示插槽）、`SidePanel`、`shortcuts` |
 | pages | `DataPrint.tsx` / `Workbench.tsx` / `JobHistory.tsx` / `Devices.tsx` / `Settings.tsx` / `DownloadCenter.tsx` / `PluginPackages.tsx` / `Help.tsx` / `WorkbenchPreview.tsx` / `useTemplatePreview.ts` | 其余八页：数据与打印（表单 / 调试出图 / Excel 映射 / 作业进度）、工作台（卡片网格 + 预览缩略图缓存）、作业历史（行展开明细）、在线设备（server 专用）、设置、下载中心（三 tab，sub 段承载）、插件管理（server 专用）、帮助页（左目录树文档站版式） |
 
 **双构建页集差异**（`lib/tabs.ts` 单源）：client 六页（workbench / designer / data / jobs / settings / help）；server 八页（+devices / packages / plugin-packages，−settings）。路由白名单、帮助页集、导航渲染均从 tab 集派生，页集增减单点跟随。
@@ -110,6 +111,7 @@
 | DataPrint 会话草稿（sessionStorage 保留） | #51 |
 | 服务端 / 客户端拆分（templateName + labels 契约） | #52 |
 | UI 归属反转（Client 托管完整 Web UI） | #53 |
+| 插件自描述文案展示端翻译（spec 键 + 接口 DIM，pluginLabels 查词条回退原文） | #192 |
 | 机器级 ServerUrl（/api/host/config，优先于 localStorage） | #57 |
 | 服务端管理界面插件形态（WebUiPath 运行时检测） | #62 |
 | 前端双构建模式（VITE_UI_MODE，client / server 双产物） | #63 |

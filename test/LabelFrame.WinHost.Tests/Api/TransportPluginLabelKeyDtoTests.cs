@@ -7,7 +7,7 @@ using LabelFrame.WinHost.Transport;
 namespace LabelFrame.WinHost.Tests.Api;
 
 /// <summary>
-/// 插件自描述文案键化 API 契约防线（决策 #192，#366）：labelKey / hintKey 随 DTO 透传；
+/// 插件自描述文案键化 API 契约防线：labelKey / hintKey 随 DTO 透传；
 /// 无键插件（第三方 / 旧版官方）序列化后不出现新字段——响应与键化前逐字节等价。
 /// </summary>
 public class TransportPluginLabelKeyDtoTests

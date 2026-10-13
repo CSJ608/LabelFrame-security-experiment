@@ -37,7 +37,7 @@
 | Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`）；`SqliteLabelJobStore`（表 `jobs` / `job_items`，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
 | Templates | `Templates/` | `TemplateStore`（SQLite 表 `templates` / `template_images`，upsert + 分组列表 + 旧库补列迁移）；`TemplatePackage`（契约 + 版式 + 图片 + testData）；`TemplatePackageSerializer`（zip：`manifest.json` + `images/`） |
 | Transport | `Transport/` | `IPrintTransport` + `IPrinterStatusProvider` + `ITestableTransport`；内置实现 `Tcp9100PrintTransport`（发送 + `~HS` 状态解析 `ParseHostStatus`）与 `LogPrintTransport`（模拟打印，只记摘要） |
-| Transport / Plugins | `Transport/Plugins/` | 插件 ABI：`ITransportPlugin` / `ITransportPluginRegistry`（实现 `TransportPluginRegistry`，**强持有插件 ALC 根**）/ `ILabelCommandCompiler`（可选文档编译能力，决策 #137）；`PluginDirectoryLoader`（两条加载路径，见 §3.2）；`PluginProbe`（安装预检探针）；`PluginInstaller`（安装 / 卸载 / 已装列表）；`BuiltinTransportPlugins`（log + tcp9100）；`TransportPluginIdPolicy`（官方前缀 / 保留 id / 旧 id 别名）；`TransportPrintMode`（image / native，决策 #137）；`TransportParameterSpec`（含 `VisibleWhen*` 条件可见性 + 历史 7 参构造器兼容，决策 #186） |
+| Transport / Plugins | `Transport/Plugins/` | 插件 ABI：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` 展示端翻译键 DIM，决策 #192）/ `ITransportPluginRegistry`（实现 `TransportPluginRegistry`，**强持有插件 ALC 根**）/ `ILabelCommandCompiler`（可选文档编译能力，决策 #137）；`PluginDirectoryLoader`（两条加载路径，见 §3.2）；`PluginProbe`（安装预检探针）；`PluginInstaller`（安装 / 卸载 / 已装列表）；`BuiltinTransportPlugins`（log + tcp9100）；`TransportPluginIdPolicy`（官方前缀 / 保留 id / 旧 id 别名）；`TransportPrintMode`（image / native，决策 #137）；`TransportParameterSpec`（含 `VisibleWhen*` 条件可见性 + `LabelKey`/`HintKey` 展示端翻译键（init-only 属性、构造器签名零变化）+ 历史 7 参构造器兼容，决策 #186 / #192） |
 | Transport / Plugins / Package | `Transport/Plugins/Package/` | `.lfplugin` 包读取：`PluginPackageReader`（zip-slip 防护 + 魔数判别）、`PluginPackageManifest`（含可选 `platforms` 平台门，决策 #157）、`PluginPackageLimits`（64MB）、`PluginVersionComparer`（官方覆盖安装版本比较，决策 #123）、`PluginPackageException` |
 | Data | `Data/` | `SqliteSupport`：provider 初始化（进程内一次）、连接串（busy 5s + 连接池 + 父目录自动建）、WAL 打开、UTC ISO-8601 往返格式化（决策 #80 / #85 / #94） |
 | Logs | `Logs/` | `SqliteLogStore`：设备日志入库 / 查询（最多 500 条）/ 按量闸循环「删最旧批次 → VACUUM + checkpoint(TRUNCATE)」（决策 #173） |
@@ -97,7 +97,7 @@
 - 作业：`LabelJobQueue`（+ `ILabelJobStore` / `SqliteLabelJobStore`）、`LabelJobException` / `JobErrorCodes`；
 - 模板：`TemplateStore`、`TemplatePackageSerializer`；
 - 传输：`IPrintTransport` / `IPrinterStatusProvider` / `ITestableTransport`、`Tcp9100PrintTransport.ParseHostStatus`（纯函数供单测）、`PrinterStatusInfo`；
-- 插件 ABI（第三方 DLL 实现面）：`ITransportPlugin` / `ITransportPluginContext`（+ `TransportPluginContext` 默认实现）/ `ITransportPluginRegistry`（+ `TransportPluginRegistry`）/ `TransportPluginDescriptor` / `TransportParameterSpec` / `TransportParameterOption` / `TransportParameterType` / `TransportPluginParameters` / `ILabelCommandCompiler` + `LabelCommandCompileOptions/Result` / `TransportPrintMode` / `TransportPluginIdPolicy` / `BuiltinTransportPlugins`；包格式：`PluginPackageReader` / `PluginPackageManifest` / `PluginPackageLimits` / `PluginVersionComparer` / `PluginPackageException`；
+- 插件 ABI（第三方 DLL 实现面）：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` DIM 展示端翻译键，决策 #192）/ `ITransportPluginContext`（+ `TransportPluginContext` 默认实现）/ `ITransportPluginRegistry`（+ `TransportPluginRegistry`）/ `TransportPluginDescriptor` / `TransportParameterSpec` / `TransportParameterOption` / `TransportParameterType` / `TransportPluginParameters` / `ILabelCommandCompiler` + `LabelCommandCompileOptions/Result` / `TransportPrintMode` / `TransportPluginIdPolicy` / `BuiltinTransportPlugins`；包格式：`PluginPackageReader` / `PluginPackageManifest` / `PluginPackageLimits` / `PluginVersionComparer` / `PluginPackageException`；
 - 服务：`PluginInstaller` / `PluginDirectoryLoader` / `PluginProbe`、`SqliteLogStore`、`ZplImageEncoder`（`EncodeImage`）、`LabelValidator` / `LabelProblemCodes`、`ExcelTableReader` / `ExcelTemplateWriter`、`SafeFileName`、`SqliteSupport`、`ErrorMessageTemplates.Format`、`MissingImageResourceException`。
 
 **依赖**（仅 NuGet，零项目引用；`net10.0` 单目标）：`Microsoft.Data.Sqlite.Core 8.0.4`、`SQLitePCLRaw.provider.e_sqlite3 2.1.13`（**原生库 `lib.e_sqlite3` 刻意不下沉 Core**，见 §6）、`TemplateFrame.Excel.Simple 2.4.1`（决策 #158）。
@@ -130,6 +130,7 @@
 | 传输插件统一接口与参数模型；加载 / 卸载 / 使用；外部插件字节加载；ALC 生命周期（注册表强持根） | #67 / #68 / #73 / #127 |
 | 插件包分发闭环（`.lfplugin`）；品牌插件外置化与官方插件体系（id 前缀 / 版本比较）；PDA 双档模型与跨端格式（`platforms` 平台门） | #72 / #123 / #157 |
 | 插件命令打印契约（`ILabelCommandCompiler` + 连接级 printMode）；连接参数字段集声明（`VisibleWhen` 条件可见性 + 历史构造器兼容） | #137 / #186 |
+| 插件自描述文案展示端翻译键（spec `LabelKey`/`HintKey` + 接口 DIM `DisplayNameKey`/`DescriptionKey`；展示端 pluginLabels 查词条、无键回退原文；旧插件源码与二进制不受影响） | #192 |
 | 问题码约定（LF_*）；全局异常处理与错误契约；ErrorView `params` 与错误消息模板插值 | #13 / #78 / #166（多语言基线 #164） |
 | 数据层并发模型（EXISTS 轻量探测）；SQLite WAL + 数据层基建；provider 初始化与测试隔离；SQLitePCLRaw 原生库 Android 打包 | #77 / #80 / #85 / #94 |
 | Worker 信号量唤醒（`WaitForPendingWakeAsync`，写入后发信号） | #92 |

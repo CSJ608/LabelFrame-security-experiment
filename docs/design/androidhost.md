@@ -20,12 +20,12 @@
 | 构建块 | 类型 | 角色 |
 |---|---|---|
 | 应用骨架 | `HostApplication` / `BootReceiver` / `PrintHostService` | 进程入口（首行注册 `CrashGuard`）→ 开机 / 更新广播拉起前台服务 → 服务常驻（`StartCommandResult.Sticky`，`ForegroundServiceType=DataSync`，渠道 `labelframe_host` / 通知 id 1001） |
-| 配置面 UI | `MainActivity` | 唯一 UI（代码动态布局，无 XML 布局），主页状态卡 + 四个子页（服务器 / 打印机 / 插件管理 / 本机信息），视图构建后缓存往返不丢输入；1,601 行 / 97 方法为全仓最大文件（架构评审 R-2 拆分候选，见 §6） |
+| 配置面 UI | `MainActivity` + 六页面 partial（HomeScreen 242 / ServerScreen 111 / PrinterScreen 419 / PluginsScreen 358 / DeviceScreen 79 / Widgets 212） | 唯一 UI（代码动态布局，无 XML 布局），主页状态卡 + 四个子页（服务器 / 打印机 / 插件管理 / 本机信息），视图构建后缓存往返不丢输入；已按页面拆 partial（主文件 290 行，架构评审 R-2 落地） |
 | 本地 HTTP | `EmbeddedHttpServer` | TcpListener 极简 HTTP（见 §3.3 端点表）；状态页为内嵌单页 HTML |
 | Server 路由 | `ServerPoller` | 注册（兼心跳）/ 长轮询通知 / 领取定向作业 / 终态回报 / 进度增量上报，与 WinHost `ServerRoutingWorker` 同构、内联实现 |
 | 打印链 | `SubmissionService` / `Rendering/AndroidLabelRenderer` / `Rendering/AndroidTextWidthMeasurer` | 校验 → Android 整版位图（1bpp）→ Core `ZplImageEncoder` `^GF` → 本地作业队列（SQLite，`SqliteLabelJobStore`） |
 | 传输 | `Transport/ZebraSdkTransport` / `Transport/Plugins/*` | Zebra Link-OS SDK 传输（tcp / bluetooth / usb）＋ 插件通道（内置 zebra 注册 + 外部 `.lfplugin` 动态加载 + 品牌路由，决策 #157） |
-| 横切设施 | `LabelHostConfig` / `HostStatus` / `HostLog` / `CrashGuard` / `HostInfo` / `HostStrings` / `HostLocale` | SharedPreferences 配置、不可变状态快照、logcat+滚动文件日志、双通道崩溃捕获、版本读取、资源文案取值、语言判定 |
+| 横切设施 | `LabelHostConfig` / `HostStatus` / `HostLog` / `CrashGuard` / `HostInfo` / `HostStrings` / `HostLocale` | SharedPreferences 配置、不可变状态快照（打印机目标存 PrinterFacts 结构化事实、渲染时按当前语言生成文案——不存语言字符串，切换零残留）、logcat+滚动文件日志、双通道崩溃捕获、版本读取、资源文案取值、语言判定 |
 | API 契约副本 | `Api/Dtos.cs` / `Api/ImagePayloadDecoder.cs` | SubmitJobRequest / TemplateDto（含 `Images` base64，决策 #184）/ ErrorView（含可选 `params`，决策 #166 ②）/ JobView 等自持副本——不引用 LabelFrame.Api 工程；纯托管的 `ImagePayloadDecoder` 与 `LfErrorCatalog` 按文件链接编译进 net10.0 测试工程（android TFM 不可被整工程引用） |
 | 码表 | `Errors/LfErrorCatalog` | LF_* 错误码 zh/en 字典 + `Resolve` 按码翻译（决策 #167） |
 
@@ -131,4 +131,4 @@
 14. **配置保存后必须重启宿主服务生效**（传输 / 路由实例在服务启动时创建）；设备号坏值 `9774d56d682e25f8`（Android 8 前部分设备重复返回）按取不到处理，本地 UUID 兜底。
 15. **`OnBackPressed` 暂保留**：API 33 起被标记过时（CA1422，为预测性返回让路），但未启用 `enableOnBackInvokedCallback` 前框架仍回调它；为避免引入 AndroidX 依赖按既有行为保留。
 16. **aapt 默认裁剪字符串首尾空白**：资源文案需保留尾部空格时用引号包裹（values-en `common_name_version`）。
-17. **`MainActivity.cs` 1,601 行 / 97 方法为全仓最大文件**：配置 / 状态 / 打印 / 插件管理四类页面共存单 Activity，UI 层无组件级单测（验证通道 = 真机走查）——架构评审 R-2 拆分候选（按页面拆分，1.0 后随 PDA 功能迭代搭车，小步拆、每步走查）。
+17. **MainActivity 已按页面拆 partial**（六屏 partial + 主文件 290 行）：新增页面 / 大块 UI 优先落对应 partial 而非回填主文件；UI 层无组件级单测不变（验证通道 = 真机走查）。

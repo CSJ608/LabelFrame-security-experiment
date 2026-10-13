@@ -23,7 +23,7 @@
 | | ServerOptions.cs | 配置面：全部默认值 + `LABELFRAME_SERVER_*` 环境变量覆盖（约 18 项） |
 | 领域服务 | ServerService.cs | 设备 / 作业业务编排：提交（幂等门）、领取、回报、进度、视图组装、IP 规范化 |
 | | ServerException.cs / ServerErrorCodes.cs | 携问题码领域异常与 `LF_SRV_001~013` 码表（新增码须同步 web 端码表） |
-| 存储 | ServerDb.cs | SQLite 三表访问：`devices` / `server_jobs` / `job_callbacks`＋旧库迁移 |
+| 存储 | ServerDb.cs + ServerDbStore.cs / ServerDeviceStore.cs / ServerJobStore.cs / JobCallbackStore.cs | SQLite 三表访问按聚合拆分：ServerDb＝建库与旧库迁移入口、ServerDbStore＝共享基类（每操作一连接）、设备 / 作业 / 回调三存储类 |
 | 后台任务 | PendingJobExpirationService.cs | Pending 超 TTL 扫描 → Expired 终态（决策 #89） |
 | | ClaimedJobTimeoutService.cs | 失联 Claimed 扫描 → Failed 回收（决策 #98） |
 | | JobCallbackDeliveryService.cs | 回调投递扫描（含 `HttpJobCallbackSender`，决策 #154） |
@@ -40,7 +40,7 @@
 **关键机制**：
 
 - **每操作一连接**：所有数据访问经 Core `SqliteSupport.OpenAsync`（连接串 `Pooling=true` + `PRAGMA journal_mode=WAL; wal_autocheckpoint=1000`，决策 #80），无跨请求共享连接；
-- **ServerDb 聚合**：736 行单文件覆盖设备 / 作业 / 回调三类聚合（架构评审 R-3 列为 1.0 后机会式拆分候选，见 ARCHITECTURE-REVIEW.md §5——148 项集成测试作安全网）；
+- **存储已按聚合拆分**（架构评审 R-3 落地）：ServerDb（132 行，建库与旧库迁移入口）＋ ServerDbStore（共享基类）＋ ServerDeviceStore（171）/ ServerJobStore（432）/ JobCallbackStore（125）三聚合存储类；148 项集成测试作安全网；
 - **旧库迁移**：`InitializeAsync` 对 `last_ip` / `callback_url` / `error_code` 三列逐个 `PRAGMA table_info` 探测补列，失败静默忽略（保持旧库可启动优先）；
 - **提交路径进程内门**：`_gate` 信号量只覆盖提交（requestId 幂等是「查询-再插入」两步，防并发重放双双插入），跨进程由 `request_id UNIQUE` 兜底；注册 / 领取 / 回报无 check-then-act 不再串行化（决策 #77）。
 

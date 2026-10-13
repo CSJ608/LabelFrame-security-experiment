@@ -5,7 +5,7 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.Core.Tests.Transport;
 
 /// <summary>
-/// 插件自描述文案键化防线（决策 #192，#366）：LabelKey / HintKey 为 init-only 属性而非构造参数——
+/// 插件自描述文案键化防线：LabelKey / HintKey 为 init-only 属性而非构造参数——
 /// 构造器签名零变化，旧插件二进制兼容；内置插件（log / tcp9100）spec 键完备且键名遵循
 /// plugin.&lt;pluginId&gt;.&lt;paramKey&gt; 约定，展示端语言包按约定对齐。
 /// </summary>
