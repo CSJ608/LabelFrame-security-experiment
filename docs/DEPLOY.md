@@ -45,7 +45,7 @@
 
 ## 4. Docker（推荐的服务端部署方式）
 
-**快速启动（Release compose 分发）**：从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `compose.yml` 与 `.env` 放同一目录，`docker compose up -d` 即可——`.env` 已把 `LABELFRAME_VERSION` 钉定为本 Release 版本（想跟随最新版可改回 `latest`，镜像源覆盖见文件内注释）。两者与仓库 `packaging/ubuntu/docker-compose.yml` 同源（发版流水线直接复制生成）。**离线 / 内网环境**改用同 Release 的离线部署包（`labelframe-offline-<版本>-linux-x64.tar.gz`，见「离线 / 内网部署（offline bundle）」一节）。
+**快速启动（Release compose 分发）**：从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `compose.yml` 与 `.env` 放同一目录，`docker compose up -d` 即可——`.env` 已把 `LABELFRAME_VERSION` 钉定为本 Release 版本（想跟随最新版可改回 `latest`，镜像源覆盖见文件内注释）。两者与仓库 `packaging/ubuntu/docker-compose.yml` 同源（发版流水线直接复制生成）。把 LabelFrame **并入你自己管理多服务的 compose** 见「整合进已有 compose」一节；**离线 / 内网环境**改用同 Release 的离线部署包（`labelframe-offline-<版本>-linux-x64.tar.gz`，见「离线 / 内网部署（offline bundle）」一节）。
 
 镜像 `ghcr.io/marci-labs/labelframe-server`（`latest` 指向最新版）：
 
@@ -64,7 +64,69 @@ curl http://127.0.0.1:53961/healthz   # {"service":"LabelFrame.Server","status":
 - 自行构建：`docker build -f packaging/ubuntu/Dockerfile -t labelframe-server artifacts/server-linux/linux-x64`。
 - 本地构建镜像调试：`LABELFRAME_IMAGE=labelframe-server LABELFRAME_VERSION=0.22.2 docker compose up -d`。
 
-### 4.1 Server + Linux Log Client 本地 E2E
+### 4.1 整合进已有 compose（在线）
+
+把 LabelFrame 服务端并入你自己管理多服务的 docker-compose（同一个 compose 文件 / 同一个默认网络），两个动作：**① 服务块并入你的 compose（单根挂载）；② 跑一次资源落位脚本**。
+
+① 服务块（整合形态——与独立部署 compose 的差异：无 `container_name`（固定名在共享 compose 是冲突源，同 compose 内服务名即 DNS 名）；无命名卷（单根 bind mount 路径自控，不受 compose 项目名 / 目录影响）；`expose` 默认仅网络内可达）：
+
+```yaml
+services:
+  labelframe-server:            # 服务名即网络内 DNS 名，你的其他服务用 http://labelframe-server:53961 访问；重名可改
+    image: ghcr.io/marci-labs/labelframe-server:${LABELFRAME_VERSION:-latest}
+    restart: unless-stopped
+    expose:
+      - "53961"
+    # 宿主机 / 局域网浏览器直访才改用 ports（二选一）：
+    # ports:
+    #   - "53961:53961"
+    volumes:
+      # 单根挂载：数据库 / 管理界面网页 / 三类分发目录 / 文本日志全部在这一棵树内
+      # （子目录缺失 = 对应能力不启用，服务照常运行）
+      - ./labelframe:/var/lib/labelframe
+    environment:
+      - TZ=Asia/Shanghai
+      - LABELFRAME_SERVER_LOG_FILE=/var/lib/labelframe/logs/server.log
+```
+
+在 compose 同目录 `.env` 钉 `LABELFRAME_VERSION=0.36.0`（镜像 tag 与下面的资源脚本共用同一版本变量，防镜像 / 资源错配）。
+
+② 资源在线落位（管理界面网页 zip + 客户端 MSI / PDA APK / 传输插件包——一条命令按挂载布局放好）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/marci-labs/LabelFrame/master/scripts/fetch-server-resources.sh \
+  | bash -s -- ./labelframe
+```
+
+- 脚本消费发版流水线的 `install-manifest.json`（**sha256 逐源强制校验，fail-closed**），四类资源落位到 `./labelframe/server/` 下的 `plugins/web-ui/`（解压展开、原子换名）、`client-packages/`、`pda-packages/`、`plugin-packages/`；
+- **版本对齐**：默认读同目录 `.env` 的 `LABELFRAME_VERSION`（与镜像同版）；`--version 0.36.0` 显式指定；两者皆无走官方 latest 通道（运行时提示所用版本）；
+- 幂等重跑：已就位且校验相符的包文件跳过下载；旧版本包保留（下载中心允许多版本共存）；
+- 前置：`curl`（或 `wget`）+ `unzip` + `sha256sum`；纯用户态，无需 root；`--manifest <文件 / URL>` 可指定清单（测试或镜像源）；
+- 也可直接使用仓库脚本：`bash scripts/fetch-server-resources.sh ./labelframe`（`--help` 查看全部参数）。
+
+落位后的布局（`docker compose up -d` 后访问 `http://<宿主机>:53961/healthz` 自检，管理界面即开箱可用）：
+
+```
+./labelframe/
+├── server/
+│   ├── plugins/web-ui/        管理界面（经服务端 :53961 访问）
+│   ├── client-packages/       客户端 MSI（客户端「更新与安装包」可下载）
+│   ├── pda-packages/          PDA APK（管理界面「下载中心」扫码下载）
+│   ├── plugin-packages/       传输插件 .lfplugin（客户端「插件管理」可安装）
+│   └── server.db 等           服务端启动时自动生成
+└── logs/                      文本日志（按日轮转）
+```
+
+升级：改 `.env` 版本 → `docker compose pull labelframe-server && docker compose up -d` → 重跑落位脚本（网页与包刷新到新版，数据不动）。
+
+注意（信任与网络边界）：
+
+- **服务端 API 无鉴权**（局域网信任模型）：并入多服务网络后，该网络内所有容器都能访问其 API——仅接入受信任网络；需要对外时请前置带鉴权的反向代理。
+- 反向代理：**不支持路径前缀形态**（如 `https://host/labelframe/`）——用独立子域名或独立端口转发 `:53961`。
+- 数据库为 SQLite：`./labelframe` 请落在本地文件系统，勿挂 NFS / 网络卷（文件锁不可靠）。
+- ghcr.io 拉取不畅：`image` 覆盖为可达镜像源；完全离线环境改用离线部署包（下一节）。
+
+### 4.2 Server + Linux Log Client 本地 E2E
 
 正式镜像 `ghcr.io/marci-labs/labelframe-client` 是仅用于无打印机自动化测试的 Linux 无头 Client。它固定使用 `log` 模拟打印，不包含 TCP 9100、USB、Windows 驱动、Zebra SDK、第三方插件或客户端 Web UI，不能替代物理打印验收。
 
@@ -87,7 +149,7 @@ docker compose -f .\packaging\e2e\compose.yaml down
 
 脚本验证 Linux 能力边界、模板 / 预览 / 包导入导出、Excel / 日志公共端点、设备注册、幂等、单张 / 多张、离线暂存、Skia 渲染、PNG 数量与条码内容、Server 终态回报、Client 重启持久化及重启后继续领取；数据保存在 Compose 命名卷。端口冲突时传 `-ServerPort <端口>`。完整测试大纲与排障方式见 [LINUX-CLIENT-E2E.md](LINUX-CLIENT-E2E.md)。
 
-### 4.2 离线 / 内网部署（offline bundle）
+### 4.3 离线 / 内网部署（offline bundle）
 
 从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `labelframe-offline-<版本>-linux-x64.tar.gz`，拷到目标机（U 盘 / 内网共享），解压到**固定部署目录**（`--strip-components=1` 剥掉包内版本号顶层目录，命令对任意版本通用），包内自带全部所需（镜像 tar + 与在线版逐字节同源的 `compose.yml` + 版本钉定 `.env` + 管理界面预解压 + 客户端 / PDA / 插件安装包），部署全程零外网：
 
