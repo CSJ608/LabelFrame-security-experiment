@@ -175,8 +175,8 @@ public sealed partial class MainActivity
             serverEntry = L(Resource.String.status_server_entry_connecting, UrlHost(s.ActiveServerUrl));
         }
 
-        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要
-        var printerDisplay = s.ActivePrinterEndpoint;
+        // 打印机摘要按页面渲染时的当前语言生成（快照只存事实——语言切换后不残留旧语言文案）
+        var printerDisplay = LabelHostConfig.PrinterDisplayText(this, s.ActivePrinter);
         var printerError = s.LastPrintError is not null;
         string printerLine, printerEntry;
         if (printerError)

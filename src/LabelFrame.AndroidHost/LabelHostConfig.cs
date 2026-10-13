@@ -119,27 +119,35 @@ public sealed class LabelHostConfig
         }
     }
 
+    /// <summary>打印机连接目标的展示事实：快照（HostStatus）只存结构化事实，展示文案由渲染端按当前语言生成——
+    /// 快照不存本地化字符串，语言切换后无需重启服务即显示当前语言（快照带语言的混排缺陷根治）。</summary>
+    public sealed record PrinterFacts(string Brand, string ConnectionType, string TcpHost, int TcpPort, string BluetoothMac);
+
     /// <summary>打印机连接方式的用户可读摘要（主页 / 通知 / 状态页共用；外置插件品牌固定网口，统一显示「IP:端口」）。</summary>
     public string PrinterDisplay(Android.Content.Context context)
+        => PrinterDisplayText(context, new PrinterFacts(PrinterBrand, ConnectionType, TcpHost, TcpPort, BluetoothMac));
+
+    /// <summary>按当前 Context 语言把展示事实格式化为用户可读摘要（渲染时调用；外置插件品牌固定网口，统一显示「IP:端口」）。</summary>
+    public static string PrinterDisplayText(Android.Content.Context context, PrinterFacts facts)
     {
-        var brand = PrinterBrand.Trim();
+        var brand = facts.Brand.Trim();
         if (brand.Length > 0 && !string.Equals(brand, DefaultPrinterBrand, StringComparison.OrdinalIgnoreCase))
         {
-            return string.IsNullOrWhiteSpace(TcpHost)
+            return string.IsNullOrWhiteSpace(facts.TcpHost)
                 ? HostStrings.L(context, Resource.String.printer_display_tcp_empty)
-                : $"{TcpHost}:{TcpPort}";
+                : $"{facts.TcpHost}:{facts.TcpPort}";
         }
 
-        return Transport.ZebraSdkTransport.NormalizeConnectionType(ConnectionType) switch
+        return Transport.ZebraSdkTransport.NormalizeConnectionType(facts.ConnectionType) switch
         {
             Transport.ZebraSdkTransport.ConnectionTypeBluetooth =>
-                string.IsNullOrWhiteSpace(BluetoothMac)
+                string.IsNullOrWhiteSpace(facts.BluetoothMac)
                     ? HostStrings.L(context, Resource.String.printer_display_bt_empty)
-                    : HostStrings.L(context, Resource.String.printer_display_bt, BluetoothMac),
+                    : HostStrings.L(context, Resource.String.printer_display_bt, facts.BluetoothMac),
             Transport.ZebraSdkTransport.ConnectionTypeUsb => HostStrings.L(context, Resource.String.printer_display_usb),
-            _ => string.IsNullOrWhiteSpace(TcpHost)
+            _ => string.IsNullOrWhiteSpace(facts.TcpHost)
                 ? HostStrings.L(context, Resource.String.printer_display_tcp_empty)
-                : TcpHost,
+                : facts.TcpHost,
         };
     }
 

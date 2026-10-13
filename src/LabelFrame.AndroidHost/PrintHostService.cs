@@ -46,14 +46,14 @@ public sealed class PrintHostService : Service
         var config = LabelHostConfig.Load(this);
         var pluginHost = PluginHost.Load(this);
         _transport = AndroidTransportFactory.Create(config, pluginHost.Registry, pluginHost.PluginContext, this);
-        // 打印机摘要随系统语言（资源取值）；本行日志为诊断内容维持中文，摘要主体是地址 / 端口技术值
-        var printerTarget = config.PrinterDisplay(this);
-        HostStatus.NoteServiceStarted(config.ServerUrl, printerTarget);
+        // 打印机摘要只进快照事实（渲染端按当前语言生成）；本行日志为诊断内容维持中文，摘要主体是地址 / 端口技术值
+        var printerFacts = new LabelHostConfig.PrinterFacts(config.PrinterBrand, config.ConnectionType, config.TcpHost, config.TcpPort, config.BluetoothMac);
+        HostStatus.NoteServiceStarted(config.ServerUrl, printerFacts);
         HostLog.Info(
             HostLog.Tags.Host,
             $"打印服务启动：版本 {HostInfo.GetVersion(this)}，设备 {config.DeviceId}（{config.DeviceName}），" +
             $"服务器 {(config.ServerUrl.Length == 0 ? "未设置" : config.ServerUrl)}，" +
-            $"打印机品牌 {config.PrinterBrand} {printerTarget}，" +
+            $"打印机品牌 {config.PrinterBrand} {LabelHostConfig.PrinterDisplayText(this, printerFacts)}，" +
             $"本地 HTTP 127.0.0.1:{LabelHostConfig.LocalPort}");
         var store = new SqliteLabelJobStore(config.DatabasePath);
         store.InitializeAsync().GetAwaiter().GetResult();
@@ -64,7 +64,7 @@ public sealed class PrintHostService : Service
         _http = new EmbeddedHttpServer(LabelHostConfig.LocalPort, submission, _queue, store, _transport, this, pluginHost.Installer);
         _http.Start();
 
-        _printLoop = Task.Run(() => PrintLoopAsync(printerTarget, _cts.Token));
+        _printLoop = Task.Run(() => PrintLoopAsync(LabelHostConfig.PrinterDisplayText(this, printerFacts), _cts.Token));
         _notifyLoop = Task.Run(() => NotificationLoopAsync(_cts.Token));
         if (!string.IsNullOrWhiteSpace(config.ServerUrl))
         {
@@ -158,10 +158,11 @@ public sealed class PrintHostService : Service
             server = HostStrings.L(this, Resource.String.notify_server_connecting);
         }
 
-        // ActivePrinterEndpoint 已是按连接类型生成的用户可读摘要
+        // 打印机摘要按通知刷新时的当前语言生成（快照只存事实——语言切换后不残留旧语言文案）
+        var printerDisplay = LabelHostConfig.PrinterDisplayText(this, s.ActivePrinter);
         var printer = s.LastPrintError is not null
-            ? HostStrings.L(this, Resource.String.notify_printer_error, s.ActivePrinterEndpoint)
-            : HostStrings.L(this, Resource.String.notify_printer, s.ActivePrinterEndpoint);
+            ? HostStrings.L(this, Resource.String.notify_printer_error, printerDisplay)
+            : HostStrings.L(this, Resource.String.notify_printer, printerDisplay);
 
         return $"{server} · {printer}";
     }
