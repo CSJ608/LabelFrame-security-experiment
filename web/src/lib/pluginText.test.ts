@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-// 插件自描述文案展示端翻译防线（决策 #192，#366）：
-// ① zh 词条 = 官方插件 spec 原文逐字一致（AC-02 zh 态与现状一致的词条层锚点——fixture 镜像
-//    dotnet 插件源码的 LabelKey 与中文 Label，漂移即红）；
-// ② 插件级映射函数（displayName / packageName / description）词条命中与回退语义。
+// 插件自描述文案展示端翻译防线（决策 #192，#366/#368）：
+// ① zh 词条 = 官方插件 spec 原文逐字一致（AC 词条层锚点——fixture 镜像 dotnet 插件源码的键与中文原文，
+//    漂移即红；#368 起插件级键由 ITransportPlugin DIM 声明，spec 键与插件级键统一由插件侧维护）；
+// ② pluginText 词条命中 / 回退语义与包名映射（pluginPackageName）回退语义。
 
 import { describe, expect, it } from 'vitest'
 import i18next from '../i18n'
-import { pluginDescription, pluginDisplayName, pluginPackageName, pluginText } from './pluginText'
+import { pluginPackageName, pluginText } from './pluginText'
 import zhCNPluginLabels from '../i18n/locales/zh-CN/pluginLabels.json'
 import enPluginLabels from '../i18n/locales/en/pluginLabels.json'
 
@@ -84,15 +84,14 @@ describe('pluginText 翻译与回退语义', () => {
     await i18next.changeLanguage('zh-CN')
   })
 
-  it('插件级映射：官方集合命中词条、第三方回退原文', async () => {
-    expect(pluginDisplayName('tcp9100', '网口打印机（TCP 9100）')).toBe('网口打印机（TCP 9100）')
-    expect(pluginDisplayName('third-party', '第三方名')).toBe('第三方名')
+  it('插件级词条（接口 DIM 键）与包名映射：官方命中、第三方回退', async () => {
+    expect(pluginText('plugin.tcp9100.displayName', '网口打印机（TCP 9100）')).toBe('网口打印机（TCP 9100）')
     await i18next.changeLanguage('en')
-    expect(pluginDisplayName('tcp9100', '网口打印机（TCP 9100）')).toBe('Network printer (TCP 9100)')
-    expect(pluginDisplayName('third-party', '第三方名')).toBe('第三方名')
+    expect(pluginText('plugin.tcp9100.displayName', '网口打印机（TCP 9100）')).toBe('Network printer (TCP 9100)')
+    expect(pluginText('plugin.tcp9100.desc', 'TCP 9100 网络打印机…')).toContain('TCP 9100 network printer')
+    expect(pluginText('plugin.third-party.displayName', '第三方名')).toBe('第三方名')
     expect(pluginPackageName('labelframe-transport-zebra', 'Zebra 品牌传输（官方）')).toBe('Zebra Brand Transport (official)')
     expect(pluginPackageName(undefined, '任意包名')).toBe('任意包名')
-    expect(pluginDescription('log', '模拟打印：不连接…')).toContain('Simulated printing')
     await i18next.changeLanguage('zh-CN')
   })
 })

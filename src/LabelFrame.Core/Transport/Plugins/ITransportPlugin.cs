@@ -18,6 +18,18 @@ public interface ITransportPlugin
     /// <summary>一句中文说明。</summary>
     string Description { get; }
 
+    /// <summary>
+    /// 展示名的展示端翻译键（决策 #192；键空间约定见 DESIGN §6.8「自描述文案多语言」）。
+    /// DIM 缺省 null = 展示端直接用 <see cref="DisplayName"/> 原文——实现方不声明即回退，
+    /// 旧实现（含第三方）源码与二进制均不受影响。
+    /// </summary>
+    string? DisplayNameKey => null;
+
+    /// <summary>
+    /// 描述的展示端翻译键（决策 #192）。DIM 缺省 null = 展示端直接用 <see cref="Description"/> 原文。
+    /// </summary>
+    string? DescriptionKey => null;
+
     /// <summary>参数规格（前端动态表单 / 后端校验）。</summary>
     IReadOnlyList<TransportParameterSpec> Parameters { get; }
 

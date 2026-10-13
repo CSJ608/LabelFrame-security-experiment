@@ -74,7 +74,7 @@ public sealed record TransportParameterOptionDto(
     string? Label,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? LabelKey = null);
 
-/// <summary>已装配传输插件描述（GET /api/transport.availablePlugins 与 /api/transport/plugins；supportsDocumentCompile 为文档编译能力位）。</summary>
+/// <summary>已装配传输插件描述（GET /api/transport.availablePlugins 与 /api/transport/plugins；supportsDocumentCompile 为文档编译能力位；displayNameKey / descriptionKey 为插件级展示端翻译键（决策 #192，接口 DIM），缺省不出现在 JSON）。</summary>
 public sealed record TransportPluginDescriptorDto(
     string Id,
     string DisplayName,
@@ -82,7 +82,9 @@ public sealed record TransportPluginDescriptorDto(
     IReadOnlyList<TransportPluginParameterDto> Parameters,
     bool IsExternal = false,
     string? AssemblyPath = null,
-    bool SupportsDocumentCompile = false);
+    bool SupportsDocumentCompile = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DisplayNameKey = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DescriptionKey = null);
 
 /// <summary>连接状态（GET /api/transport 与 POST 响应共用；旧字段 mode / availableModes 保留兼容旧前端）。</summary>
 public sealed record TransportConfigDto(

@@ -24,7 +24,13 @@ public sealed class LogTransportPlugin : ITransportPlugin
     public string DisplayName => "模拟打印";
 
     /// <inheritdoc />
+    public string? DisplayNameKey => "plugin.log.displayName";
+
+    /// <inheritdoc />
     public string Description => "模拟打印：不连接真实打印机，作业按打印成功处理；图片模式的标签图片会保存到本机，便于先确认打印效果。";
+
+    /// <inheritdoc />
+    public string? DescriptionKey => "plugin.log.desc";
 
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => [];
@@ -47,7 +53,13 @@ public sealed class Tcp9100TransportPlugin : ITransportPlugin
     public string DisplayName => "网口打印机（TCP 9100）";
 
     /// <inheritdoc />
+    public string? DisplayNameKey => "plugin.tcp9100.displayName";
+
+    /// <inheritdoc />
     public string Description => "TCP 9100 网络打印机（Zebra 等）：连接打印机 IP 的 9100 端口发送指令，状态查询用 ~HS。";
+
+    /// <inheritdoc />
+    public string? DescriptionKey => "plugin.tcp9100.desc";
 
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => new[]

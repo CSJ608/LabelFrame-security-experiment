@@ -58,4 +58,18 @@ public class TransportPluginLabelKeyDtoTests
         Assert.Equal("plugin.winspool.params.printerName.label", param.LabelKey);
         Assert.Equal("plugin.winspool.params.printerName.hint", param.HintKey);
     }
+
+    [Fact]
+    public void Descriptor_plugin_level_keys_should_pass_through_and_serialize_conditionally()
+    {
+        var withKeys = TransportApi.ToTransportPluginDescriptorDto(new TransportPluginDescriptor(
+            "winspool", "Windows 驱动", "desc", [], DisplayNameKey: "plugin.winspool.displayName", DescriptionKey: "plugin.winspool.desc"));
+        Assert.Equal("plugin.winspool.displayName", withKeys.DisplayNameKey);
+        Assert.Equal("plugin.winspool.desc", withKeys.DescriptionKey);
+
+        var keyless = TransportApi.ToTransportPluginDescriptorDto(new TransportPluginDescriptor("demo", "Demo", "", []));
+        var json = System.Text.Json.JsonSerializer.Serialize(keyless);
+        Assert.DoesNotContain("displayNameKey", json);
+        Assert.DoesNotContain("descriptionKey", json);
+    }
 }

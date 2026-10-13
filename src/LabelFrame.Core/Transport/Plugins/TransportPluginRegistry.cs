@@ -34,7 +34,9 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
                 plugin.Parameters,
                 isExternal,
                 assemblyPath,
-                plugin is ILabelCommandCompiler),
+                plugin is ILabelCommandCompiler,
+                plugin.DisplayNameKey,
+                plugin.DescriptionKey),
             plugin);
         if (loadContext is not null)
         {

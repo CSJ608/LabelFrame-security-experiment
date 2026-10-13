@@ -117,5 +117,7 @@ internal static class TransportApi
             p.HintKey)).ToList(),
         plugin.IsExternal,
         plugin.AssemblyPath,
-        plugin.SupportsDocumentCompile);
+        plugin.SupportsDocumentCompile,
+        plugin.DisplayNameKey,
+        plugin.DescriptionKey);
 }

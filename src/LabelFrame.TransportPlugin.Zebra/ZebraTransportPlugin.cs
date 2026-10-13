@@ -18,7 +18,13 @@ public sealed class ZebraTransportPlugin : ITransportPlugin, ILabelCommandCompil
     public string DisplayName => "Zebra";
 
     /// <inheritdoc />
+    public string? DisplayNameKey => "plugin.labelframe-transport-zebra.displayName";
+
+    /// <inheritdoc />
     public string Description => "Zebra 官方 Link-OS SDK：TCP / USB（自动发现）/ Windows 驱动统一连接与打印机状态（Win10+，官方插件）。原生指令模式下二维码（QR）数据不支持中文（仅 ASCII），中文请用文本框（图片模式）。";
+
+    /// <inheritdoc />
+    public string? DescriptionKey => "plugin.labelframe-transport-zebra.desc";
 
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => new[]

@@ -13,7 +13,13 @@ public sealed class WinspoolTransportPlugin : ITransportPlugin
     public string DisplayName => "Windows 驱动";
 
     /// <inheritdoc />
+    public string? DisplayNameKey => "plugin.winspool.displayName";
+
+    /// <inheritdoc />
     public string Description => "Windows 驱动（USB / 已安装打印机）：通过 winspool 以 RAW 方式发送指令，无需打印机 IP。";
+
+    /// <inheritdoc />
+    public string? DescriptionKey => "plugin.winspool.desc";
 
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => new[]

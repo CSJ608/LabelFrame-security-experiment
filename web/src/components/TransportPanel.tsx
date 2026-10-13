@@ -25,7 +25,7 @@ import {
   specOptions,
   zebraKindLabel,
 } from '../lib/transport'
-import { pluginDescription, pluginDisplayName, pluginText } from '../lib/pluginText'
+import { pluginText } from '../lib/pluginText'
 import { useApp } from '../state/AppContext'
 import { Icon } from './Icon'
 
@@ -280,7 +280,7 @@ export function TransportPluginParamsEditor({
   const { t } = useTranslation('settings')
   if (plugin.parameters.length === 0) {
     // 无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
-    return <div className="hint">{plugin.description ? pluginDescription(plugin.id, plugin.description) : t('transportForm.noParams')}</div>
+    return <div className="hint">{plugin.description ? pluginText(plugin.descriptionKey, plugin.description) : t('transportForm.noParams')}</div>
   }
   return (
     <>
@@ -401,11 +401,11 @@ export function TransportPanel() {
             {form.plugins.map((p) => (
               <label key={p.id} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }}>
                 <input type="radio" name="transport-plugin" checked={form.pluginId === p.id} onChange={() => form.switchPlugin(p)} />
-                {pluginDisplayName(p.id, p.displayName)}
+                {pluginText(p.displayNameKey, p.displayName)}
               </label>
             ))}
           </div>
-          {currentPlugin?.description && <div className="hint">{pluginDescription(currentPlugin.id, currentPlugin.description)}</div>}
+          {currentPlugin?.description && <div className="hint">{pluginText(currentPlugin.descriptionKey, currentPlugin.description)}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {currentPlugin && <TransportPluginParamsEditor plugin={currentPlugin} params={form.pluginParams} setParam={form.setPluginParam} />}
           </div>

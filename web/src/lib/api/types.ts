@@ -162,6 +162,10 @@ export interface TransportPluginInfo {
   id: string
   displayName: string
   description?: string
+  /** 展示名展示端翻译键（决策 #192，插件接口 DIM 声明；缺省 = 直接用 displayName 原文）。 */
+  displayNameKey?: string | null
+  /** 描述展示端翻译键（决策 #192；缺省 = 直接用 description 原文）。 */
+  descriptionKey?: string | null
   parameters: TransportParameterSpec[]
   /* * 文档编译能力位：true 时插件声明 printMode 参数，native 模式可编译品牌原生指令；旧后端缺省 undefined。 */
   supportsDocumentCompile?: boolean
