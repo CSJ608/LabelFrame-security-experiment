@@ -1,0 +1,50 @@
+{
+  "plugin": {
+    "log": {
+      "displayName": "Simulated printing",
+      "desc": "Simulated printing: no physical printer connection; jobs are treated as printed. In image mode the label pictures are saved locally so you can check the output first."
+    },
+    "tcp9100": {
+      "displayName": "Network printer (TCP 9100)",
+      "desc": "TCP 9100 network printer (Zebra etc.): sends commands to port 9100 of the printer IP; status queries use ~HS.",
+      "params": {
+        "host": { "label": "Printer address / IP", "hint": "e.g. 192.168.1.50" },
+        "port": { "label": "Port", "hint": "Default 9100" },
+        "timeoutSeconds": { "label": "Timeout (seconds)" }
+      }
+    },
+    "winspool": {
+      "displayName": "Windows driver",
+      "desc": "Windows driver (USB / installed printers): sends commands via winspool in RAW mode; no printer IP needed.",
+      "params": {
+        "printerName": { "label": "Windows printer name", "hint": "e.g. ZDesigner ZD421-203dpi ZPL" }
+      }
+    },
+    "labelframe-transport-zebra": {
+      "displayName": "Zebra",
+      "desc": "Zebra official Link-OS SDK: TCP / USB (auto-discovery) / Windows driver connections with printer status (Win10+, official plugin). In native command mode QR code data does not support Chinese (ASCII only); use a text box (image mode) for Chinese.",
+      "name": "Zebra Brand Transport (official)",
+      "params": {
+        "kind": {
+          "label": "Connection type",
+          "opt": {
+            "Usb": "USB (auto-discovery)",
+            "Driver": "Windows driver"
+          }
+        },
+        "host": { "label": "Printer address / IP", "hint": "e.g. 192.168.1.50" },
+        "port": { "label": "Port" },
+        "printerName": { "label": "Windows printer name", "hint": "e.g. ZDesigner ZD421-203dpi ZPL" },
+        "usbName": { "label": "Zebra USB printer name", "hint": "Leave empty = auto-discover the first one" },
+        "printMode": {
+          "label": "Print mode",
+          "hint": "Native command mode has no preview; actual output depends on the printer. In this mode QR code data does not support Chinese (ASCII only); use a text box (image mode) for Chinese.",
+          "opt": {
+            "image": "Image (default)",
+            "native": "Native commands"
+          }
+        }
+      }
+    }
+  }
+}

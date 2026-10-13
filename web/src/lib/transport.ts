@@ -101,12 +101,12 @@ export function defaultParams(mode: TransportMode, current?: TransportConfig | n
 
 // ── 插件参数 spec 工具（兼容后端可能的两种序列化）──
 
-/** Select 枚举项解析：兼容 `string[]` 与 `{ value, label? }[]` 两种后端序列化。 */
-export function specOptions(spec: TransportParameterSpec): { value: string; label: string }[] {
+/** Select 枚举项解析：兼容 `string[]` 与 `{ value, label? }[]` 两种后端序列化；labelKey 随对象形态透传（决策 #192）。 */
+export function specOptions(spec: TransportParameterSpec): { value: string; label: string; labelKey?: string }[] {
   const opts = spec.options ?? []
   return opts.map((o) => {
     if (typeof o === 'string') return { value: o, label: o }
-    return { value: String(o.value), label: o.label ?? String(o.value) }
+    return { value: String(o.value), label: o.label ?? String(o.value), labelKey: o.labelKey ?? undefined }
   })
 }
 

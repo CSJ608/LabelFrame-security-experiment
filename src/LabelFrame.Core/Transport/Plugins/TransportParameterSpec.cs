@@ -17,6 +17,11 @@ public sealed record TransportParameterSpec(
     string? VisibleWhenKey = null,
     IReadOnlyList<string>? VisibleWhenValues = null)
 {
+    /// <summary>参数标签的展示端翻译键（键空间约定见 DESIGN §6.8「自描述文案多语言」；缺省 null = 展示端直接用 <see cref="Label"/> 原文）。</summary>
+    public string? LabelKey { get; init; }
+
+    /// <summary>输入提示的展示端翻译键（同 <see cref="LabelKey"/> 命名约定加 .hint 后缀；缺省 null = 用 <see cref="Hint"/> 原文）。</summary>
+    public string? HintKey { get; init; }
     /// <summary>
     /// 历史构造器（VisibleWhen 字段引入前的 7 参形态）：外部插件 DLL 按旧签名编译，
     /// 宿主升级而插件未随发（服务端分发窗口期）时仍须可加载——可选参数是编译期语法糖，

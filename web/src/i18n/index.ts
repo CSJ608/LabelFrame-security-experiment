@@ -22,6 +22,7 @@ import zhCNDesigner from './locales/zh-CN/designer.json'
 import zhCNDownloadCenter from './locales/zh-CN/downloadCenter.json'
 import zhCNDevices from './locales/zh-CN/devices.json'
 import zhCNPluginPackages from './locales/zh-CN/pluginPackages.json'
+import zhCNPluginLabels from './locales/zh-CN/pluginLabels.json'
 import zhCNGuide from './locales/zh-CN/guide.json'
 import zhCNHelp from './locales/zh-CN/help.json'
 import enCommon from './locales/en/common.json'
@@ -35,6 +36,7 @@ import enDesigner from './locales/en/designer.json'
 import enDownloadCenter from './locales/en/downloadCenter.json'
 import enDevices from './locales/en/devices.json'
 import enPluginPackages from './locales/en/pluginPackages.json'
+import enPluginLabels from './locales/en/pluginLabels.json'
 import enGuide from './locales/en/guide.json'
 import enHelp from './locales/en/help.json'
 
@@ -119,6 +121,7 @@ void i18next.use(initReactI18next).init({
       downloadCenter: zhCNDownloadCenter,
       devices: zhCNDevices,
       pluginPackages: zhCNPluginPackages,
+      pluginLabels: zhCNPluginLabels,
       guide: zhCNGuide,
       help: zhCNHelp,
     },
@@ -134,6 +137,7 @@ void i18next.use(initReactI18next).init({
       downloadCenter: enDownloadCenter,
       devices: enDevices,
       pluginPackages: enPluginPackages,
+      pluginLabels: enPluginLabels,
       guide: enGuide,
       help: enHelp,
     },

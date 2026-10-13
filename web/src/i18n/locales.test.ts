@@ -15,6 +15,7 @@ import zhCNDesigner from './locales/zh-CN/designer.json'
 import zhCNDownloadCenter from './locales/zh-CN/downloadCenter.json'
 import zhCNDevices from './locales/zh-CN/devices.json'
 import zhCNPluginPackages from './locales/zh-CN/pluginPackages.json'
+import zhCNPluginLabels from './locales/zh-CN/pluginLabels.json'
 import zhCNGuide from './locales/zh-CN/guide.json'
 import zhCNHelp from './locales/zh-CN/help.json'
 import enCommon from './locales/en/common.json'
@@ -28,6 +29,7 @@ import enDesigner from './locales/en/designer.json'
 import enDownloadCenter from './locales/en/downloadCenter.json'
 import enDevices from './locales/en/devices.json'
 import enPluginPackages from './locales/en/pluginPackages.json'
+import enPluginLabels from './locales/en/pluginLabels.json'
 import enGuide from './locales/en/guide.json'
 import enHelp from './locales/en/help.json'
 
@@ -62,6 +64,7 @@ const NAMESPACES: Record<string, { zh: unknown; en: unknown }> = {
   downloadCenter: { zh: zhCNDownloadCenter, en: enDownloadCenter },
   devices: { zh: zhCNDevices, en: enDevices },
   pluginPackages: { zh: zhCNPluginPackages, en: enPluginPackages },
+  pluginLabels: { zh: zhCNPluginLabels, en: enPluginLabels },
   guide: { zh: zhCNGuide, en: enGuide },
   help: { zh: zhCNHelp, en: enHelp },
 }

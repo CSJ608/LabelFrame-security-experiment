@@ -10,6 +10,7 @@ import { formatSize } from '../lib/download'
 import { checkForUpdate } from '../lib/update'
 import { formatTransport } from '../lib/transport'
 import { pluginPackageTooLarge } from '../lib/pluginLimits'
+import { pluginPackageName } from '../lib/pluginText'
 import { APP_LOCALES, changeLocale, toAppLocale } from '../i18n'
 import type { AppLocale } from '../i18n'
 import { useApp } from '../state/AppContext'
@@ -640,7 +641,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   {pluginPackages.map((p) => (
                     <tr key={p.fileName} style={{ cursor: 'default' }}>
                       <td>
-                        <div>{p.name ?? '—'}</div>
+                        <div>{pluginPackageName(p.pluginId, p.name) || '—'}</div>
                         <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
                           {p.pluginId ?? p.fileName}
                         </div>
@@ -708,7 +709,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   {installedPlugins.map((pl) => (
                     <tr key={pl.pluginId + (pl.packageDir ?? '')} style={{ cursor: 'default' }}>
                       <td>
-                        <div>{pl.name}</div>
+                        <div>{pluginPackageName(pl.pluginId, pl.name)}</div>
                         <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
                           {pl.pluginId}
                         </div>

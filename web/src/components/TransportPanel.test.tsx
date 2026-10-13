@@ -8,28 +8,29 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
-import '../i18n'
+import i18next from '../i18n'
 import { TransportPluginParamsEditor } from './TransportPanel'
 import type { PluginParamValue, PluginParams, TransportPluginInfo } from '../lib/api/types'
 
-/** 后端 Zebra 插件 spec 形态镜像（含条件可见性声明）。 */
+/** 后端 Zebra 插件 spec 形态镜像（含条件可见性声明与展示端翻译键——决策 #192）。 */
 const ZEBRA: TransportPluginInfo = {
   id: 'labelframe-transport-zebra',
   displayName: 'Zebra',
   parameters: [
     {
       key: 'kind', label: '连接类型', type: 'Select', required: true, defaultValue: 'Tcp',
+      labelKey: 'plugin.labelframe-transport-zebra.params.kind.label',
       options: [
         { value: 'Tcp', label: 'TCP' },
-        { value: 'Usb', label: 'USB（自动发现）' },
-        { value: 'Driver', label: 'Windows 驱动' },
+        { value: 'Usb', label: 'USB（自动发现）', labelKey: 'plugin.labelframe-transport-zebra.params.kind.opt.Usb' },
+        { value: 'Driver', label: 'Windows 驱动', labelKey: 'plugin.labelframe-transport-zebra.params.kind.opt.Driver' },
       ],
     },
-    { key: 'host', label: '打印机地址 / IP', type: 'String', required: true, hint: '如 192.168.1.50', visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] },
-    { key: 'port', label: '端口', type: 'Int', defaultValue: '9100', visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] },
-    { key: 'printerName', label: 'Windows 打印机名', type: 'String', required: true, visibleWhenKey: 'kind', visibleWhenValues: ['Driver'] },
-    { key: 'usbName', label: 'Zebra USB 打印机名', type: 'String', visibleWhenKey: 'kind', visibleWhenValues: ['Usb'] },
-    { key: 'printMode', label: '打印方式', type: 'Select', required: true, defaultValue: 'image', options: [{ value: 'image', label: '图片（默认）' }, { value: 'native', label: '原生指令' }] },
+    { key: 'host', label: '打印机地址 / IP', type: 'String', required: true, hint: '如 192.168.1.50', labelKey: 'plugin.labelframe-transport-zebra.params.host.label', hintKey: 'plugin.labelframe-transport-zebra.params.host.hint', visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] },
+    { key: 'port', label: '端口', type: 'Int', defaultValue: '9100', labelKey: 'plugin.labelframe-transport-zebra.params.port.label', visibleWhenKey: 'kind', visibleWhenValues: ['Tcp'] },
+    { key: 'printerName', label: 'Windows 打印机名', type: 'String', required: true, labelKey: 'plugin.labelframe-transport-zebra.params.printerName.label', visibleWhenKey: 'kind', visibleWhenValues: ['Driver'] },
+    { key: 'usbName', label: 'Zebra USB 打印机名', type: 'String', labelKey: 'plugin.labelframe-transport-zebra.params.usbName.label', visibleWhenKey: 'kind', visibleWhenValues: ['Usb'] },
+    { key: 'printMode', label: '打印方式', type: 'Select', required: true, defaultValue: 'image', labelKey: 'plugin.labelframe-transport-zebra.params.printMode.label', options: [{ value: 'image', label: '图片（默认）', labelKey: 'plugin.labelframe-transport-zebra.params.printMode.opt.image' }, { value: 'native', label: '原生指令', labelKey: 'plugin.labelframe-transport-zebra.params.printMode.opt.native' }] },
   ],
 }
 
@@ -55,7 +56,10 @@ function kindSelect(): HTMLSelectElement {
   return screen.getAllByRole('combobox')[0] as HTMLSelectElement
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  if (i18next.language !== 'zh-CN') void i18next.changeLanguage('zh-CN')
+})
 
 describe('TransportPluginParamsEditor 字段集联动（按连接类型显隐）', () => {
   it('kind=Tcp：显示主机 / 端口 / 打印方式，不显示 Windows 打印机名与 USB 名', () => {
@@ -99,5 +103,41 @@ describe('TransportPluginParamsEditor 字段集联动（按连接类型显隐）
     render(<Host plugin={plain} initial={{}} />)
     expectFieldVisible('打印机地址 / IP', true)
     expectFieldVisible('端口', true)
+  })
+})
+
+describe('TransportPluginParamsEditor 插件自描述键化渲染（决策 #192）', () => {
+  it('EN 态：带键 spec 渲染英文词条（label / Select 选项 / hint），无中文混排', async () => {
+    await i18next.changeLanguage('en')
+    render(<Host plugin={ZEBRA} initial={{ kind: 'Tcp', port: 9100 }} />)
+
+    expectFieldVisible('Connection type', true)
+    expectFieldVisible('Printer address / IP', true)
+    expectFieldVisible('Port', true)
+    expectFieldVisible('Print mode', true)
+    expectFieldVisible('连接类型', false)
+    expectFieldVisible('打印机地址 / IP', false)
+
+    const optionTexts = Array.from(kindSelect().options).map((o) => o.textContent)
+    expect(optionTexts).toContain('USB (auto-discovery)')
+    expect(optionTexts).toContain('Windows driver')
+    expect(optionTexts).not.toContain('USB（自动发现）')
+
+    expect(screen.getByPlaceholderText('e.g. 192.168.1.50')).toBeTruthy()
+  })
+
+  it('EN 态：无键插件（第三方 / 旧后端 spec）回退原文显示，不劣化', async () => {
+    await i18next.changeLanguage('en')
+    const third: TransportPluginInfo = {
+      id: 'third-party-demo',
+      displayName: '第三方演示传输',
+      parameters: [
+        { key: 'host', label: '设备地址', type: 'String', required: true, hint: '厂商自定义提示' },
+      ],
+    }
+    render(<Host plugin={third} initial={{}} />)
+
+    expectFieldVisible('设备地址', true)
+    expect(screen.getByPlaceholderText('厂商自定义提示')).toBeTruthy()
   })
 })

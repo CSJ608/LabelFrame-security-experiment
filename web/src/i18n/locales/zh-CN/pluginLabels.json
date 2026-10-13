@@ -1,0 +1,50 @@
+{
+  "plugin": {
+    "log": {
+      "displayName": "模拟打印",
+      "desc": "模拟打印：不连接真实打印机，作业按打印成功处理；图片模式的标签图片会保存到本机，便于先确认打印效果。"
+    },
+    "tcp9100": {
+      "displayName": "网口打印机（TCP 9100）",
+      "desc": "TCP 9100 网络打印机（Zebra 等）：连接打印机 IP 的 9100 端口发送指令，状态查询用 ~HS。",
+      "params": {
+        "host": { "label": "打印机地址 / IP", "hint": "如 192.168.1.50" },
+        "port": { "label": "端口", "hint": "默认 9100" },
+        "timeoutSeconds": { "label": "超时（秒）" }
+      }
+    },
+    "winspool": {
+      "displayName": "Windows 驱动",
+      "desc": "Windows 驱动（USB / 已安装打印机）：通过 winspool 以 RAW 方式发送指令，无需打印机 IP。",
+      "params": {
+        "printerName": { "label": "Windows 打印机名", "hint": "如 ZDesigner ZD421-203dpi ZPL" }
+      }
+    },
+    "labelframe-transport-zebra": {
+      "displayName": "Zebra",
+      "desc": "Zebra 官方 Link-OS SDK：TCP / USB（自动发现）/ Windows 驱动统一连接与打印机状态（Win10+，官方插件）。原生指令模式下二维码（QR）数据不支持中文（仅 ASCII），中文请用文本框（图片模式）。",
+      "name": "Zebra 品牌传输（官方）",
+      "params": {
+        "kind": {
+          "label": "连接类型",
+          "opt": {
+            "Usb": "USB（自动发现）",
+            "Driver": "Windows 驱动"
+          }
+        },
+        "host": { "label": "打印机地址 / IP", "hint": "如 192.168.1.50" },
+        "port": { "label": "端口" },
+        "printerName": { "label": "Windows 打印机名", "hint": "如 ZDesigner ZD421-203dpi ZPL" },
+        "usbName": { "label": "Zebra USB 打印机名", "hint": "留空 = 自动发现第一台" },
+        "printMode": {
+          "label": "打印方式",
+          "hint": "原生指令模式无预览，效果以真机为准；该模式下二维码（QR）数据不支持中文（仅 ASCII），中文请用文本框（图片模式）",
+          "opt": {
+            "image": "图片（默认）",
+            "native": "原生指令"
+          }
+        }
+      }
+    }
+  }
+}

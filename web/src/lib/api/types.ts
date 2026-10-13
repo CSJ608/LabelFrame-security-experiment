@@ -130,12 +130,14 @@ export type TransportParameterType = 'String' | 'Int' | 'Bool' | 'Select'
 export interface TransportParameterOption {
   value: string
   label?: string
+  /** 展示端翻译键（决策 #192；缺省 = 直接用 label 原文）。 */
+  labelKey?: string | null
 }
 
 /** 插件参数规格（spec）：前端按此动态渲染参数表单。 */
 export interface TransportParameterSpec {
   key: string
-  /** 中文标签 */
+  /** 中文标签（源语言兜底，展示端优先走 labelKey 词条） */
   label: string
   type: TransportParameterType
   required?: boolean
@@ -149,6 +151,10 @@ export interface TransportParameterSpec {
   visibleWhenKey?: string | null
   /** 条件可见性：条件键取值集合（忽略大小写）；键缺失 / 空值 = 不可见。 */
   visibleWhenValues?: string[] | null
+  /** 标签展示端翻译键（决策 #192；缺省 = 直接用 label 原文）。 */
+  labelKey?: string | null
+  /** 提示展示端翻译键（决策 #192；缺省 = 直接用 hint 原文）。 */
+  hintKey?: string | null
 }
 
 /** 插件目录项（GET /api/transport.availablePlugins）。 */

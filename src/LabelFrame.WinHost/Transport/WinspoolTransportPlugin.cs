@@ -18,7 +18,11 @@ public sealed class WinspoolTransportPlugin : ITransportPlugin
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => new[]
     {
-        new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: true, Hint: "如 ZDesigner ZD421-203dpi ZPL"),
+        new TransportParameterSpec("printerName", "Windows 打印机名", TransportParameterType.String, Required: true, Hint: "如 ZDesigner ZD421-203dpi ZPL")
+        {
+            LabelKey = "plugin.winspool.params.printerName.label",
+            HintKey = "plugin.winspool.params.printerName.hint",
+        },
     };
 
     /// <inheritdoc />

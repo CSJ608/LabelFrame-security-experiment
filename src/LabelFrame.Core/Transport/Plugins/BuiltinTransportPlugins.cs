@@ -52,9 +52,20 @@ public sealed class Tcp9100TransportPlugin : ITransportPlugin
     /// <inheritdoc />
     public IReadOnlyList<TransportParameterSpec> Parameters => new[]
     {
-        new TransportParameterSpec("host", "打印机地址 / IP", TransportParameterType.String, Required: true, Hint: "如 192.168.1.50"),
-        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", Hint: "默认 9100"),
-        new TransportParameterSpec("timeoutSeconds", "超时（秒）", TransportParameterType.Int, DefaultValue: "10"),
+        new TransportParameterSpec("host", "打印机地址 / IP", TransportParameterType.String, Required: true, Hint: "如 192.168.1.50")
+        {
+            LabelKey = "plugin.tcp9100.params.host.label",
+            HintKey = "plugin.tcp9100.params.host.hint",
+        },
+        new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", Hint: "默认 9100")
+        {
+            LabelKey = "plugin.tcp9100.params.port.label",
+            HintKey = "plugin.tcp9100.params.port.hint",
+        },
+        new TransportParameterSpec("timeoutSeconds", "超时（秒）", TransportParameterType.Int, DefaultValue: "10")
+        {
+            LabelKey = "plugin.tcp9100.params.timeoutSeconds.label",
+        },
     };
 
     /// <inheritdoc />

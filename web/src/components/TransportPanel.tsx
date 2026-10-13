@@ -25,6 +25,7 @@ import {
   specOptions,
   zebraKindLabel,
 } from '../lib/transport'
+import { pluginDescription, pluginDisplayName, pluginText } from '../lib/pluginText'
 import { useApp } from '../state/AppContext'
 import { Icon } from './Icon'
 
@@ -279,7 +280,7 @@ export function TransportPluginParamsEditor({
   const { t } = useTranslation('settings')
   if (plugin.parameters.length === 0) {
     // 无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
-    return <div className="hint">{plugin.description || t('transportForm.noParams')}</div>
+    return <div className="hint">{plugin.description ? pluginDescription(plugin.id, plugin.description) : t('transportForm.noParams')}</div>
   }
   return (
     <>
@@ -289,9 +290,9 @@ export function TransportPluginParamsEditor({
         const value = params[spec.key]
         if (spec.type === 'Bool') {
           return (
-            <label key={spec.key} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }} title={spec.hint}>
+            <label key={spec.key} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }} title={pluginText(spec.hintKey, spec.hint)}>
               <input type="checkbox" checked={value === true || value === 'true'} onChange={(ev) => setParam(spec.key, ev.target.checked)} />
-              {spec.label}
+              {pluginText(spec.labelKey, spec.label)}
               {spec.required && <span style={{ color: 'var(--danger)' }}>*</span>}
             </label>
           )
@@ -299,15 +300,15 @@ export function TransportPluginParamsEditor({
         if (spec.type === 'Select') {
           const options = specOptions(spec)
           return (
-            <label key={spec.key} className="field" style={{ maxWidth: 220 }} title={spec.hint}>
+            <label key={spec.key} className="field" style={{ maxWidth: 220 }} title={pluginText(spec.hintKey, spec.hint)}>
               <span>
-                {spec.label}
+                {pluginText(spec.labelKey, spec.label)}
                 {spec.required && <span style={{ color: 'var(--danger)' }}> *</span>}
               </span>
               <select className="input" value={String(value ?? specDefaultValue(spec))} onChange={(ev) => setParam(spec.key, ev.target.value)}>
                 {options.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {o.label}
+                    {pluginText(o.labelKey, o.label)}
                   </option>
                 ))}
               </select>
@@ -316,9 +317,9 @@ export function TransportPluginParamsEditor({
         }
         if (spec.type === 'Int') {
           return (
-            <label key={spec.key} className="field" style={{ maxWidth: 140 }} title={spec.hint}>
+            <label key={spec.key} className="field" style={{ maxWidth: 140 }} title={pluginText(spec.hintKey, spec.hint)}>
               <span>
-                {spec.label}
+                {pluginText(spec.labelKey, spec.label)}
                 {spec.required && <span style={{ color: 'var(--danger)' }}> *</span>}
               </span>
               <input
@@ -333,16 +334,16 @@ export function TransportPluginParamsEditor({
           )
         }
         return (
-          <label key={spec.key} className="field" style={{ maxWidth: 260 }} title={spec.hint}>
+          <label key={spec.key} className="field" style={{ maxWidth: 260 }} title={pluginText(spec.hintKey, spec.hint)}>
             <span>
-              {spec.label}
+              {pluginText(spec.labelKey, spec.label)}
               {spec.required && <span style={{ color: 'var(--danger)' }}> *</span>}
             </span>
             <input
               className="input mono"
               value={String(value ?? '')}
               onChange={(ev) => setParam(spec.key, ev.target.value)}
-              placeholder={spec.hint}
+              placeholder={pluginText(spec.hintKey, spec.hint)}
               spellCheck={false}
             />
           </label>
@@ -400,11 +401,11 @@ export function TransportPanel() {
             {form.plugins.map((p) => (
               <label key={p.id} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }}>
                 <input type="radio" name="transport-plugin" checked={form.pluginId === p.id} onChange={() => form.switchPlugin(p)} />
-                {p.displayName}
+                {pluginDisplayName(p.id, p.displayName)}
               </label>
             ))}
           </div>
-          {currentPlugin?.description && <div className="hint">{currentPlugin.description}</div>}
+          {currentPlugin?.description && <div className="hint">{pluginDescription(currentPlugin.id, currentPlugin.description)}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {currentPlugin && <TransportPluginParamsEditor plugin={currentPlugin} params={form.pluginParams} setParam={form.setPluginParam} />}
           </div>
