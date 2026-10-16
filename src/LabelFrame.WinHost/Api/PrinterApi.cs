@@ -26,9 +26,10 @@ internal static class PrinterApi
     app.MapGet("/api/printer/status", async (ITransportManager transportManager, CancellationToken ct) =>
         Results.Ok(await (transportManager.CurrentTransport as IPrinterStatusProvider ?? new Program.UnsupportedStatusProvider()).GetStatusAsync(ct)));
 
-    app.MapPost("/api/printer/test", async (ITransportManager transportManager, ILabelBitmapRenderer renderer, ZplImageEncoder encoder, ILoggerFactory loggerFactory, CancellationToken ct) =>
+    app.MapPost("/api/printer/test", async (ITransportManager transportManager, ITransportPluginRegistry pluginRegistry, ILabelBitmapRenderer renderer, ZplImageEncoder encoder, ILoggerFactory loggerFactory, CancellationToken ct) =>
     {
-        // 测试页与正式打印同源：Skia 渲染整版位图经 ^GF 发送（图片打印语义）
+        // 测试页与正式打印同源：Skia 渲染整版位图，图片指令编码按连接插件分派
+        //（插件实现 ILabelImageEncoder 则输出品牌图片指令，否则 ^GF——决策 #195，与提交链同一分派）
         var document = new LabelDocument
         {
             Layout = new LabelLayout
@@ -46,12 +47,24 @@ internal static class PrinterApi
             Data = new Dictionary<string, string>(),
         };
         var bitmap = renderer.RenderLabelBitmap(document, dpi);
-        var command = encoder.EncodeImage(bitmap, document.Layout.WidthMm, document.Layout.HeightMm, dpi);
         var config = transportManager.CurrentConfig;
+        var imageEncoder = pluginRegistry.GetImageEncoder(config.PluginId);
+        var commandBytes = imageEncoder?.EncodeImage(bitmap, document.Layout.WidthMm, document.Layout.HeightMm, dpi);
+        var commandText = commandBytes is null
+            ? encoder.EncodeImage(bitmap, document.Layout.WidthMm, document.Layout.HeightMm, dpi)
+            : null;
+        var byteCount = commandBytes?.Length ?? System.Text.Encoding.UTF8.GetByteCount(commandText!);
         var target = DescribeTarget(config);
         try
         {
-            await transportManager.CurrentTransport.SendAsync(command, ct);
+            if (commandBytes is not null)
+            {
+                await transportManager.CurrentTransport.SendAsync(commandBytes, ct);
+            }
+            else
+            {
+                await transportManager.CurrentTransport.SendAsync(commandText!, ct);
+            }
         }
         catch (Exception ex) when (ex is IOException or SocketException or TimeoutException or InvalidOperationException)
         {
@@ -66,7 +79,7 @@ internal static class PrinterApi
                 LabelFrame.Core.Errors.ErrorMessageTemplates.Format("测试页发送失败：无法连接打印机「{target}」——{reason}。请检查打印机地址 / 网络 / 驱动后重试。", parameters),
                 Params: parameters));
         }
-        return Results.Ok(new { sent = true, bytes = System.Text.Encoding.UTF8.GetByteCount(command) });
+        return Results.Ok(new { sent = true, bytes = byteCount });
     });
 
         return app;

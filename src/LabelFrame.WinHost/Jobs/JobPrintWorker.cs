@@ -113,8 +113,16 @@ public sealed class JobPrintWorker : BackgroundService
                 _logger.LogInformation("开始打印作业 {JobId} 第 {Index} 张。", jobId, item.Index);
                 try
                 {
-                    // 每次发送前取当前连接（切换后下一张生效；正在发送的这一张不受影响）
-                    await _transportManager.CurrentTransport.SendAsync(item.Zpl, stoppingToken);
+                    // 每次发送前取当前连接（切换后下一张生效；正在发送的这一张不受影响）；
+                    // 回放载荷双形态（决策 #195）：二进制载荷（如 TSPL BITMAP）优先，文本载荷走既有字符串路径
+                    if (item.CommandBytes is { Length: > 0 })
+                    {
+                        await _transportManager.CurrentTransport.SendAsync(item.CommandBytes, stoppingToken);
+                    }
+                    else
+                    {
+                        await _transportManager.CurrentTransport.SendAsync(item.Zpl, stoppingToken);
+                    }
                     await _queue.CompleteItemAsync(jobId, item.Id, stoppingToken);
                     Volatile.Write(ref _sendsSinceBatch, sent + 1);
                     _logger.LogInformation("作业 {JobId} 第 {Index} 张打印完成。", jobId, item.Index);

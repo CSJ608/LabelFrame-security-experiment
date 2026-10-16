@@ -41,8 +41,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # 当版产物 -> manifest 条目映射（组件稳定 id 与字段语义见 DESIGN §6.2 组件条目表）。
-# 官方插件条目（迭代 63，决策 #123，DESIGN §6.8）：plugin-zebra 随发版流水线产物收录
-# （labelframe-transport-zebra-<版本>.lfplugin，version=主版本，品牌映射表见 §6.8）。
+# 官方插件条目（迭代 63，决策 #123，DESIGN §6.8；迭代 143 起品牌映射表扩指令集维度，决策 #195）：
+# plugin-zebra / plugin-tspl 随发版流水线产物收录（labelframe-transport-<指令集或品牌>-<版本>.lfplugin，
+# version=主版本，品牌映射表见 §6.8）。
 # runtime 条目（迭代 62，#55，决策 #124；迭代 62 返修补 aspnetcore，决策 #128；二次返修补 client 链腿，决策 #129）：runtime-desktop /
 # runtime-aspnetcore / runtime-webview2 = 厂商直链 + CI 下载实测哈希（无本仓产物、不进 Release 附件；生成逻辑见下方 $runtimeSpecs）。
 # dependsOn 随 runtime 条目落地补齐：server-msi -> runtime-desktop + runtime-aspnetcore（Server 为 Sdk.Web 隐式
@@ -55,6 +56,7 @@ $componentSpecs = @(
     @{ id = 'linux-server'; type = 'archive';   pattern = "labelframe-server-$Version-linux-x64.tar.gz"; topologies = @('server-linux', 'offline');             dependsOn = @(); notes = 'Linux 服务端归档（systemd 部署）' }
     @{ id = 'pda-apk';      type = 'apk';       pattern = "LabelFrame-AndroidHost-$Version.apk";          topologies = @('pda', 'offline');                      dependsOn = @(); notes = 'PDA 宿主 APK（拓扑标记 pda：经服务端下载中心扫码下载，不进 PC 引导预设）' }
     @{ id = 'plugin-zebra'; type = 'lfplugin';  pattern = "labelframe-transport-zebra-$Version.lfplugin"; topologies = @('standalone', 'client', 'offline');    dependsOn = @(); notes = 'Zebra 品牌传输官方插件（开关组件，安装到客户端 plugins 目录；内含 Zebra SDK 5.x 依赖）' }
+    @{ id = 'plugin-tspl';  type = 'lfplugin';  pattern = "labelframe-transport-tspl-$Version.lfplugin"; topologies = @('standalone', 'client', 'offline');    dependsOn = @(); notes = 'TSPL 指令集传输官方插件（开关组件，TSC 及 TSPL 兼容品牌共用；纯托管 KB 级）' }
 )
 
 # runtime 条目（§6.2 特殊语义）：urls = 厂商官方直链（单一源，多源回退属 #54 修订范围）；sha256 / sizeBytes =

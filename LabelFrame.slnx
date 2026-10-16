@@ -9,6 +9,7 @@
     <Project Path="src/LabelFrame.Bootstrapper.Ba/LabelFrame.Bootstrapper.Ba.csproj" />
     <Project Path="src/LabelFrame.Bootstrapper.PayloadTool/LabelFrame.Bootstrapper.PayloadTool.csproj" />
     <Project Path="src/LabelFrame.TransportPlugin.Zebra/LabelFrame.TransportPlugin.Zebra.csproj" />
+    <Project Path="src/LabelFrame.TransportPlugin.Tspl/LabelFrame.TransportPlugin.Tspl.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/LabelFrame.Core.Tests/LabelFrame.Core.Tests.csproj" />

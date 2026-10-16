@@ -37,17 +37,24 @@ public sealed class LabelJobQueue : IDisposable
         _store = store ?? throw new ArgumentNullException(nameof(store));
     }
 
-    /// <summary>提交作业：requestId 已存在时返回已有作业（幂等）。</summary>
+    /// <summary>提交作业（文本指令载荷）：requestId 已存在时返回已有作业（幂等）。</summary>
     /// <param name="requestId">幂等键。</param>
     /// <param name="zplLabels">每张标签的打印机指令（字段名沿用 zpl：图片模式 = ^GF 位图 ZPL，原生指令模式 = 品牌原生指令；批内顺序）。</param>
     /// <returns>作业与是否新建（false 表示 requestId 重放返回已有作业）。</returns>
-    public async Task<(LabelJob Job, bool Created)> SubmitAsync(string requestId, IReadOnlyList<string> zplLabels, CancellationToken cancellationToken = default)
+    public Task<(LabelJob Job, bool Created)> SubmitAsync(string requestId, IReadOnlyList<string> zplLabels, CancellationToken cancellationToken = default)
+        => SubmitAsync(requestId, zplLabels.Select(LabelJobPayload.OfText).ToList(), cancellationToken);
+
+    /// <summary>提交作业（文本 / 二进制双形态载荷，决策 #195）：requestId 已存在时返回已有作业（幂等）。</summary>
+    /// <param name="requestId">幂等键。</param>
+    /// <param name="payloads">每张标签的回放载荷（文本或二进制二选一；批内顺序）。</param>
+    /// <returns>作业与是否新建（false 表示 requestId 重放返回已有作业）。</returns>
+    public async Task<(LabelJob Job, bool Created)> SubmitAsync(string requestId, IReadOnlyList<LabelJobPayload> payloads, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestId);
-        ArgumentNullException.ThrowIfNull(zplLabels);
-        if (zplLabels.Count == 0)
+        ArgumentNullException.ThrowIfNull(payloads);
+        if (payloads.Count == 0)
         {
-            throw new ArgumentException("作业至少包含一张标签。", nameof(zplLabels));
+            throw new ArgumentException("作业至少包含一张标签。", nameof(payloads));
         }
 
         await _gate.WaitAsync(cancellationToken);
@@ -73,14 +80,15 @@ public sealed class LabelJobQueue : IDisposable
                 Status = LabelJobStatus.Pending,
                 CreatedAt = now,
                 UpdatedAt = now,
-                Items = zplLabels
-                    .Select((zpl, index) => new LabelJobItem
+                Items = payloads
+                    .Select((payload, index) => new LabelJobItem
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         JobId = jobId,
                         Index = index,
                         Status = LabelJobItemStatus.Pending,
-                        Zpl = zpl,
+                        Zpl = payload.Bytes is null ? payload.Text : string.Empty,
+                        CommandBytes = payload.Bytes,
                     })
                     .ToList(),
             };

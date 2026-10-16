@@ -111,7 +111,7 @@ public sealed class WizardSession
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            LocalInstall = new LocalInstallSnapshot(null, null, null, runtime);
+            LocalInstall = new LocalInstallSnapshot(null, null, null, null, runtime);
         }
 
         Assessment = UpgradeAssessor.Assess(Manifest, LocalInstall);

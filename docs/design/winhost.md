@@ -17,7 +17,7 @@
 - 作业模型 / 队列语义 / SQLite 持久化——Core 的 `LabelJobQueue` / `SqliteLabelJobStore`（`jobs.db`）；模板库——Core 的 `TemplateStore`；设备日志库——Core 的 `SqliteLogStore`；
 - 渲染与 ^GF 编码——Rendering 的 `SkiaLabelRenderer`、Core 的 `ZplImageEncoder`（宿主只做装配与调用）；
 - 模板 / 调试出图 / 设备日志端点的**实现**——LabelFrame.Api 共享实现（决策 #75），本模块经 Options 传入宿主错误码装配；
-- Zebra 品牌传输与 Link-OS SDK——外置官方插件 `src/LabelFrame.TransportPlugin.Zebra`（`.lfplugin` 包，决策 #123），宿主只保留存量迁移与别名归一；
+- Zebra / TSPL 品牌与指令集传输——外置官方插件 `src/LabelFrame.TransportPlugin.Zebra` / `src/LabelFrame.TransportPlugin.Tspl`（`.lfplugin` 包，决策 #123 / #195），宿主只保留存量懒激活迁移（`OfficialPluginMigration`）与别名归一；
 - Android / PDA 宿主——`LabelFrame.AndroidHost`（SDK 档内置，决策 #157）；
 - 打包 / 升级编排——Bootstrapper 三件与 MSI（宿主只提供 `/api/host/shutdown` 打印忙态门槛配合，决策 #163）。
 
@@ -36,13 +36,13 @@
 | | `UiReadiness` / `UiUrl` | UiReadiness.cs、UiUrl.cs | 就绪探测（窗口加载态期间轮询本地 HTTP）；界面地址规范化（通配监听→127.0.0.1）与窗口内导航边界 |
 | 托盘 | `TrayIconService` | TrayIconService.cs | 原生 P/Invoke 托盘（隐藏消息窗口＋`Shell_NotifyIcon`，无 WinForms 依赖，决策 #43）；explorer 重启 `TaskbarCreated` 重注册 |
 | | `TrayMenuPresenter` / `TrayQuitSignaler` | TrayMenuPresenter.cs、TrayIconService.cs | 右键菜单三件套标准前置模式（KB135788）；WM_QUIT 投递＋限时 Join 退出信号器（两者 Win32 调用点可注入替身） |
-| 作业（Jobs/） | `JobSubmissionService` | Jobs/JobSubmissionService.cs | 提交链路：契约校验→按连接 `printMode` 分派（image：Skia 渲染→^GF；native：插件编译器逐张编译）（决策 #137）→幂等入队；Log 模式出图＋留痕＋顺带清理 |
-| | `JobPrintWorker` | Jobs/JobPrintWorker.cs | 后台打印 Worker：串行领取→批次节流（发送前暂停）→经当前传输发送；信号唤醒＋5s 兜底轮询（决策 #92） |
+| 作业（Jobs/） | `JobSubmissionService` | Jobs/JobSubmissionService.cs | 提交链路：契约校验→按连接 `printMode` 分派（image：Skia 渲染→图片编码按插件分派（`ILabelImageEncoder` 命中则品牌二进制指令、否则 `^GF` 文本，决策 #195）；native：插件编译器逐张编译）（决策 #137）→幂等入队（双形态载荷）；Log 模式出图＋留痕＋顺带清理 |
+| | `JobPrintWorker` | Jobs/JobPrintWorker.cs | 后台打印 Worker：串行领取→批次节流（发送前暂停）→经当前传输发送（回放载荷双形态：`CommandBytes` 二进制优先、否则 `Zpl` 文本，决策 #195）；信号唤醒＋5s 兜底轮询（决策 #92） |
 | | `BatchPrintPolicy` / `JobDataLogFormatter` | Jobs/BatchPrintPolicy.cs、JobDataLogFormatter.cs | 节流纯函数判定（按作业重置计数，决策 #100）；留痕行格式化（去重＋截断 2048 字符，决策 #139） |
 | 传输（Transport/） | `ITransportManager` / `TransportManager` | Transport/TransportManager.cs | 运行时连接管理：单一连接生效、先测试后生效、持久化 connection.json；启动回退护栏（插件缺失→默认连接→Log） |
 | | `TransportConfig` | Transport/TransportConfig.cs | 连接配置模型：`pluginId + params` 新格式；旧字段（Mode / TcpHost 等）读取迁移＋保存同步写出（决策 #69） |
 | | `RawPrinterTransport` / `WinspoolTransportPlugin` | Transport/RawPrinterTransport.cs、WinspoolTransportPlugin.cs | winspool raw 传输（P/Invoke，决策 #18）及其插件声明 |
-| | `ZebraPluginMigration` / `ZebraTransportKind` | Transport/ZebraPluginMigration.cs、ZebraTransportKind.cs | 存量升级迁移：已用 zebra 配置且插件未装→自动安装 MSI 附带官方包（决策 #123 ③）；旧枚举仅存于配置兼容面 |
+| | `OfficialPluginMigration` / `ZebraTransportKind` | Transport/OfficialPluginMigration.cs、ZebraTransportKind.cs | 存量升级懒激活：已用官方插件（zebra / tspl）配置且未装→自动安装 MSI 附带官方包（决策 #123 ③ / #195，官方 id 清单驱动）；旧枚举仅存于配置兼容面 |
 | 路由（Routing/） | `ServerRoutingCoordinator` | Routing/ServerRoutingCoordinator.cs | 路由独占资源持有者（地址＋HttpClient＋poller＋worker）；保存服务端地址热切换（重建＋旧连接清理）（决策 #141） |
 | | `ServerRoutingWorker` | Routing/ServerRoutingWorker.cs | 主循环（注册心跳→长轮询 notify→领取→投入本地队列）＋独立回报循环（终态回报＋进度节流上报）（决策 #60 / #101） |
 | | `ServerJobPoller` / `IServerJobPoller` / `ProgressThrottle` | Routing/ServerJobPoller.cs、IServerJobPoller.cs、ProgressThrottle.cs | Server HTTP 客户端（注册 / pending / notify / result / progress 五端点）；单作业进度节流（计数有变化才发＋最小间隔，失败不 Mark 可重试） |
@@ -69,10 +69,10 @@
 1. 入口两路：本机 `POST /api/jobs`；Server 路由领取（`ServerRoutingWorker.HandleClaimedJobAsync` 转构 `SubmitJobRequest`，Server 附带模板含 Images base64 透传）；
 2. requestId 必填（幂等键）；按**当前连接**的 `printMode` 参数分派（连接级属性，同一 Server 作业投给不同客户端按各自连接出纸，决策 #137 ③）：
    - **native**：先幂等短路（重放不重新编译）→ 无编译能力插件显式失败 `LF_ENC_003` → 逐张 `compiler.CompileAsync`（契约校验先行；任一失败整体拒绝，产物写 `LabelJobItem.Zpl`）；
-   - **image**（默认 / 缺失 / 非法回退）：逐张 `LabelValidator.Validate` → `RenderLabelBitmap`（图片资源：base64 附带优先、按名回退本地模板库，与共享出图端点同源）→ `ZplImageEncoder.EncodeImage`；
-3. `queue.SubmitAsync(requestId, commands)` 入队（requestId 幂等）；
+   - **image**（默认 / 缺失 / 非法回退）：逐张 `LabelValidator.Validate` → `RenderLabelBitmap`（图片资源：base64 附带优先、按名回退本地模板库，与共享出图端点同源）→ 图片指令编码按连接插件分派（`GetImageEncoder` 命中→插件 `ILabelImageEncoder` 产二进制流（如 TSPL BITMAP）；未实现（Zebra / 内置通道）→ `ZplImageEncoder` `^GF` 文本，输出逐字节不变，决策 #195）；测试页端点 `POST /api/printer/test` 随同一分派；
+3. `queue.SubmitAsync(requestId, payloads)` 入队（requestId 幂等；`LabelJobPayload` 文本 / 二进制双形态）；
 4. Log 连接＝模拟打印：渲染 PNG 落盘 `print\{jobId}\label-N.png`＋`JobDataLogFormatter` 留痕作业数据＋顺带 `PrintImageRetentionCleaner.CleanupExpired()`（native 路径无位图，仅留痕）；
-5. `JobPrintWorker`（BackgroundService）：启动恢复中断作业 → 循环「EXISTS 轻量探测→`ClaimNextItemAsync`→批间计数按作业重置→`BatchPrintPolicy.ShouldPauseBeforeSend` 则 `Task.Delay(batchIntervalMs)`→`TryBeginPrintSendAsync` 领发送租约→`CurrentTransport.SendAsync`→完成 / 失败（失败记结构化日志：作业 / 索引 / 插件 / 目标 / 错误码，决策 #102 ③）」；空转等待信号唤醒（5s 超时兜底），领取落空回退 200ms 周期。
+5. `JobPrintWorker`（BackgroundService）：启动恢复中断作业 → 循环「EXISTS 轻量探测→`ClaimNextItemAsync`→批间计数按作业重置→`BatchPrintPolicy.ShouldPauseBeforeSend` 则 `Task.Delay(batchIntervalMs)`→`TryBeginPrintSendAsync` 领发送租约→`CurrentTransport.SendAsync`（`CommandBytes` 二进制优先，否则 `Zpl` 文本）→完成 / 失败（失败记结构化日志：作业 / 索引 / 插件 / 目标 / 错误码，决策 #102 ③）」；空转等待信号唤醒（5s 超时兜底），领取落空回退 200ms 周期。
 
 ### 3.3 连接管理与传输装配（`TransportManager`）
 

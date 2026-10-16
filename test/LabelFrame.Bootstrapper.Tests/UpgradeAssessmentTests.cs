@@ -20,7 +20,8 @@ public sealed class UpgradeAssessmentTests
         string? server = null,
         string? client = null,
         string? plugin = null,
-        RuntimeProbeResult? runtime = null) => new(server, client, plugin, runtime ?? RuntimeNone);
+        string? tsplPlugin = null,
+        RuntimeProbeResult? runtime = null) => new(server, client, plugin, tsplPlugin, runtime ?? RuntimeNone);
 
     [Fact]
     public void Nothing_installed_yields_all_install_and_not_up_to_date()

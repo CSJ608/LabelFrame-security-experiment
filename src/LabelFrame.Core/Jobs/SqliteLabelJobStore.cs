@@ -22,6 +22,7 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
             item_index    INTEGER NOT NULL,
             status        TEXT NOT NULL,
             zpl           TEXT NOT NULL,
+            command_bytes BLOB NULL,
             error_code    TEXT NULL,
             error_message TEXT NULL,
             updated_at    TEXT NOT NULL
@@ -47,6 +48,42 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
         await using var command = connection.CreateCommand();
         command.CommandText = CreateTablesSql;
         await command.ExecuteNonQueryAsync(cancellationToken);
+        await MigrateCommandBytesAsync(connection, cancellationToken);
+    }
+
+    /// <summary>旧库兼容迁移：job_items 表缺少 command_bytes 列时补列（决策 #195 二进制指令载荷；已存在则跳过；失败静默忽略，不影响启动）。</summary>
+    private static async Task MigrateCommandBytesAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        var hasCommandBytes = false;
+        await using (var probe = connection.CreateCommand())
+        {
+            probe.CommandText = "PRAGMA table_info(job_items);";
+            await using var reader = await probe.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (string.Equals(reader.GetString(1), "command_bytes", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasCommandBytes = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasCommandBytes)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var alter = connection.CreateCommand();
+            alter.CommandText = "ALTER TABLE job_items ADD COLUMN command_bytes BLOB NULL;";
+            await alter.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch
+        {
+            // 已存在列等竞态：静默忽略，保持旧库可启动
+        }
     }
 
     /// <inheritdoc />
@@ -85,14 +122,15 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO job_items (id, job_id, item_index, status, zpl, error_code, error_message, updated_at)
-                VALUES ($id, $jobId, $index, $status, $zpl, NULL, NULL, $updatedAt);
+                INSERT INTO job_items (id, job_id, item_index, status, zpl, command_bytes, error_code, error_message, updated_at)
+                VALUES ($id, $jobId, $index, $status, $zpl, $commandBytes, NULL, NULL, $updatedAt);
                 """;
             command.Parameters.AddWithValue("$id", item.Id);
-            command.Parameters.AddWithValue("$jobId", job.Id);
+            command.Parameters.AddWithValue("$jobId", item.JobId);
             command.Parameters.AddWithValue("$index", item.Index);
             command.Parameters.AddWithValue("$status", item.Status.ToString());
             command.Parameters.AddWithValue("$zpl", item.Zpl);
+            command.Parameters.AddWithValue("$commandBytes", (object?)item.CommandBytes ?? DBNull.Value);
             command.Parameters.AddWithValue("$updatedAt", SqliteSupport.Format(job.UpdatedAt));
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -252,7 +290,7 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
         await using (var itemCommand = connection.CreateCommand())
         {
             itemCommand.CommandText = """
-                SELECT id, job_id, item_index, status, zpl, error_code, error_message
+                SELECT id, job_id, item_index, status, zpl, command_bytes, error_code, error_message
                 FROM job_items WHERE job_id = $jobId ORDER BY item_index;
                 """;
             itemCommand.Parameters.AddWithValue("$jobId", jobId);
@@ -266,8 +304,9 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
                     Index = itemReader.GetInt32(2),
                     Status = Enum.Parse<LabelJobItemStatus>(itemReader.GetString(3)),
                     Zpl = itemReader.GetString(4),
-                    ErrorCode = itemReader.IsDBNull(5) ? null : itemReader.GetString(5),
-                    ErrorMessage = itemReader.IsDBNull(6) ? null : itemReader.GetString(6),
+                    CommandBytes = itemReader.IsDBNull(5) ? null : (byte[])itemReader[5],
+                    ErrorCode = itemReader.IsDBNull(6) ? null : itemReader.GetString(6),
+                    ErrorMessage = itemReader.IsDBNull(7) ? null : itemReader.GetString(7),
                 });
             }
         }

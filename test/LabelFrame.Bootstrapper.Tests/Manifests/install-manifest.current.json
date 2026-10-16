@@ -86,6 +86,20 @@
       "silentArgs": "",
       "topologies": ["standalone", "client", "offline"],
       "notes": "Zebra 品牌传输官方插件（开关组件，安装到客户端 plugins 目录；内含 Zebra SDK 5.x 依赖）"
+    },
+    {
+      "id": "plugin-tspl",
+      "type": "lfplugin",
+      "version": "0.27.0",
+      "dependsOn": [],
+      "urls": [
+        "https://github.com/marci-labs/LabelFrame/releases/download/v0.27.0/labelframe-transport-tspl-0.27.0.lfplugin"
+      ],
+      "sha256": "8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f8d4f",
+      "sizeBytes": 9437184,
+      "silentArgs": "",
+      "topologies": ["standalone", "client", "offline"],
+      "notes": "TSPL 指令集传输官方插件（开关组件，TSC 及 TSPL 兼容品牌共用；纯托管 KB 级）"
     }
   ]
 }

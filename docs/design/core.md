@@ -34,9 +34,9 @@
 | Layout | `Layout/` | 六类元素（text / barcode / qrcode / image / line / region）+ `LabelLayout`；`LabelLayoutResolver`（区域锚定解析几何，决策 #33 / #110 / #146）；`LabelElementContent`（`Literal ?? data[SourceKey]`，决策 #35）；`LabelElementJsonConverter`（"type" 判别子类型）；`ITextWidthMeasurer`（度量注入接口，决策 #110） |
 | Validation | `Validation/` | `LabelValidator`（仅必填缺失校验——底线「缺数据不打半张」）；`LabelProblemCodes`（`LF_VAL_001`） |
 | Encoding | `Encoding/` | `ZplImageEncoder`（`^XA`/`^PW`/`^LL`/`^GFA` 整版位图输出；`DefaultDpi = 203`；毫米→点四舍五入远离零） |
-| Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`）；`SqliteLabelJobStore`（表 `jobs` / `job_items`，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
+| Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`；双载荷重载 `SubmitAsync(requestId, IReadOnlyList<LabelJobPayload>)`——文本 / 二进制指令二选一，决策 #195）；`LabelJobPayload`（`OfText` / `OfBytes`）；`SqliteLabelJobStore`（表 `jobs` / `job_items`——含 `command_bytes BLOB` 加列迁移，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
 | Templates | `Templates/` | `TemplateStore`（SQLite 表 `templates` / `template_images`，upsert + 分组列表 + 旧库补列迁移）；`TemplatePackage`（契约 + 版式 + 图片 + testData）；`TemplatePackageSerializer`（zip：`manifest.json` + `images/`） |
-| Transport | `Transport/` | `IPrintTransport` + `IPrinterStatusProvider` + `ITestableTransport`；内置实现 `Tcp9100PrintTransport`（发送 + `~HS` 状态解析 `ParseHostStatus`）与 `LogPrintTransport`（模拟打印，只记摘要） |
+| Transport | `Transport/` | `IPrintTransport`（文本 `SendAsync(string)` + 二进制 `SendAsync(byte[])` DIM 缺省抛 `NotSupportedException`，决策 #195）+ `IPrinterStatusProvider` + `ITestableTransport`；内置实现 `Tcp9100PrintTransport`（发送 + `~HS` 状态解析 `ParseHostStatus`）与 `LogPrintTransport`（模拟打印，只记摘要） |
 | Transport / Plugins | `Transport/Plugins/` | 插件 ABI：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` 展示端翻译键 DIM，决策 #192）/ `ITransportPluginRegistry`（实现 `TransportPluginRegistry`，**强持有插件 ALC 根**）/ `ILabelCommandCompiler`（可选文档编译能力，决策 #137）；`PluginDirectoryLoader`（两条加载路径，见 §3.2）；`PluginProbe`（安装预检探针）；`PluginInstaller`（安装 / 卸载 / 已装列表）；`BuiltinTransportPlugins`（log + tcp9100）；`TransportPluginIdPolicy`（官方前缀 / 保留 id / 旧 id 别名）；`TransportPrintMode`（image / native，决策 #137）；`TransportParameterSpec`（含 `VisibleWhen*` 条件可见性 + `LabelKey`/`HintKey` 展示端翻译键（init-only 属性、构造器签名零变化）+ 历史 7 参构造器兼容，决策 #186 / #192） |
 | Transport / Plugins / Package | `Transport/Plugins/Package/` | `.lfplugin` 包读取：`PluginPackageReader`（zip-slip 防护 + 魔数判别）、`PluginPackageManifest`（含可选 `platforms` 平台门，决策 #157）、`PluginPackageLimits`（64MB）、`PluginVersionComparer`（官方覆盖安装版本比较，决策 #123）、`PluginPackageException` |
 | Data | `Data/` | `SqliteSupport`：provider 初始化（进程内一次）、连接串（busy 5s + 连接池 + 父目录自动建）、WAL 打开、UTC ISO-8601 往返格式化（决策 #80 / #85 / #94） |
@@ -69,7 +69,7 @@
 - 两条路径的 ALC 根都随发现结果返回，`TransportPluginRegistry.Register` **显式强持有**（collectible ALC 被丢弃后 GC 发起卸载会破坏其状态机，此后惰性解析抛 `VerifyIsAlive`——曾出的真机缺陷）；无插件产出的上下文显式 `Unload()` 确定性释放；
 - 单 DLL 失败只记 `loadError`（宿主日志 + 结构化 errors 透出「已安装插件」列表），不阻断宿主启动。
 
-使用侧：配置 `pluginId + params` → `TransportPluginRegistry.CreateTransport` 调插件工厂 → 得 `IPrintTransport`（+ 可选状态 / 连接测试能力）。插件对象另实现 `ILabelCommandCompiler` 即具备文档编译能力（descriptor 能力位 + `GetCommandCompiler` 取用，决策 #137）。
+使用侧：配置 `pluginId + params` → `TransportPluginRegistry.CreateTransport` 调插件工厂 → 得 `IPrintTransport`（+ 可选状态 / 连接测试能力）。插件对象另实现 `ILabelCommandCompiler` 即具备文档编译能力（descriptor 能力位 + `GetCommandCompiler` 取用，决策 #137）；实现 `ILabelImageEncoder` 即具备图片模式品牌编码能力（`GetImageEncoder` 取用——未实现维持宿主 `^GF`，决策 #195）。
 
 ### 3.3 插件包安装（`PluginInstaller.InstallAsync`，三层校验）
 
@@ -152,7 +152,7 @@
 7. **printMode 两个分支不可合并**：「缺省 / 非法回退 image」与「显式 native 但插件无编译能力」不同——后者保存校验拒绝 + 提交兜底 `LF_ENC_003` 显式失败，**不静默按图片打印**（决策 #137）。
 8. **错误消息模板单遍替换**：参数值内嵌 `{x}` 不级联替换；参数缺失占位符原样保留不抛——展示端按码表翻译依赖此口径（决策 #166）。
 9. **元素 JSON 写方向「非默认才写」**：省略风格与前端 `convert.ts` 一致（默认值清单见 §3.4）；`fitMode` 写出为小写 `shrink` / `overflow`（前端枚举形态，非 `ToString()`）；`paddingMm` 单值为兼容保留，缺失双边时回退——旧模板读取行为不变（决策 #47）。
-10. **`Zpl` 字段与 DB 列名不改名**：`LabelJobItem.Zpl` 与 `job_items.zpl` 沿用历史命名（图片模式 = `^GF` 位图 ZPL，原生指令模式 = 品牌原生指令；指令一经持久化不可变，重启后可续打且不重打）——存量库兼容。
+10. **`Zpl` 字段与 DB 列名不改名**：`LabelJobItem.Zpl` 与 `job_items.zpl` 沿用历史命名（文本形态指令：图片模式 = `^GF` 位图 ZPL，原生指令模式 = 品牌原生指令）；二进制指令（如 TSPL BITMAP）走 `CommandBytes` / `command_bytes BLOB`（决策 #195）——**与 `Zpl` 互斥，非空者即回放载荷**；指令一经持久化不可变，重启后可续打且不重打——存量库兼容（旧行 NULL 走文本路径）。
 11. **插件 id 兼容义务**：`log` / `tcp9100` / `winspool` 为内置保留 id（外部包禁止占用）；旧内置时代 id `zebra` 仅作**读取别名**归一到 `labelframe-transport-zebra`，不落盘迁移；Log 插件显示名用户化但 Id 保持 `log`（存量连接配置兼容）（决策 #123 / #143）。
 12. **`platforms` 缺省按 Windows 解释**：无该字段的既有包在 Windows 宿主照常安装、PDA 拒绝；显式空数组非法（决策 #157）。
 13. **WAL 不可用静默回退不阻断**：只读卷等场景 `PRAGMA journal_mode=WAL` 失败吞掉、回退默认日志模式（决策 #80）。

@@ -153,13 +153,21 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="LABELFRAMEROOT" Name="LabelFrame">
       <Directory Id="INSTALLFOLDER" Name="Client">
-      <!-- 官方插件附带包：随 MSI 携带 Zebra 外置插件包，供存量升级自动安装
-           （ZebraPluginMigration 启动检测已用 zebra 配置 → 从本目录自动装外置插件）。
-           build-msi.ps1 检测到 artifacts 下的 .lfplugin 时传入 -d ZebraPluginPackage 才编译本块（本地无产物可跳过）。 -->
+      <!-- 官方插件附带包：随 MSI 携带 Zebra / TSPL 外置插件包，供存量升级自动安装
+           （OfficialPluginMigration 启动检测已用官方插件配置 → 从本目录自动装外置插件）。
+           build-msi.ps1 检测到 artifacts 下的 .lfplugin 时传入 -d ZebraPluginPackage / -d TsplPluginPackage
+           才编译对应块（本地无产物可跳过）。 -->
       <?ifdef ZebraPluginPackage?>
       <Directory Id="PluginPackagesDir" Name="plugin-packages">
         <Component Id="ZebraPluginPackageFile" Guid="7C4E1B2A-9D53-4F86-B8A1-3E2D5C7F9A04">
           <File Id="ZebraPluginPackageFile" Source="$(var.ZebraPluginPackage)" KeyPath="yes" />
+        </Component>
+      </Directory>
+      <?endif?>
+      <?ifdef TsplPluginPackage?>
+      <Directory Id="TsplPluginPackagesDir" Name="plugin-packages">
+        <Component Id="TsplPluginPackageFile" Guid="A2B8D4F6-3C71-4E9A-8B05-D7E1F3A9C624">
+          <File Id="TsplPluginPackageFile" Source="$(var.TsplPluginPackage)" KeyPath="yes" />
         </Component>
       </Directory>
       <?endif?>
@@ -212,6 +220,9 @@
       <ComponentRef Id="DesktopShortcut" />
       <?ifdef ZebraPluginPackage?>
       <ComponentRef Id="ZebraPluginPackageFile" />
+      <?endif?>
+      <?ifdef TsplPluginPackage?>
+      <ComponentRef Id="TsplPluginPackageFile" />
       <?endif?>
       <Feature Id="AutoStartFeature" Level="1" Display="hidden">
         <Level Value="0" Condition="NOT AUTO_START" />

@@ -23,8 +23,22 @@ public sealed class WizardSessionTests
         await session.LoadManifestAsync();
 
         Assert.True(session.SelectedBrands.SetEquals(["zebra"]));
-        Assert.Equal(new[] { "zebra" }.ToList(), session.AvailableBrands.ToList());
+        Assert.Equal(new[] { "zebra", "tspl" }.ToList(), session.AvailableBrands.ToList());
         Assert.NotNull(session.Manifest);
+    }
+
+    [Fact]
+    public async Task Load_manifest_with_tsc_printer_should_preselect_tspl()
+    {
+        // 指令集维度品牌预选（决策 #195）：TSC 驱动名 → tspl 勾选（同一插件服务 TSC 及兼容机）
+        var session = new WizardSession(installedPrinterNames: () => ["TSC TT065-60"])
+        {
+            ManifestSource = FixturePath("install-manifest.full.json"),
+        };
+
+        await session.LoadManifestAsync();
+
+        Assert.True(session.SelectedBrands.SetEquals(["tspl"]));
     }
 
     [Fact]

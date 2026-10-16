@@ -263,6 +263,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         // 不进问卷向导，UninstallArguments 的 [变量] 引用须在此会话内可解析——不可移到问卷路径内
         engine.SetVariableString(BundleVariableMap.WebUiTargetDirVariable, BundleVariableMap.WebUiTargetDir(), false);
         engine.SetVariableString(BundleVariableMap.PluginZebraTargetDirVariable, BundleVariableMap.PluginZebraTargetDir(), false);
+        engine.SetVariableString(BundleVariableMap.PluginTsplTargetDirVariable, BundleVariableMap.PluginTsplTargetDir(), false);
 
         // 落位凭据探测：读落位目录凭据文件比对当版 Bundle 版本——「本版本 Bundle 落位在位」才写 1
         // （清理包 DetectCondition 消费：Present → 卸载 / Modify 改选时执行 -clean；ARP 卸载会话同样在此判定）。
@@ -270,9 +271,11 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         var bundleVersion = ReadBundleVersion();
         var webUiPlaced = Placement.PlacementMarker.IsPlacedByBundle(BundleVariableMap.WebUiTargetDir(), bundleVersion);
         var zebraPlaced = Placement.PlacementMarker.IsPlacedByBundle(BundleVariableMap.PluginZebraTargetDir(), bundleVersion);
+        var tsplPlaced = Placement.PlacementMarker.IsPlacedByBundle(BundleVariableMap.PluginTsplTargetDir(), bundleVersion);
         engine.SetVariableNumeric(BundleVariableMap.WebUiPlacementPresentVariable, webUiPlaced ? 1 : 0);
         engine.SetVariableNumeric(BundleVariableMap.ZebraPluginPlacementPresentVariable, zebraPlaced ? 1 : 0);
-        Log($"落位凭据探测：Bundle 版本 {bundleVersion ?? "<未知>"}；webui 在位 = {(webUiPlaced ? "是" : "否")}；zebra 插件在位 = {(zebraPlaced ? "是" : "否")}");
+        engine.SetVariableNumeric(BundleVariableMap.TsplPluginPlacementPresentVariable, tsplPlaced ? 1 : 0);
+        Log($"落位凭据探测：Bundle 版本 {bundleVersion ?? "<未知>"}；webui 在位 = {(webUiPlaced ? "是" : "否")}；zebra 插件在位 = {(zebraPlaced ? "是" : "否")}；tspl 插件在位 = {(tsplPlaced ? "是" : "否")}");
 
         // 非交互启动：升级时 Burn 以 Uninstall 动作驱动旧 Bundle（RelatedBundle 升级链尾）、ARP 卸载 / 静默参数同理——
         // 此时不可进问卷向导（无人应答会卡死升级链），自动 Detect → Plan → Apply → Quit
@@ -657,6 +660,7 @@ internal sealed class LabelFrameBootstrapperBa : BootstrapperApplication
         engine.SetVariableNumeric(BundleVariableMap.ClientVariable, ParseFlag(variables[BundleVariableMap.ClientVariable]));
         engine.SetVariableNumeric(BundleVariableMap.WebUiVariable, ParseFlag(variables[BundleVariableMap.WebUiVariable]));
         engine.SetVariableNumeric(BundleVariableMap.ZebraPluginVariable, ParseFlag(variables[BundleVariableMap.ZebraPluginVariable]));
+        engine.SetVariableNumeric(BundleVariableMap.TsplPluginVariable, ParseFlag(variables[BundleVariableMap.TsplPluginVariable]));
         // 落位目标目录已在启动期写入（Run 入口——卸载会话同样需要 [变量] 可解析），此处不重复写
     }
 

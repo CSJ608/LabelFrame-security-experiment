@@ -33,7 +33,7 @@ VERSION=""
 IMAGE_TAR=""
 CLIENT_PKG=""
 PDA_PKG=""
-PLUGIN_PKG=""
+PLUGIN_PKGS=()
 WEBUI_ZIP=""
 OUTPUT_DIR=""
 COMPOSE_FILE=""
@@ -53,7 +53,7 @@ LabelFrame Linux 离线部署包组装脚本（docs/DEPLOY.md §4.2 / DESIGN 决
   --image-tar           docker save | gzip 导出的 server 镜像 tar.gz（已构建并验收的镜像）
   --client-package      客户端 MSI（packages/client/）
   --pda-package         PDA 宿主 APK（packages/pda/）
-  --plugin-package      官方传输插件 .lfplugin（packages/plugin/）
+  --plugin-package      官方传输插件 .lfplugin（packages/plugin/；可多次传入逐个收录——迭代 143 起双官方插件）
   --webui-zip           服务端管理界面 zip（预解压到 plugins/web-ui/）
   -o, --output-dir      输出目录（默认 <仓库>/artifacts/offline-bundle）
   --compose-file        compose 源文件（默认 packaging/ubuntu/docker-compose.yml，逐字节同源复制）
@@ -69,7 +69,7 @@ while [ "$#" -gt 0 ]; do
     --image-tar)         need_value "$@"; IMAGE_TAR="$2"; shift 2 ;;
     --client-package)    need_value "$@"; CLIENT_PKG="$2"; shift 2 ;;
     --pda-package)       need_value "$@"; PDA_PKG="$2"; shift 2 ;;
-    --plugin-package)    need_value "$@"; PLUGIN_PKG="$2"; shift 2 ;;
+    --plugin-package)    need_value "$@"; PLUGIN_PKGS+=("$2"); shift 2 ;;
     --webui-zip)         need_value "$@"; WEBUI_ZIP="$2"; shift 2 ;;
     -o|--output-dir)     need_value "$@"; OUTPUT_DIR="$2"; shift 2 ;;
     --compose-file)      need_value "$@"; COMPOSE_FILE="$2"; shift 2 ;;
@@ -82,10 +82,10 @@ done
 [ -n "$IMAGE_TAR" ] || die "缺少 --image-tar（先在已构建镜像的机器执行 docker save | gzip）"
 [ -n "$CLIENT_PKG" ] || die "缺少 --client-package"
 [ -n "$PDA_PKG" ] || die "缺少 --pda-package"
-[ -n "$PLUGIN_PKG" ] || die "缺少 --plugin-package"
+[ "${#PLUGIN_PKGS[@]}" -ge 1 ] || die "缺少 --plugin-package（可多次传入，逐个收录）"
 [ -n "$WEBUI_ZIP" ] || die "缺少 --webui-zip"
 
-for f in "$IMAGE_TAR" "$CLIENT_PKG" "$PDA_PKG" "$PLUGIN_PKG" "$WEBUI_ZIP"; do
+for f in "$IMAGE_TAR" "$CLIENT_PKG" "$PDA_PKG" "${PLUGIN_PKGS[@]}" "$WEBUI_ZIP"; do
   [ -s "$f" ] || die "输入文件不存在或为空：$f"
 done
 
@@ -136,11 +136,13 @@ cp "$INSTALL_TEMPLATE" "$BUNDLE_DIR/install.sh"
 chmod +x "$BUNDLE_DIR/install.sh"
 info "[4/7] README / install.sh 就位"
 
-# 5) packages 三件（拷入挂载目录即经下载中心分发）
+# 5) packages 三件（拷入挂载目录即经下载中心分发；官方插件包可多个，逐个收录）
 cp "$CLIENT_PKG" "$BUNDLE_DIR/packages/client/"
 cp "$PDA_PKG" "$BUNDLE_DIR/packages/pda/"
-cp "$PLUGIN_PKG" "$BUNDLE_DIR/packages/plugin/"
-info "[5/7] packages 就位：client（$(basename "$CLIENT_PKG")）/ pda（$(basename "$PDA_PKG")）/ plugin（$(basename "$PLUGIN_PKG")）"
+for pkg in "${PLUGIN_PKGS[@]}"; do
+  cp "$pkg" "$BUNDLE_DIR/packages/plugin/"
+done
+info "[5/7] packages 就位：client（$(basename "$CLIENT_PKG")）/ pda（$(basename "$PDA_PKG")）/ plugin（共 ${#PLUGIN_PKGS[@]} 个：${PLUGIN_PKGS[*]##*/}）"
 
 # 6) 管理界面预解压（compose 默认挂载 ./plugins/web-ui = 服务端默认 WebUiPath，开箱可用）
 #    unzip 退出码 0=正常 / 1=警告（含 PowerShell 5.1 Compress-Archive 的反斜杠条目名——Info-ZIP 会

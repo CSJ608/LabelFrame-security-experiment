@@ -94,6 +94,7 @@ internal sealed class BrandPage : UserControl, IWizardPage
     private static string BrandDisplayName(string brand) => brand.ToLowerInvariant() switch
     {
         "zebra" => "Zebra（斑马）",
+        "tspl" => "TSC 及 TSPL 兼容机",
         _ => brand,
     };
 }

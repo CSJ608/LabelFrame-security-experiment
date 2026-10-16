@@ -24,6 +24,7 @@
 | LabelFrame.WinHost | [winhost.md](winhost.md) | Client Host（Windows 完整客户端 + Linux 无头 Log 客户端） | ✅ |
 | LabelFrame.AndroidHost | [androidhost.md](androidhost.md) | Android / PDA 打印宿主 | ✅ |
 | LabelFrame.TransportPlugin.Zebra | [transport-plugin-zebra.md](transport-plugin-zebra.md) | Zebra 官方外置传输插件（插件 ABI 面） | ✅ |
+| LabelFrame.TransportPlugin.Tspl | [transport-plugin-tspl.md](transport-plugin-tspl.md) | TSPL 指令集官方外置传输插件（指令集维度单插件，迭代 143 / #378） | ✅ |
 | LabelFrame.Bootstrapper（三件） | [bootstrapper.md](bootstrapper.md) | 安装引导（共享库 / BA / PayloadTool，三件合一） | ✅ |
 | web 前端 | [web-frontend.md](web-frontend.md) | `web/src/`（pages / lib / components / i18n / state） | ✅ |
 

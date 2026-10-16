@@ -85,6 +85,7 @@ public static class UpgradeAssessor
             "server-msi" => local.ServerMsiVersion,
             "client-msi" => local.ClientMsiVersion,
             "plugin-zebra" => local.ZebraPluginVersion,
+            "plugin-tspl" => local.TsplPluginVersion,
             "runtime-desktop" => local.Runtime.DesktopRuntimeInstalled ? local.Runtime.DesktopRuntimeVersion : null,
             "runtime-aspnetcore" => local.Runtime.AspNetCoreRuntimeInstalled ? local.Runtime.AspNetCoreRuntimeVersion : null,
             _ => null,

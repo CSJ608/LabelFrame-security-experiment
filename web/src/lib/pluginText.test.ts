@@ -42,6 +42,20 @@ const OFFICIAL_SPEC_ZH: Record<string, string> = {
   'plugin.labelframe-transport-zebra.params.printMode.opt.image': '图片（默认）',
   'plugin.labelframe-transport-zebra.params.printMode.opt.native': '原生指令',
   'plugin.labelframe-transport-zebra.params.printMode.hint': '原生指令模式无预览，效果以真机为准；该模式下二维码（QR）数据不支持中文（仅 ASCII），中文请用文本框（图片模式）',
+  'plugin.labelframe-transport-tspl.displayName': 'TSPL（TSC 及兼容）',
+  'plugin.labelframe-transport-tspl.desc': 'TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态（官方插件）。原生指令模式下文本不支持中文（打印机内置字体无汉字字形），中文请用图片模式。',
+  'plugin.labelframe-transport-tspl.name': 'TSPL 指令集传输（官方）',
+  'plugin.labelframe-transport-tspl.params.kind.label': '连接类型',
+  'plugin.labelframe-transport-tspl.params.kind.opt.Usb': 'USB（免驱动直连）',
+  'plugin.labelframe-transport-tspl.params.host.label': '打印机地址 / IP',
+  'plugin.labelframe-transport-tspl.params.host.hint': '如 192.168.1.50',
+  'plugin.labelframe-transport-tspl.params.port.label': '端口',
+  'plugin.labelframe-transport-tspl.params.usbName.label': 'USB 打印机名',
+  'plugin.labelframe-transport-tspl.params.usbName.hint': '留空 = 自动发现第一台；可填 VID（如 VID_1203）或设备名',
+  'plugin.labelframe-transport-tspl.params.printMode.label': '打印方式',
+  'plugin.labelframe-transport-tspl.params.printMode.opt.image': '图片（默认）',
+  'plugin.labelframe-transport-tspl.params.printMode.opt.native': '原生指令',
+  'plugin.labelframe-transport-tspl.params.printMode.hint': '原生指令模式无预览，效果以真机为准；该模式下文本不支持中文（打印机内置字体无汉字字形），中文请用图片模式',
 }
 
 /** 展平嵌套 JSON 为 `a.b.c` 全量 key 路径映射。 */
@@ -91,6 +105,7 @@ describe('pluginText 翻译与回退语义', () => {
     expect(pluginText('plugin.tcp9100.desc', 'TCP 9100 网络打印机…')).toContain('TCP 9100 network printer')
     expect(pluginText('plugin.third-party.displayName', '第三方名')).toBe('第三方名')
     expect(pluginPackageName('labelframe-transport-zebra', 'Zebra 品牌传输（官方）')).toBe('Zebra Brand Transport (official)')
+    expect(pluginPackageName('labelframe-transport-tspl', 'TSPL 指令集传输（官方）')).toBe('TSPL Command Set Transport (official)')
     expect(pluginPackageName(undefined, '任意包名')).toBe('任意包名')
     await i18next.changeLanguage('zh-CN')
   })

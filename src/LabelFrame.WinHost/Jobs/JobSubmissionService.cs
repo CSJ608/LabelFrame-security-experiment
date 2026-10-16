@@ -71,7 +71,7 @@ public sealed class JobSubmissionService
         var rawPrintMode = config.Params.TryGetValue(TransportPrintMode.ParameterKey, out var raw) ? raw : null;
         var printMode = TransportPrintMode.Resolve(rawPrintMode);
 
-        IReadOnlyList<string> commandLabels;
+        IReadOnlyList<LabelJobPayload> payloads;
         IReadOnlyList<RenderItem>? renderedItems = null;
         if (printMode == TransportPrintMode.Native)
         {
@@ -98,7 +98,7 @@ public sealed class JobSubmissionService
                 return SubmitJobResult.Failure(compiled.ErrorCode, compiled.ErrorMessage!, compiled.FieldKey);
             }
 
-            commandLabels = compiled.Commands!;
+            payloads = compiled.Commands!.Select(LabelJobPayload.OfText).ToList();
         }
         else
         {
@@ -109,10 +109,26 @@ public sealed class JobSubmissionService
             }
 
             renderedItems = rendered.Items!;
-            commandLabels = renderedItems.Select(i => _encoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, _dpi)).ToList();
+            try
+            {
+                // 图片指令编码按连接插件分派（决策 #195）：插件实现 ILabelImageEncoder 则输出品牌图片指令（二进制），
+                // 未实现（Zebra / 内置通道）维持 ^GF 文本——输出逐字节不变
+                var imageEncoder = _pluginRegistry.GetImageEncoder(config.PluginId);
+                payloads = imageEncoder is null
+                    ? renderedItems.Select(i => LabelJobPayload.OfText(_encoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, _dpi))).ToList()
+                    : renderedItems.Select(i => LabelJobPayload.OfBytes(imageEncoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, _dpi))).ToList();
+            }
+            catch (NotSupportedException ex)
+            {
+                return SubmitJobResult.Failure(JobErrorCodes.EncodeFailed, ex.Message, null);
+            }
+            catch (ArgumentException ex)
+            {
+                return SubmitJobResult.Failure(JobErrorCodes.EncodeFailed, ex.Message, null);
+            }
         }
 
-        var (job, created) = await _queue.SubmitAsync(request.RequestId!, commandLabels, cancellationToken);
+        var (job, created) = await _queue.SubmitAsync(request.RequestId!, payloads, cancellationToken);
 
         // Log 连接 = 模拟打印：保存渲染 PNG 到 print\{jobId}\（不发真机）；原生指令路径无渲染位图
         if (created && _transportManager.CurrentConfig.Mode == TransportMode.Log)

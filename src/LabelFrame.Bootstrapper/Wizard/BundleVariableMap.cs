@@ -20,6 +20,9 @@ public static class BundleVariableMap
     /// <summary>是否安装 Zebra 品牌插件（plugin-zebra 落位包条件）。</summary>
     public const string ZebraPluginVariable = "InstallPluginZebra";
 
+    /// <summary>是否安装 TSPL 指令集插件（plugin-tspl 落位包条件，决策 #195）。</summary>
+    public const string TsplPluginVariable = "InstallPluginTspl";
+
     /// <summary>.NET 10 Desktop Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前写入）。</summary>
     public const string DesktopRuntimeVariable = "DesktopRuntimeInstalled";
 
@@ -38,11 +41,17 @@ public static class BundleVariableMap
     /// <summary>Zebra 插件落位目标目录（链内落位包 InstallArguments 以 [变量] 引用；pluginId 映射见 <see cref="BrandPluginMap"/>）。</summary>
     public const string PluginZebraTargetDirVariable = "PluginZebraTargetDir";
 
+    /// <summary>TSPL 插件落位目标目录（链内落位包 InstallArguments 以 [变量] 引用；pluginId 映射见 <see cref="BrandPluginMap"/>）。</summary>
+    public const string PluginTsplTargetDirVariable = "PluginTsplTargetDir";
+
     /// <summary>webui 落位凭据在位（清理包 WebUiPlacementCleanup DetectCondition 消费——BA 启动期读凭据比对 WixBundleVersion 写入）。</summary>
     public const string WebUiPlacementPresentVariable = "WebUiPlacementPresent";
 
     /// <summary>zebra 插件落位凭据在位（清理包 ZebraPluginPlacementCleanup DetectCondition 消费）。</summary>
     public const string ZebraPluginPlacementPresentVariable = "ZebraPluginPlacementPresent";
+
+    /// <summary>tspl 插件落位凭据在位（清理包 TsplPluginPlacementCleanup DetectCondition 消费）。</summary>
+    public const string TsplPluginPlacementPresentVariable = "TsplPluginPlacementPresent";
 
     /// <summary>拓扑计划 → 变量集合（string 值；数值变量由 BA 写引擎时转 long）。</summary>
     public static IReadOnlyDictionary<string, string> ToVariables(TopologyPlan plan)
@@ -65,6 +74,7 @@ public static class BundleVariableMap
             [ClientVariable] = Flag(ids.Contains("client-msi")),
             [WebUiVariable] = Flag(ids.Contains("webui")),
             [ZebraPluginVariable] = Flag(ids.Contains("plugin-zebra")),
+            [TsplPluginVariable] = Flag(ids.Contains("plugin-tspl")),
         };
     }
 
@@ -77,6 +87,11 @@ public static class BundleVariableMap
     public static string PluginZebraTargetDir() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
         "LabelFrame", "Client", "plugins", BrandPluginMap.PluginIdOf("zebra") ?? "plugin-zebra");
+
+    /// <summary>TSPL 插件落位目标目录（DEPLOY §6：plugins\&lt;pluginId&gt;；pluginId 映射见 <see cref="BrandPluginMap"/>）。</summary>
+    public static string PluginTsplTargetDir() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "LabelFrame", "Client", "plugins", BrandPluginMap.PluginIdOf("tspl") ?? "plugin-tspl");
 
     private static string Flag(bool enabled) => enabled ? "1" : "0";
 }

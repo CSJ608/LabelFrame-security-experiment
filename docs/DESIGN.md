@@ -275,6 +275,7 @@ flowchart LR
 | 192 | 插件自描述文案多语言——spec 键化（labelKey / hintKey）＋展示端翻译、后端与插件零语言状态（缺陷 #366，2026-10-13；来源 = #364 附带发现查档（口径零登记＝迁移盲区漏网，非显式豁免）＋用户拍板 A 案（B 案「前端按 value 映射」记否决项）；契约细节见 §6.8「自描述文案多语言」） | ① **契约（加法，二进制兼容）**：`TransportParameterSpec` / `TransportParameterOption` 增 init-only 属性 `LabelKey` / `HintKey`——**构造器签名零变化**（旧插件 DLL 按旧签名编译仍可加载，#134「可选参数≠旧签名存在」教训以属性而非构造参数承接）；API DTO 同名可选字段透传，`JsonIgnore(WhenWritingNull)` 缺省不出现（旧后端 / 旧插件响应逐字节等价，#166 params 同款）。② **键空间约定**（键值即展示端词条完整路径，嵌套语言包直查）：参数 `plugin.<pluginId>.params.<paramKey>.label`、提示 `.hint`、Select 选项 `plugin.<pluginId>.params.<paramKey>.opt.<value>`、插件级展示 `plugin.<pluginId>.displayName` / `.desc` / `.name`（包 manifest 名映射）；键名稳定不随文案改（语义 key，#164 ④ 同精神）。③ **展示端翻译（#368 修订＝单轨化）**：web 语言包 `pluginLabels` 域持有 zh + en 词条（zh = 插件侧中文原文逐字一致，测试锚定）；渲染规则＝有键且有词条→词条、无键 / 无词条→spec 原文回退（第三方插件自描述原样显示，不劣化）；插件级 `DisplayName` / `Description` 的键**由插件接口声明**——`ITransportPlugin` 增 DIM（default interface member）属性 `DisplayNameKey` / `DescriptionKey`（缺省 null，旧实现 / 第三方源码与二进制均不受影响），DTO 同名可选字段透传——三类自描述文案（spec 标签 / 插件名 / 插件描述）统一为「插件声明键 → 展示端查词条回退」单一机制，前端不按 pluginId 拼键；插件管理页包名（manifest name）暂为展示端按 pluginId 查 `.name` 词条的映射（包元数据层无键声明通道，`nameKey` 随未来「插件包内嵌词条」机制整体设计，#368 范围外登记）。④ **范围**：受影响面仅 client 构建设置页（server 构建设置页不可达 #179、PDA 对插件 spec 零消费＝死数据——两端本轮零改动）；PDA 未来出现 spec 渲染点时按同键语义接 Android 资源；`Describe()` 连接摘要（USB / 驱动形态含中文词）不纳入本轮（摘要主体是 IP / 端口 / 设备名技术值，形态词残留随后续真实诉求另议） | EN 界面连接区与插件管理页无中文混排（AC-01/03）；zh 态与现状逐字一致（AC-02）；第三方 / 旧插件零破坏（缺键回退）；插件作者获得声明翻译键的标准通道，后续品牌插件（TSPL 等）按同构补键零契约变更 |
 | 193 | Docker 整合部署资源在线落位——fetch 脚本复用 install manifest（迭代 142，2026-10-13，#374；来源 = 用户场景「同事把服务端并入自有 docker-compose、一条命令在线落位资源」两轮讨论定稿：脚本形态优于每版聚合资源包附件——manifest 基础设施现成（#115）、零发版流水线改动、版本可选可钉；本条随实现 PR 入库） | ① **脚本 `scripts/fetch-server-resources.sh`**（master raw 分发，与 `install-server-linux.sh` 同模式）：消费发版既有 `install-manifest.json`——sha256 逐源强制校验 + urls 多源回退 fail-closed、行级 JSON 解析无 jq 依赖（解析 / 下载逻辑与 install-server-linux.sh 同源同构）；四类资源落位：webui zip → `plugins/web-ui/`（临时目录解压 + `mv` 原子换名，避开「放入即生效、移除即无头」检测窗口）、client-msi / pda-apk / plugin-zebra → 三个分发目录。② **版本对齐优先级**：`--version` > 同目录 `.env` 的 `LABELFRAME_VERSION`（与整合 compose 片段的镜像 tag 共用同一变量，防镜像 / 资源错配）> `releases/latest/download/` latest 通道（运行时提示所用版本）；清单 `labelframeVersion` 与钉定值不符即 fail-closed。③ **幂等语义**：已就位且 sha256 相符的包跳过下载；webui 每次重新校验展开；旧版本包保留（下载中心「最新上传」货架语义允许多版本共存）；单组件失败保留已成功组件（重跑续传）。④ **整合形态 compose 片段入 DEPLOY §4.1**：单根挂载 `./labelframe:/var/lib/labelframe`（服务端全部状态一棵树，子目录缺失 = 对应能力不启用、服务照常）、无 `container_name`（共享 compose 冲突源，同 compose 内服务名即 DNS）、`expose`/`ports` 二选一——与独立部署 compose（六挂载点 + 命名卷 + 固定容器名）为同一服务的两种分发形态，互不替代。⑤ **明确不做**：外部网络选项在线化（离线包 `install.sh` 的 `LABELFRAME_EXTERNAL_NETWORK` 机制不动，需求出现再立项）、每版资源聚合包附件（被脚本替代）、webui 烘进镜像（维持「管理界面插件化」设计定位）、反代路径前缀支持（服务端无 PathBase / X-Forwarded 处理，文档建议独立子域名 / 端口） | 集成方「复制片段 + 一条命令」完成在线整合（镜像 pull + 资源 sha256 校验落位，自证见 PR #375）；脚本网络前提 = `raw.githubusercontent.com` + GitHub Releases 可达，不可达环境仍走离线部署包；在线 compose 分发（Release compose.yml + .env）维持独立部署定位不变；API 无鉴权（局域网信任模型）随整合场景在 DEPLOY 明示——多服务网络内所有容器均可访问其 API |
 | 194 | 1.0 semver 承诺公示——公共契约四面进入稳定承诺（随 v1.0.0 发版记账入库，2026-10-13；来源 = 决策 #188 架构评审结论「四契约面零债务、可承诺 semver」＋迭代 133 立下的「下一版 1.0 须公示 semver 承诺」挂账；公示落点三处 = CHANGELOG `[1.0.0]` 段「版本承诺」小节＋README「升级与版本」章一句＋本行决策记录） | ① **承诺范围＝公共契约四面**：模板包格式 / 打印 API / 作业模型 / 插件 ABI（`.lfplugin` manifest 与插件接口）——自 1.0.0 起 minor 版本只做**兼容性新增**（可选字段 / 可选参数 / 新增端点等加法演进，延续既有实际演进形态：最短 JSON 键读取端天然忽略未知字段、`minHostVersion` 门字段已预留），不做破坏性变更（删字段 / 改语义 / 改默认值须有迁移路径方可视为兼容）；破坏性变更仅随 major 版本，且提前一版在 CHANGELOG「升级注意」公示。② **不承诺面**：内部实现与 UI 行为可自由变化（用户可感知变化走 CHANGELOG 记账）；插件包内程序集 TFM / PDA 轻量档保守 API 面（决策 #159）等既有既定约束维持原口径。③ **决策 #191 R-4（模板包 `formatVersion` 字段）**：「随 1.0 发版记账另议」的结论 = 仍挂起——属契约面加法、minor 可承载，出现真实需要（既有模板需版本判别）时按本承诺以 minor 加法落地。④ 公示文案以用户面口径书写（无内部过程标记，决策 #175 文件集约束）。 | 集成方与插件作者获得明确的兼容性预期（1.0 的核心对外承诺）；后续公共契约变更多一道「minor 只加不破」设计约束（强化路径评审判据）；semver.org 规范为版本号权威（CHANGELOG / README 均链接） |
+| 195 | TSPL 官方插件与图片编码器插件分派（迭代 143，2026-10-16，[#378](https://github.com/marci-labs/LabelFrame/issues/378)；来源 = ROADMAP 待需求「其他打印机指令集」＋#186 因无验证机与 1.0 止损线顺延、2026-10-16 用户接入 TSC TT065-60 完成免驱动双向通信实测后恢复条件达成；四项待决议经用户拍板：指令集维度单插件 / MSI 附带同款 zebra / USB 留空自动发现＋可指定 / TSPL2 基线＋反白不做） | ① **指令集维度单插件**：官方传输插件以指令集为单位——`labelframe-transport-tspl` 服务 TSC 及全部 TSPL 兼容品牌；品牌映射表扩**指令集维度**（brand → 指令集 → 组件 id → pluginId 间接映射，§6.8），新品牌只加映射行与驱动名探测关键词、不出新包。② **图片模式编码器按连接插件分派**（§5.4.1 契约加法）：新可选能力接口 `ILabelImageEncoder`（挂插件对象，与 `ILabelCommandCompiler` 同模式）；未实现（Zebra / 内置通道）维持 `^GF` 逐字节不变——semver 加法兑现。③ **二进制指令流入契约**（§5.4.1 扩展）：TSPL `BITMAP` 原始二进制经 `LabelJobItem.CommandBytes`（BLOB 加列迁移，与 `Zpl` 互斥）＋ `IPrintTransport.SendAsync(byte[])` DIM 重载（缺省抛 `NotSupportedException`，旧插件二进制兼容）承载；Worker 回放双路径。④ **TSPL2 基线**：native 编译 = TEXT / Code128 BARCODE / QRCODE / BAR 线 / BOX 矩形；反白（REVERSE）不做（图片模式已覆盖，裁剪原则）；不支持场景显式失败（`LF_ENC_*`）。⑤ **传输双通道**：TCP 9100 ＋ USB 免驱动直连（注册表 `DeviceClasses\{GUID_DEVINTERFACE_USBPRINT}` 枚举，设备路径 = 键名 `##?#`→`\\?\`，CreateFile 直开绕打印队列——2026-10-16 实测依据）；状态查询 `ESC ! ?` 单字节实时状态、带重试（实测：错误位任务后锁存、紧贴任务短暂无应答）。⑥ **MSI 附带 + 懒激活同款 zebra**（纯托管包 KB 级）；winspool 驱动通道不做（免驱动路径已覆盖）。 | Windows 端 TSPL 兼容机（文本指令集标签机最大公约数）开箱可用，1.1.0 主打特性；宿主提交链首次出现「图片编码品牌化」分派缝——后续新指令集插件按同构扩展零宿主改动；`LabelJobItem` 二进制载荷为作业模型首个 BLOB 字段（加列迁移模式为后续二进制载荷立先例）；PDA 侧 TSPL 待 Windows 真机验证后另议 |
 
 ## 5. API 概览
 
@@ -390,13 +391,29 @@ public sealed record LabelCommandCompileResult(
     string? ErrorCode,
     string? ErrorMessage,
     string? FieldKey);
+
+/// <summary>图片模式编码能力：把整张标签的 1bpp 位图编码为品牌指令集的图片打印指令（可选实现于 ITransportPlugin 同一插件对象）。</summary>
+public interface ILabelImageEncoder
+{
+    /// <summary>整版位图编码：输出含指令头尾与位图数据的完整指令流（二进制，自包含）。</summary>
+    byte[] EncodeImage(LabelBitmap bitmap, double widthMm, double heightMm, int dpi);
+}
 ```
+
+**图片模式编码器按插件分派（迭代 143，决策 #195——契约加法）**：宿主图片模式不再固定 `^GF`——提交链按**当前连接的插件**分派：插件实现 `ILabelImageEncoder`（装配期 `plugin is ILabelImageEncoder` 判定，与编译能力同挂插件对象）则用插件编码器输出品牌图片指令；**未实现（Zebra 与全部内置通道 log / tcp9100 / winspool）维持宿主 `ZplImageEncoder`（`^GF`），输出逐字节不变**。测试页端点（`POST /api/printer/test`，图片打印语义）随同一分派。首例 = TSPL `BITMAP` 整版原始二进制位图（§5.4.7 分级登记兑现）。
+
+**二进制指令流（迭代 143 扩展首版「指令为文本」边界）**：TSPL `BITMAP` 的位图数据为原始二进制（非十六进制转码），文本字符串管线不可承载，按下述口径扩展（全部加法、二进制兼容）：
+
+- **编码产出**：`ILabelImageEncoder.EncodeImage` 返回 `byte[]`（完整自包含指令流，头尾指令与位图数据一体）；文本指令（ZPL / TSPL 原生命令）仍为字符串，不经该接口。
+- **持久化**：`LabelJobItem` 增可空 `CommandBytes`（SQLite `job_items.command_bytes BLOB NULL`，`PRAGMA table_info` 探测式加列迁移，存量行 NULL）；`Zpl`（文本指令）与 `CommandBytes`（二进制指令）**互斥**——非空者即该 Item 的回放载荷，`Zpl` 语义说明同步泛化为「持久化的打印机指令（文本形态）」。幂等 / 重启续打 / 不可变持久化语义随载荷整体继承，零特判。
+- **传输**：`IPrintTransport` 增 `SendAsync(byte[] command, …)` 重载，**DIM 缺省实现抛 `NotSupportedException`**（默认接口实现 = 二进制兼容扩展——既有插件与内置通道不受影响）；不支持二进制的通道收到二进制载荷＝该 Item 显式失败（如连接中途切换到 Zebra 的存量 TSPL 作业——切换品牌后指令本就错配，二进制路径至少响亮失败而非乱打）。
+- **回放**：Worker 按非空载荷走 `SendAsync(string)` / `SendAsync(byte[])` 双路径；发送链其余语义（批内顺序 / 节流 / 失败重打）零改动。
 
 口径约定：
 
 - **实现归属**：能力实现于 `ITransportPlugin` **插件对象**（品牌级能力，与连接实例 / 传输形态无关——同一品牌 TCP / USB / 驱动连接共用一份编译器），不是 `Create()` 返回的传输实例。探测 = 注册表装配期判定 `plugin is ILabelCommandCompiler`。
 - **输入**：`LabelDocument`（版式 + 数据 + 图片资源，`LabelFrame.Core.Documents`——插件本就引用 Core，无新增依赖方向）；DPI = 宿主打印配置（`HostOptions.Dpi` / `LABELFRAME_DPI`，默认 203，与图片渲染同源）；上下文（宿主日志 / 数据目录）经 `LabelCommandCompileOptions.Context` 提供（与 `Create` 收到的 `ITransportPluginContext` 同构）。
-- **输出**：指令为**文本字符串**，与 `LabelJobItem.Zpl`（string）和 `IPrintTransport.SendAsync(string)` 同型；**整页自包含**——格式开始 / 结束、页面尺寸（ZPL `^PW` / `^LL` 同类）、打印份数等格式级指令由编译器负责，宿主不再包装追加。二进制指令流（未来品牌协议若非文本）不在首版契约，出现需求先扩本节再实施。
+- **输出**：编译指令为**文本字符串**（`LabelJobItem.Zpl` + `SendAsync(string)` 同型）；**整页自包含**——格式开始 / 结束、页面尺寸（ZPL `^PW` / `^LL` 同类）、打印份数等格式级指令由编译器负责，宿主不再包装追加。图片模式的二进制指令流按上文「二进制指令流」口径承载（迭代 143 扩展）；**编译器（native 路径）的二进制输出**出现需求仍先扩本节再实施。
 - **功能裁剪原则与排版降级（2026-09-17 用户补充口径）**：**图片模式是全功能基准模式**——模板全部能力（排版 / 对齐 / 换行 / 缩放等）以图片渲染为实现基准；原生指令模式是**按品牌官方命令支持范围裁剪的子集**，与图片模式的功能差异属预期行为而非缺陷。具体口径：
   - 自动换行（`wrap`）、缩小适应 / 缩放（`fitMode`）、行距（`lineHeight`）等排版增强（#47）**一律不实现**——指令语法通常不支持等效语义，编译器不模拟；文本超长溢出为预期常态，不因此编译失败、不做溢出校验；
   - 对齐类能力（块内 `TextAlign`、区域锚定 `RegionHAlign` / `RegionVAlign`、垂直对齐）**无指令原生等价**——ZPL 基本模型 = 定起始坐标（`^FO` / `^FT`）后绘制元素；编译器**可**按内置字体度量在编译期换算起始坐标作**尽力近似**（#110 度量机制的用武之地），但不强求：近似到什么程度以官方命令能力与度量精度为准，无法等价实现的一律裁剪（按元素起始坐标直接输出）；
@@ -416,7 +433,7 @@ public sealed record LabelCommandCompileResult(
 
 #### 5.4.3 编译时序与持久化语义（决议 3：提交时编译并持久化）
 
-- **时序**：宿主提交链路（WinHost `JobSubmissionService`——本地直连 `POST /api/jobs` 与 Server 路由领取 `HandleClaimedJobAsync` 共用同一入口）在契约校验之后、入队之前按**当前连接**分派：`printMode=image`（或缺省）→ 既有 Skia 整版渲染 → `^GF`；`printMode=native` → 插件编译器逐张编译。每张标签编译一次，产物即该 Item 的最终指令。
+- **时序**：宿主提交链路（WinHost `JobSubmissionService`——本地直连 `POST /api/jobs` 与 Server 路由领取 `HandleClaimedJobAsync` 共用同一入口）在契约校验之后、入队之前按**当前连接**分派：`printMode=image`（或缺省）→ 既有 Skia 整版渲染 → 图片指令编码按连接插件分派（`ILabelImageEncoder` 命中则插件编码，否则 `^GF`，见 §5.4.1）；`printMode=native` → 插件编译器逐张编译。每张标签编译 / 编码一次，产物即该 Item 的最终指令。
 - **持久化**：编译产物写入 `LabelJobItem.Zpl`——**字段与 SQLite 列不改名**（`zpl`，零迁移），语义泛化为「持久化的打印机指令」（图片模式 = `^GF` 位图 ZPL；原生指令模式 = 品牌原生指令）；代码注释与文档同步泛化。
 - **继承的作业语义（零改动）**：指令不可变持久化 → 服务重启续打（in-flight 重置 Pending）、失败项重打（retry）、requestId 幂等（重放返回既有作业，**不重新编译**——模板后续修改不影响已入队作业，与图片模式行为一致）、挂起 / 恢复 / 取消、批内顺序、批次节流（#74 / #100）全部继承；Worker 只回放字符串（`SendAsync(string)`），**发送路径零改动**。
 - **逐张编译的失败粒度**：任一标签编译失败 → **整体拒绝**（对齐校验 / 渲染失败「缺数据不打半张」的既有语义）：直连提交 = 请求失败（不建本地作业，错误响应 `{ code, message, fieldKey? }`）；Server 路由 = 宿主回报 Server 作业 Failed（既有 `HandleClaimedJobAsync` 失败回报路径，错误消息含问题码与中文原因）。
@@ -449,7 +466,7 @@ public sealed record LabelCommandCompileResult(
 #### 5.4.7 边界（不在本契约内）
 
 - **PDA / AndroidHost 命令打印**：AndroidHost 自迭代 96（决策 #157）已具备外置插件通道（轻量档纯托管插件），但**命令打印能力不在该通道首版范围**（PDA 打印链路维持图片模式 `^GF`）；`ILabelCommandCompiler` 能力接口面向双端插件契约（Core 共享），PDA 侧是否接入待 Windows 端真机效果验证后另行评估（届时按强化路径更新本节）。
-- **其他品牌指令集**（TSPL / CPCL / ESC）：待需求；按同构能力接口扩展（先例 #67 品牌扩展路线），不改宿主。分级登记（决策 #157 ⑦）：TSPL = 迭代 97（#186）轻量档插件；CPCL / ESC-POS 为需求触发占位（**ESC 语义待用户确认**：ESC/POS 小票 vs 针打 ESC/P2，且小票场景是否在产品定位内未定，立项前先确认）；**PostScript 不做**（A4 办公打印由 Windows `winspool` / Android 平台打印 API 远期承接）。
+- **其他品牌指令集**（TSPL / CPCL / ESC）：TSPL 已随迭代 143（[#378](https://github.com/marci-labs/LabelFrame/issues/378)，决策 #195）落地 Windows 端官方插件 `labelframe-transport-tspl`（native 编译 TEXT / BARCODE / QRCODE / BAR / BOX ＋图片模式 `BITMAP` 二进制编码＋ TCP 9100 / USB 免驱动直连＋ `ESC ! ?` 状态；模块设计见 [design/transport-plugin-tspl.md](design/transport-plugin-tspl.md)）；PDA 侧 TSPL 维持本节边界（待 Windows 端真机效果验证后另行评估）。其余按同构能力接口扩展（先例 #67 品牌扩展路线），不改宿主。分级登记（决策 #157 ⑦）：CPCL / ESC-POS 为需求触发占位（**ESC 语义待用户确认**：ESC/POS 小票 vs 针打 ESC/P2，且小票场景是否在产品定位内未定，立项前先确认）；**PostScript 不做**（A4 办公打印由 Windows `winspool` / Android 平台打印 API 远期承接）。
 - **二进制指令流 / 元素级混合模式 / 指令级预览**：分别见 §5.4.1 / §5.4.4 / §5.4.2 的「不在首版」口径，出现需求先扩本节再实施。
 
 #### 5.4.8 后续实现迭代拆分建议（Issue 级粒度，可作为立项依据）
@@ -794,15 +811,20 @@ public interface ITopologyResolver
 
 **官方插件 id 与版本流（决议 2）**：
 
-- 官方前缀 **`labelframe-`**；Zebra 插件 id = **`labelframe-transport-zebra`**（`.lfplugin` manifest.pluginId、DLL `ITransportPlugin.Id`、连接配置 pluginId 三处一致）；后续官方插件按 `labelframe-transport-<brand>` / `labelframe-<功能>` 同构扩展。
+- 官方前缀 **`labelframe-`**；Zebra 插件 id = **`labelframe-transport-zebra`**；TSPL 插件 id = **`labelframe-transport-tspl`**（指令集维度，决策 #195；`.lfplugin` manifest.pluginId、DLL `ITransportPlugin.Id`、连接配置 pluginId 三处一致）；后续官方插件按 `labelframe-transport-<brand 或指令集>` / `labelframe-<功能>` 同构扩展。
 - **版本随主版本演进**：发版流水线以当版主版本构建官方插件（`labelframe-transport-zebra-<主版本>.lfplugin` 随 Release 附件发布）——升级客户端时官方插件与新主版本同步重发，不存在独立版本流。
 - **旧内置时代 id `zebra`（≤0.26）为读取别名**：connection.json 读取时映射为官方 id（内存态，不落盘迁移；用户重新保存连接时自然写新 id）。
 
-**品牌映射表**（brand → install manifest 组件 id → 插件包 pluginId；引导品牌页选项 / 预选 / Burn 变量沿此映射，后续品牌按同构扩展）：
+**品牌映射表**（迭代 143 起扩**指令集维度**，决策 #195：brand（问卷 / 探测）→ 指令集 → install manifest 组件 id → 插件包 pluginId 间接映射；引导品牌页选项 / 预选 / Burn 变量沿此映射，后续按同构扩展）：
 
-| brand | manifest 组件 id（type=lfplugin） | 插件包 pluginId（安装目录 `plugins\<pluginId>`） | 驱动名预选关键词 |
-|---|---|---|---|
-| `zebra` | `plugin-zebra` | `labelframe-transport-zebra` | `ZDesigner` |
+**指令集维度单插件**：官方传输插件以「打印机指令集」为单位——TSPL 兼容品牌（TSC 及兼容机）共用一个 `labelframe-transport-tspl`（对指令集的了解是指令集知识而非单品牌知识；按品牌出包会随兼容品牌数量爆炸）。同一指令集纳入新品牌只加 brand 映射行与驱动名探测关键词，不出新包、零代码变更。Zebra 既有行维持原 id 不动（历史既成，且 ZPL 指令集与 Zebra 品牌当前一一对应）：
+
+| 指令集 | brand（问卷选项 / 探测 id） | manifest 组件 id（type=lfplugin） | 插件包 pluginId（安装目录 `plugins\<pluginId>`） | 驱动名预选关键词 |
+|---|---|---|---|---|
+| ZPL | `zebra` | `plugin-zebra` | `labelframe-transport-zebra` | `ZDesigner` |
+| TSPL | `tspl` | `plugin-tspl` | `labelframe-transport-tspl` | `TSC` |
+
+**MSI 附带与懒激活（TSPL 同款 zebra，决策 #195）**：客户端 MSI 附带 `plugin-packages\labelframe-transport-tspl-<版本>.lfplugin`（纯托管包 KB 级）；启动懒激活兜底与 zebra 同构——connection.json 引用该插件 id 且未安装时自动从附带包安装（`OfficialPluginMigration` 统一承载 zebra / tspl 官方 id 清单，机制不变仅扩表）；引导品牌页勾选 `tspl` → `TsplPluginPlacement` 落位包 + 成对清理包（决策 #133 机制按品牌变量同构扩展）。
 
 **彻底外置（决议 1，AC-01）**：客户端核心不保留内置 zebra 兜底——未装外置包时该品牌不可用（传输插件列表无此选项；连接配置引用该插件时回退默认连接 + host.log 中文留痕，不崩溃）；WinHost 不再引用 Zebra.Printer.SDK，SDK 依赖随插件包分发（包体积须守 `.lfplugin` 64MB 上限，构建脚本实测断言）。SDK 许可证口径不变（#111 ⑧：SDK 以目标码随应用集成分发——`.lfplugin` 属 LabelFrame 应用集成形态，非单独分发 SDK 本体）。
 

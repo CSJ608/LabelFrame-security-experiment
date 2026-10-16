@@ -84,6 +84,10 @@ public sealed class TransportPluginRegistry : ITransportPluginRegistry
         => id is not null && _plugins.TryGetValue(id, out var p) ? p.Plugin as ILabelCommandCompiler : null;
 
     /// <inheritdoc />
+    public ILabelImageEncoder? GetImageEncoder(string id)
+        => id is not null && _plugins.TryGetValue(id, out var p) ? p.Plugin as ILabelImageEncoder : null;
+
+    /// <inheritdoc />
     public IPrintTransport CreateTransport(string id, TransportPluginParameters parameters, ITransportPluginContext context)
     {
         if (id is null || !_plugins.TryGetValue(id, out var p))

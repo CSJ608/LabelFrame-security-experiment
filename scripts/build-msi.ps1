@@ -26,23 +26,29 @@ Copy-Item (Join-Path $root 'packaging\appsettings.json') (Join-Path $publishDir 
 $filesWxs = Join-Path $root 'packaging\files-client.wxs'
 & (Join-Path $root 'packaging\generate-files.ps1') -PublishDir $publishDir -OutFile $filesWxs -GuidSalt 'client'
 
-# 3b) 官方插件附带包（迭代 63，决策 #123）：检测 artifacts 下的 Zebra .lfplugin → 随 MSI 携带
-#     （plugin-packages\ 目录，供 ZebraPluginMigration 存量升级自动安装；无产物时跳过——本地裸构建）
-$zebraPackageArgs = @()
-$zebraPackage = Get-ChildItem (Join-Path $root 'artifacts') -Filter 'labelframe-transport-zebra-*.lfplugin' -ErrorAction SilentlyContinue |
-    Sort-Object Name -Descending | Select-Object -First 1
-if ($zebraPackage) {
-    $zebraPackageArgs = @('-d', "ZebraPluginPackage=$($zebraPackage.FullName)")
-    Write-Host "随 MSI 附带官方插件包：$($zebraPackage.Name)"
-} else {
-    Write-Host '未找到 Zebra 官方插件包产物（artifacts\labelframe-transport-zebra-*.lfplugin），本次 MSI 不附带（先运行 scripts\build-zebra-plugin.ps1）'
+# 3b) 官方插件附带包（迭代 63，决策 #123；迭代 143 扩 TSPL，决策 #195）：检测 artifacts 下的官方 .lfplugin → 随 MSI 携带
+#     （plugin-packages\ 目录，供 OfficialPluginMigration 存量升级自动安装；无产物时跳过——本地裸构建）
+$pluginPackageArgs = @()
+$officialPlugins = @(
+    @{ Id = 'zebra'; Var = 'ZebraPluginPackage' },
+    @{ Id = 'tspl';  Var = 'TsplPluginPackage' }
+)
+foreach ($plugin in $officialPlugins) {
+    $package = Get-ChildItem (Join-Path $root 'artifacts') -Filter "labelframe-transport-$($plugin.Id)-*.lfplugin" -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    if ($package) {
+        $pluginPackageArgs += @('-d', "$($plugin.Var)=$($package.FullName)")
+        Write-Host "随 MSI 附带官方插件包：$($package.Name)"
+    } else {
+        Write-Host "未找到 $($plugin.Id) 官方插件包产物（artifacts\labelframe-transport-$($plugin.Id)-*.lfplugin），本次 MSI 不附带（先运行 scripts\build-$($plugin.Id)-plugin.ps1）"
+    }
 }
 
 # 4) wix build
 $msi = Join-Path $root "artifacts\LabelFrame-Client-$Version.msi"
 $global:LASTEXITCODE = 0
 & $wix eula accept wix7 2>$null | Out-Null
-& $wix build (Join-Path $root 'packaging\main.wxs') $filesWxs -d PublishDir=$publishDir -d Version=$Version -d AssetsDir=$(Join-Path $root 'assets') -d LicenseRtf=$(Join-Path $root 'packaging\license.rtf') -d PackagingDir=$(Join-Path $root 'packaging') @zebraPackageArgs -o $msi -arch x64 -ext WixToolset.NetFx.wixext -ext WixToolset.UI.wixext -culture zh-cn 2>&1 | Write-Host
+& $wix build (Join-Path $root 'packaging\main.wxs') $filesWxs -d PublishDir=$publishDir -d Version=$Version -d AssetsDir=$(Join-Path $root 'assets') -d LicenseRtf=$(Join-Path $root 'packaging\license.rtf') -d PackagingDir=$(Join-Path $root 'packaging') @pluginPackageArgs -o $msi -arch x64 -ext WixToolset.NetFx.wixext -ext WixToolset.UI.wixext -culture zh-cn 2>&1 | Write-Host
 if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }
 
 # 4b) 发布工件依赖降版回归断言（迭代 64 返修，#57 AC-01，决策 #130）：

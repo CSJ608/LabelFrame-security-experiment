@@ -1,0 +1,263 @@
+using System.Text;
+using LabelFrame.Core.Transport;
+using LabelFrame.Core.Transport.Plugins;
+using LabelFrame.TransportPlugin.Tspl;
+
+namespace LabelFrame.WinHost.Tests.Transport;
+
+/// <summary>
+/// TSPL 传输单测（mock 链路，AC-03）：发送（文本 UTF-8 / 二进制透传）、ESC ! ? 状态语义（单字节位映射）与
+/// 重试（无应答重试 / 三次全无离线）、USB 设备发现（留空自动发现第一台 / 名称匹配 / 无设备与无匹配可行动错误）、
+/// 连接测试（有应答即就绪）、参数构造（TCP 缺地址拒绝）。不碰真机（本轮零真机口径）。
+/// </summary>
+public class TsplPrinterTransportTests
+{
+    /// <summary>假链路：捕获写入字节序列，按写入次数逐条回放读回应答（null = 该次无应答）。</summary>
+    private sealed class FakeLink : ITsplLink
+    {
+        private readonly Queue<byte[]?> _reads;
+        public List<byte[]> Writes { get; } = [];
+
+        public FakeLink(params byte[]?[] reads) => _reads = new Queue<byte[]?>(reads);
+
+        public void Write(byte[] buffer, int timeoutMs) => Writes.Add(buffer);
+
+        public byte[]? Read(int maxBytes, int timeoutMs) => _reads.Count > 0 ? _reads.Dequeue() : null;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private static TsplPrinterTransport CreateTcp(FakeLink link)
+        => new(TsplTransportKind.Tcp, "192.168.1.50", 9100, usbName: null, openTcpLink: () => link, openUsbLink: null, listUsbDevices: () => []);
+
+    private static TsplPrinterTransport CreateUsb(
+        FakeLink link,
+        IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> devices,
+        string? usbName = null)
+        => new(TsplTransportKind.Usb, null, 9100, usbName, openTcpLink: null, openUsbLink: _ => link, listUsbDevices: () => devices);
+
+    private static UsbPrinterDeviceDiscovery.UsbPrinterDevice Device(string displayName, string path)
+        => new(displayName, path);
+
+    // ──发送──
+
+    [Fact]
+    public async Task SendAsync_text_should_write_utf8_bytes()
+    {
+        var link = new FakeLink();
+        var transport = CreateTcp(link);
+
+        await transport.SendAsync("SIZE 40 mm,20 mm\r\nCLS\r\nPRINT 1\r\n");
+
+        var write = Assert.Single(link.Writes);
+        Assert.Equal("SIZE 40 mm,20 mm\r\nCLS\r\nPRINT 1\r\n", Encoding.UTF8.GetString(write));
+    }
+
+    [Fact]
+    public async Task SendAsync_binary_should_pass_through_bytes()
+    {
+        var link = new FakeLink();
+        var transport = CreateTcp(link);
+        var payload = new byte[] { 0x53, 0x49, 0x5A, 0x45, 0x00, 0xFF, 0x0D, 0x0A, 0x80 };
+
+        await transport.SendAsync(payload);
+
+        Assert.Equal(payload, Assert.Single(link.Writes));
+    }
+
+    [Fact]
+    public void Constructor_tcp_without_host_should_throw()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => new TsplPrinterTransport(TsplTransportKind.Tcp));
+        Assert.Contains("TCP", ex.Message);
+    }
+
+    // ──ESC ! ? 状态语义──
+
+    [Theory]
+    [InlineData(0x00, true, false, null)]
+    [InlineData(0x04, true, true, "缺纸")]
+    [InlineData(0x10, true, false, "暂停")]
+    [InlineData(0x01, true, false, "打印头")]
+    [InlineData(0x02, true, false, "卡纸")]
+    [InlineData(0x08, true, false, "色带")]
+    public void ParseStatusByte_should_map_tspl2_bits(byte status, bool online, bool paperOut, string? messagePart)
+    {
+        var info = TsplPrinterTransport.ParseStatusByte(status);
+        Assert.Equal(online, info.IsOnline);
+        Assert.Equal(paperOut, info.IsPaperOut);
+        if (messagePart is null)
+        {
+            Assert.Null(info.Message);
+        }
+        else
+        {
+            Assert.Contains(messagePart, info.Message);
+        }
+    }
+
+    [Fact]
+    public async Task GetStatus_should_query_with_esc_and_retry_on_empty_responses()
+    {
+        // 前两次无应答（任务后短暂无应答语义）、第三次 0x00 → 在线；共三轮查询
+        var link = new FakeLink(null, null, new byte[] { 0x00 });
+        var transport = CreateTcp(link);
+
+        var status = await transport.GetStatusAsync();
+
+        Assert.True(status.IsOnline);
+        Assert.False(status.IsPaperOut);
+        Assert.Equal(3, link.Writes.Count);
+        Assert.All(link.Writes, write => Assert.Equal(new byte[] { 0x1B, 0x21, 0x3F }, write));
+    }
+
+    [Fact]
+    public async Task GetStatus_all_retries_empty_should_report_offline()
+    {
+        var link = new FakeLink();
+        var transport = CreateTcp(link);
+
+        var status = await transport.GetStatusAsync();
+
+        Assert.False(status.IsOnline);
+        Assert.Contains("无应答", status.Message);
+        Assert.Equal(3 /* StatusRetryCount（internal 常量） */, link.Writes.Count);
+    }
+
+    [Fact]
+    public async Task GetStatus_paper_out_bit_should_report_paper_out()
+    {
+        var link = new FakeLink(new byte[] { 0x04 });
+        var transport = CreateTcp(link);
+
+        var status = await transport.GetStatusAsync();
+
+        Assert.True(status.IsOnline);
+        Assert.True(status.IsPaperOut);
+        Assert.Contains("缺纸", status.Message);
+    }
+
+    // ──连接测试──
+
+    [Fact]
+    public async Task TestAsync_with_response_should_return_null()
+    {
+        var link = new FakeLink(new byte[] { 0x00 });
+        var transport = CreateTcp(link);
+
+        Assert.Null(await transport.TestAsync());
+    }
+
+    [Fact]
+    public async Task TestAsync_without_response_should_return_failure_message()
+    {
+        var link = new FakeLink();
+        var transport = CreateTcp(link);
+
+        var message = await transport.TestAsync();
+        Assert.NotNull(message);
+        Assert.Contains("无应答", message);
+    }
+
+    // ──USB 设备发现──
+
+    [Fact]
+    public async Task Usb_send_without_name_should_pick_first_discovered_device()
+    {
+        var link = new FakeLink();
+        var devices = new[]
+        {
+            Device("USB\\VID_0A5F&PID_0168\\DMJ1", "\\\\?\\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}"),
+            Device("USB\\VID_1203&PID_0273\\000001", "\\\\?\\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}"),
+        };
+        var transport = CreateUsb(link, devices);
+
+        await transport.SendAsync("PRINT 1\r\n");
+
+        Assert.Single(link.Writes); // 首台设备开链发送成功（无异常即命中 devices[0]）
+    }
+
+    [Fact]
+    public async Task Usb_send_without_devices_should_throw_actionable_error()
+    {
+        var link = new FakeLink();
+        var transport = CreateUsb(link, []);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendAsync("PRINT 1\r\n"));
+        Assert.Contains("未发现 USB 打印机", ex.Message);
+    }
+
+    [Fact]
+    public async Task Usb_send_with_exact_name_should_match_device()
+    {
+        var link = new FakeLink();
+        var devices = new[]
+        {
+            Device("USB\\VID_0A5F&PID_0168\\DMJ1", "\\\\?\\usb#vid_0a5f#path1"),
+            Device("USB\\VID_1203&PID_0273\\000001", "\\\\?\\usb#vid_1203#path2"),
+        };
+        var transport = CreateUsb(link, devices, usbName: "USB\\VID_1203&PID_0273\\000001");
+
+        await transport.SendAsync("PRINT 1\r\n");
+
+        Assert.Single(link.Writes);
+    }
+
+    [Fact]
+    public async Task Usb_send_with_partial_vid_name_should_match_by_contains()
+    {
+        var link = new FakeLink();
+        var devices = new[]
+        {
+            Device("USB\\VID_0A5F&PID_0168\\DMJ1", "\\\\?\\usb#vid_0a5f#path1"),
+            Device("USB\\VID_1203&PID_0273\\000001", "\\\\?\\usb#vid_1203#path2"),
+        };
+        var transport = CreateUsb(link, devices, usbName: "VID_1203");
+
+        await transport.SendAsync("PRINT 1\r\n");
+
+        Assert.Single(link.Writes);
+    }
+
+    [Fact]
+    public async Task Usb_send_with_unknown_name_should_list_available_devices()
+    {
+        var link = new FakeLink();
+        var devices = new[]
+        {
+            Device("USB\\VID_0A5F&PID_0168\\DMJ1", "\\\\?\\usb#vid_0a5f#path1"),
+        };
+        var transport = CreateUsb(link, devices, usbName: "VID_9999");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendAsync("PRINT 1\r\n"));
+        Assert.Contains("VID_9999", ex.Message);
+        Assert.Contains("VID_0A5F", ex.Message); // 可用设备清单列出
+    }
+
+    // ──插件构造与描述──
+
+    [Fact]
+    public void Create_from_parameters_should_parse_kind()
+    {
+        var plugin = new TsplTransportPlugin();
+        var transport = plugin.Create(
+            new TransportPluginParameters(new Dictionary<string, string> { ["kind"] = "Usb", ["usbName"] = "VID_1203" }),
+            new TransportPluginContext(TextWriter.Null, Path.GetTempPath()));
+
+        Assert.IsType<TsplPrinterTransport>(transport);
+    }
+
+    [Fact]
+    public void Describe_should_reflect_kind_and_mode()
+    {
+        var plugin = new TsplTransportPlugin();
+        Assert.Equal("TSPL TCP 10.0.0.9:9100", plugin.Describe(new TransportPluginParameters(new Dictionary<string, string> { ["kind"] = "Tcp", ["host"] = "10.0.0.9" })));
+        Assert.Equal("TSPL USB（自动发现）（原生指令）", plugin.Describe(new TransportPluginParameters(new Dictionary<string, string>
+        {
+            ["kind"] = "Usb",
+            ["printMode"] = "native",
+        })));
+    }
+}

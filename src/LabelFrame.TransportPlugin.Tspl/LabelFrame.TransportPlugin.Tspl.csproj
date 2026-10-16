@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TSPL 指令集传输官方插件工程（决策 #195）：外置 .lfplugin 包（scripts/build-tspl-plugin.ps1 构建），
+       指令集维度单插件——服务 TSC 及全部 TSPL 兼容品牌。纯托管（零第三方依赖，仅引用 Core），包体 KB 级。
+       目标框架须与 WinHost windows 腿一致——插件 DLL 由宿主运行时字节加载，TFM 越前即破坏装配。 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100</TargetFramework>
+    <RootNamespace>LabelFrame.TransportPlugin.Tspl</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LabelFrame.Core\LabelFrame.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -67,6 +67,7 @@
     <Variable Name="InstallClient" Type="numeric" Value="0" />
     <Variable Name="InstallWebUi" Type="numeric" Value="0" />
     <Variable Name="InstallPluginZebra" Type="numeric" Value="0" />
+    <Variable Name="InstallPluginTspl" Type="numeric" Value="0" />
     <!-- 运行时探测变量：BA 于 Detect 前写入，runtime 包 DetectCondition 消费（真 = 已装跳过） -->
     <Variable Name="DesktopRuntimeInstalled" Type="numeric" Value="0" />
     <Variable Name="AspNetCoreRuntimeInstalled" Type="numeric" Value="0" />
@@ -78,10 +79,12 @@
          UninstallArguments [变量] 引用同样可解析），落位包 InstallArguments 以 [变量] 引用 -->
     <Variable Name="WebUiTargetDir" Type="string" Value="" />
     <Variable Name="PluginZebraTargetDir" Type="string" Value="" />
+    <Variable Name="PluginTsplTargetDir" Type="string" Value="" />
     <!-- 落位凭据探测变量：BA 启动期读落位目录凭据文件（.labelframe-bundle-placement）比对
          WixBundleVersion 写入——清理包 DetectCondition 消费（真 = 本版本 Bundle 落位在位 → Present） -->
     <Variable Name="WebUiPlacementPresent" Type="numeric" Value="0" />
     <Variable Name="ZebraPluginPlacementPresent" Type="numeric" Value="0" />
+    <Variable Name="TsplPluginPlacementPresent" Type="numeric" Value="0" />
 
     <Chain>
       <!-- 1) .NET 10 Desktop Runtime x64：缺失才装、已装跳过；共享系统组件不随 bundle 卸载。
@@ -215,6 +218,36 @@
                   DetectCondition="ZebraPluginPlacementPresent"
                   InstallCondition="InstallPluginZebra"
                   UninstallArguments="-clean -target &quot;[PluginZebraTargetDir]&quot;">
+        <PayloadGroupRef Id="PayloadToolDependencies" />
+      </ExePackage>
+
+      <!-- 10) TSPL 官方插件 .lfplugin 落位（指令集维度，决策 #195；机制同 8） -->
+      <ExePackage Id="TsplPluginPlacement"
+                  CacheId="TsplPluginPlacement.$(var.BundleVersion)"
+                  SourceFile="$(var.PayloadToolPath)"
+                  Name="LabelFrame.PayloadTool.exe"
+                  Compressed="yes"
+                  Permanent="yes"
+                  PerMachine="yes"
+                  InstallCondition="InstallPluginTspl"
+                  InstallArguments="-plugin -archive labelframe-transport-tspl-$(var.ProductVersion).lfplugin -version $(var.ProductVersion) -target &quot;[PluginTsplTargetDir]&quot;">
+        <PayloadGroupRef Id="PayloadToolDependencies" />
+        <Payload SourceFile="$(var.TsplPluginPath)"
+                 Name="labelframe-transport-tspl-$(var.ProductVersion).lfplugin"
+                 Compressed="no"
+                 DownloadUrl="$(var.DownloadBase)/labelframe-transport-tspl-$(var.ProductVersion).lfplugin" />
+      </ExePackage>
+
+      <!-- 11) tspl 成对清理包（同 9） -->
+      <ExePackage Id="TsplPluginPlacementCleanup"
+                  CacheId="TsplPluginPlacementCleanup.$(var.BundleVersion)"
+                  SourceFile="$(var.PayloadToolPath)"
+                  Name="LabelFrame.PayloadTool.exe"
+                  Compressed="yes"
+                  PerMachine="yes"
+                  DetectCondition="TsplPluginPlacementPresent"
+                  InstallCondition="InstallPluginTspl"
+                  UninstallArguments="-clean -target &quot;[PluginTsplTargetDir]&quot;">
         <PayloadGroupRef Id="PayloadToolDependencies" />
       </ExePackage>
     </Chain>

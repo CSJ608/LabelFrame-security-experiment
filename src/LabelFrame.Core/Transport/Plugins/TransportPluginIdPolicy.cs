@@ -12,13 +12,17 @@ public static class TransportPluginIdPolicy
     /// <summary>Zebra 品牌传输官方插件 id（.lfplugin manifest.pluginId / DLL 插件 Id / 连接配置 pluginId 三处一致）。</summary>
     public const string ZebraPluginId = "labelframe-transport-zebra";
 
+    /// <summary>TSPL 指令集传输官方插件 id（指令集维度单插件，决策 #195：服务 TSC 及全部 TSPL 兼容品牌）。</summary>
+    public const string TsplPluginId = "labelframe-transport-tspl";
+
     /// <summary>旧内置时代 Zebra 插件 id（≤0.26 客户端内置；读取别名，不落盘迁移）。</summary>
     public const string LegacyZebraPluginId = "zebra";
 
-    /// <summary>品牌 id（引导问卷 / install manifest plugin-&lt;brand&gt; 后缀）→ 官方插件包 pluginId 映射（品牌映射表；后续品牌同构扩展）。</summary>
+    /// <summary>品牌 id（引导问卷 / install manifest plugin-&lt;brand&gt; 后缀）→ 官方插件包 pluginId 映射（品牌映射表；tspl 行 = 指令集维度——TSPL 兼容品牌共用一个插件，后续品牌 / 指令集同构扩展）。</summary>
     public static readonly IReadOnlyDictionary<string, string> BrandPluginIds = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["zebra"] = ZebraPluginId,
+        ["tspl"] = TsplPluginId,
     };
 
     /// <summary>内置传输插件保留 id（客户端核心 + WinHost 内置，禁止外部包占用；服务端上传拒绝）。</summary>

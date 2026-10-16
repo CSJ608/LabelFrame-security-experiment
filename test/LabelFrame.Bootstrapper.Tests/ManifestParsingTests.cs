@@ -9,21 +9,23 @@ public sealed class ManifestParsingTests
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Manifests", fileName));
 
     [Fact]
-    public void Parse_current_manifest_should_load_six_components()
+    public void Parse_current_manifest_should_load_seven_components()
     {
-        // 对齐当前 CI 产物现状：六组件（官方插件 plugin-zebra 已收录）、dependsOn 全空
+        // 对齐当前 CI 产物现状：七组件（官方插件 plugin-zebra / plugin-tspl 已收录）、dependsOn 全空
         var manifest = InstallManifest.Parse(LoadFixture("install-manifest.current.json"));
 
         Assert.Equal(1, manifest.SchemaVersion);
         Assert.Equal("0.27.0", manifest.LabelframeVersion);
         Assert.Equal(
-            new[] { "server-msi", "client-msi", "webui", "linux-server", "pda-apk", "plugin-zebra" }.ToList(),
+            new[] { "server-msi", "client-msi", "webui", "linux-server", "pda-apk", "plugin-zebra", "plugin-tspl" }.ToList(),
             manifest.Components.Select(component => component.Id).ToList());
         Assert.All(manifest.Components, component => Assert.Empty(component.DependsOn));
         Assert.All(manifest.Components, component => Assert.Single(component.Urls));
         var plugin = Assert.Single(manifest.Components, component => component.Id == "plugin-zebra");
         Assert.Equal("lfplugin", plugin.Type);
         Assert.Equal("0.27.0", plugin.Version);  // 官方插件版本 = 主版本
+        var tspl = Assert.Single(manifest.Components, component => component.Id == "plugin-tspl");
+        Assert.Equal("lfplugin", tspl.Type);
     }
 
     [Fact]
@@ -44,7 +46,7 @@ public sealed class ManifestParsingTests
         // 全量形态 fixture：runtime 双条目 + dependsOn 闭包 + plugin-zebra 条目
         var manifest = InstallManifest.Parse(LoadFixture("install-manifest.full.json"));
 
-        Assert.Equal(9, manifest.Components.Count);
+        Assert.Equal(10, manifest.Components.Count);
         Assert.Contains(manifest.Components, component => component.Id == "runtime-desktop" && component.Type == "runtime");
         Assert.Contains(manifest.Components, component => component.Id == "runtime-aspnetcore" && component.Type == "runtime");
         Assert.Contains(manifest.Components, component => component.Id == "plugin-zebra" && component.Type == "lfplugin");
@@ -106,6 +108,6 @@ public sealed class ManifestParsingTests
             .Replace("\"generatedAt\": \"2026-09-14T03:00:00Z\",", "\"generatedAt\": \"2026-09-14T03:00:00Z\", \"futureOptionalField\": \"whatever\",");
 
         var manifest = InstallManifest.Parse(json);
-        Assert.Equal(6, manifest.Components.Count);
+        Assert.Equal(7, manifest.Components.Count);
     }
 }

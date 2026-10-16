@@ -57,9 +57,10 @@ $serverMsi = Join-Path $MsiDir "LabelFrame-Server-$Version.msi"
 $clientMsi = Join-Path $MsiDir "LabelFrame-Client-$Version.msi"
 $webUiZip = Join-Path $MsiDir "labelframe-server-webui-$Version.zip"
 $zebraPlugin = Join-Path $MsiDir "labelframe-transport-zebra-$Version.lfplugin"
-foreach ($artifact in @($serverMsi, $clientMsi, $webUiZip, $zebraPlugin)) {
+$tsplPlugin = Join-Path $MsiDir "labelframe-transport-tspl-$Version.lfplugin"
+foreach ($artifact in @($serverMsi, $clientMsi, $webUiZip, $zebraPlugin, $tsplPlugin)) {
     if (-not (Test-Path -LiteralPath $artifact)) {
-        throw "未找到 $artifact —— 请先运行 scripts\build-server-msi.ps1、scripts\build-msi.ps1、scripts\package-server-webui.ps1 与 scripts\build-zebra-plugin.ps1 生成产物。"
+        throw "未找到 $artifact —— 请先运行 scripts\build-server-msi.ps1、scripts\build-msi.ps1、scripts\package-server-webui.ps1、scripts\build-zebra-plugin.ps1 与 scripts\build-tspl-plugin.ps1 生成产物。"
     }
 }
 
@@ -117,7 +118,7 @@ $global:LASTEXITCODE = 0
     -d "ProductVersion=$Version" -d "BundleVersion=$Version" -d "DownloadBase=$DownloadBase" `
     -d "AssetsDir=$(Join-Path $root 'assets')\" `
     -d "PayloadToolPath=$payloadToolDir\LabelFrame.Bootstrapper.PayloadTool.exe" -d "PayloadToolDir=$payloadToolDir\" `
-    -d "WebUiZipPath=$webUiZip" -d "ZebraPluginPath=$zebraPlugin" `
+    -d "WebUiZipPath=$webUiZip" -d "ZebraPluginPath=$zebraPlugin" -d "TsplPluginPath=$tsplPlugin" `
     -d "RuntimeDesktopPath=$($desktopRuntime.Path)" -d "RuntimeDesktopUrl=$($desktopRuntime.Url)" -d "RuntimeDesktopVersion=$($desktopRuntime.Version)" `
     -d "RuntimeAspNetCorePath=$($aspnetCoreRuntime.Path)" -d "RuntimeAspNetCoreUrl=$($aspnetCoreRuntime.Url)" -d "RuntimeAspNetCoreVersion=$($aspnetCoreRuntime.Version)" `
     -o $bundleExe -arch x64 2>&1 | Write-Host

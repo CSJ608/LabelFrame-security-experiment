@@ -45,6 +45,30 @@
           }
         }
       }
+    },
+    "labelframe-transport-tspl": {
+      "displayName": "TSPL（TSC 及兼容）",
+      "desc": "TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态（官方插件）。原生指令模式下文本不支持中文（打印机内置字体无汉字字形），中文请用图片模式。",
+      "name": "TSPL 指令集传输（官方）",
+      "params": {
+        "kind": {
+          "label": "连接类型",
+          "opt": {
+            "Usb": "USB（免驱动直连）"
+          }
+        },
+        "host": { "label": "打印机地址 / IP", "hint": "如 192.168.1.50" },
+        "port": { "label": "端口" },
+        "usbName": { "label": "USB 打印机名", "hint": "留空 = 自动发现第一台；可填 VID（如 VID_1203）或设备名" },
+        "printMode": {
+          "label": "打印方式",
+          "hint": "原生指令模式无预览，效果以真机为准；该模式下文本不支持中文（打印机内置字体无汉字字形），中文请用图片模式",
+          "opt": {
+            "image": "图片（默认）",
+            "native": "原生指令"
+          }
+        }
+      }
     }
   }
 }

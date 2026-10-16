@@ -16,6 +16,9 @@ public interface ITransportPluginRegistry
     /// <summary>按 ID 取插件的文档编译能力（插件不存在或未实现 ILabelCommandCompiler 返回 null）。</summary>
     ILabelCommandCompiler? GetCommandCompiler(string id);
 
+    /// <summary>按 ID 取插件的图片模式编码能力（插件不存在或未实现 ILabelImageEncoder 返回 null；null 时宿主用默认 ^GF 编码器）。</summary>
+    ILabelImageEncoder? GetImageEncoder(string id);
+
     /// <summary>按 ID + 参数创建传输实例（插件不存在抛异常）。</summary>
     IPrintTransport CreateTransport(string id, TransportPluginParameters parameters, ITransportPluginContext context);
 

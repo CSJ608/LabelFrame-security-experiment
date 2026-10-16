@@ -19,7 +19,8 @@ param(
     [Parameter(Mandatory = $true)][string]$MsiPath
 )
 $ErrorActionPreference = 'Stop'
-$pluginId = 'labelframe-transport-zebra'
+# 官方插件 id 清单（迭代 143 起双插件，决策 #195）：逐 id 断言附带包在位
+$pluginIds = @('labelframe-transport-zebra', 'labelframe-transport-tspl')
 $pluginDirName = 'plugin-packages'
 
 if (-not (Test-Path $MsiPath)) { throw "MSI 不存在：$MsiPath" }
@@ -64,9 +65,10 @@ foreach ($row in (Read-MsiTable $db 'SELECT Directory, DefaultDir FROM Directory
 
 $hits = @()
 $misplaced = @()
+$missingIds = @()
 foreach ($row in $files) {
     $fileName = Get-LongName $row[0]
-    if ($fileName -notlike "$pluginId-*.lfplugin") { continue }
+    if ($fileName -notlike "labelframe-transport-*.lfplugin") { continue }
     $dirId = $componentDir[$row[1]]
     $dirName = ''
     if ($dirId -and $dirNames.ContainsKey($dirId)) { $dirName = $dirNames[$dirId] }
@@ -77,13 +79,21 @@ foreach ($row in $files) {
     }
 }
 
-if ($hits.Count -eq 0) {
-    Write-Host "断言失败：MSI File 表无 $pluginDirName\$pluginId-<版本>.lfplugin" -ForegroundColor Red
+# 逐官方插件 id 断言附带包在位（缺任一即 fail-closed）
+foreach ($pluginId in $pluginIds) {
+    $matched = @($hits | Where-Object { $_ -like "*\ $pluginId-*" -or $_ -like "*\$pluginId-*" })
+    if ($matched.Count -eq 0) { $missingIds += $pluginId }
+}
+
+if ($missingIds.Count -gt 0) {
+    foreach ($pluginId in $missingIds) {
+        Write-Host "断言失败：MSI File 表无 $pluginDirName\$pluginId-<版本>.lfplugin" -ForegroundColor Red
+    }
     foreach ($m in $misplaced) { Write-Host $m -ForegroundColor Red }
     Write-Host '  （build-msi.ps1 打包时未检测到 artifacts 下的 .lfplugin 产物——发版链请确认插件包构建步骤先于 Client MSI 打包）' -ForegroundColor Red
-    throw "Client MSI 未附带官方插件包（$pluginDirName\$pluginId-*.lfplugin 缺失，#97 fail-closed）"
+    throw "Client MSI 未附带官方插件包（缺失：$($missingIds -join ' / ')，#97 / #378 fail-closed）"
 }
 
 foreach ($h in $hits) { Write-Host $h }
 foreach ($m in $misplaced) { Write-Host $m -ForegroundColor Yellow }
-Write-Host "断言通过：Client MSI 附带官方插件包（File 表 $($hits.Count) 处命中，决策 #123 存量升级自动安装源在位）。"
+Write-Host "断言通过：Client MSI 附带官方插件包（File 表 $($hits.Count) 处命中，决策 #123 / #195 存量升级自动安装源在位）。"

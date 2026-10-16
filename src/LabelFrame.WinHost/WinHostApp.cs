@@ -64,7 +64,7 @@ public static class WinHostApp
         transportRegistry.Register(new WinspoolTransportPlugin());
 
         // 迁移须先于下方外部插件目录扫描执行——本次启动即完成装配
-        ZebraPluginMigration.Run(options, hostLogWriter, hostInfo);
+        OfficialPluginMigration.Run(options, hostLogWriter, hostInfo);
 #else
         options.Transport = TransportMode.Log;
         transportRegistry.Register(new LogTransportPlugin());

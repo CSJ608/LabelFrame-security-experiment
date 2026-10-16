@@ -21,6 +21,8 @@ public static class ChainPackageMap
             ["WebUiPlacementCleanup"] = "webui",
             ["ZebraPluginPlacement"] = "plugin-zebra",
             ["ZebraPluginPlacementCleanup"] = "plugin-zebra",
+            ["TsplPluginPlacement"] = "plugin-tspl",
+            ["TsplPluginPlacementCleanup"] = "plugin-tspl",
         };
 
     /// <summary>manifest 组件 id → 链包 id（反向；同组件多包时取声明序靠前者 = 落位包）。</summary>

@@ -188,6 +188,13 @@ jobs:
           & .\scripts\build-zebra-plugin.ps1 -Version $env:VERSION
           if ($LASTEXITCODE -ne 0) { throw 'Zebra 插件包构建失败' }
 
+      # TSPL 官方插件（迭代 143，决策 #195）：与 zebra 同链构建——MSI 附带 + Release 附件 + Bundle 落位
+      - name: 构建 TSPL 官方插件包（.lfplugin）
+        shell: pwsh
+        run: |
+          & .\scripts\build-tspl-plugin.ps1 -Version $env:VERSION
+          if ($LASTEXITCODE -ne 0) { throw 'TSPL 插件包构建失败' }
+
       - name: 打包 Client MSI
         shell: pwsh
         env:
@@ -248,6 +255,7 @@ jobs:
             artifacts/labelframe-server-webui-*.zip
             artifacts/labelframe-server-*-linux-x64.tar.gz
             artifacts/labelframe-transport-zebra-*.lfplugin
+            artifacts/labelframe-transport-tspl-*.lfplugin
           if-no-files-found: error
 
   android:
@@ -578,6 +586,7 @@ jobs:
             --client-package "release/LabelFrame-Client-$VERSION.msi" \
             --pda-package "release/LabelFrame-AndroidHost-$VERSION.apk" \
             --plugin-package "release/labelframe-transport-zebra-$VERSION.lfplugin" \
+            --plugin-package "release/labelframe-transport-tspl-$VERSION.lfplugin" \
             --webui-zip "release/labelframe-server-webui-$VERSION.zip" \
             -o bundle
 
@@ -594,6 +603,7 @@ jobs:
           ls packages/client/LabelFrame-Client-$VERSION.msi >/dev/null
           ls packages/pda/LabelFrame-AndroidHost-$VERSION.apk >/dev/null
           ls packages/plugin/labelframe-transport-zebra-$VERSION.lfplugin >/dev/null
+          ls packages/plugin/labelframe-transport-tspl-$VERSION.lfplugin >/dev/null
           grep -q "^LABELFRAME_VERSION=$VERSION$" .env
           echo "离线包结构断言通过：$TARBALL（$(du -h "../../$TARBALL" | cut -f1)）"
 
@@ -739,6 +749,7 @@ jobs:
             release/labelframe-server-*-linux-x64.tar.gz
             release/labelframe-offline-*-linux-x64.tar.gz
             release/labelframe-transport-zebra-*.lfplugin
+            release/labelframe-transport-tspl-*.lfplugin
             release/compose.yml
             release/.env
             release/install-manifest.json

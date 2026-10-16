@@ -15,6 +15,7 @@ public static class UpgradePresentation
         "client-msi" => "打印客户端",
         "webui" => "管理界面",
         "plugin-zebra" => "Zebra 官方插件",
+        "plugin-tspl" => "TSPL 官方插件",
         "runtime-desktop" => ".NET Desktop Runtime",
         "runtime-webview2" => "WebView2 运行时",
         "linux-server" => "Linux 服务端归档",

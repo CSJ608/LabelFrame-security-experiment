@@ -128,6 +128,20 @@
       "silentArgs": "",
       "topologies": ["standalone", "client"],
       "notes": "Zebra 传输插件（品牌插件样例条目——模拟专项 7/8 外置化后形态）"
+    },
+    {
+      "id": "plugin-tspl",
+      "type": "lfplugin",
+      "version": "1.0.0",
+      "dependsOn": [],
+      "urls": [
+        "https://github.com/marci-labs/LabelFrame/releases/download/v0.26.0/labelframe-transport-tspl-1.0.0.lfplugin"
+      ],
+      "sha256": "8f6d4b2907e5c3a18f6d4b2907e5c3a18f6d4b2907e5c3a18f6d4b2907e5c3a1",
+      "sizeBytes": 1048576,
+      "silentArgs": "",
+      "topologies": ["standalone", "client"],
+      "notes": "TSPL 指令集传输官方插件（开关组件，TSC 及 TSPL 兼容品牌共用；纯托管 KB 级）"
     }
   ]
 }

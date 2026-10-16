@@ -151,6 +151,7 @@ internal sealed class CompletePage : UserControl, IWizardPage
         "client-msi" => "LabelFrame 打印客户端",
         "webui" => "服务端管理界面插件",
         "plugin-zebra" => "Zebra 传输官方插件",
+        "plugin-tspl" => "TSPL 传输官方插件",
         _ => componentId,
     };
 
