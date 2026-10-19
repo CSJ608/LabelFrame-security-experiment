@@ -49,7 +49,7 @@
 | API 端点（Api/） | `JobsApi` / `TransportApi` / `PrinterApi` / `PluginApi` / `HostApi` / `PrintSettingsApi` / `Contracts` | Api/ 目录 | 宿主专属端点（分组实现）；`Contracts.cs` 只留宿主专属 DTO（通用契约在 LabelFrame.Api，决策 #75） |
 | 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；批次设置（决策 #74）；出图目录保留清理（决策 #136）；本机 IPv4 枚举（决策 #61） |
 
-**多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool 五文件（列表另含已删除的 `ZebraPluginMigration.cs` 残项＝no-op；更名后的 `OfficialPluginMigration.cs` 不在 Remove 列表、实际进入 Linux 编译面——引用类型全在 Core 可编译，Windows 专属调用点在 `#if WINDOWS` 内），`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
+**多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool / 官方插件迁移六文件，`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
 
 **路径约定**：用户级（`%LOCALAPPDATA%\LabelFrame\`）＝jobs.db / templates.db / logs.db / connection.json / print-settings.json / print\ / logs\（app-*.log）/ host.log；机器级（`%ProgramData%\LabelFrame\Client\`）＝settings.json（ServerUrl）与 plugins\（外部插件目录，决策 #68）。
 
@@ -166,4 +166,4 @@
 12. **`UiReadiness` 探测异常口径**：仅调用方取消才中断等待；探测自身的超时（HttpClient Timeout 抛 TaskCanceled）视为未就绪继续等——两类 `OperationCanceledException` 语义不同。本机探测禁用系统代理（`UseProxy = false`）。
 13. **`/api/host/shutdown` 的队列锁门槛**：`TryPrepareForShutdownAsync` 在队列锁内原子拒绝正在打印的退出并停止新提交 / 领取——MSI 升级链（决策 #163）依赖「检查与开始打印之间无竞态」这一语义，放宽会复现升级期文件占用弹窗。
 14. **csproj 毒丸清单与良性告警**：WebView2 包 buildTransitive 引入 Wpf 变体产生 MSB3277（良性，降级为 Message）；`SkiaSharp.NativeAssets.Win32` 附带 81MB 原生 pdb，Publish 后删除目标（决策 #111 ⑥）；测试工程引用 Zebra 插件工程时 MAUI / WinUI 链毒丸清单须逐包 `ExcludeAssets="all"` 显式排除（决策 #111 ⑤，SDK 升级须复查）。
-15. **Linux 目标的编译裁剪面**：csproj `Compile Remove`（托盘 / 界面壳 / winspool 五文件＋已删除的 `ZebraPluginMigration.cs` 残项 no-op）与源码 `#if WINDOWS` 必须同步维护——把 Windows 专属类型泄漏进 net10.0 目标即断 Linux 构建（ClientHost.Tests 锚定 headless＋仅 log 插件＋无插件端点）。`OfficialPluginMigration.cs` 现随重命名进入 Linux 编译面（引用全在 Core、Windows 专属调用点在 `#if WINDOWS` 内）；重命名 Windows 专属文件时须同步刷新 Remove 列表。
+15. **Linux 目标的编译裁剪面**：csproj `Compile Remove` 六文件（托盘 / 界面壳 / winspool / 官方插件迁移）与源码 `#if WINDOWS` 必须同步维护——把 Windows 专属类型泄漏进 net10.0 目标即断 Linux 构建（ClientHost.Tests 锚定 headless＋仅 log 插件＋无插件端点）；重命名 Windows 专属文件时须同步刷新 Remove 列表（`ZebraPluginMigration` → `OfficialPluginMigration` 更名时曾漏改——残项指向不存在文件＝no-op、类实际进入 Linux 编译面，已修复复位）。
