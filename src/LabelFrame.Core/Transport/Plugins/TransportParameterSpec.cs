@@ -22,6 +22,13 @@ public sealed record TransportParameterSpec(
 
     /// <summary>输入提示的展示端翻译键（同 <see cref="LabelKey"/> 命名约定加 .hint 后缀；缺省 null = 用 <see cref="Hint"/> 原文）。</summary>
     public string? HintKey { get; init; }
+
+    /// <summary>
+    /// 同行分组键（展示端布局提示）：同值参数渲染于同一行（行内按声明序），行序 = 首个成员的声明序——
+    /// 纯分组等价键而非排序键；缺省 null = 各自成行（历史行为，未声明的插件表单零变化）。
+    /// init 属性而非构造参数：构造器签名零变化，旧插件二进制兼容（同 LabelKey / HintKey 模式）。
+    /// </summary>
+    public int? Row { get; init; }
     /// <summary>
     /// 历史构造器（VisibleWhen 字段引入前的 7 参形态）：外部插件 DLL 按旧签名编译，
     /// 宿主升级而插件未随发（服务端分发窗口期）时仍须可加载——可选参数是编译期语法糖，

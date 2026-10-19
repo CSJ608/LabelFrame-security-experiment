@@ -792,6 +792,7 @@ label.field > .input, label.field > select.input { width: 100%; }
 .empty .empty-title { font-size: 13px; color: var(--ink-2); font-weight: 600; }
 .hint { font-size: 11.5px; color: var(--ink-3); line-height: 1.7; }
 .error-text { color: var(--danger); font-size: 12px; }
+.input.error { border-color: var(--danger); }
 
 /* 行内链接式按钮（·）：提示文案中的可点击跳转（视觉为链接，语义 / 焦点行为为按钮） */
 .link-like {

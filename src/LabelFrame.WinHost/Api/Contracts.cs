@@ -54,7 +54,7 @@ public static class JobViews
         null);
 }
 
-/// <summary>传输插件参数规格（前端动态表单渲染用；visibleWhenKey + visibleWhenValues 为条件可见性声明——字段集按连接类型切换，缺省 null = 恒可见；labelKey / hintKey 为展示端翻译键，缺省不出现在 JSON——无键插件响应与键化前逐字节等价）。</summary>
+/// <summary>传输插件参数规格（前端动态表单渲染用；visibleWhenKey + visibleWhenValues 为条件可见性声明——字段集按连接类型切换，缺省 null = 恒可见；labelKey / hintKey 为展示端翻译键，row 为同行分组键，均缺省不出现在 JSON——无键插件响应与键化前逐字节等价）。</summary>
 public sealed record TransportPluginParameterDto(
     string Key,
     string Label,
@@ -66,7 +66,8 @@ public sealed record TransportPluginParameterDto(
     string? VisibleWhenKey = null,
     IReadOnlyList<string>? VisibleWhenValues = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? LabelKey = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? HintKey = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? HintKey = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Row = null);
 
 /// <summary>Select 参数枚举项。</summary>
 public sealed record TransportParameterOptionDto(

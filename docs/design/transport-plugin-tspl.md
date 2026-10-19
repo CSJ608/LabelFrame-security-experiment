@@ -24,7 +24,7 @@
 
 | 类型 | 文件 | 角色 |
 |---|---|---|
-| `TsplTransportPlugin` | TsplTransportPlugin.cs | 插件入口：`ITransportPlugin` + `ILabelCommandCompiler` + `ILabelImageEncoder` 三实现；参数模型（kind / host / port / usbName / printMode / invertImage）与连接展示文本 |
+| `TsplTransportPlugin` | TsplTransportPlugin.cs | 插件入口：`ITransportPlugin` + `ILabelCommandCompiler` + `ILabelImageEncoder` 三实现；参数模型（kind / host / port / usbName / printMode / invertImage / labelWidthMm / labelHeightMm）与连接展示文本 |
 | `TsplPrinterTransport` | TsplPrinterTransport.cs | 传输实例：`IPrintTransport` + `IPrinterStatusProvider` + `ITestableTransport`；双通道开链、`ESC ! ?` 查询带重试、状态位解析（public static `ParseStatusByte`＝单测锚点） |
 | `TsplTransportKind` | TsplTransportKind.cs | 连接类型枚举（Tcp / Usb）；字符串参数跨插件边界后于此解析 |
 | `ITsplLink` / `TcpTsplLink` / `UsbTsplLink` | TsplLink.cs | 通道链路抽象（一次打开的连接：写 / 读）：public 接口＝传输构造的注入缝（测试替身） |
@@ -38,7 +38,7 @@
 **关键机制**：
 
 - **能力挂插件对象而非传输实例**：编译器与图片编码器实现于 `TsplTransportPlugin`（指令集级能力，与连接形态无关——同一指令集 TCP / USB 共用）；宿主装配期以 `plugin is ILabelCommandCompiler` / `plugin is ILabelImageEncoder` 探测。
-- **参数条件显隐**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb`、`invertImage`（反色处理，决策 #196）仅 `printMode=image` 可见（决策 #186 VisibleWhen）；`usbName` 留空 = 自动发现第一台 usbprint 设备、可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
+- **参数条件显隐与行层级**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb`、`invertImage`（反色处理，决策 #196）仅 `printMode=image` 可见（决策 #186 VisibleWhen）；行分组（决策 #197 `Row` init-only）：连接类型｜连接参数（host+port / usbName 按 kind 二选一）｜打印方式＋反色｜媒介宽高（`labelWidthMm` / `labelHeightMm`，Core `LabelMediaSize` 键约定——测试打印按此走纸，TSPL 严格按 SIZE 走纸的固件语义与实体一致才出完整一张；正式打印尺寸由模板决定）。`usbName` 留空 = 自动发现第一台 usbprint 设备、可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
 - **逐次建连**：发送 / 测试 / 状态查询各自「建连 → 操作 → 关闭」（与内置时代行为等价）。
 
 ## 3. 关键流程

@@ -58,6 +58,10 @@ const OFFICIAL_SPEC_ZH: Record<string, string> = {
   'plugin.labelframe-transport-tspl.params.printMode.hint': '原生指令模式无预览，效果以真机为准；该模式下文本不支持中文（打印机内置字体无汉字字形），中文请用图片模式',
   'plugin.labelframe-transport-tspl.params.invertImage.label': '反色处理',
   'plugin.labelframe-transport-tspl.params.invertImage.hint': '图片打印出现黑色背景时开启本开关恢复（适用于位极性与 TSC 相反的兼容机型）',
+  'plugin.labelframe-transport-tspl.params.labelWidthMm.label': '标签纸宽度（毫米）',
+  'plugin.labelframe-transport-tspl.params.labelWidthMm.hint': '与实际纸宽一致（如 100），仅供「测试打印」走纸出完整一张；正式打印尺寸由模板决定。留空 = 40',
+  'plugin.labelframe-transport-tspl.params.labelHeightMm.label': '标签纸高度（毫米）',
+  'plugin.labelframe-transport-tspl.params.labelHeightMm.hint': '与实际纸高一致（如 80），仅供「测试打印」走纸出完整一张；正式打印尺寸由模板决定。留空 = 20',
 }
 
 /** 展平嵌套 JSON 为 `a.b.c` 全量 key 路径映射。 */

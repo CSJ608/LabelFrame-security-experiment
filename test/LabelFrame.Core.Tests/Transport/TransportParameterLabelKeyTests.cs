@@ -18,6 +18,7 @@ public class TransportParameterLabelKeyTests
 
         Assert.Null(spec.LabelKey);
         Assert.Null(spec.HintKey);
+        Assert.Null(spec.Row); // 同行分组键同为 init 属性：旧构造缺省各自成行，表单行为零变化
         Assert.Null(new TransportParameterOption("Tcp", "TCP").LabelKey);
     }
 

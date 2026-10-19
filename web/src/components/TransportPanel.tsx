@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import i18next from '../i18n'
 import { localApi } from '../lib/api/client'
 import { ApiError } from '../lib/api/types'
-import type { PluginParams, PluginParamValue, TransportApplyRequest, TransportMode, TransportParams, TransportPluginInfo, ZebraKind } from '../lib/api/types'
+import type { PluginParams, PluginParamValue, TransportApplyRequest, TransportMode, TransportParams, TransportParameterSpec, TransportPluginInfo, ZebraKind } from '../lib/api/types'
 import {
   ALL_TRANSPORT_MODES,
   ZEBRA_KINDS,
@@ -267,7 +267,8 @@ export function TransportParamsEditor({
   )
 }
 
-/* * 插件参数输入区：按 TransportParameterSpec 动态渲染——String 文本 / Int 数字 / Bool 开关 / Select 下拉。 */
+/* * 插件参数输入区：按 TransportParameterSpec 动态渲染——String 文本 / Int 数字 / Bool 开关 / Select 下拉；
+ * row 同号同渲染行（行序 = 首个成员的声明序）承载插件声明的信息层级（连接 / 打印方式 / 媒介），缺省各自成行。 */
 export function TransportPluginParamsEditor({
   plugin,
   params,
@@ -282,11 +283,18 @@ export function TransportPluginParamsEditor({
     // 无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
     return <div className="hint">{plugin.description ? pluginText(plugin.descriptionKey, plugin.description) : t('transportForm.noParams')}</div>
   }
-  return (
-    <>
-      {plugin.parameters.map((spec) => {
-        // 字段集按连接类型切换：不可见字段不渲染（值仍保留在表单状态，切换类型再切回不丢输入）
-        if (!isSpecVisible(spec, params)) return null
+  // 可见参数按 row 分组成行：null = 各自成行（唯一行键），行序 = 首个成员的声明序
+  const rows: { key: string; specs: TransportParameterSpec[] }[] = []
+  for (const spec of plugin.parameters) {
+    // 字段集按连接类型切换：不可见字段不渲染（值仍保留在表单状态，切换类型再切回不丢输入）
+    if (!isSpecVisible(spec, params)) continue
+    const rowKey = spec.row === null || spec.row === undefined ? `@${spec.key}` : `#${spec.row}`
+    const existing = rows.find((r) => r.key === rowKey)
+    if (existing) existing.specs.push(spec)
+    else rows.push({ key: rowKey, specs: [spec] })
+  }
+
+  const renderField = (spec: TransportParameterSpec) => {
         const value = params[spec.key]
         if (spec.type === 'Bool') {
           return (
@@ -348,8 +356,16 @@ export function TransportPluginParamsEditor({
             />
           </label>
         )
-      })}
-    </>
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {rows.map((row) => (
+        <div key={row.key} data-testid="param-row" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          {row.specs.map(renderField)}
+        </div>
+      ))}
+    </div>
   )
 }
 

@@ -239,7 +239,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   }, [app, dpi, viewMode, t])
 
   // ---------- 保存 + 离开保护 ----------
-  const { doSave, save, cancelOverwrite } = useTemplateSave({
+  const { doSave, save, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
     request,
     biz,
     stateRef,
@@ -254,6 +254,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     setSaving,
     setConfirmOverwrite,
   })
+
+  // 空名保存拦截：名称框红边 + 内联提示 + 聚焦，补名即消
+  const nameInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (nameError) nameInputRef.current?.focus()
+  }, [nameError])
 
   const { leaveGuardOpen, stayInEditor, discardAndLeave, saveAndLeave, requestClose } = useLeaveGuard({
     historyRef,
@@ -304,7 +310,24 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         <button className="btn ghost" onClick={requestClose} title={t('toolbar.backTitle')}>
           <Icon name="back" size={14} />
         </button>
-        <input className="input" style={{ width: 150 }} value={name} onChange={(ev) => setName(ev.target.value)} placeholder={t('toolbar.namePlaceholder')} title={t('toolbar.namePlaceholder')} />
+        <input
+          ref={nameInputRef}
+          className={`input${nameError ? ' error' : ''}`}
+          style={{ width: 150 }}
+          value={name}
+          onChange={(ev) => {
+            setName(ev.target.value)
+            if (nameError) clearNameError()
+          }}
+          placeholder={t('toolbar.namePlaceholder')}
+          title={t('toolbar.namePlaceholder')}
+          data-testid="designer-name-input"
+        />
+        {nameError && (
+          <span className="error-text" data-testid="designer-name-error">
+            {t('status.nameRequired')}
+          </span>
+        )}
         <input className="input" style={{ width: 100 }} value={group} onChange={(ev) => setGroup(ev.target.value)} placeholder={t('toolbar.groupPlaceholder')} title={t('toolbar.groupPlaceholder')} />
         <span className="toolbar-sep" />
         <label className="toolbar-label">

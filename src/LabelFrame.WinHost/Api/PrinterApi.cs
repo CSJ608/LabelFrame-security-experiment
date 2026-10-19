@@ -28,25 +28,11 @@ internal static class PrinterApi
 
     app.MapPost("/api/printer/test", async (ITransportManager transportManager, ITransportPluginRegistry pluginRegistry, ILabelBitmapRenderer renderer, ZplImageEncoder encoder, ILoggerFactory loggerFactory, CancellationToken ct) =>
     {
-        // 测试页与正式打印同源：Skia 渲染整版位图，图片指令编码按连接插件分派
-        var document = new LabelDocument
-        {
-            Layout = new LabelLayout
-            {
-                Name = "test",
-                ContractName = "test",
-                ContractVersion = "1.0",
-                WidthMm = 40,
-                HeightMm = 20,
-                Elements =
-                [
-                    new LabelTextElement { Literal = "LabelFrame Test", XMm = 2, YMm = 4, FontHeightMm = 3, FontWidthMm = 3, WidthMm = 36, TextAlign = LabelTextAlign.Center },
-                ],
-            },
-            Data = new Dictionary<string, string>(),
-        };
-        var bitmap = renderer.RenderLabelBitmap(document, dpi);
+        // 测试页与正式打印同源：Skia 渲染整版位图，图片指令编码按连接插件分派；
+        // 版面尺寸跟连接媒介参数（LabelMediaSize：TSPL 固件严格按 SIZE 走纸，与实体一致才出完整一张）
         var config = transportManager.CurrentConfig;
+        var document = BuildTestDocument(LabelMediaSize.Resolve(config.Params));
+        var bitmap = renderer.RenderLabelBitmap(document, dpi);
         var imageEncoder = pluginRegistry.GetImageEncoder(config.PluginId);
         var commandBytes = imageEncoder?.EncodeImage(bitmap, document.Layout.WidthMm, document.Layout.HeightMm, dpi);
         var commandText = commandBytes is null
@@ -105,5 +91,38 @@ internal static class PrinterApi
         }
 
         return config.PluginId;
+    }
+
+    /// <summary>测试页文档（internal 供单测锚定）：单行居中文本；默认 40×20 与历史版面完全一致，仅字高随纸高在 3..8mm 缩放。</summary>
+    internal static LabelDocument BuildTestDocument((double WidthMm, double HeightMm) media)
+    {
+        const double marginMm = 2;
+        const double yMm = 4;
+        var fontHeightMm = Math.Clamp(Math.Round(media.HeightMm / 10.0, 1), 3, 8);
+        return new LabelDocument
+        {
+            Layout = new LabelLayout
+            {
+                Name = "test",
+                ContractName = "test",
+                ContractVersion = "1.0",
+                WidthMm = media.WidthMm,
+                HeightMm = media.HeightMm,
+                Elements =
+                [
+                    new LabelTextElement
+                    {
+                        Literal = "LabelFrame Test",
+                        XMm = marginMm,
+                        YMm = yMm,
+                        FontHeightMm = fontHeightMm,
+                        FontWidthMm = fontHeightMm,
+                        WidthMm = media.WidthMm - marginMm * 2,
+                        TextAlign = LabelTextAlign.Center,
+                    },
+                ],
+            },
+            Data = new Dictionary<string, string>(),
+        };
     }
 }

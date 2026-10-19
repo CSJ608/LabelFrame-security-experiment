@@ -71,6 +71,14 @@
         "invertImage": {
           "label": "Invert colors",
           "hint": "Turn this on when image printing comes out with a black background (for compatible models whose bitmap polarity differs from TSC)."
+        },
+        "labelWidthMm": {
+          "label": "Label width (mm)",
+          "hint": "Match the actual paper width (e.g. 100); only used by \"Test print\" to feed a full label — regular print sizes come from the template. Leave empty for 40"
+        },
+        "labelHeightMm": {
+          "label": "Label height (mm)",
+          "hint": "Match the actual paper height (e.g. 80); only used by \"Test print\" to feed a full label — regular print sizes come from the template. Leave empty for 20"
         }
       }
     }

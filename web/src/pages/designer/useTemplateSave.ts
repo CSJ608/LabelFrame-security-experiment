@@ -1,8 +1,8 @@
 // 保存编排 hook：doSave（图片孤儿 GC、契约名 / 版本沿用、恒发显式 images 字典）与 save（空名校验、
 // 新建 / 改名时同名覆盖确认）；挂起的离开动作由离开守卫（useLeaveGuard）持有并传入。
-// 回调体自 Designer.tsx 逐字搬移（纯重构零行为变化）。
+// 空名拦截置 nameError（调用方渲染名称框内联红错并聚焦；状态栏文案保留）。
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DesignState } from './CanvasViewport'
@@ -36,6 +36,7 @@ export interface UseTemplateSaveOptions {
 export function useTemplateSave({ request, biz, stateRef, initialNameRef, contractNameRef, contractVersionRef, imageAssetsRef, group, name, onClose, pendingLeaveRef, setSaving, setConfirmOverwrite }: UseTemplateSaveOptions) {
   const app = useApp()
   const { t } = useTranslation('designer')
+  const [nameError, setNameError] = useState(false)
 
   // ---------- 保存 ----------
   const doSave = useCallback(
@@ -91,9 +92,12 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
     if (!trimmed) {
       // 「保存并离开」无模板名时止步于此（停留设计器补名称），挂起动作作废
       pendingLeaveRef.current = null
+      setNameError(true)
       app.setStatus(t('status.nameRequired'))
       return
     }
+
+    setNameError(false)
     const isNew = request.kind === 'new'
     const renamed = !isNew && trimmed !== initialNameRef.current
     if (isNew || renamed) {
@@ -115,5 +119,8 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
     pendingLeaveRef.current = null
   }, [])
 
-  return { doSave, save, cancelOverwrite }
+  /** 名称输入变更即清除空名红错（调用方 onChange 调用）。 */
+  const clearNameError = useCallback(() => setNameError(false), [])
+
+  return { doSave, save, cancelOverwrite, nameError, clearNameError }
 }

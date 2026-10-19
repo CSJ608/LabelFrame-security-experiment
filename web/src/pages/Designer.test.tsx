@@ -222,6 +222,29 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     expect(screen.getByTestId('status-msg').textContent).toContain('模板「新模板」已保存')
   })
 
+  it('空名保存：名称框红边 + 内联提示 + 聚焦，补名即消可保存', async () => {
+    const onClose = vi.fn()
+    renderDesigner(undefined, { onClose })
+    await waitForNewReady()
+    // 名称留空直接保存：不提交，名称框立即可见反馈
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+
+    const input = screen.getByPlaceholderText('模板名称') as HTMLInputElement
+    expect(await screen.findByTestId('designer-name-error')).toBeTruthy()
+    expect(screen.getByTestId('designer-name-error').textContent).toContain('请先填写模板名称')
+    expect(input.className).toContain('error')
+    expect(document.activeElement).toBe(input)
+    expect(mocks.local.saveTemplate).not.toHaveBeenCalled()
+
+    // 补名：红错即消，再次保存走正常链路
+    fireEvent.change(input, { target: { value: '补名模板' } })
+    expect(screen.queryByTestId('designer-name-error')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect(mocks.local.saveTemplate.mock.calls[0][0].name).toBe('补名模板')
+  })
+
   it('同名覆盖确认 → 取消：不保存、停留设计器', async () => {
     mocks.local.listTemplates.mockResolvedValue([{ name: '库位标签', group: '默认', updatedAt: '2026-09-18' }])
     const onClose = vi.fn()

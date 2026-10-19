@@ -155,6 +155,8 @@ export interface TransportParameterSpec {
   labelKey?: string | null
   /** 提示展示端翻译键（缺省 = 直接用 hint 原文）。 */
   hintKey?: string | null
+  /** 同行分组键：同值渲染于同一行（行序 = 首个成员的声明序）；缺省 = 各自成行。 */
+  row?: number | null
 }
 
 /** 插件目录项（GET /api/transport.availablePlugins）。 */

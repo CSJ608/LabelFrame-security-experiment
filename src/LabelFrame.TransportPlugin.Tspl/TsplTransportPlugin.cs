@@ -40,20 +40,24 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
         })
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.kind.label",
+            Row = 1,
         },
         new TransportParameterSpec("host", "打印机地址 / IP", TransportParameterType.String, Required: true, Hint: "如 192.168.1.50", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"])
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.host.label",
             HintKey = "plugin.labelframe-transport-tspl.params.host.hint",
+            Row = 2,
         },
         new TransportParameterSpec("port", "端口", TransportParameterType.Int, DefaultValue: "9100", VisibleWhenKey: "kind", VisibleWhenValues: ["Tcp"])
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.port.label",
+            Row = 2,
         },
         new TransportParameterSpec("usbName", "USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现第一台；可填 VID（如 VID_1203）或设备名", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"])
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.usbName.label",
             HintKey = "plugin.labelframe-transport-tspl.params.usbName.hint",
+            Row = 2,
         },
         new TransportParameterSpec(
             TransportPrintMode.ParameterKey,
@@ -70,6 +74,7 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.printMode.label",
             HintKey = "plugin.labelframe-transport-tspl.params.printMode.hint",
+            Row = 3,
         },
         new TransportParameterSpec(
             LabelImageEncodeOptions.InvertBitsParameterKey,
@@ -83,6 +88,19 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.invertImage.label",
             HintKey = "plugin.labelframe-transport-tspl.params.invertImage.hint",
+            Row = 3,
+        },
+        new TransportParameterSpec(LabelMediaSize.WidthParameterKey, "标签纸宽度（毫米）", TransportParameterType.Int, Required: false, Hint: "与实际纸宽一致（如 100），仅供「测试打印」走纸出完整一张；正式打印尺寸由模板决定。留空 = 40")
+        {
+            LabelKey = "plugin.labelframe-transport-tspl.params.labelWidthMm.label",
+            HintKey = "plugin.labelframe-transport-tspl.params.labelWidthMm.hint",
+            Row = 4,
+        },
+        new TransportParameterSpec(LabelMediaSize.HeightParameterKey, "标签纸高度（毫米）", TransportParameterType.Int, Required: false, Hint: "与实际纸高一致（如 80），仅供「测试打印」走纸出完整一张；正式打印尺寸由模板决定。留空 = 20")
+        {
+            LabelKey = "plugin.labelframe-transport-tspl.params.labelHeightMm.label",
+            HintKey = "plugin.labelframe-transport-tspl.params.labelHeightMm.hint",
+            Row = 4,
         },
     };
 
