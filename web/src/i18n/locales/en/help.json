@@ -180,7 +180,7 @@
       },
       "transport": {
         "title": "Connection",
-        "body": "The card collapses to the current connection; expand it to test or switch the printer connection. After choosing a connection type, only the information that type needs is shown (for example, IP and port for a network printer, or the printer name for a Windows driver). Switching happens only after “Test Connection” passes; on failure the reason is shown and the current connection is kept. The saved connection is used after restart. \n“Simulated printing” needs no printer: labels are generated as images saved on this machine, handy for checking the result first."
+        "body": "After choosing a connection type, only the information that type needs is shown (for example, IP and port for a network printer, or the printer name for a Windows driver). Switching happens only after “Test Connection” passes; on failure the reason is shown and the current connection is kept. The saved connection is used after restart. \n“Simulated printing” needs no printer: labels are generated as images saved on this machine, handy for checking the result first. Switching to another settings section discards unsaved connection edits — finish “Test Connection” and “Save and Apply” in one go."
       },
       "batch": {
         "title": "Print Batching",

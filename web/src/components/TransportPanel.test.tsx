@@ -141,3 +141,25 @@ describe('TransportPluginParamsEditor 插件自描述键化渲染（决策 #192�
     expect(screen.getByPlaceholderText('厂商自定义提示')).toBeTruthy()
   })
 })
+
+describe('TransportPluginParamsEditor 参数行分组（Row 同行）', () => {
+  it('同 Row 值的字段渲染于同一行（行序 = 首个成员声明序）；无 Row 声明各自成行', () => {
+    const plugin: TransportPluginInfo = {
+      id: 'demo',
+      displayName: '演示插件',
+      parameters: [
+        { key: 'kind', label: '连接类型', type: 'Select', required: true, defaultValue: 'Tcp', row: 1, options: [{ value: 'Tcp', label: 'TCP' }] },
+        { key: 'host', label: '打印机地址 / IP', type: 'String', required: true, row: 2 },
+        { key: 'port', label: '端口', type: 'Int', defaultValue: '9100', row: 2 },
+        { key: 'paper', label: '纸宽（毫米）', type: 'Int' },
+      ],
+    }
+    render(<Host plugin={plugin} initial={{ kind: 'Tcp' }} />)
+    const rows = screen.queryAllByTestId('param-row')
+    expect(rows.length).toBe(3)
+    expect(rows[0]?.textContent).toContain('连接类型')
+    expect(rows[1]?.textContent).toContain('打印机地址 / IP')
+    expect(rows[1]?.textContent).toContain('端口')
+    expect(rows[2]?.textContent).toContain('纸宽（毫米）')
+  })
+})

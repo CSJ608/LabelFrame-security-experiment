@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// 设置页三分组——服务端地址（机器级配置，保存即生效）/ 连接方式（本机 Client）/ 打印机。
-// mock 覆盖组件树用到的全部 client 方法（含 AppContext 启动链：getHostConfig / getTransport / healthz）。
+// 设置页：分节左菜单＋右内容——左列分节导航（role=button，与右区同名面板标题区分）、右区仅渲染
+// 选中分节（默认连接方式）；跨节查询一律先 openSection 切节。mock 覆盖组件树用到的全部 client 方法
+// （含 AppContext 启动链：getHostConfig / getTransport / healthz）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -64,15 +65,26 @@ function StatusProbe() {
   return <div data-testid="status-msg">{app.statusMsg}</div>
 }
 
-/** 按分组限定查询（「测试连接」按钮在服务端地址与连接方式两组各有一个；「服务端地址」文本在 panel-head 与 label 各一处）。 */
+/** 设置页分节左菜单：点击分节菜单项切到对应分节（菜单常驻，与右区同名标题以 role=button 区分）。 */
+function openSection(title: string) {
+  fireEvent.click(screen.getByRole('button', { name: title }))
+}
+
+/** 右区内容容器（仅渲染选中分节——跨节查询一律限定其内）。 */
+function settingsMain(): HTMLElement {
+  return document.querySelector('.settings-main') as HTMLElement
+}
+
+/** 按分组限定查询：先切到目标分节，再在右区内定位其 section（分节标题为 heading，与同名输入 label 天然区分）。 */
 function withinSection(title: string): HTMLElement {
-  const el = title === '服务端地址' ? screen.getByLabelText('服务端地址') : screen.getByText(title)
+  openSection(title)
+  const el = within(settingsMain()).getByRole('heading', { name: title })
   return el.closest('section') as HTMLElement
 }
 
-/* * ：连接方式面板默认折叠为当前连接摘要一行——点击面板头展开编辑区。 */
+/** 连接方式分节：内容常显（分节菜单已隔离上下文，无折叠交互），切节即见编辑区。 */
 function openTransportPanel() {
-  fireEvent.click(screen.getByText('连接方式'))
+  openSection('连接方式')
 }
 
 const HOST_CONFIG = { serverUrl: 'http://127.0.0.1:53961', deviceId: 'PC-1', deviceName: 'PC-1' }
@@ -108,35 +120,43 @@ afterEach(() => {
   cleanup()
 })
 
-describe('设置页三分组（迭代 18）', () => {
-  it('渲染服务端地址 / 连接方式 / 打印机三个分组', async () => {
+describe('设置页结构（分节左菜单）与启动', () => {
+  it('左菜单列七个分节，右区仅呈现选中分节内容（切换即换、选中态唯一）', async () => {
     renderSettings()
-    expect(screen.getByLabelText('服务端地址')).toBeTruthy()
-    expect(screen.getByText('连接方式')).toBeTruthy()
-    expect(screen.getByText('打印机')).toBeTruthy()
+    for (const title of ['语言', '服务端地址', '连接方式', '打印批次', '打印机', '更新与安装包', '插件管理']) {
+      expect(screen.getByRole('button', { name: title })).toBeTruthy()
+    }
+    // 默认分节（连接方式）在右区，其余分节内容不在场
+    expect(within(settingsMain()).getByText('连接方式')).toBeTruthy()
+    expect(within(settingsMain()).queryByText('打印机')).toBeNull()
+    // 切换分节：右区换为对应内容，选中态随菜单转移
+    openSection('打印机')
+    expect(within(settingsMain()).getByText('打印机')).toBeTruthy()
+    expect(within(settingsMain()).queryByText('连接方式')).toBeNull()
+    expect(screen.getByRole('button', { name: '打印机' }).className).toContain('active')
+    expect(screen.getByRole('button', { name: '连接方式' }).className).not.toContain('active')
     expect(screen.getByRole('button', { name: /测试打印/ })).toBeTruthy()
   })
 
-  it('连接方式默认折叠为当前连接摘要一行，点击面板头展开编辑区（迭代 73 决议 1，AC-02）', async () => {
+  it('连接方式分节内容常显：切到分节即见当前连接摘要与模式单选、操作按钮（无折叠交互）', async () => {
     renderSettings()
-    // 默认折叠：面板头显示当前摘要（getTransport 异步加载后 Log → 模拟打印），编辑区不渲染
+    // 默认分节：标题行显示当前摘要（getTransport 异步加载后 Log → 模拟打印），编辑区直接渲染
     expect(await screen.findByText('模拟打印')).toBeTruthy()
-    expect(screen.queryByRole('radio', { name: /模拟打印/ })).toBeNull()
-    expect(screen.queryByRole('button', { name: /保存并应用/ })).toBeNull()
-    // 点击面板头（1 步）展开：模式单选与操作按钮出现
-    openTransportPanel()
     expect(await screen.findByRole('radio', { name: /模拟打印/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /网络打印机/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /Windows 驱动/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /Zebra/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /保存并应用/ })).toBeTruthy()
-    // 再点击收起
-    openTransportPanel()
+    // 切走再切回：内容依旧常显
+    openSection('打印机')
     expect(screen.queryByRole('radio', { name: /模拟打印/ })).toBeNull()
+    openTransportPanel()
+    expect(await screen.findByRole('radio', { name: /模拟打印/ })).toBeTruthy()
   })
 
   it('启动加载机器级配置：服务端地址显示 hostConfig.serverUrl', async () => {
     renderSettings()
+    openSection('服务端地址')
     await screen.findByDisplayValue('http://127.0.0.1:53961')
     expect(mocks.local.getHostConfig).toHaveBeenCalled()
   })
@@ -145,6 +165,7 @@ describe('设置页三分组（迭代 18）', () => {
 describe('服务端地址（F2）', () => {
   it('测试连接：探测输入框地址（probeHealthz），不保存（setHostConfig 不调用）', async () => {
     renderSettings()
+    openSection('服务端地址')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     fireEvent.click(within(withinSection('服务端地址')).getByRole('button', { name: /^测试连接/ }))
     expect(await screen.findByText(/连接成功：该地址可访问服务端/)).toBeTruthy()
@@ -161,6 +182,7 @@ describe('服务端地址（F2）', () => {
 
   it('保存并生效：setHostConfig({ serverUrl }) + localStorage 兜底 + 提示立即生效', async () => {
     renderSettings()
+    openSection('服务端地址')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
     expect(await screen.findByText('已保存到本机配置并立即生效。')).toBeTruthy()
@@ -171,6 +193,7 @@ describe('服务端地址（F2）', () => {
   it('旧客户端（setHostConfig 失败）：回退浏览器本地保存并提示', async () => {
     mocks.local.setHostConfig.mockRejectedValue(new Error('no api'))
     renderSettings()
+    openSection('服务端地址')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
     expect(await screen.findByText(/当前客户端版本较旧：地址已保存在本浏览器中/)).toBeTruthy()
@@ -179,14 +202,17 @@ describe('服务端地址（F2）', () => {
 })
 
 describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () => {
-  it('AC-01 空地址：徽标「服务端未连接（单机模式可用）」且全程不做网络探测；安装包 / 插件区提示单机模式（同屏无矛盾）', async () => {
+  it('AC-01 空地址：徽标「服务端未连接（单机模式可用）」且全程不做网络探测；更新与安装包 / 插件管理区提示单机模式（各分节口径一致）', async () => {
     mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, serverUrl: '' })
     renderSettings()
-    expect(await screen.findByText('服务端未连接（单机模式可用）')).toBeTruthy()
-    // 同屏一致：「更新与安装包」徽标与提示、「插件管理」服务端可用插件区均为单机模式口径
-    expect(screen.getByText('单机模式')).toBeTruthy()
-    expect(screen.getByText(/当前未连接服务端（单机模式）/)).toBeTruthy()
-    expect(screen.getByText(/当前未连接服务端，处于单机模式/)).toBeTruthy()
+    openSection('服务端地址')
+    expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
+    // 各分节一致：「更新与安装包」徽标与提示、「插件管理」服务端可用插件区均为单机模式口径
+    openSection('更新与安装包')
+    expect(await within(settingsMain()).findByText('单机模式')).toBeTruthy()
+    expect(within(settingsMain()).getByText(/当前未连接服务端（单机模式）/)).toBeTruthy()
+    openSection('插件管理')
+    expect(await within(settingsMain()).findByText(/当前未连接服务端，处于单机模式/)).toBeTruthy()
     // 空地址无目标可探，不发起 healthz；业务列表不拉取（serverApi 不以空串 base 落同源打到本机 WinHost）
     await waitFor(() => expect(mocks.local.getHostConfig).toHaveBeenCalled())
     expect(mocks.server.healthz).not.toHaveBeenCalled()
@@ -196,40 +222,45 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
 
   it('AC-02 可达地址：探测成功徽标「服务端已连接」，安装包区按服务端拉取列表', async () => {
     renderSettings()
-    expect((await screen.findAllByText('服务端已连接')).length).toBeGreaterThan(0)
+    openSection('服务端地址')
+    expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
+    openSection('更新与安装包')
     await waitFor(() => expect(mocks.server.listClientPackages).toHaveBeenCalled())
   })
 
   it('AC-02 不可达地址：探测失败徽标「服务端未连接（单机模式可用）」', async () => {
     mocks.server.healthz.mockRejectedValue(new Error('down'))
     renderSettings()
-    expect(await screen.findByText('服务端未连接（单机模式可用）')).toBeTruthy()
+    openSection('服务端地址')
+    expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
     await waitFor(() => expect(mocks.server.healthz).toHaveBeenCalled())
   })
 
   it('AC-02 切换刷新：保存不可达地址转「未连接」，再保存可达地址转回「已连接」（保存即重探测，无竞态双态）', async () => {
     renderSettings()
-    expect((await screen.findAllByText('服务端已连接')).length).toBeGreaterThan(0)
+    openSection('服务端地址')
+    expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
     // 切到不可达地址并保存 → 徽标转未连接
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.0.99:53961' } })
     mocks.server.healthz.mockRejectedValue(new Error('down'))
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
-    expect(await screen.findByText('服务端未连接（单机模式可用）')).toBeTruthy()
+    expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
     expect(mocks.local.setHostConfig).toHaveBeenCalledWith({ serverUrl: 'http://192.168.0.99:53961' })
     // 再切回可达地址并保存 → 徽标转回已连接
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     mocks.server.healthz.mockResolvedValue({ service: 'LabelFrame.Server', status: 'ok' })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
-    expect((await screen.findAllByText('服务端已连接')).length).toBeGreaterThan(0)
+    expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
   })
 
   it('保存空地址：徽标即转「服务端未连接（单机模式可用）」且不再探测（a 案；空终态不被旧探测结果覆盖）', async () => {
     renderSettings()
-    expect((await screen.findAllByText('服务端已连接')).length).toBeGreaterThan(0)
+    openSection('服务端地址')
+    expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
     mocks.server.healthz.mockClear()
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
-    expect(await screen.findByText('服务端未连接（单机模式可用）')).toBeTruthy()
+    expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
     expect(mocks.local.setHostConfig).toHaveBeenCalledWith({ serverUrl: '' })
     expect(mocks.server.healthz).not.toHaveBeenCalled()
   })
@@ -247,7 +278,7 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
   })
 })
 
-describe('连接方式（F3，恢复迭代 15；迭代 73 起默认折叠，交互前先展开）', () => {
+describe('连接方式（F3：连接选择与先测试后生效）', () => {
   it('模式单选只显示当前模式参数（切到网络打印机显示 IP / 端口）', async () => {
     renderSettings()
     openTransportPanel()
@@ -278,7 +309,7 @@ describe('连接方式（F3，恢复迭代 15；迭代 73 起默认折叠，交�
     expect(await screen.findByText('已切换到 TCP。')).toBeTruthy()
     expect(mocks.local.setTransport).toHaveBeenCalledWith(expect.objectContaining({ mode: 'Tcp', tcpHost: '192.168.1.50', tcpPort: 9100 }))
     expect(mocks.local.setTransport.mock.calls[0][0].testOnly).toBeUndefined()
-    // 全局状态立即更新（折叠头摘要与面板内徽标均显示新连接，不依赖轮询）
+    // 全局状态立即更新（分节标题行与面板内徽标均显示新连接，不依赖轮询）
     expect((await within(withinSection('连接方式')).findAllByText(/网络打印机 192\.168\.1\.50:9100/)).length).toBeGreaterThan(0)
   })
 
@@ -288,7 +319,7 @@ describe('连接方式（F3，恢复迭代 15；迭代 73 起默认折叠，交�
     openTransportPanel()
     fireEvent.click(screen.getByRole('button', { name: /保存并应用/ }))
     expect(await screen.findByText('连接测试失败：无法连接打印机。')).toBeTruthy()
-    // 生效连接仍是模拟打印（未切换）——折叠头摘要 + 面板徽标
+    // 生效连接仍是模拟打印（未切换）——分节标题行 + 面板徽标
     expect(screen.getAllByText('模拟打印').length).toBeGreaterThan(0)
   })
 })
@@ -328,7 +359,7 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
   it('AC-01：连接方式摘要与测试打印说明均显示「模拟打印」，无「LOG」直出', async () => {
     mockLogPluginTransport()
     renderSettings()
-    // 连接方式折叠头摘要（displayText 优先 = 插件 Describe 用户语）
+    // 连接方式分节标题行摘要（displayText 优先 = 插件 Describe 用户语）
     expect(await screen.findByText('模拟打印')).toBeTruthy()
     // 测试打印说明（打印机分组）：当前连接方式：模拟打印
     const printerSection = withinSection('打印机')
@@ -363,7 +394,7 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
   it('AC-02：TCP 选项列表显示「网口打印机（TCP 9100）」，选中后参数表单保持', async () => {
     mockLogPluginTransport()
     renderSettings()
-    // 挂载链先落定（连接配置已加载——折叠头摘要「模拟打印」出现为准），再展开交互：
+    // 挂载链先落定（连接配置已加载——分节标题行摘要「模拟打印」出现为准），再切分节交互：
     // 实证（CI 高负载复现）：配置未落定即展开点选时，挂载期并发 mock 的迟到
     // 渲染会与单选列表 / 参数表单的渲染交错（选中态与表单不同步），findByLabelText 默认 1s 超时
     expect(await screen.findByText('模拟打印')).toBeTruthy()
@@ -438,6 +469,7 @@ describe('原生指令模式提示（迭代 78，DESIGN §5.4.2 / #120 AC-04）'
 describe('打印机（F4）', () => {
   it('状态展示：在线 + 附加信息', async () => {
     renderSettings()
+    openSection('打印机')
     expect(await screen.findByText('在线')).toBeTruthy()
     expect(screen.getByText('就绪')).toBeTruthy()
   })
@@ -445,12 +477,14 @@ describe('打印机（F4）', () => {
   it('缺纸 / 暂停徽标', async () => {
     mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: true, isPaused: true, message: '' })
     renderSettings()
+    openSection('打印机')
     expect(await screen.findByText('缺纸')).toBeTruthy()
     expect(screen.getByText('已暂停')).toBeTruthy()
   })
 
   it('测试打印：调用 testPrinter 并提示确认出纸（迭代 73 文案用户化，不再展示字节数）', async () => {
     renderSettings()
+    openSection('打印机')
     fireEvent.click(screen.getByRole('button', { name: /测试打印/ }))
     expect(await screen.findByText('测试页已发送，请确认打印机是否出纸。')).toBeTruthy()
     expect(mocks.local.testPrinter).toHaveBeenCalled()
@@ -466,6 +500,7 @@ describe('更新与安装包（迭代 22 §2.3）', () => {
   it('服务端已连接：拉取安装包列表，显示文件名 / 大小 / 修改时间与下载链接', async () => {
     mocks.server.listClientPackages.mockResolvedValue(PKGS)
     renderSettings()
+    openSection('更新与安装包')
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame.Client-linux.zip')).toBeTruthy()
     expect(screen.getByText('42.0 MB')).toBeTruthy()
@@ -477,6 +512,7 @@ describe('更新与安装包（迭代 22 §2.3）', () => {
 
   it('服务端已连接但无安装包：提示去服务端管理界面上传', async () => {
     renderSettings()
+    openSection('更新与安装包')
     expect(await screen.findByText(/服务端暂无客户端安装包/)).toBeTruthy()
     expect(mocks.server.listClientPackages).toHaveBeenCalled()
   })
@@ -484,6 +520,7 @@ describe('更新与安装包（迭代 22 §2.3）', () => {
   it('单机模式（服务端不可达）：提示需先连接服务端，不调 listClientPackages', async () => {
     mocks.server.healthz.mockRejectedValue(new Error('down'))
     renderSettings()
+    openSection('更新与安装包')
     expect(await screen.findByText(/当前未连接服务端（单机模式）/)).toBeTruthy()
     expect(screen.getByText(/请先在上方「服务端地址」中连接服务端/)).toBeTruthy()
     expect(mocks.server.listClientPackages).not.toHaveBeenCalled()
@@ -497,6 +534,7 @@ describe('检查更新（迭代 64，决策 #126）', () => {
     mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, version: '0.26.0' })
     mocks.server.listClientPackages.mockResolvedValue([pkg('LabelFrame-Client-0.27.0.msi')])
     renderSettings()
+    openSection('更新与安装包')
     const notice = await screen.findByTestId('update-available')
     expect(notice.textContent).toContain('0.27.0')
     expect(notice.textContent).toContain('0.26.0')
@@ -508,6 +546,7 @@ describe('检查更新（迭代 64，决策 #126）', () => {
     mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, version: '0.27.0' })
     mocks.server.listClientPackages.mockResolvedValue([pkg('LabelFrame-Client-0.27.0.msi'), pkg('LabelFrame-Client-0.26.0.msi')])
     renderSettings()
+    openSection('更新与安装包')
     const notice = await screen.findByTestId('update-uptodate')
     expect(notice.textContent).toContain('已是最新')
     expect(notice.textContent).toContain('0.27.0')
@@ -517,6 +556,7 @@ describe('检查更新（迭代 64，决策 #126）', () => {
   it('本机版本未知（旧客户端无 version 字段）：不比较不显示结论', async () => {
     mocks.server.listClientPackages.mockResolvedValue([pkg('LabelFrame-Client-0.27.0.msi')])
     renderSettings()
+    openSection('更新与安装包')
     await screen.findByText('LabelFrame-Client-0.27.0.msi')
     expect(screen.queryByTestId('update-available')).toBeNull()
     expect(screen.queryByTestId('update-uptodate')).toBeNull()
@@ -526,6 +566,7 @@ describe('检查更新（迭代 64，决策 #126）', () => {
     mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, version: '0.26.0' })
     mocks.server.listClientPackages.mockResolvedValue([pkg('客户端安装包.zip')])
     renderSettings()
+    openSection('更新与安装包')
     await screen.findByText('客户端安装包.zip')
     expect(screen.queryByTestId('update-available')).toBeNull()
     expect(screen.queryByTestId('update-uptodate')).toBeNull()
@@ -560,6 +601,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('可用列表渲染：valid 显示名称 / 版本 / pluginId / 有效徽标与安装按钮；invalid 红标 + 原因 + 安装禁用', async () => {
     mocks.server.listPluginPackages.mockResolvedValue([PKG, INVALID])
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText('示例插件')).toBeTruthy()
     expect(screen.getByText('1.0.0')).toBeTruthy()
     expect(screen.getByText('sample')).toBeTruthy()
@@ -575,6 +617,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('安装流程：下载插件包 → 本机安装（保留原始文件名）→ 提示后端 message + 刷新已安装列表', async () => {
     mocks.server.listPluginPackages.mockResolvedValue([PKG])
     renderSettings()
+    openSection('插件管理')
     fireEvent.click(await screen.findByRole('button', { name: /^安装$/ }))
     await waitFor(() => expect(mocks.server.downloadPluginPackage).toHaveBeenCalledWith('sample-1.0.0.lfplugin'))
     await waitFor(() => expect(mocks.local.installPlugin).toHaveBeenCalledTimes(1))
@@ -589,6 +632,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
     mocks.server.listPluginPackages.mockResolvedValue([PKG])
     mocks.local.listInstalledPlugins.mockResolvedValue([INSTALLED])
     renderSettings()
+    openSection('插件管理')
     fireEvent.click(await screen.findByRole('button', { name: /^安装$/ }))
     // 自研 Modal 确认（替代原生 confirm 弹窗）
     expect(await screen.findByText(/将覆盖为/)).toBeTruthy()
@@ -600,6 +644,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
     mocks.server.listPluginPackages.mockResolvedValue([PKG])
     mocks.local.listInstalledPlugins.mockResolvedValue([INSTALLED])
     renderSettings()
+    openSection('插件管理')
     fireEvent.click(await screen.findByRole('button', { name: /^安装$/ }))
     expect(await screen.findByText(/将覆盖为/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '取消' }))
@@ -610,6 +655,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('单机模式：可用插件区提示需先连接服务端、不调 listPluginPackages；已安装区仍渲染', async () => {
     mocks.server.healthz.mockRejectedValue(new Error('down'))
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText(/当前未连接服务端，处于单机模式/)).toBeTruthy()
     expect(mocks.server.listPluginPackages).not.toHaveBeenCalled()
     expect(mocks.local.listInstalledPlugins).toHaveBeenCalled()
@@ -618,6 +664,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('旧 Server（可用插件区 404）：区分展示「服务端版本较旧，暂不支持插件管理」', async () => {
     mocks.server.listPluginPackages.mockRejectedValue(new ApiError('HTTP_404', '请求失败（HTTP 404）。'))
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText(/服务端版本较旧，暂不支持插件管理/)).toBeTruthy()
   })
 
@@ -629,6 +676,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
       { pluginId: 'd', name: '手动插件', version: '?', loaded: true, source: 'manual' },
     ])
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText('已加载插件')).toBeTruthy()
     expect(screen.getByText('已加载')).toBeTruthy()
     expect(screen.getByText('待重启生效')).toBeTruthy()
@@ -642,6 +690,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('卸载：确认 Modal → uninstallPlugin(pluginId) → 提示 message + 刷新', async () => {
     mocks.local.listInstalledPlugins.mockResolvedValue([INSTALLED])
     renderSettings()
+    openSection('插件管理')
     fireEvent.click(await screen.findByRole('button', { name: /^卸载$/ }))
     // 自研 Modal 确认（替代原生 confirm 弹窗）
     expect(await screen.findByText(/确认卸载插件/)).toBeTruthy()
@@ -656,6 +705,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
       new ApiError('LF_PLUGIN_BUSY', '插件「sample」正在使用中（DLL 被客户端占用），请重启客户端后重试。'),
     )
     renderSettings()
+    openSection('插件管理')
     fireEvent.click(await screen.findByRole('button', { name: /^安装$/ }))
     expect(await screen.findByText(/正在使用中（DLL 被客户端占用），请重启客户端后重试/)).toBeTruthy()
   })
@@ -663,6 +713,7 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('已安装列表加载失败：错误提示（非 404 不显示版本提示）', async () => {
     mocks.local.listInstalledPlugins.mockRejectedValue(new Error('network down'))
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText(/获取已安装插件列表失败/)).toBeTruthy()
     expect(screen.queryByText(/当前客户端版本不支持插件管理/)).toBeNull()
   })
@@ -670,27 +721,31 @@ describe('插件管理（迭代 23 §5.6）', () => {
   it('旧 WinHost（已安装区 404）：显示「当前客户端版本不支持插件管理」', async () => {
     mocks.local.listInstalledPlugins.mockRejectedValue(new ApiError('HTTP_404', '请求失败（HTTP 404）。'))
     renderSettings()
+    openSection('插件管理')
     expect(await screen.findByText('当前客户端版本不支持插件管理。')).toBeTruthy()
   })
 
   it('超过 64MB 的插件包：安装按钮禁用（预检提示）', async () => {
     mocks.server.listPluginPackages.mockResolvedValue([{ ...PKG, sizeBytes: 64 * 1024 * 1024 + 1 }])
     renderSettings()
+    openSection('插件管理')
     const btn = (await screen.findByRole('button', { name: /^安装$/ })) as HTMLButtonElement
     expect(btn.disabled).toBe(true)
   })
 })
 
 describe('打印批次（迭代 24 §4.4）', () => {
-  /** 批次卡片内限定查询（「保存」按钮在服务端地址与打印批次两组各有一个）。 */
+  /** 批次分节内限定查询（「保存」按钮在服务端地址与打印批次两组各有一个）。 */
   function withinBatch(): HTMLElement {
-    return screen.getByText('打印批次').closest('section') as HTMLElement
+    openSection('打印批次')
+    return within(settingsMain()).getByText('打印批次').closest('section') as HTMLElement
   }
 
   it('卡片渲染：挂载即拉取设置，显示开关（默认关）与数量 / 间隔默认值 + 提示文案', async () => {
     renderSettings()
+    openSection('打印批次')
     // 面板与默认值（GET 返回默认：关 / 10 张 / 500ms）
-    expect(screen.getByText('打印批次')).toBeTruthy()
+    expect(within(settingsMain()).getByText('打印批次')).toBeTruthy()
     expect(await screen.findByLabelText('开启批次作业')).toBeTruthy()
     const enabled = screen.getByLabelText('开启批次作业') as HTMLInputElement
     const size = screen.getByLabelText('每批次打印数量') as HTMLInputElement
@@ -701,13 +756,11 @@ describe('打印批次（迭代 24 §4.4）', () => {
     expect(mocks.local.getPrintSettings).toHaveBeenCalled()
     // 提示文案
     expect(screen.getByText(/每 10 张一批发送到打印机，批与批之间间隔 500 毫秒/)).toBeTruthy()
-    // 卡片位于「连接方式」之下
-    const conn = screen.getByText('连接方式').closest('section') as HTMLElement
-    expect(conn.compareDocumentPosition(withinBatch()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('开关联动：关闭时数量 / 间隔输入禁用置灰，开启后可用，再关闭恢复禁用', async () => {
     renderSettings()
+    openSection('打印批次')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     const size = screen.getByLabelText('每批次打印数量') as HTMLInputElement
     const interval = screen.getByLabelText('批次打印间隔（毫秒）') as HTMLInputElement
@@ -728,6 +781,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
 
   it('保存成功：setPrintSettings 携带表单值，提示「已保存并立即生效」', async () => {
     renderSettings()
+    openSection('打印批次')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.change(screen.getByLabelText('每批次打印数量'), { target: { value: '20' } })
@@ -740,6 +794,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('保存失败（后端 400 ErrorView）：展示后端中文 message，不提示成功', async () => {
     mocks.local.setPrintSettings.mockRejectedValue(new ApiError('LF_BATCH_INVALID', '每批次打印数量必须 ≥ 1。'))
     renderSettings()
+    openSection('打印批次')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.change(screen.getByLabelText('每批次打印数量'), { target: { value: '0' } })
@@ -751,6 +806,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('保存失败（网络错误）：回退通用文案', async () => {
     mocks.local.setPrintSettings.mockRejectedValue(new Error('network down'))
     renderSettings()
+    openSection('打印批次')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.click(within(withinBatch()).getByRole('button', { name: /^保存$/ }))
@@ -760,6 +816,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('旧 WinHost（GET 404）：显示版本提示「当前客户端版本不支持批次作业」，不渲染表单', async () => {
     mocks.local.getPrintSettings.mockRejectedValue(new ApiError('HTTP_404', '请求失败（HTTP 404）。'))
     renderSettings()
+    openSection('打印批次')
     expect(await screen.findByText('当前客户端版本不支持批次作业。')).toBeTruthy()
     expect(screen.queryByLabelText('开启批次作业')).toBeNull()
     expect(screen.queryByLabelText('每批次打印数量')).toBeNull()
@@ -770,33 +827,44 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('获取设置失败（非 404）：展示错误信息，不渲染表单', async () => {
     mocks.local.getPrintSettings.mockRejectedValue(new Error('network down'))
     renderSettings()
+    openSection('打印批次')
     expect(await screen.findByText(/获取批次设置失败/)).toBeTruthy()
     expect(screen.queryByLabelText('开启批次作业')).toBeNull()
   })
 })
 
 describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
-  it('7 张卡片标题挂「?」（data-help 语义锚点）', async () => {
+  /** 锚点 → 分节标题：锚点元素仅当选中分节渲染，逐锚点先切分节再断言。 */
+  const ANCHOR_SECTIONS: Record<string, string> = {
+    'settings.language': '语言',
+    'settings.serverAddress': '服务端地址',
+    'settings.transport': '连接方式',
+    'settings.batch': '打印批次',
+    'settings.printer': '打印机',
+    'settings.updates': '更新与安装包',
+    'settings.plugins': '插件管理',
+  }
+
+  it('7 个分节标题挂「?」（data-help 语义锚点，逐分节在场）', async () => {
     renderSettings()
-    await screen.findByLabelText('服务端地址')
-    for (const a of ['settings.language', 'settings.serverAddress', 'settings.transport', 'settings.batch', 'settings.printer', 'settings.updates', 'settings.plugins']) {
-      expect(document.querySelector('[data-help="' + a + '"]')).toBeTruthy()
+    await screen.findByRole('button', { name: '连接方式' })
+    for (const [anchor, title] of Object.entries(ANCHOR_SECTIONS)) {
+      openSection(title)
+      expect(document.querySelector('[data-help="' + anchor + '"]')).toBeTruthy()
     }
   })
 
-  it('点「?」弹出对应卡片文档气泡，Esc 关闭；连接方式卡「?」不触发折叠连带（stopPropagation）', async () => {
+  it('点「?」弹出对应分节文档气泡，Esc 关闭', async () => {
     renderSettings()
-    await screen.findByLabelText('服务端地址')
+    openSection('连接方式')
     const transportDot = document.querySelector('[data-help="settings.transport"]') as HTMLButtonElement
     expect(transportDot).toBeTruthy()
     fireEvent.click(transportDot)
     const dialog = screen.getByRole('dialog')
-    // 气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出
+    // 气泡不再渲染可见标题（无障碍名保留 title 词条）、正文直出（词条与帮助文章同源）
     expect(dialog.getAttribute('aria-label')).toBe('连接方式')
     expect(within(dialog).queryByText('连接方式')).toBeNull()
-    expect(within(dialog).getByText(/卡片收起时显示当前连接/)).toBeTruthy()
-    // 折叠面板未连带展开（面板头 onClick 被冒泡拦截）
-    expect(screen.queryByRole('button', { name: /保存并应用/ })).toBeNull()
+    expect(within(dialog).getByText(/选择连接方式后，界面只显示该类型需要填写的信息/)).toBeTruthy()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -814,16 +882,15 @@ describe('帮助深链（#316 决策 #178）', () => {
     )
   }
 
-  it('深链锚点常在即刻命中：挂载即自动弹对应卡片气泡（settings.language → 「语言」）', async () => {
+  it('深链锚点常在即刻命中：挂载即自动切到对应分节并弹卡片气泡（settings.language → 「语言」）', async () => {
     renderSettingsWithLink('settings.language')
-    await screen.findByLabelText('服务端地址')
     const dialog = await screen.findByRole('dialog')
     expect(dialog.getAttribute('aria-label')).toBe('语言')
   })
 
   it('深链轮询超时通用降级：锚点运行时不可见（未登记串无 [data-help]）→ 状态栏通用提示，不弹气泡', async () => {
     renderSettingsWithLink('settings.nonexistent')
-    await screen.findByLabelText('服务端地址')
+    await screen.findByRole('button', { name: '连接方式' })
     await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('已切换页面'), { timeout: 6000 })
     expect(screen.queryByRole('dialog')).toBeNull()
   })

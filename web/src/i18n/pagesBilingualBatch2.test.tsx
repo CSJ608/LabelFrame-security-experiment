@@ -6,7 +6,7 @@
 // 新建模板分组「默认」/「Default」）——模板存储值不受语言影响的语义由 zh 态与现状等价保证。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ClientPackageInfo, InstalledPluginInfo, PdaPackageInfo, PluginPackageInfo, PrintSettings, PrinterStatus, TemplatePackage } from '../lib/api/types'
 import { AppProvider } from '../state/AppContext'
 import { Designer } from '../pages/Designer'
@@ -161,39 +161,55 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     await waitFor(() => expect(screen.getByText('Select an element on the canvas to show its properties.')).toBeTruthy())
   })
 
-  it('设置页：中文态各卡片 → 切 en 全英文且无 CJK（含连接方式面板展开）', async () => {
+  it('设置页：中文态各分节 → 切 en 全英文且无 CJK（含连接方式面板展开）', async () => {
     const { container } = render(
       <AppProvider>
         <Settings />
       </AppProvider>,
     )
-    // zh 态：标题 + 各卡片头 + 更新与插件表格表头
-    expect(await screen.findByText('服务端地址', { selector: '.panel-head' })).toBeTruthy()
-    expect(screen.getByText('连接方式')).toBeTruthy()
-    expect(screen.getByText('打印批次')).toBeTruthy()
-    expect(screen.getByText('打印机')).toBeTruthy()
-    expect(screen.getByText('更新与安装包')).toBeTruthy()
-    expect(screen.getByText('插件管理')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /测试连接/ })).toBeTruthy()
+    const main = () => container.querySelector('.settings-main') as HTMLElement
+    // zh 态：分节菜单列全部分节（名称与各面板头同源词条）；默认分节 = 连接方式
+    await screen.findByRole('navigation', { name: '设置菜单' })
+    for (const title of ['语言', '服务端地址', '连接方式', '打印批次', '打印机', '更新与安装包', '插件管理']) {
+      expect(screen.getByRole('button', { name: title })).toBeTruthy()
+    }
     // 展开连接方式：模式单选项（modeLabel 随语言）
-    fireEvent.click(screen.getByText('连接方式'))
+    fireEvent.click(within(main()).getByText('连接方式'))
     expect(await screen.findByRole('radio', { name: /模拟打印/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /网络打印机/ })).toBeTruthy()
+    // 服务端地址分节：分节标题与测试连接按钮
+    fireEvent.click(screen.getByRole('button', { name: '服务端地址' }))
+    expect(await screen.findByRole('heading', { name: '服务端地址' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /测试连接/ })).toBeTruthy()
 
     changeLocale('en')
-    await waitFor(() => expect(screen.getByText('Server Address', { selector: '.panel-head' })).toBeTruthy())
+    // 连接方式分节（展开态跨分节保留）：菜单名与模式单选项随语言
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Connection' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Connection' }))
     await waitFor(() => expect(screen.getByRole('radio', { name: /Simulated printing/ })).toBeTruthy())
     expect(screen.getByRole('radio', { name: /Network printer/ })).toBeTruthy()
+    // 服务端地址分节：分节标题与按钮英文
+    fireEvent.click(screen.getByRole('button', { name: 'Server Address' }))
+    expect(screen.getByRole('heading', { name: 'Server Address' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Test Connection/ })).toBeTruthy()
+    // 更新与安装包 / 插件管理分节：表格表头与 pluginId 单元格随语言
+    fireEvent.click(screen.getByRole('button', { name: 'Updates & Packages' }))
     await waitFor(() => expect(screen.getByRole('columnheader', { name: 'File Name' })).toBeTruthy())
-    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Plugin Management' }))
+    await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Status' })).toBeTruthy())
     expect(screen.getByText('demo')).toBeTruthy() // 可用插件 pluginId（单元格内）
-    // no-CJK 查页面本体（.page）但排除语言卡片——「中文」选项名固定各自语言原文（不随当前语言翻译）
-    const langPanel = container.querySelector('[data-testid="language-panel"]')
-    const pageText = (container.querySelector('.page')!.textContent ?? '').replace(langPanel?.textContent ?? '', '')
-    expect(CJK.test(pageText)).toBe(false)
+    // no-CJK 逐分节扫描（en 态全分节覆盖）：切换分节后扫当前分节正文——语言卡整节跳过
+    //（「中文」选项名固定各自语言原文，不随当前语言翻译；其标题英文已由 heading 断言覆盖）
+    for (const name of ['Language', 'Server Address', 'Connection', 'Print Batching', 'Printer', 'Updates & Packages', 'Plugin Management']) {
+      fireEvent.click(screen.getByRole('button', { name }))
+      const heading = await within(container.querySelector('.settings-main') as HTMLElement).findByRole('heading', { name })
+      if (heading.closest('section')?.matches('[data-testid="language-panel"]')) continue
+      const section = heading.closest('section') as HTMLElement
+      expect(CJK.test(section.textContent ?? ''), `section=${name}`).toBe(false)
+    }
 
     changeLocale('zh-CN')
-    await waitFor(() => expect(screen.getByText('服务端地址', { selector: '.panel-head' })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: '插件管理' })).toBeTruthy())
   })
 
   it('下载中心：中文态快速访问首屏 → 切 en 全英文且无 CJK（迭代 118 · #272 三 tab + 平台优先措辞）', async () => {

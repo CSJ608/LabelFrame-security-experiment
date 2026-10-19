@@ -3,6 +3,7 @@
     "title": "设置",
     "subtitle": "服务端地址 / 本机连接与打印机"
   },
+  "navRegion": "设置菜单",
   "language": {
     "title": "语言",
     "label": "界面语言",
@@ -27,11 +28,7 @@
   },
   "transport": {
     "title": "连接方式",
-    "current": "当前",
-    "collapseTitle": "收起连接编辑区",
-    "expandTitle": "展开以测试或切换打印机连接",
-    "collapse": "收起",
-    "expand": "展开"
+    "current": "当前"
   },
   "batch": {
     "title": "打印批次",
@@ -84,7 +81,7 @@
     "availableTitle": "服务端可用插件",
     "offlineHint": "当前未连接服务端，处于单机模式。插件由服务端统一分发，请连接服务端后查看可用插件。",
     "loading": "加载可用插件列表…",
-    "loadFailed": "获取可用插件列表失败。",
+    "loadFailed": "加载失败",
     "loadFailedWith": "获取可用插件列表失败：{{reason}}",
     "oldServer": "服务端版本较旧，暂不支持插件管理；请先将服务端升级到新版本。",
     "empty": "服务端暂无可用插件。请先在服务端管理界面「插件管理」页上传插件包，再从此处安装。",
@@ -111,7 +108,6 @@
     "installedEmpty": "尚未安装插件。可从上方列表选择插件安装。",
     "manual": "手动放置",
     "loaded": "已加载",
-    "loadFailed": "加载失败",
     "pendingRestart": "待重启生效",
     "uninstall": "卸载",
     "uninstalling": "卸载中…",

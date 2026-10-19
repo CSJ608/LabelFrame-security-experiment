@@ -1,5 +1,6 @@
-// 设置页：服务端地址（机器级配置，保存即生效）+ 连接方式（本机 Client）+ 打印机状态 / 测试打印
-// + 更新与安装包 + 插件管理（服务端可用插件 / 本机已安装）；内容为多列自适应网格（宽窗多列、窄窗单列）。
+// 设置页：分节左菜单＋右内容（帮助页文档站版式同构）——左列七个分节导航、右区仅渲染选中分节；
+// 分节内容不套卡片（标题行＋内容直接铺在版面）。分节内容：服务端地址（机器级配置，保存即生效）/
+// 连接方式（本机 Client，内容常显无折叠）/ 打印机状态 / 测试打印 / 更新与安装包 / 插件管理。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +21,31 @@ import { HelpDot } from '../components/HelpDot'
 import { TransportPanel } from '../components/TransportPanel'
 import { useHelpDeepLink } from '../lib/helpLink'
 import { isServerUi } from '../lib/uiMode'
+
+/** 分节清单：顺序即左菜单顺序；titleKey 复用各面板头词条（菜单与面板标题单源）。 */
+const SETTINGS_SECTIONS = [
+  { id: 'language', titleKey: 'language.title' },
+  { id: 'serverAddress', titleKey: 'serverAddress.title' },
+  { id: 'transport', titleKey: 'transport.title' },
+  { id: 'batch', titleKey: 'batch.title' },
+  { id: 'printer', titleKey: 'printer.title' },
+  { id: 'updates', titleKey: 'updates.title' },
+  { id: 'plugins', titleKey: 'plugins.title' },
+] as const
+
+type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]['id']
+
+/* * 深链锚点 → 分节映射：锚点元素（「?」文档点）仅当选中分节渲染——深链到达须先切到对应分节，
+ * 轮询才能命中（未登记锚点不受影响，走通用超时降级）。 */
+const ANCHOR_TO_SECTION: Record<string, SettingsSectionId> = {
+  'settings.language': 'language',
+  'settings.serverAddress': 'serverAddress',
+  'settings.transport': 'transport',
+  'settings.batch': 'batch',
+  'settings.printer': 'printer',
+  'settings.updates': 'updates',
+  'settings.plugins': 'plugins',
+}
 
 export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
   const app = useApp()
@@ -47,8 +73,13 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       />
     )
   const [url, setUrl] = useState(app.baseUrl)
-  // 连接配置低频收纳——「连接方式」默认折叠为当前连接摘要一行，点击展开完整编辑区
-  const [transportOpen, setTransportOpen] = useState(false)
+  // 分节导航：右区仅渲染选中分节（默认连接方式——最高频调整项）；帮助深链锚点映射分节，到达即自动选中
+  const [section, setSection] = useState<SettingsSectionId>(() => (helpAnchor && ANCHOR_TO_SECTION[helpAnchor]) || 'transport')
+  useEffect(() => {
+    if (!helpAnchor) return
+    const target = ANCHOR_TO_SECTION[helpAnchor]
+    if (target) setSection(target)
+  }, [helpAnchor])
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -304,17 +335,31 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         </div>
       </div>
 
-      {/* 容器须 flex:1 + overflowY:auto（否则被 .page overflow:hidden 裁剪，低屏看不到底部卡片） */}
-      {/* minWidth:0 防长文本（%ProgramData% 路径）撑破网格 */}
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(560px, 1fr))', gap: 14, alignItems: 'start' }}>
+      {/* 分节左菜单＋右内容：菜单项标题与各面板头单源；右区单分节滚动（长内容如插件管理不再撑高整页） */}
+      <div className="settings-layout">
+        <nav className="settings-nav" aria-label={t('navRegion')}>
+          {SETTINGS_SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={'settings-nav-item' + (section === s.id ? ' active' : '')}
+              aria-current={section === s.id ? 'true' : undefined}
+              onClick={() => setSection(s.id)}
+            >
+              {t(s.titleKey)}
+            </button>
+          ))}
+        </nav>
+        <div className="settings-main">
         {/* 界面语言——切换即时生效 + localStorage 持久化；
             首启默认跟随浏览器语言（zh* → zh-CN，其他 → en） */}
-        <section className="panel" data-testid="language-panel">
-          <div className="panel-head">
+        {section === 'language' && (
+        <section className="settings-section" data-testid="language-panel">
+          <h2 className="settings-section-title">
             {t('language.title')}
             {dot('settings.language')}
-          </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          </h2>
+          <div className="settings-section-body">
             <label className="field" style={{ maxWidth: 260 }}>
               {t('language.label')}
               <select
@@ -331,13 +376,15 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             </label>
           </div>
         </section>
+        )}
 
-        <section className="panel">
-          <div className="panel-head">
+        {section === 'serverAddress' && (
+        <section className="settings-section">
+          <h2 className="settings-section-title">
             {t('serverAddress.title')}
             {dot('settings.serverAddress')}
-          </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          </h2>
+          <div className="settings-section-body">
             <label className="field">
               {t('serverAddress.label')}
               <input className="input mono" value={url} onChange={(ev) => setUrl(ev.target.value)} placeholder="http://127.0.0.1:53961" spellCheck={false} />
@@ -368,46 +415,37 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             )}
           </div>
         </section>
+        )}
 
-        <section className="panel">
-          {/* 默认折叠：面板头即连接摘要，点击整行展开编辑区 */}
-          <div
-            className="panel-head"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setTransportOpen((v) => !v)}
-            title={transportOpen ? t('transport.collapseTitle') : t('transport.expandTitle')}
-          >
-            {t('transport.title')}
-            {/* 「?」点击 stopPropagation——防冒泡连带触发展开 / 收起 */}
-            {dot('settings.transport')}
-            <span className="hint" style={{ marginLeft: 6 }}>{t('transport.current')}</span>
+        {section === 'transport' && (
+        <section className="settings-section">
+          {/* 标题行带当前连接徽标；内容常显——分节菜单已隔离上下文，不再需要折叠收纳 */}
+          <div className="settings-section-head">
+            <h2 className="settings-section-title">
+              {t('transport.title')}
+              {dot('settings.transport')}
+            </h2>
+            <span className="hint">{t('transport.current')}</span>
             <span
               className={'badge ' + (app.connected ? 'ok' : '')}
               style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
               {formatTransport(app.transportConfig) || app.transport || t('value.unknown')}
             </span>
-            <span className="spacer" style={{ flex: 1 }} />
-            <span className="hint">{transportOpen ? t('transport.collapse') : t('transport.expand')}</span>
-            <Icon
-              name="back"
-              size={13}
-              style={{ transform: transportOpen ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
-            />
           </div>
-          {transportOpen && (
-            <div className="panel-body">
-              <TransportPanel />
-            </div>
-          )}
+          <div className="settings-section-body">
+            <TransportPanel />
+          </div>
         </section>
+        )}
 
-        <section className="panel">
-          <div className="panel-head">
+        {section === 'batch' && (
+        <section className="settings-section">
+          <h2 className="settings-section-title">
             {t('batch.title')}
             {dot('settings.batch')}
-          </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          </h2>
+          <div className="settings-section-body">
             {printSettingsOldWinHost ? (
               <div className="hint">{t('batch.oldClient')}</div>
             ) : printSettings === null ? (
@@ -460,18 +498,22 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             )}
           </div>
         </section>
+        )}
 
-        <section className="panel">
-          <div className="panel-head">
-            {t('printer.title')}
-            {dot('settings.printer')}
+        {section === 'printer' && (
+        <section className="settings-section">
+          <div className="settings-section-head">
+            <h2 className="settings-section-title">
+              {t('printer.title')}
+              {dot('settings.printer')}
+            </h2>
             <span className="spacer" style={{ flex: 1 }} />
             <button className="btn sm" onClick={() => void refreshPrinter()} disabled={printerLoading}>
               <Icon name="refresh" size={12} />
               {t('action.refresh')}
             </button>
           </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="settings-section-body">
             {printer ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -499,18 +541,22 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             </div>
           </div>
         </section>
+        )}
 
-        <section className="panel">
-          <div className="panel-head">
-            {t('updates.title')}
-            {dot('settings.updates')}
+        {section === 'updates' && (
+        <section className="settings-section">
+          <div className="settings-section-head">
+            <h2 className="settings-section-title">
+              {t('updates.title')}
+              {dot('settings.updates')}
+            </h2>
             <span className="spacer" style={{ flex: 1 }} />
             <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span className={'status-dot' + (app.connected ? ' on' : '')} />
               {app.connected ? t('serverAddress.connected') : t('updates.standalone')}
             </span>
           </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="settings-section-body">
             {/* 「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；unknown 不显示（无误导） */}
             {(() => {
               const update = checkForUpdate(app.hostVersion, (packages ?? []).map((p) => p.fileName))
@@ -590,18 +636,22 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             )}
           </div>
         </section>
+        )}
 
-        <section className="panel">
-          <div className="panel-head">
-            {t('plugins.title')}
-            {dot('settings.plugins')}
+        {section === 'plugins' && (
+        <section className="settings-section">
+          <div className="settings-section-head">
+            <h2 className="settings-section-title">
+              {t('plugins.title')}
+              {dot('settings.plugins')}
+            </h2>
             <span className="spacer" style={{ flex: 1 }} />
             <button className="btn sm" onClick={() => void refreshInstalledPlugins()} disabled={installedPluginsLoading}>
               <Icon name="refresh" size={12} />
               {t('action.refresh')}
             </button>
           </div>
-          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="settings-section-body">
             {pluginError && (
               <div className="badge err" style={{ alignSelf: 'flex-start' }}>
                 {pluginError}
@@ -751,6 +801,8 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             )}
           </div>
         </section>
+        )}
+        </div>
       </div>
 
       {confirmOverwrite && (() => {

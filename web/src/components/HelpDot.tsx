@@ -47,7 +47,8 @@ export function HelpDot({ anchor, topicKey, open, onToggle, onClose, hasDemo, de
   const bubbleRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
-  // 定位：锚点右缘对齐 + 下缘展开；越出视口时翻转 / 贴边（jsdom 中矩形为 0，仍产出可用坐标）
+  // 定位：向空间更大的一侧展开（右侧空间大 = 左缘对齐向右；左侧空间大 = 右缘对齐向左——
+  // 靠左的挂点向右展开不致遮蔽左邻区域）；垂直下缘展开，越出视口翻转 / 贴边（jsdom 矩形为 0 仍产出可用坐标）
   useLayoutEffect(() => {
     if (!open) return
     const place = () => {
@@ -56,7 +57,9 @@ export function HelpDot({ anchor, topicKey, open, onToggle, onClose, hasDemo, de
       if (!btn || !bubble) return
       const rect = btn.getBoundingClientRect()
       const { offsetWidth: w, offsetHeight: h } = bubble
-      let left = rect.right - w
+      const roomLeft = rect.left - VIEWPORT_MARGIN
+      const roomRight = window.innerWidth - rect.right - VIEWPORT_MARGIN
+      let left = roomRight >= roomLeft ? rect.left : rect.right - w
       left = Math.max(VIEWPORT_MARGIN, Math.min(left, window.innerWidth - w - VIEWPORT_MARGIN))
       let top = rect.bottom + GAP
       if (top + h > window.innerHeight - VIEWPORT_MARGIN) {

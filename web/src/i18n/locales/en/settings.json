@@ -3,6 +3,7 @@
     "title": "Settings",
     "subtitle": "Server address / local connection and printers"
   },
+  "navRegion": "Settings menu",
   "language": {
     "title": "Language",
     "label": "Interface language",
@@ -27,11 +28,7 @@
   },
   "transport": {
     "title": "Connection",
-    "current": "current",
-    "collapseTitle": "Collapse the connection editor",
-    "expandTitle": "Expand to test or switch the printer connection",
-    "collapse": "Collapse",
-    "expand": "Expand"
+    "current": "current"
   },
   "batch": {
     "title": "Print Batching",
@@ -84,7 +81,7 @@
     "availableTitle": "Server plugins",
     "offlineHint": "Not connected to a server; running in standalone mode. Plugins are distributed by the server; connect to a server to see available plugins.",
     "loading": "Loading available plugins…",
-    "loadFailed": "Failed to load the available plugin list.",
+    "loadFailed": "Load failed",
     "loadFailedWith": "Failed to load the available plugin list: {{reason}}",
     "oldServer": "The server version is older and does not support plugin management; upgrade the server first.",
     "empty": "No plugins available on the server. Upload plugin packages on the \"Plugin Management\" page of the server admin UI, then install them here.",
@@ -111,7 +108,6 @@
     "installedEmpty": "No plugins installed yet. Pick one from the list above to install.",
     "manual": "Manually placed",
     "loaded": "Loaded",
-    "loadFailed": "Load failed",
     "pendingRestart": "Pending restart",
     "uninstall": "Uninstall",
     "uninstalling": "Uninstalling…",

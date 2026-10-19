@@ -485,7 +485,9 @@ label.field > .input, label.field > select.input { width: 100%; }
   flex-direction: column;
   gap: 2px;
 }
-.help-toc-item {
+/* 菜单项基类：帮助页目录项与设置页分节导航项（.settings-nav-item）分组共享同一规则（单源） */
+.help-toc-item,
+.settings-nav-item {
   display: block;
   width: 100%;
   text-align: left;
@@ -498,8 +500,10 @@ label.field > .input, label.field > select.input { width: 100%; }
   color: var(--ink-2);
   cursor: pointer;
 }
-.help-toc-item:hover { color: var(--ink); background: var(--bg); }
-.help-toc-item.active { color: var(--accent); background: var(--bg); font-weight: 600; }
+.help-toc-item:hover,
+.settings-nav-item:hover { color: var(--ink); background: var(--bg); }
+.help-toc-item.active,
+.settings-nav-item.active { color: var(--accent); background: var(--bg); font-weight: 600; }
 .help-toc-item.section { padding: 5px 10px 5px 24px; font-size: 12px; }
 .help-toc-sections { display: flex; flex-direction: column; gap: 1px; margin: 1px 0 5px; }
 .help-main { flex: 1; min-width: 0; overflow-y: auto; }
@@ -551,6 +555,40 @@ label.field > .input, label.field > select.input { width: 100%; }
     background: var(--panel);
     box-shadow: 12px 0 32px rgba(23, 31, 41, 0.16);
   }
+}
+
+/* ---------- 设置页：分节左菜单＋右内容（帮助页文档站版式同构） ---------- */
+/* 左列分节导航（菜单项规则与 .help-toc-item 分组单源共享）＋右区仅渲染选中分节；
+   分节内容不套卡片——标题行＋内容直接铺在版面（受限阅读宽），窄窗（≤960px，与 .grid-2 /
+   帮助页断点一致）菜单折为横向 wrap 列表、内容落其下。 */
+.settings-layout { flex: 1; display: flex; min-height: 0; background: var(--panel); }
+.settings-nav {
+  width: 200px;
+  flex: none;
+  overflow-y: auto;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 10px 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-main { flex: 1; min-width: 0; overflow-y: auto; padding: 16px 20px 24px; }
+.settings-section { display: flex; flex-direction: column; gap: 10px; max-width: 880px; }
+.settings-section-head { display: flex; align-items: center; gap: 8px; }
+.settings-section-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
+.settings-section-body { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 960px) {
+  .settings-layout { flex-direction: column; }
+  .settings-nav {
+    width: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 8px;
+  }
+  .settings-nav-item { width: auto; }
 }
 
 /* ---------- 工作台模板预览（修订：预览列内嵌缩略图 + 点击放大） ---------- */
