@@ -259,7 +259,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 ## 9. 自动化发布与签名
 
 - 发版两步：① 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 提交推送；② 例如 `git tag v1.0.0 && git push origin v1.0.0`。
-- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → 官方传输插件包（Zebra / TSPL `.lfplugin`）→ Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release。
+- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → 官方传输插件包（Zebra / TSPL `.lfplugin`）→ Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release（正文自动取 `CHANGELOG.md` 当版小节——用户视角更新说明在前、GitHub 自动提交列表附后；小节缺失即发版失败，发版顺序保证记账 PR 先合、tag 后推）。
 - **安装引导 EXE**：发版链含独立 `bundle` job——按当版 install manifest（分阶段生成，runtime 哈希跨 job 一致性断言 fail-closed）构建 `LabelFrame-Bootstrapper-<版本>.exe` 并随 Release 附件发布（「安装引导程序（推荐安装入口）」一节的推荐入口即此产物）；下载多源与哈希校验语义见 DESIGN.md。
 - **Linux 归档与 compose 分发**：Linux 归档默认 self-contained（`install-server-linux.sh` 一键安装免 .NET 前置，见「Ubuntu（systemd 裸机部署）」一节）；Release 附件含 `compose.yml` + `.env`（与 `packaging/ubuntu/docker-compose.yml` 同源复制、`.env` 钉定当版版本，「Docker（推荐的服务端部署方式）」一节的快速启动即此产物；两者不进 install manifest——部署描述文件而非可安装产物）。
 - MSI 签名：配置 Secret `MSI_SIGN_CERT_BASE64` / `MSI_SIGN_PASSWORD` 时自动签名，否则跳过。当前为自签证书过渡方案（公开下载仍可能 SmartScreen 提示），正式对外分发建议购买 OV 代码签名证书。本地签名：`scripts\create-signing-cert.ps1` 生成证书，`scripts\build-msi.ps1 -Version x.y.z -Sign` 使用。

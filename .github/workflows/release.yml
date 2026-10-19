@@ -733,11 +733,32 @@ jobs:
           grep -q "LABELFRAME_VERSION=$VERSION" release/.env
           echo "compose 分发附件就绪：compose.yml + .env（版本钉定 $VERSION）"
 
+      # Release 正文取 CHANGELOG 当版小节（用户视角更新说明在前，GitHub 自动提交列表附后）。
+      # 发版顺序保证小节已版本化（记账 PR 先合、tag 后推）；缺失即失败，不用空正文发版。
+      - name: 提取 CHANGELOG 当版小节为 Release 正文
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          body="$RUNNER_TEMP/release-body.md"
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { section = 1; next }
+            section && /^## / { exit }
+            section { print }
+          ' CHANGELOG.md > "$body"
+          sed -i -e '/./,$!d' "$body"
+          printf '%s\n' "$(cat "$body")" > "$body"
+          if ! grep -q '[^[:space:]]' "$body"; then
+            echo "::error::CHANGELOG.md 未找到版本 $VERSION 小节——发版记账未版本化，先补记账再发版"
+            exit 1
+          fi
+          echo "Release 正文取 CHANGELOG [$VERSION] 小节（$(wc -l < "$body") 行）"
+
       - name: 创建 Release（v${{ needs.version.outputs.version }}）
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: LabelFrame v${{ needs.version.outputs.version }}
+          body_path: ${{ runner.temp }}/release-body.md
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
