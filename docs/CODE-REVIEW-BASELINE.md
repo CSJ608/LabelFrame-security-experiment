@@ -7,7 +7,7 @@
 ## 放置路由
 
 - Web 前端：页面 `web/src/pages/<Page>.tsx` + 同名 `.test.tsx`；跨页面复用组件 `web/src/components/`；全局状态 `web/src/state/`；文案资源 `web/src/i18n/`（语义 key，zh 源 + en 同步）。
-- 后端按 `LabelFrame.*` 既有分层：契约/模型 Core、Server API、宿主逻辑 WinHost / AndroidHost；渲染 Rendering。
+- 后端按 `LabelFrame.*` 既有分层：契约/模型 Core、Server API、宿主逻辑 WinHost / AndroidHost；渲染 Rendering；官方传输插件 `src/LabelFrame.TransportPlugin.*`（Zebra / TSPL——外置 .lfplugin 工程，只依赖 Core，同构扩展见决策 #195）。
 - 新建目录 / 项目须有 Issue 条款依据；无依据只给「建议」级提醒。
 
 ## 命名与品牌红线（阻断）

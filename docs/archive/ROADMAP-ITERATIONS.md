@@ -622,7 +622,7 @@
 
 **目标**：围绕「易用性 / 权限边界 / 插件化 / 分发」四项收口——打印测试更好上手、客户端与服务的边界明确、传输方式插件化、客户端安装包由服务端分发。
 
-**已定稿范围**（2026-08-17 用户拍板，详见 [docs/archive/ITERATION-22-SPEC.md](archive/ITERATION-22-SPEC.md)）：
+**已定稿范围**（2026-08-17 用户拍板，详见 [ITERATION-22-SPEC.md](ITERATION-22-SPEC.md)）：
 - 打印测试：客户端与服务端「数据与打印」界面新增「下载 Excel 模板」入口（`POST /api/import/excel-template`，按契约字段 + testData 生成 xlsx），便于直接套用 Excel 导入做打印测试。
 - 权限边界：客户端只能选择本机做打印测试（决策 1A：本机在线走服务端路由、未注册 / 离线降级本机直连并提示）；服务端可自由选设备打印测试。
 - 客户端显示本机设备名称（状态栏 + DataPrint 目标标签）。
@@ -649,7 +649,7 @@
 
 **目标**：把迭代 22 的传输插件机制做成可分发闭环——插件包可上传到服务端（独立目录 + API + Server UI 管理），客户端在界面里浏览服务端可用插件 → 安装 / 卸载已安装的插件。
 
-**已定稿范围**（2026-08-17 用户拍板决策 1-7，详见 [docs/archive/ITERATION-23-SPEC.md](archive/ITERATION-23-SPEC.md)）：
+**已定稿范围**（2026-08-17 用户拍板决策 1-7，详见 [ITERATION-23-SPEC.md](ITERATION-23-SPEC.md)）：
 - 插件包上传服务端（决策 1A/2A）：zip（根 `manifest.json` + 插件 DLL），后缀 `.lfplugin`；独立 `plugin-packages` 目录 + `/api/plugin-packages`（列表含元数据与 valid 状态 / 上传 / 下载 / 删除，路径穿越防护）；Server UI 新增「插件管理」页（与「客户端下载」并列）。
 - 客户端安装（决策 3A/4A/5A/6A/7A）：设置页新增「插件管理」卡片（与「更新与安装包」并列）——浏览服务端可用插件 → 安装（前端下载 → 本机 WinHost 三层校验 [zip CRC + manifest 必填 + 临时 ALC 预检核对插件 id，内置 id 拒绝] → 解压到 `plugins/<pluginId>/`）→ 重启生效；可查看已安装插件与状态（已加载 / 待重启 / 加载失败 / 手动放置）；覆盖安装允许、不做版本比较；包大小上限 64MB。
 - 客户端卸载（决策 3A 延续）：`source:"package"` 插件可卸载（删目录 → 重启生效；与决策 2A 一致）；平铺手动 DLL 只读；运行时热卸载 / 热替换仍不做。
@@ -673,7 +673,7 @@
 
 **目标**：客户端把「向打印机发送」的动作按数量分批、批间加间隔，用于大批量作业时控制打印节奏 / 减轻打印机压力；同时澄清「服务端作业进度 0%→100%」现象与批次功能的关系（批次不改变进度展示，进度回报仍为终态一次）。
 
-**已定稿设计方案**（2026-08-18 过两轮评审「可定稿」，详见 [docs/archive/ITERATION-24-BATCH-DESIGN.md](archive/ITERATION-24-BATCH-DESIGN.md)）：
+**已定稿设计方案**（2026-08-18 过两轮评审「可定稿」，详见 [ITERATION-24-BATCH-DESIGN.md](ITERATION-24-BATCH-DESIGN.md)）：
 - 客户端（WinHost）「批次作业」设置：是否开启（默认关）、每批次打印数量（默认 10）、批次打印间隔 ms（默认 500）；用户级持久化 `%LOCALAPPDATA%\LabelFrame\print-settings.json` + `GET/POST /api/host/print-settings`（仅回环可写、保存即生效）+ 设置页「打印批次」卡片。
 - `JobPrintWorker`「发送前暂停（claim-then-delay）」：领取下一张且已发送数满批次 N 的倍数时先延迟再发送；批次计数内存态、跨作业全局累计；本机与服务端作业统一生效；不拆作业、队列 / 幂等 / 挂起恢复 / 重打语义零改动。
 - WinHost 引入 Serilog 文件日志（`Serilog.AspNetCore` → `%LOCALAPPDATA%\LabelFrame\logs\app-20260818.log`，`RollingInterval.Day`），逐张 ILogger 日志落盘带时间戳，供端到端冒烟断言批间间隔。
@@ -1132,7 +1132,7 @@
 
 ## 检查点：试点验收（已完成）
 
-按 [REQUIREMENTS.md](REQUIREMENTS.md) §8 成功衡量执行：
+按 [REQUIREMENTS.md](../REQUIREMENTS.md) §8 成功衡量执行：
 - 先测基线，再测新系统，同指标对比；
 - 真实扫码枪抽 50 张；连续 100 张压力验证（含重启 / 断网）；
 - 产出试点对比报告。

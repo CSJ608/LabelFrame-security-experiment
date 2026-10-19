@@ -1,6 +1,6 @@
 # LabelFrame.Bootstrapper（三件）模块设计
 
-> 覆盖：`src/LabelFrame.Bootstrapper`（34 文件）· `src/LabelFrame.Bootstrapper.Ba`（16 文件）· `src/LabelFrame.Bootstrapper.PayloadTool`（1 文件）· `test/LabelFrame.Bootstrapper.Tests`（25 文件）——三件共约 7,200 行 · 基线：`master` `831cb9e`（2026-10-12，迭代 138）
+> 覆盖：`src/LabelFrame.Bootstrapper`（35 文件）· `src/LabelFrame.Bootstrapper.Ba`（18 文件）· `src/LabelFrame.Bootstrapper.PayloadTool`（2 文件）· `test/LabelFrame.Bootstrapper.Tests`（29 文件）——三件共约 7,100 行 · 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
 > 分工与模板说明见 [README.md](README.md)；安装链公共契约（manifest schema、链序表、卸载清理、多源回退口径等）见 [DESIGN.md](../DESIGN.md) §6——本文只引 §6 小节与决策号，重心放三件内部结构与运行时机制。
 
 ## 1. 职责与边界

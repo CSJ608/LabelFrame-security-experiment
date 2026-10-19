@@ -18,7 +18,7 @@ Linux Client 是正式发布的无头测试宿主，复用 Windows Client 的作
 .\scripts\test-linux-client-e2e.ps1
 
 # 拉取并验证同版本正式镜像
-$env:LABELFRAME_VERSION = "0.22.2"
+$env:LABELFRAME_VERSION = "1.0.0"
 .\scripts\test-linux-client-e2e.ps1 `
   -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild
 ```

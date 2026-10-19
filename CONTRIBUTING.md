@@ -17,7 +17,8 @@ cd web && pnpm install && pnpm dev  # 前端开发
 ## 提交规范
 
 - 使用 [Conventional Commits](https://www.conventionalcommits.org/)：`feat:` / `fix:` / `test:` / `docs:` / `chore:`，中文说明为主
-- 每次 push 自动跑 CI（构建 + 测试 + 前端双模式 + MSI 结构断言）
+- `master` 受门禁保护：变更走**短分支 + PR**，三项必需检查（构建与测试（dotnet + 前端）/ MSI 结构断言 / Android 构建）全绿后 squash 合并（流程见 [docs/WORKFLOW.md](docs/WORKFLOW.md)）
+- 每次 push 自动跑 CI（构建 + 测试（dotnet + 前端双模式）+ MSI 结构断言 + Android 构建）
 - 发版 = 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 后推送 `v*` tag
 
 ## 文档

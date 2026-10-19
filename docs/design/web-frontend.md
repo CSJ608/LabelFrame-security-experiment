@@ -1,6 +1,6 @@
 # web 前端模块设计
 
-> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 62 代码文件 + 57 测试）· 基线：`iter/138-design-docs-full`（2026-10-12，迭代 138 全量铺开第二篇）
+> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 68 代码文件 + 58 测试）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界
@@ -36,9 +36,9 @@
 | lib | `pluginText.ts` | 插件自描述文案展示端翻译（决策 #192）：有键且 pluginLabels 域有词条 → 当前语言词条、否则原文回退；键由插件侧声明（spec `labelKey` / `hintKey` 与接口 DIM），本模块不拼键；插件管理页包名映射 `pluginPackageName` 按 pluginId 查词条（manifest 键通道待「插件包内嵌词条」机制） |
 | lib | `guide.ts` / `help.ts` / `helpLink.ts` | 新手引导纯数据（五步、localStorage 首见标记 `labelframe.guide.client.v1`，决策 #170）；帮助体系 V3 纯数据（`HELP_PAGES` 八页、演示预设 `HELP_DEMO_PRESETS`、深链示例元素 `HELP_LINK_ELEMENTS`，决策 #176 / #178 / #179）；深链页内轮询 hook（80ms / 4s） |
 | lib | `settings.ts` / `clipboard.ts` / `connection.ts` / `download.ts` / `errorLogging.ts` / `jobStatus.ts` / `pluginLimits.ts` / `update.ts` / `deviceDisplay.ts` / `excel/mapping.ts` | 服务端地址 localStorage 兜底；剪贴板降级（Clipboard API → execCommand / 一次性 paste 捕获）；下载中心默认地址选择；blob 下载；全局错误 console 留痕；作业状态文案 hook；插件包 64MB 预检；客户端检查更新版本比较；设备显示名回退 |
-| i18n | `index.ts` / `errorMessages.ts` | i18n 基座（决策 #165）：13 个域命名空间、zh-CN 源语言 + en 全覆盖（vitest 断言）、`fallbackLng`/`fallbackNS: common`、语言切换单点 `changeLocale`（持久化 + `<html lang>` / `<title>` 同步）；LF_* 错误码展示端翻译（zh 直接后端 message，en 已知码按码表插值、参数不全回退后端中文，决策 #166） |
+| i18n | `index.ts` / `errorMessages.ts` | i18n 基座（决策 #165）：14 个域命名空间、zh-CN 源语言 + en 全覆盖（vitest 断言）、`fallbackLng`/`fallbackNS: common`、语言切换单点 `changeLocale`（持久化 + `<html lang>` / `<title>` 同步）；LF_* 错误码展示端翻译（zh 直接后端 message，en 已知码按码表插值、参数不全回退后端中文，决策 #166） |
 | components | `Modal` / `Popover` / `HelpDot` / `Guide` / `Icon` / `TransportPanel` / `ErrorBoundary` | 通用组件：模态框（Esc / 遮罩关闭）；锚定弹出菜单（portal + fixed，防 `overflow:hidden` 裁剪——决策 #152）；「?」就地文档点（受控气泡，与帮助文章同源词条）；分步气泡引导（spotlight box-shadow 挖洞，自研）；内联 SVG 图标集；设置页连接方式完整面板；渲染异常错误页 |
-| pages | `Designer.tsx`（563 行编排壳）+ `designer/` 组件与 hooks | 设计器页：顶栏 / 左栏（控件 / 字段 / 图层）/ 画布 / 右栏（属性 / 测试数据）三栏 + 三个 Modal（覆盖确认 / 离开三选 / 快捷键）；编排已拆 hooks——`useDesignerActions`（元素操作）/ `useHelpLinkDraft`（深链演示）/ `useImageAssets`（图片资源）/ `useTemplateSave`（保存）/ `useLeaveGuard`（离开保护）＋ `designState` / `images` 纯逻辑（机制层 lib/design/ 不动）；画布组件 `CanvasViewport`（react-konva：拖动高频操作直走 Konva 实例、dragend 才提交状态）、`ElementNode`（元素声明式渲染，图片三态）、`PropsPanel`（分组属性 + 文档点 + 演示插槽）、`SidePanel`、`shortcuts` |
+| pages | `Designer.tsx`（586 行编排壳）+ `designer/` 组件与 hooks | 设计器页：顶栏 / 左栏（控件 / 字段 / 图层）/ 画布 / 右栏（属性 / 测试数据）三栏 + 三个 Modal（覆盖确认 / 离开三选 / 快捷键）；编排已拆 hooks——`useDesignerActions`（元素操作）/ `useHelpLinkDraft`（深链演示）/ `useImageAssets`（图片资源）/ `useTemplateSave`（保存）/ `useLeaveGuard`（离开保护）＋ `designState` / `images` 纯逻辑（机制层 lib/design/ 不动）；画布组件 `CanvasViewport`（react-konva：拖动高频操作直走 Konva 实例、dragend 才提交状态）、`ElementNode`（元素声明式渲染，图片三态）、`PropsPanel`（分组属性 + 文档点 + 演示插槽）、`SidePanel`、`shortcuts` |
 | pages | `DataPrint.tsx` / `Workbench.tsx` / `JobHistory.tsx` / `Devices.tsx` / `Settings.tsx` / `DownloadCenter.tsx` / `PluginPackages.tsx` / `Help.tsx` / `WorkbenchPreview.tsx` / `useTemplatePreview.ts` | 其余八页：数据与打印（表单 / 调试出图 / Excel 映射 / 作业进度）、工作台（卡片网格 + 预览缩略图缓存）、作业历史（行展开明细）、在线设备（server 专用）、设置（分节左菜单＋右内容——帮助页文档站版式同构，菜单项样式与 help-toc-item 分组单源；右区仅渲染选中分节且不套卡片、连接方式内容常显无折叠、帮助深链锚点映射分节自动选中）、下载中心（三 tab，sub 段承载）、插件管理（server 专用）、帮助页（左目录树文档站版式） |
 
 **双构建页集差异**（`lib/tabs.ts` 单源）：client 六页（workbench / designer / data / jobs / settings / help）；server 八页（+devices / packages / plugin-packages，−settings）。路由白名单、帮助页集、导航渲染均从 tab 集派生，页集增减单点跟随。
@@ -94,7 +94,7 @@
 
 **依赖**：React 19 + react-dom；react-konva 19 + konva 10（画布）；react-i18next 17 + i18next 26；jsbarcode（CODE128）、qrcode-generator（二维码）；uuid（requestId）；构建 vitest + jsdom + oxlint + @testing-library/react（测试断言边界 = 组件 onChange 回调与画布同数据源，决策 #82）。
 
-**被依赖**：WinHost（托管 dist、提供 localApi 全部端点 + 单机降级业务 API）、Server（托管 dist-server、提供 serverApi 端点）；测试 = `web/src` 内 57 个 `*.test.*`（单测 / 组件测 / 双模式构建测，不跨仓）。
+**被依赖**：WinHost（托管 dist、提供 localApi 全部端点 + 单机降级业务 API）、Server（托管 dist-server、提供 serverApi 端点）；测试 = `web/src` 内 58 个 `*.test.*`（单测 / 组件测 / 双模式构建测，不跨仓）。
 
 ## 5. 设计取舍（决策索引）
 
@@ -146,6 +146,8 @@
 | 图片控件（上传持久化 + 单色统一 + 缺资源显式报错） | #184 |
 | 插件 spec 条件可见性（字段集按连接类型切换） | #186 |
 | 源码注释 rubric（禁过程标记） / 注释极简化（本文档体系） | #187 / #189 |
+| 图标承形色品牌橘 #C9553B（深浅背景双态可访问） | #190 |
+| 界面审查修复（测试打印媒介尺寸 / 参数表单行层级 / 设计器空名校验） | #197 |
 
 ## 6. 平台坑与不变量
 

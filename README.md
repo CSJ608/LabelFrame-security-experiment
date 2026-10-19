@@ -24,7 +24,7 @@
 - **数据打印**：表单填数或 Excel 导入（列映射）批量打印，可下载按模板生成的 Excel 模板。
 - **作业中心**：一次请求多张、异步 jobId、逐张状态、幂等不重打、断点续打、失败项单独重打、历史按设备可查。
 - **设备路由**：业务系统提交作业 → 服务端定向投递到指定电脑 / PDA 就近出纸；设备离线暂存、上线即领。
-- **传输插件**：TCP 9100 / Windows 驱动 / 日志模拟内置，Zebra 品牌传输为官方外置插件（`.lfplugin`，按品牌安装）；厂商可自研插件接入（服务端集中分发、客户端一键安装）。
+- **传输插件**：TCP 9100 / Windows 驱动 / 日志模拟内置；Zebra 品牌与 TSPL 指令集（TSC 及 TSPL 兼容品牌；TCP 9100 / USB 免驱动直连，原生指令与图片双模式）为官方外置插件（`.lfplugin`，随客户端安装包附带，也可服务端分发安装）；厂商可自研插件接入（服务端集中分发、客户端一键安装）。
 - **零打印机验证**：调试出图（PNG / zip 下载）与日志模拟打印，不耗纸排查问题。
 - **应用内帮助**：客户端与服务端管理界面内置「帮助」页与就地「?」文档点（字段说明 / 常见问题 / 实时演示），无需翻手册。
 - **中英双语**：Web 界面、错误消息与 PDA 宿主支持中文 / 英文，客户端托盘一键切换。
@@ -60,7 +60,7 @@ curl -X POST http://<服务器>:53961/api/jobs \
 # → 202 {"jobId": "...", "status": "Pending"}；GET /api/jobs/{jobId} 查进度与逐张状态
 ```
 
-设备注册 / 心跳 / 领取 / 回报等完整契约见 [docs/DESIGN.md](docs/DESIGN.md) 的「Server API 契约」。
+设备注册 / 心跳 / 领取 / 回报等完整契约见 [docs/DESIGN.md](docs/DESIGN.md) 的「API 概览」Server 一节。
 
 ## 部署形态对照
 
@@ -95,6 +95,7 @@ curl -X POST http://<服务器>:53961/api/jobs \
 | `src/LabelFrame.Api` | Server / WinHost 共享的 HTTP 契约（DTO / 错误码）与端点实现 |
 | `src/LabelFrame.Server` | 无头服务端：模板库 / 作业中心 / 设备投递 / 调试出图 / 日志 |
 | `src/LabelFrame.WinHost` | Client Host 共享实现：Windows 完整客户端；Linux 无头 Log 测试客户端 |
+| `src/LabelFrame.TransportPlugin.Zebra` / `src/LabelFrame.TransportPlugin.Tspl` | 官方外置传输插件工程（`.lfplugin` 包：Zebra 品牌指令集；TSPL 指令集，服务 TSC 及 TSPL 兼容品牌） |
 | `src/LabelFrame.AndroidHost` | Android / PDA 打印宿主（真机验收通过；CI 构建并随发版出 APK，见其 README） |
 | `web/` | Web 前端（Vite + React + TS + Konva）：客户端界面与服务端管理界面双构建 |
 
@@ -110,8 +111,8 @@ cd web && pnpm install && pnpm dev  # 前端开发（连本机 WinHost）
 
 - 无打印机验证打印闭环：`powershell -ExecutionPolicy Bypass -File .\scripts\demo-winhost.ps1`。
 - Docker 验证 Server / Linux Client 路由闭环：源码候选运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1`；正式同版本镜像运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1 -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild`，详见 [docs/LINUX-CLIENT-E2E.md](docs/LINUX-CLIENT-E2E.md)。
-- 提交即跑 CI（`.github/workflows/ci.yml`：dotnet 构建 / 测试 + 前端 lint / 双模式测试 / 构建 + Android 构建）；`master` 受门禁保护——变更走短分支 + PR，三项必需检查全绿后 squash 合并（流程见 [docs/WORKFLOW.md](docs/WORKFLOW.md)）。
-- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（MSI / Linux 归档 / Android APK / ghcr 镜像，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
+- 提交即跑 CI（`.github/workflows/ci.yml`：dotnet 构建 / 测试 + 前端 lint / 双模式测试 / 构建 + MSI 结构断言 + Android 构建）；`master` 受门禁保护——变更走短分支 + PR，三项必需检查全绿后 squash 合并（流程见 [docs/WORKFLOW.md](docs/WORKFLOW.md)）。
+- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（双 MSI / 官方插件包 / Linux 归档 / Android APK / ghcr 镜像，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
 
 ## 文档
 

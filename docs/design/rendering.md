@@ -1,6 +1,6 @@
 # LabelFrame.Rendering 模块设计
 
-> 覆盖：`src/LabelFrame.Rendering/`（5 文件，约 860 行）· 基线：`master` `02ad4fd`（2026-10-12，迭代 138 试点首篇）
+> 覆盖：`src/LabelFrame.Rendering/`（6 文件，约 810 行）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

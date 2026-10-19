@@ -40,17 +40,20 @@
 | P1 | 测试数据表单、调试出图、单张 / 批量提交 | DataPrint 双模式组件测试 | jobs / render-image(s) | Compose 浏览器定向打印 | 自动 + 浏览器主链 |
 | P1 | Excel 模板生成、导入解析 | Core Excel + web mapping | 真实 xlsx 生成→上传回读 | 浏览器下载后续填 A3:A5，命名区域仍止于 A2，导入完整识别 4 行 | 自动门禁完整；续填欠账已关闭 |
 | P1 | DataPrint 会话草稿与切页恢复 | AppContext / draft / DataPrint 组件 | 不适用 | 浏览器按需抽查 | 组件门禁完整 |
-| P1 | 作业历史、在线设备、PDA 日志页 | 页面组件测试 | jobs / devices / logs | Server UI 浏览器抽查 | 自动 + 浏览器抽查 |
+| P1 | 作业历史、在线设备 | 页面组件测试 | jobs / devices | Server UI 浏览器抽查 | 自动 + 浏览器抽查（「PDA 日志」页已随决策 #140 下线，仅保留 /api/logs 端点） |
 
 ## 4. 传输、插件与分发
 
 | 优先级 | 功能 | 自动化证据 | 制品 / 真机证据 | 当前结论 |
 |---|---|---|---|---|
 | P0 | Log 传输与 PNG 输出 | LogPrintTransport / JobSubmissionService | Linux 镜像逐张 PNG 解码 | 发布门禁完整 |
-| P0 | TCP 9100 发送、连接失败与状态近似 | Tcp9100 transport tests | Windows 真实设备打印既有验收 | 缺纸 / 卡纸状态仍受协议限制 |
+| P0 | TCP 9100 发送、连接失败与状态近似 | Tcp9100 transport tests | Windows 真实设备打印既有验收 | 自动 + 真机证据（状态口径按 #45 实证：缺纸位静态不报、走纸后才置位） |
 | P0 | Windows 驱动传输 | RawPrinterTransport tests | Windows 真机既有验收 | Linux 明确不包含 |
-| P0 | Zebra SDK 发送 | Zebra transport tests | 打印既有验收 | `~HS` 字段语义仍待真实 Zebra 确认 |
-| P1 | 连接参数校验、先测试后生效、旧配置迁移 | TransportManager / config / plugin registry | WinHost HTTP + 设置页组件 | 自动门禁完整 |
+| P0 | Zebra SDK 发送与状态读取 | Zebra transport tests + PrinterStatusTests | 真机三场景（正常 / 人工缺纸 / 人工暂停）× 双路径（SDK `GetCurrentStatus` / TCP `~HS`）实证，2026-09-11 #45 结项 | 已真机确认（字段语义与映射口径见决策 #109） |
+| P0 | TSPL 插件：原生指令编译（TEXT / BARCODE / QRCODE / BAR / BOX）＋图片 BITMAP 编码（反色选项）＋参数声明 | `TsplLabelCompilerTests` / `TsplImageEncoderTests` / `TsplImageDispatchTests`（分派字节不变 + 二进制载荷）/ `TsplTransportPluginParameterTests` | TSC TT065-60 真机验收（2026-10-19 #378 结项：编译出纸效果 / 位极性取反 / USB 设备路径 / `ESC ! ?` 状态语义 / 反色两态） | 自动 + 真机证据 |
+| P1 | TSPL USB 免驱动设备发现（注册表键名解析） | `UsbPrinterDeviceDiscoveryTests`（GUID 尾巴保留回归） | TT065-60 真机（路径缺陷实证后回归锚定） | 自动 + 真机证据 |
+| P1 | 官方插件存量懒激活迁移（zebra / tspl 旧配置自动安装附带包） | `OfficialPluginMigrationTests` | 升级走查既有记录 | 自动门禁完整 |
+| P1 | 连接参数校验、先测试后生效、旧配置迁移 | TransportManager / config / plugin registry / OfficialPluginMigrationTests | WinHost HTTP + 设置页组件 | 自动门禁完整 |
 | P1 | 插件发现、隔离加载、包校验、安装 / 卸载 | Core package / loader + PluginInstaller | WinHost HTTP；既有 16 步联调 | 自动门禁完整；无签名边界已记录 |
 | P1 | Client / 插件包服务端分发 | Server service + 页面组件 | 上传 / 列表 / 下载 / 删除集成 | 自动门禁完整 |
 | P1 | Linux Client 能力裁剪 | ClientHost tests | 镜像 health / 传输列表，UI 与插件接口 404 | 发布门禁完整 |
@@ -69,7 +72,7 @@
 | P1 | 服务端可选管理界面 | ServerPluginUi tests + web server build | Docker 测试 Compose 显式启用 | 默认无头边界保持 |
 | P2 | 延迟 / 并发门槛 | Perf Trait | nightly-perf | 不进日常 / Release 测试 |
 | P2 | 15 分钟稳态与微基准 | Soak Trait / BenchmarkDotNet | nightly artifact / 日志 | 周期门禁 |
-| P2 | PDA Android 宿主 | 实验性代码，不在 solution | 16KB 页、保活、打印真机待验（排期迭代 25，下一轮） | 明确欠账，不阻断当前发布 |
+| P2 | PDA Android 宿主 | AndroidHost.Tests ＋ CI Android 构建检查 | 2026-09-08 UROVO DT50 真机主体验收（迭代 25 结项，真实 IP 打印机物理出纸）；APK 随发版发布 | 主线已验收；蓝牙 / USB 传输与 Android 15+ 16KB 运行时验证欠账见 ACCEPTANCE-BACKLOG §1 / §3B |
 
 ## 6. 标准执行口径
 
@@ -90,7 +93,7 @@ Pop-Location
 .\scripts\test-linux-client-e2e.ps1
 
 # 只引用同版本正式镜像的组合
-$env:LABELFRAME_VERSION = "0.22.2"
+$env:LABELFRAME_VERSION = "1.0.0"
 .\scripts\test-linux-client-e2e.ps1 -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild
 ```
 

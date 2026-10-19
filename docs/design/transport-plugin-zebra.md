@@ -1,6 +1,6 @@
 # LabelFrame.TransportPlugin.Zebra 模块设计
 
-> 覆盖：`src/LabelFrame.TransportPlugin.Zebra/`（8 文件，约 940 行）＋ 测试夹具 `test/LabelFrame.TransportPlugin.Fake/`、`test/LabelFrame.TransportPlugin.Sample/`（4 文件，约 200 行）· 基线：`master` `831cb9e`（2026-10-12，迭代 138 全量铺开）
+> 覆盖：`src/LabelFrame.TransportPlugin.Zebra/`（8 文件，约 850 行）＋ 测试夹具 `test/LabelFrame.TransportPlugin.Fake/`、`test/LabelFrame.TransportPlugin.Sample/`（4 文件，约 200 行）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

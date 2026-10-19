@@ -8,11 +8,12 @@
 #   指定清单（本地文件 / URL，测试或镜像源）：          bash fetch-server-resources.sh --manifest install-manifest.json
 #
 # 行为：消费 install-manifest.json（sha256 逐源强制校验 + urls 多源回退，fail-closed）→
-#   四类资源按 Docker 挂载布局落位到目标目录（默认 ./labelframe，即「整合进已有 compose」片段的单根挂载点）：
-#     webui        → <目标>/server/plugins/web-ui/（解压展开；临时目录解压 + 原子换名）
-#     client-msi   → <目标>/server/client-packages/
-#     pda-apk      → <目标>/server/pda-packages/
-#     plugin-zebra → <目标>/server/plugin-packages/
+#   五类资源按 Docker 挂载布局落位到目标目录（默认 ./labelframe，即「整合进已有 compose」片段的单根挂载点）：
+#     webui         → <目标>/server/plugins/web-ui/（解压展开；临时目录解压 + 原子换名）
+#     client-msi    → <目标>/server/client-packages/
+#     pda-apk       → <目标>/server/pda-packages/
+#     plugin-zebra  → <目标>/server/plugin-packages/
+#     plugin-tspl   → <目标>/server/plugin-packages/（1.1.0 起收录；旧版清单无此条目时跳过）
 # 幂等：重跑无害——已就位且 sha256 相符的包文件跳过下载；webui 每次重新校验展开。
 # 旧版本包文件保留（下载中心「最新上传」货架语义允许多版本共存）。
 # 前置：curl 或 wget、sha256sum、unzip（Ubuntu / Debian：apt-get install -y curl unzip）。
@@ -249,6 +250,12 @@ place_webui() {
 place_package client-msi "$TARGET_DIR/server/client-packages"
 place_package pda-apk "$TARGET_DIR/server/pda-packages"
 place_package plugin-zebra "$TARGET_DIR/server/plugin-packages"
+# TSPL 插件自 1.1.0 起随发版收录；钉定旧版（manifest 无 plugin-tspl 条目）时跳过而非失败
+if parse_component plugin-tspl | grep -q .; then
+  place_package plugin-tspl "$TARGET_DIR/server/plugin-packages"
+else
+  info "[plugin-tspl] 清单版本 $MANIFEST_VERSION 未收录 TSPL 插件，跳过。"
+fi
 place_webui
 
 info "完成（版本 $MANIFEST_VERSION）。布局："

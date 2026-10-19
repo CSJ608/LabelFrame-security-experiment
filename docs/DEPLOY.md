@@ -18,7 +18,7 @@
 
 面向全新机器或测试环境的首装用户：从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 **`LabelFrame-Bootstrapper-x.x.x.exe`**（安装引导程序），双击运行即可走完「七页向导」完成安装——引导程序按 install manifest 自动获取当版组件与前置运行时，无需先懂组件清单。
 
-- **七页向导流程**：欢迎（新装 / 升级检测，含离线安装指引）→ 拓扑预设（单机一体 / 服务端 / 打印客户端等，选错可重跑改选）→ 品牌多选（检测到本机 ZDesigner 驱动时预选 Zebra，对应官方外置插件）→ 管理界面开关（服务端网页管理界面，可选）→ 确认安装计划（组件清单 + 本机已装版本对照）→ 安装进度（逐组件下载 + 校验 + 安装，失败自动回滚并给出中文失败分类）→ 完成。
+- **七页向导流程**：欢迎（新装 / 升级检测，含离线安装指引）→ 拓扑预设（单机一体 / 服务端 / 打印客户端等，选错可重跑改选）→ 品牌多选（按已装打印机驱动名预选：检测到 ZDesigner 预选 Zebra、检测到 TSC 预选「TSC 及 TSPL 兼容机」；选项来自清单插件条目）→ 管理界面开关（服务端网页管理界面，可选）→ 确认安装计划（组件清单 + 本机已装版本对照）→ 安装进度（逐组件下载 + 校验 + 安装，失败自动回滚并给出中文失败分类）→ 完成。
 - **前置说明**：引导程序自带 .NET 10 Desktop Runtime / ASP.NET Core Runtime / WebView2 运行时**前置链**——本机缺失时自动按官方直链下载补装（已装则跳过），无需手工预装运行时；这正是它优于 MSI 直装的主要场景（MSI 直装缺失运行时会拦截并给下载链接，需手动补装）。
 - **升级**：本机已装 LabelFrame 时重跑引导程序即进入升级模式（列出可升级组件「现版本 → 新版本」，复用同一安装链完成覆盖升级，用户配置保留）；客户端设置页「检查更新」发现新版本时也会指向此入口。
 - **离线 / 内网**：欢迎页提供离线安装指引；完全离线的预下载布局目录形态见相邻迭代排期（当前内网可先在有网机器装好后整机克隆或用 MSI + 手动运行时部署）。
@@ -39,7 +39,7 @@
 - 单机使用 = 同机安装两个包；多台打印电脑 = 每台装 Client，设置页把服务端地址指向服务端 IP。
 - 两个包的 appsettings.json 均为独立用户配置组件：覆盖安装 / 修复不覆盖、卸载保留。卸载时可选是否清除用户数据（默认不清除）。
 - 公开下载的 MSI 若未用受信任商业证书签名，Windows 可能提示「未知发布者」，点「仍要运行」即可；内网可把自签根证书加入受信任根消除提示（见「自动化发布与签名」一节）。
-- 打印统一为整版位图（Skia 渲染 → `^GF` 直传打印机），与画布预览同源；连接方式在客户端「设置」页配置（先测试后生效）。
+- 打印默认整版位图（Skia 渲染，与画布预览同源；图片指令按连接分派——默认 ZPL `^GF`，TSPL 连接输出 `BITMAP`）；具备原生指令能力的官方插件（Zebra / TSPL）可将文本、条码、二维码等直出打印机指令（连接的「打印方式」参数可选）；连接方式在客户端「设置」页配置（先测试后生效）。
 - **修改服务端地址后需重启 Client**（打印 Worker 使用启动时的地址）。
 - 清理历史安装残留：管理员运行 `scripts\cleanup-residue.ps1`。
 
@@ -62,7 +62,7 @@ curl http://127.0.0.1:53961/healthz   # {"service":"LabelFrame.Server","status":
 - Server 镜像已内置 `fonts-wqy-microhei`，服务端管理界面的模板预览 / 出图预览默认使用 `WenQuanYi Micro Hei` 渲染中文文本。
 - compose 已默认挂载 `./plugins/web-ui`（管理界面插件）与 `./client-packages`（客户端安装包分发），见下文「服务端管理界面（可选插件）」与「分发通道」两节。
 - 自行构建：`docker build -f packaging/ubuntu/Dockerfile -t labelframe-server artifacts/server-linux/linux-x64`。
-- 本地构建镜像调试：`LABELFRAME_IMAGE=labelframe-server LABELFRAME_VERSION=0.22.2 docker compose up -d`。
+- 本地构建镜像调试：`LABELFRAME_IMAGE=labelframe-server LABELFRAME_VERSION=1.0.0 docker compose up -d`。
 
 ### 4.1 整合进已有 compose（在线）
 
@@ -89,17 +89,17 @@ services:
       - LABELFRAME_SERVER_LOG_FILE=/var/lib/labelframe/logs/server.log
 ```
 
-在 compose 同目录 `.env` 钉 `LABELFRAME_VERSION=0.36.0`（镜像 tag 与下面的资源脚本共用同一版本变量，防镜像 / 资源错配）。
+在 compose 同目录 `.env` 钉 `LABELFRAME_VERSION=1.0.0`（镜像 tag 与下面的资源脚本共用同一版本变量，防镜像 / 资源错配）。
 
-② 资源在线落位（管理界面网页 zip + 客户端 MSI / PDA APK / 传输插件包——一条命令按挂载布局放好）：
+② 资源在线落位（管理界面网页 zip + 客户端 MSI / PDA APK / 官方传输插件包（Zebra / TSPL）——一条命令按挂载布局放好）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marci-labs/LabelFrame/master/scripts/fetch-server-resources.sh \
   | bash -s -- ./labelframe
 ```
 
-- 脚本消费发版流水线的 `install-manifest.json`（**sha256 逐源强制校验，fail-closed**），四类资源落位到 `./labelframe/server/` 下的 `plugins/web-ui/`（解压展开、原子换名）、`client-packages/`、`pda-packages/`、`plugin-packages/`；
-- **版本对齐**：默认读同目录 `.env` 的 `LABELFRAME_VERSION`（与镜像同版）；`--version 0.36.0` 显式指定；两者皆无走官方 latest 通道（运行时提示所用版本）；
+- 脚本消费发版流水线的 `install-manifest.json`（**sha256 逐源强制校验，fail-closed**），五类资源落位到 `./labelframe/server/` 下的 `plugins/web-ui/`（解压展开、原子换名）、`client-packages/`、`pda-packages/`、`plugin-packages/`（Zebra 与 TSPL 两个 `.lfplugin`；TSPL 自 1.1.0 起收录，旧版清单无此条目时自动跳过）；
+- **版本对齐**：默认读同目录 `.env` 的 `LABELFRAME_VERSION`（与镜像同版）；`--version 1.0.0` 显式指定；两者皆无走官方 latest 通道（运行时提示所用版本）；
 - 幂等重跑：已就位且校验相符的包文件跳过下载；旧版本包保留（下载中心允许多版本共存）；
 - 前置：`curl`（或 `wget`）+ `unzip` + `sha256sum`；纯用户态，无需 root；`--manifest <文件 / URL>` 可指定清单（测试或镜像源）；
 - 也可直接使用仓库脚本：`bash scripts/fetch-server-resources.sh ./labelframe`（`--help` 查看全部参数）。
@@ -128,12 +128,12 @@ curl -fsSL https://raw.githubusercontent.com/marci-labs/LabelFrame/master/script
 
 ### 4.2 Server + Linux Log Client 本地 E2E
 
-正式镜像 `ghcr.io/marci-labs/labelframe-client` 是仅用于无打印机自动化测试的 Linux 无头 Client。它固定使用 `log` 模拟打印，不包含 TCP 9100、USB、Windows 驱动、Zebra SDK、第三方插件或客户端 Web UI，不能替代物理打印验收。
+正式镜像 `ghcr.io/marci-labs/labelframe-client` 是仅用于无打印机自动化测试的 Linux 无头 Client。它固定使用 `log` 模拟打印，不包含 TCP 9100、USB、Windows 驱动、Zebra SDK、官方传输插件（Zebra / TSPL）、第三方插件或客户端 Web UI，不能替代物理打印验收。
 
 验证已发布的同版本 Server / Client（Compose 不含 `build`）：
 
 ```powershell
-$env:LABELFRAME_VERSION = "0.22.2"
+$env:LABELFRAME_VERSION = "1.0.0"
 powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1 `
   -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild
 docker compose -f .\packaging\e2e\compose.release.yaml down
@@ -218,7 +218,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 
 - **升级顺序**：建议先升级服务端，再升级各打印客户端与 PDA；跨版本升级前先读[更新日志](../CHANGELOG.md)当版的「升级注意」。
 - **模板兼容**：新版本可继续打开既有模板；但**旧版本程序可能不认识新版本模板中的新元素**（如图片元素）——把模板回传给旧版本使用前请先确认。
-- **插件随行**：Zebra 官方传输插件随客户端 MSI 附带并在启动时自动安装 / 升级（见「分发通道」一节），升级客户端无需单独处理插件。
+- **插件随行**：Zebra / TSPL 官方传输插件随客户端 MSI 附带并在启动时自动安装 / 升级（见「分发通道」一节），升级客户端无需单独处理插件。
 - **服务端管理界面（可选插件）**：经安装引导程序安装的随升级自动处理；手动放置 `web-ui` 插件的，升级后用新版 `labelframe-server-webui-*.zip` 覆盖目录即可（放入即生效）。
 
 ## 7. 服务端管理界面（可选插件）
@@ -254,11 +254,12 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 - 连接配置：`%LOCALAPPDATA%\LabelFrame\connection.json`，格式 `{ "pluginId": "tcp9100", "params": { "host": "...", "port": "9100" } }`；旧格式自动迁移。
 - 内置传输插件：`log`（模拟打印）、`tcp9100`、`winspool`（Windows 驱动）。插件接口见 DESIGN「传输插件」相关决策记录。
 - **Zebra 品牌传输已外置为官方插件**：插件 id `labelframe-transport-zebra`，`.lfplugin` 包随 GitHub Release 发布（`labelframe-transport-zebra-<版本>.lfplugin`）并经客户端 MSI 附带（安装目录 `plugin-packages\`）；连接配置引用 Zebra 时插件未装则客户端启动自动从附带包安装（升级无断裂），也可在「插件管理」手动安装 / 升级（官方插件覆盖安装带版本比较：新版本覆盖、同版本幂等、降级需先卸载）。未安装该插件时 Zebra 品牌不可用（连接引用则回退默认连接并在 host.log 留痕）。
+- **TSPL 指令集传输已外置为官方插件**：插件 id `labelframe-transport-tspl`，服务 TSC 及 TSPL 兼容品牌（指令集维度单插件）；TCP 9100 网口与 USB 免驱动直连双通道，原生指令模式（文本 / Code 128 条码 / 二维码 / 线 / 矩形框直出指令）与图片模式（整版 `BITMAP` 位图，带「反色处理」开关应对位极性相反的兼容机型）双能力；打印机状态（`ESC ! ?`：缺纸 / 卡纸 / 打印头开 / 色带尽 / 暂停等）实时查询。分发与安装语义同 Zebra：`.lfplugin` 包随 GitHub Release 发布并经客户端 MSI 附带、连接引用未装时启动自动安装、覆盖安装带版本比较（决策 #195 / #196）。
 
 ## 9. 自动化发布与签名
 
-- 发版两步：① 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 提交推送；② 例如 `git tag v0.22.2 && git push origin v0.22.2`。
-- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release。
+- 发版两步：① 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 提交推送；② 例如 `git tag v1.0.0 && git push origin v1.0.0`。
+- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → 官方传输插件包（Zebra / TSPL `.lfplugin`）→ Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release。
 - **安装引导 EXE**：发版链含独立 `bundle` job——按当版 install manifest（分阶段生成，runtime 哈希跨 job 一致性断言 fail-closed）构建 `LabelFrame-Bootstrapper-<版本>.exe` 并随 Release 附件发布（「安装引导程序（推荐安装入口）」一节的推荐入口即此产物）；下载多源与哈希校验语义见 DESIGN.md。
 - **Linux 归档与 compose 分发**：Linux 归档默认 self-contained（`install-server-linux.sh` 一键安装免 .NET 前置，见「Ubuntu（systemd 裸机部署）」一节）；Release 附件含 `compose.yml` + `.env`（与 `packaging/ubuntu/docker-compose.yml` 同源复制、`.env` 钉定当版版本，「Docker（推荐的服务端部署方式）」一节的快速启动即此产物；两者不进 install manifest——部署描述文件而非可安装产物）。
 - MSI 签名：配置 Secret `MSI_SIGN_CERT_BASE64` / `MSI_SIGN_PASSWORD` 时自动签名，否则跳过。当前为自签证书过渡方案（公开下载仍可能 SmartScreen 提示），正式对外分发建议购买 OV 代码签名证书。本地签名：`scripts\create-signing-cert.ps1` 生成证书，`scripts\build-msi.ps1 -Sign` 使用。
