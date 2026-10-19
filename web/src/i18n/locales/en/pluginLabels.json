@@ -67,6 +67,10 @@
             "image": "Image (default)",
             "native": "Native commands"
           }
+        },
+        "invertImage": {
+          "label": "Invert colors",
+          "hint": "Turn this on when image printing comes out with a black background (for compatible models whose bitmap polarity differs from TSC)."
         }
       }
     }

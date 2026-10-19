@@ -22,6 +22,8 @@ namespace LabelFrame.WinHost.Tests.Jobs;
 /// 图片模式编码器按连接插件分派（决策 #195，AC-02）：未实现 ILabelImageEncoder 的连接
 /// （Zebra / 内置 log）输出与宿主 ZplImageEncoder 逐字节一致（semver 加法零回归）；
 /// 实现该接口的连接（TSPL / fake）产出二进制 CommandBytes（Zpl 互斥为空）；
+/// 连接级选项（决策 #196「反色处理」）按连接参数构造传入，缺省 / 非法值回退 false；
+/// fake 编码器仅实现旧签名 = 选项重载 DIM 委托的行为不变实证；
 /// Worker 双路径回放（二进制走 SendAsync(byte[])）；IPrintTransport 二进制重载 DIM 缺省抛 NotSupportedException。
 /// </summary>
 public class TsplImageDispatchTests
@@ -160,6 +162,31 @@ public class TsplImageDispatchTests
         Assert.Equal(expected, item.CommandBytes);
         Assert.StartsWith("SIZE 40 mm,20 mm\r\n", Encoding.ASCII.GetString(item.CommandBytes![..20]));
         Assert.EndsWith("PRINT 1\r\n", Encoding.ASCII.GetString(item.CommandBytes![^9..]));
+    }
+
+    [Fact]
+    public async Task Image_mode_with_invert_image_param_should_pass_option_to_tspl_encoder()
+    {
+        // 决策 #196：连接参数 invertImage=true → 编码选项 InvertBits=true（跳过取反透传）
+        var (service, _) = CreateService("""{ "pluginId": "labelframe-transport-tspl", "params": { "kind": "Tcp", "host": "127.0.0.1", "invertImage": "true" } }""");
+
+        var item = await SubmitSingleAsync(service, "req-tspl-invert-on");
+
+        Assert.Equal(string.Empty, item.Zpl);
+        var expected = new TsplImageEncoder().EncodeImage(RenderSingle(), 40, 20, 203, new LabelImageEncodeOptions(InvertBits: true));
+        Assert.Equal(expected, item.CommandBytes);
+    }
+
+    [Fact]
+    public async Task Image_mode_with_invalid_invert_value_should_fall_back_to_default()
+    {
+        // 非法值（非 bool.TryParse 可解析）回退 false = 默认取反输出，与缺省逐字节一致
+        var (service, _) = CreateService("""{ "pluginId": "labelframe-transport-tspl", "params": { "kind": "Tcp", "host": "127.0.0.1", "invertImage": "yes" } }""");
+
+        var item = await SubmitSingleAsync(service, "req-tspl-invert-invalid");
+
+        var expected = new TsplImageEncoder().EncodeImage(RenderSingle(), 40, 20, 203);
+        Assert.Equal(expected, item.CommandBytes);
     }
 
     [Fact]

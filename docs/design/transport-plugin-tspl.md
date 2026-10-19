@@ -24,7 +24,7 @@
 
 | 类型 | 文件 | 角色 |
 |---|---|---|
-| `TsplTransportPlugin` | TsplTransportPlugin.cs | 插件入口：`ITransportPlugin` + `ILabelCommandCompiler` + `ILabelImageEncoder` 三实现；参数模型（kind / host / port / usbName / printMode）与连接展示文本 |
+| `TsplTransportPlugin` | TsplTransportPlugin.cs | 插件入口：`ITransportPlugin` + `ILabelCommandCompiler` + `ILabelImageEncoder` 三实现；参数模型（kind / host / port / usbName / printMode / invertImage）与连接展示文本 |
 | `TsplPrinterTransport` | TsplPrinterTransport.cs | 传输实例：`IPrintTransport` + `IPrinterStatusProvider` + `ITestableTransport`；双通道开链、`ESC ! ?` 查询带重试、状态位解析（public static `ParseStatusByte`＝单测锚点） |
 | `TsplTransportKind` | TsplTransportKind.cs | 连接类型枚举（Tcp / Usb）；字符串参数跨插件边界后于此解析 |
 | `ITsplLink` / `TcpTsplLink` / `UsbTsplLink` | TsplLink.cs | 通道链路抽象（一次打开的连接：写 / 读）：public 接口＝传输构造的注入缝（测试替身） |
@@ -38,7 +38,7 @@
 **关键机制**：
 
 - **能力挂插件对象而非传输实例**：编译器与图片编码器实现于 `TsplTransportPlugin`（指令集级能力，与连接形态无关——同一指令集 TCP / USB 共用）；宿主装配期以 `plugin is ILabelCommandCompiler` / `plugin is ILabelImageEncoder` 探测。
-- **参数条件显隐**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb` 可见（决策 #186 VisibleWhen）；`usbName` 留空 = 自动发现第一台 usbprint 设备、可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
+- **参数条件显隐**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb`、`invertImage`（反色处理，决策 #196）仅 `printMode=image` 可见（决策 #186 VisibleWhen）；`usbName` 留空 = 自动发现第一台 usbprint 设备、可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
 - **逐次建连**：发送 / 测试 / 状态查询各自「建连 → 操作 → 关闭」（与内置时代行为等价）。
 
 ## 3. 关键流程
@@ -73,7 +73,7 @@
 
 ### 3.4 图片模式编码（`TsplImageEncoder.EncodeImage`）
 
-`SIZE` + `DIRECTION 1` + `CLS` + `BITMAP 0,0,RowBytes,Height,0,` + **原始位图字节** + `\r\nPRINT 1`。`LabelBitmap` 线格式（行优先 / MSB 在前）与 TSPL BITMAP 一致，**位极性相反**——TSPL 位 0 = 印点（黑）、1 = 空白（手册 + TT065-60 真机反色实证），逐字节取反落流；mode 0 = OVERWRITE（CLS 后缓冲整版覆盖）。产物为二进制指令流 → `LabelJobItem.CommandBytes`（BLOB）→ Worker `SendAsync(byte[])` 回放（决策 #195）。
+`SIZE` + `DIRECTION 1` + `CLS` + `BITMAP 0,0,RowBytes,Height,0,` + **原始位图字节** + `\r\nPRINT 1`。`LabelBitmap` 线格式（行优先 / MSB 在前）与 TSPL BITMAP 一致，**位极性相反**——TSPL 位 0 = 印点（黑）、1 = 空白（手册 + TT065-60 真机反色实证），逐字节取反落流；mode 0 = OVERWRITE（CLS 后缓冲整版覆盖）。**连接级选项**（决策 #196）：`ILabelImageEncoder` 带选项重载（DIM 委托旧签名），宿主分派按连接参数 `invertImage` 构造 `LabelImageEncodeOptions`（键约定常量随 Core 入库，缺省 / 非法值回退 false）——`InvertBits` 开启 = 跳过取反原样透传（位极性相反兼容机型的用户侧自救，真机两态验证见 #382）。产物为二进制指令流 → `LabelJobItem.CommandBytes`（BLOB）→ Worker `SendAsync(byte[])` 回放（决策 #195）。
 
 ## 4. 对外契约与依赖
 
@@ -107,6 +107,7 @@
 | MSI 附带 + 懒激活（zebra 同款） | #195 / #123 |
 | 自描述文案多语言（键化：spec 属性 + 接口 DIM） | #192 |
 | 官方插件体系（覆盖安装版本比较 / 服务端分发 / 三层校验） | #123（§6.8） |
+| 图片模式「反色处理」连接级开关（`ILabelImageEncoder` 选项重载 + `invertImage` 参数键约定） | #196 |
 | 注释极简化（本篇承接源码设计知识） | #189 |
 
 **迭代 143 四项用户拍板**（Issue #378 待决议）：指令集维度单插件 / MSI 附带同款 zebra / USB 留空自动发现＋可指定 / TSPL2 基线＋反白（REVERSE）不做。

@@ -72,6 +72,19 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
             LabelKey = "plugin.labelframe-transport-tspl.params.printMode.label",
             HintKey = "plugin.labelframe-transport-tspl.params.printMode.hint",
         },
+        new TransportParameterSpec(
+            LabelImageEncodeOptions.InvertBitsParameterKey,
+            "反色处理",
+            TransportParameterType.Bool,
+            Required: false,
+            DefaultValue: "false",
+            Hint: "图片打印出现黑色背景时开启本开关恢复（适用于位极性与 TSC 相反的兼容机型）",
+            VisibleWhenKey: TransportPrintMode.ParameterKey,
+            VisibleWhenValues: [TransportPrintMode.Image])
+        {
+            LabelKey = "plugin.labelframe-transport-tspl.params.invertImage.label",
+            HintKey = "plugin.labelframe-transport-tspl.params.invertImage.hint",
+        },
     };
 
     /// <inheritdoc />
@@ -109,4 +122,8 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
     /// <inheritdoc />
     public byte[] EncodeImage(LabelBitmap bitmap, double widthMm, double heightMm, int dpi)
         => _imageEncoder.EncodeImage(bitmap, widthMm, heightMm, dpi);
+
+    /// <inheritdoc />
+    public byte[] EncodeImage(LabelBitmap bitmap, double widthMm, double heightMm, int dpi, LabelImageEncodeOptions? options)
+        => _imageEncoder.EncodeImage(bitmap, widthMm, heightMm, dpi, options);
 }

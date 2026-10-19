@@ -1,5 +1,6 @@
 using System.Text;
 using LabelFrame.Core.Documents;
+using LabelFrame.Core.Transport.Plugins;
 using LabelFrame.TransportPlugin.Tspl;
 
 namespace LabelFrame.WinHost.Tests.Transport;
@@ -41,6 +42,29 @@ public class TsplImageEncoderTests
         var offset = Encoding.ASCII.GetByteCount("SIZE 60 mm,30 mm\r\nDIRECTION 1\r\nCLS\r\nBITMAP 0,0,2,3,0,");
         Assert.Equal(inverted, command[offset..(offset + inverted.Length)]);
         Assert.Contains("BITMAP 0,0,2,3,0,", Encoding.ASCII.GetString(command));
+    }
+
+    [Fact]
+    public void EncodeImage_with_invert_enabled_should_pass_pixels_through()
+    {
+        // 决策 #196 InvertBits 开启 = 跳过极性取反原样透传（位极性相反机型的用户侧自救）
+        var bitmap = new LabelBitmap(8, 2, [0xFF, 0x00]);
+
+        var command = new TsplImageEncoder().EncodeImage(bitmap, 40, 20, 203, new LabelImageEncodeOptions(InvertBits: true));
+
+        var offset = Encoding.ASCII.GetByteCount("SIZE 40 mm,20 mm\r\nDIRECTION 1\r\nCLS\r\nBITMAP 0,0,1,2,0,");
+        Assert.Equal(0xFF, command[offset]);
+        Assert.Equal(0x00, command[offset + 1]);
+    }
+
+    [Fact]
+    public void EncodeImage_with_null_options_should_match_default_output()
+    {
+        // 选项缺省与 null 等价（DIM 委托口径）；默认输出 = 取反
+        var bitmap = new LabelBitmap(16, 3, [0x80, 0x01, 0x40, 0x02, 0x20, 0x04]);
+        var encoder = new TsplImageEncoder();
+
+        Assert.Equal(encoder.EncodeImage(bitmap, 60, 30, 203), encoder.EncodeImage(bitmap, 60, 30, 203, options: null));
     }
 
     [Fact]

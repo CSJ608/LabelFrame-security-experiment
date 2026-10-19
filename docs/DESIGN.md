@@ -276,6 +276,7 @@ flowchart LR
 | 193 | Docker 整合部署资源在线落位——fetch 脚本复用 install manifest（迭代 142，2026-10-13，#374；来源 = 用户场景「同事把服务端并入自有 docker-compose、一条命令在线落位资源」两轮讨论定稿：脚本形态优于每版聚合资源包附件——manifest 基础设施现成（#115）、零发版流水线改动、版本可选可钉；本条随实现 PR 入库） | ① **脚本 `scripts/fetch-server-resources.sh`**（master raw 分发，与 `install-server-linux.sh` 同模式）：消费发版既有 `install-manifest.json`——sha256 逐源强制校验 + urls 多源回退 fail-closed、行级 JSON 解析无 jq 依赖（解析 / 下载逻辑与 install-server-linux.sh 同源同构）；四类资源落位：webui zip → `plugins/web-ui/`（临时目录解压 + `mv` 原子换名，避开「放入即生效、移除即无头」检测窗口）、client-msi / pda-apk / plugin-zebra → 三个分发目录。② **版本对齐优先级**：`--version` > 同目录 `.env` 的 `LABELFRAME_VERSION`（与整合 compose 片段的镜像 tag 共用同一变量，防镜像 / 资源错配）> `releases/latest/download/` latest 通道（运行时提示所用版本）；清单 `labelframeVersion` 与钉定值不符即 fail-closed。③ **幂等语义**：已就位且 sha256 相符的包跳过下载；webui 每次重新校验展开；旧版本包保留（下载中心「最新上传」货架语义允许多版本共存）；单组件失败保留已成功组件（重跑续传）。④ **整合形态 compose 片段入 DEPLOY §4.1**：单根挂载 `./labelframe:/var/lib/labelframe`（服务端全部状态一棵树，子目录缺失 = 对应能力不启用、服务照常）、无 `container_name`（共享 compose 冲突源，同 compose 内服务名即 DNS）、`expose`/`ports` 二选一——与独立部署 compose（六挂载点 + 命名卷 + 固定容器名）为同一服务的两种分发形态，互不替代。⑤ **明确不做**：外部网络选项在线化（离线包 `install.sh` 的 `LABELFRAME_EXTERNAL_NETWORK` 机制不动，需求出现再立项）、每版资源聚合包附件（被脚本替代）、webui 烘进镜像（维持「管理界面插件化」设计定位）、反代路径前缀支持（服务端无 PathBase / X-Forwarded 处理，文档建议独立子域名 / 端口） | 集成方「复制片段 + 一条命令」完成在线整合（镜像 pull + 资源 sha256 校验落位，自证见 PR #375）；脚本网络前提 = `raw.githubusercontent.com` + GitHub Releases 可达，不可达环境仍走离线部署包；在线 compose 分发（Release compose.yml + .env）维持独立部署定位不变；API 无鉴权（局域网信任模型）随整合场景在 DEPLOY 明示——多服务网络内所有容器均可访问其 API |
 | 194 | 1.0 semver 承诺公示——公共契约四面进入稳定承诺（随 v1.0.0 发版记账入库，2026-10-13；来源 = 决策 #188 架构评审结论「四契约面零债务、可承诺 semver」＋迭代 133 立下的「下一版 1.0 须公示 semver 承诺」挂账；公示落点三处 = CHANGELOG `[1.0.0]` 段「版本承诺」小节＋README「升级与版本」章一句＋本行决策记录） | ① **承诺范围＝公共契约四面**：模板包格式 / 打印 API / 作业模型 / 插件 ABI（`.lfplugin` manifest 与插件接口）——自 1.0.0 起 minor 版本只做**兼容性新增**（可选字段 / 可选参数 / 新增端点等加法演进，延续既有实际演进形态：最短 JSON 键读取端天然忽略未知字段、`minHostVersion` 门字段已预留），不做破坏性变更（删字段 / 改语义 / 改默认值须有迁移路径方可视为兼容）；破坏性变更仅随 major 版本，且提前一版在 CHANGELOG「升级注意」公示。② **不承诺面**：内部实现与 UI 行为可自由变化（用户可感知变化走 CHANGELOG 记账）；插件包内程序集 TFM / PDA 轻量档保守 API 面（决策 #159）等既有既定约束维持原口径。③ **决策 #191 R-4（模板包 `formatVersion` 字段）**：「随 1.0 发版记账另议」的结论 = 仍挂起——属契约面加法、minor 可承载，出现真实需要（既有模板需版本判别）时按本承诺以 minor 加法落地。④ 公示文案以用户面口径书写（无内部过程标记，决策 #175 文件集约束）。 | 集成方与插件作者获得明确的兼容性预期（1.0 的核心对外承诺）；后续公共契约变更多一道「minor 只加不破」设计约束（强化路径评审判据）；semver.org 规范为版本号权威（CHANGELOG / README 均链接） |
 | 195 | TSPL 官方插件与图片编码器插件分派（迭代 143，2026-10-16，[#378](https://github.com/marci-labs/LabelFrame/issues/378)；来源 = ROADMAP 待需求「其他打印机指令集」＋#186 因无验证机与 1.0 止损线顺延、2026-10-16 用户接入 TSC TT065-60 完成免驱动双向通信实测后恢复条件达成；四项待决议经用户拍板：指令集维度单插件 / MSI 附带同款 zebra / USB 留空自动发现＋可指定 / TSPL2 基线＋反白不做） | ① **指令集维度单插件**：官方传输插件以指令集为单位——`labelframe-transport-tspl` 服务 TSC 及全部 TSPL 兼容品牌；品牌映射表扩**指令集维度**（brand → 指令集 → 组件 id → pluginId 间接映射，§6.8），新品牌只加映射行与驱动名探测关键词、不出新包。② **图片模式编码器按连接插件分派**（§5.4.1 契约加法）：新可选能力接口 `ILabelImageEncoder`（挂插件对象，与 `ILabelCommandCompiler` 同模式）；未实现（Zebra / 内置通道）维持 `^GF` 逐字节不变——semver 加法兑现。③ **二进制指令流入契约**（§5.4.1 扩展）：TSPL `BITMAP` 原始二进制经 `LabelJobItem.CommandBytes`（BLOB 加列迁移，与 `Zpl` 互斥）＋ `IPrintTransport.SendAsync(byte[])` DIM 重载（缺省抛 `NotSupportedException`，旧插件二进制兼容）承载；Worker 回放双路径。④ **TSPL2 基线**：native 编译 = TEXT / Code128 BARCODE / QRCODE / BAR 线 / BOX 矩形；反白（REVERSE）不做（图片模式已覆盖，裁剪原则）；不支持场景显式失败（`LF_ENC_*`）。⑤ **传输双通道**：TCP 9100 ＋ USB 免驱动直连（注册表 `DeviceClasses\{GUID_DEVINTERFACE_USBPRINT}` 枚举，设备路径 = 键名 `##?#`→`\\?\`，CreateFile 直开绕打印队列——2026-10-16 实测依据）；状态查询 `ESC ! ?` 单字节实时状态、带重试（实测：错误位任务后锁存、紧贴任务短暂无应答）。⑥ **MSI 附带 + 懒激活同款 zebra**（纯托管包 KB 级）；winspool 驱动通道不做（免驱动路径已覆盖）。 | Windows 端 TSPL 兼容机（文本指令集标签机最大公约数）开箱可用，1.1.0 主打特性；宿主提交链首次出现「图片编码品牌化」分派缝——后续新指令集插件按同构扩展零宿主改动；`LabelJobItem` 二进制载荷为作业模型首个 BLOB 字段（加列迁移模式为后续二进制载荷立先例）；PDA 侧 TSPL 待 Windows 真机验证后另议 |
+| 196 | TSPL 图片模式「反色处理」连接级开关（迭代 144，2026-10-19，[#382](https://github.com/marci-labs/LabelFrame/issues/382)；来源 = #378 AC-07 真机验收当日发现 BITMAP 位极性缺陷（#381：TSPL 位 0=印点，与 ZPL 相反）后用户提议——位极性分歧的兼容机型让用户一键自救，不等插件适配发版） | ① **契约加法**：`ILabelImageEncoder` 增带选项重载 `EncodeImage(…, LabelImageEncodeOptions?)`，DIM 委托旧签名——未实现选项的插件行为逐字节不变（接口未随任何版本发布，无既有 ABI 义务，但沿用 DIM 兼容模式立先例）。② **选项与参数键约定**：首项 `InvertBits`（位极性反转，默认 false）；参数键约定常量 `invertImage` 随选项类型入 Core（对齐 `TransportPrintMode.ParameterKey` 宿主读取先例）。③ **插件声明 + 宿主接线**：TSPL 插件参数表增 `invertImage`（Bool / 默认 false / 仅 printMode=image 可见——决策 #186 VisibleWhen）；宿主分派按当前连接参数构造选项传入。④ **语义**：false = 现行取反输出（TSC 实证口径）；true = 跳过取反原样透传（极性相反机型恢复黑字白底）。 | 位极性分歧机型（TSPL 兼容贴牌 / OEM）用户侧一键恢复，插件无须逐机型适配；「连接级编码选项」为图片编码分派缝（决策 #195 ②）的首个选项扩展——后续指令集按同构声明各自可调项零契约改动 |
 
 ## 5. API 概览
 
@@ -395,12 +396,25 @@ public sealed record LabelCommandCompileResult(
 /// <summary>图片模式编码能力：把整张标签的 1bpp 位图编码为品牌指令集的图片打印指令（可选实现于 ITransportPlugin 同一插件对象）。</summary>
 public interface ILabelImageEncoder
 {
-    /// <summary>整版位图编码：输出含指令头尾与位图数据的完整指令流（二进制，自包含）。</summary>
+    /// <summary>整版位图编码：输出含指令头尾与位图数据的完整自包含指令流（二进制，自包含）。</summary>
     byte[] EncodeImage(LabelBitmap bitmap, double widthMm, double heightMm, int dpi);
+
+    /// <summary>带连接级选项的编码（迭代 144 加法；DIM 委托旧签名——未实现选项的插件行为逐字节不变）。</summary>
+    byte[] EncodeImage(LabelBitmap bitmap, double widthMm, double heightMm, int dpi, LabelImageEncodeOptions? options)
+        => EncodeImage(bitmap, widthMm, heightMm, dpi);
+}
+
+/// <summary>图片编码连接级选项；InvertBits = 位极性反转（位极性分歧机型的用户侧自救，默认 false）。</summary>
+public sealed record LabelImageEncodeOptions(bool InvertBits = false)
+{
+    /// <summary>「反色处理」参数键约定（插件参数表 → 宿主分派读取，对齐 TransportPrintMode.ParameterKey 先例）。</summary>
+    public const string InvertBitsParameterKey = "invertImage";
 }
 ```
 
 **图片模式编码器按插件分派（迭代 143，决策 #195——契约加法）**：宿主图片模式不再固定 `^GF`——提交链按**当前连接的插件**分派：插件实现 `ILabelImageEncoder`（装配期 `plugin is ILabelImageEncoder` 判定，与编译能力同挂插件对象）则用插件编码器输出品牌图片指令；**未实现（Zebra 与全部内置通道 log / tcp9100 / winspool）维持宿主 `ZplImageEncoder`（`^GF`），输出逐字节不变**。测试页端点（`POST /api/printer/test`，图片打印语义）随同一分派。首例 = TSPL `BITMAP` 整版原始二进制位图（§5.4.7 分级登记兑现）。
+
+**连接级编码选项（迭代 144，#382——契约加法）**：`ILabelImageEncoder` 增带选项重载（DIM 委托旧签名——未实现选项的插件行为逐字节不变；接口未随任何版本发布，无既有 ABI 义务）。首项 `LabelImageEncodeOptions.InvertBits`＝「反色处理」用户侧自救：TSPL 兼容阵营存在位极性分歧机型（BITMAP 位 0=印点为 TSC 实证口径，#381），插件以连接参数 `invertImage`（Bool，默认 false，键约定常量随选项类型入库）声明开关，宿主分派按当前连接参数构造选项传入（对齐 `printMode` 宿主读取先例）。首例实现 = TSPL：默认（false）＝现行取反输出；开启（true）＝跳过取反原样透传。
 
 **二进制指令流（迭代 143 扩展首版「指令为文本」边界）**：TSPL `BITMAP` 的位图数据为原始二进制（非十六进制转码），文本字符串管线不可承载，按下述口径扩展（全部加法、二进制兼容）：
 
