@@ -33,4 +33,5 @@
 - 发布流程（迭代 21 起，机制不变）：发版 = 记账 PR 合并后推送 `v*` tag（如 `v0.17.0`），由 GitHub Actions 自动构建发布——Server Docker 镜像推 ghcr.io、PC 安装包（Server / Client MSI、插件 zip、Linux 归档）与 PDA 宿主 APK 上传 GitHub Release；除发版 tag 外不推其他 tag。
 - 修改 CI workflow（`.github/workflows/`）、门禁 ruleset、Issue / PR 模板或 `docs/WORKFLOW.md` 属于**流程治理迭代**；普通迭代不做。
 - 文档与注释使用中文；代码标识符使用英文。
+- **源码注释规范（决策 #187 / #189，所有新代码即刻生效）**：一句话「对象用途与功能」summary＋白名单四类（不变量 / 平台坑 / 兼容义务 / 防回归警示）保留；机制 / 契约 / 取舍叙述写入 `docs/design/` 对应篇而非堆在代码注释；注释中**禁止过程标记**（迭代号 / 决策号 / Issue 与 PR 引用 / AC 编号 / 返修轮次等——决策依据进文档）。迭代涉及模块结构或接口契约实质变化时，AC 须含 `docs/design/` 同步条目（#189 ④）。核查入口：`/comment-check` 技能或 `python scripts/check-comment-hygiene.py <base>`。
 - 涉及跨迭代的公共契约（模板包格式、打印 API、作业模型）变更，必须先讨论并更新 `docs/DESIGN.md`，再改代码（强化路径）。
