@@ -13,8 +13,8 @@ public static class UsbPrinterDeviceDiscovery
     private const string DeviceClassesRoot = @"SYSTEM\CurrentControlSet\Control\DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
 
     /// <summary>发现的 USB 打印机设备。</summary>
-    /// <param name="DisplayName">展示名（如 USB VID_1203&amp;PID_0273 (000001)，供用户指定）。</param>
-    /// <param name="DevicePath">CreateFile 设备路径（\\?\usb#vid=…&amp;pid=…#serial#{guid}）。</param>
+    /// <param name="DisplayName">展示名（如 USB#VID_1203&amp;PID_0273#serial，供用户指定）。</param>
+    /// <param name="DevicePath">CreateFile 设备路径（\\?\USB#VID_…&amp;PID_…#serial#{guid}）。</param>
     public sealed record UsbPrinterDevice(string DisplayName, string DevicePath);
 
     /// <summary>
@@ -31,13 +31,38 @@ public static class UsbPrinterDeviceDiscovery
                      .Where(name => name.StartsWith("##?#USB#", StringComparison.OrdinalIgnoreCase))
                      .OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
         {
-            // 键名 = ##?#USB#VID_xxxx&PID_xxxx#serial#{guid}；CreateFile 路径 = 同名小写、前缀换 \\?\
-            var instance = keyName[..keyName.LastIndexOf("#{", StringComparison.Ordinal)];
-            var devicePath = @"\\" + instance[3..].ToLowerInvariant();
-            devices.Add(new UsbPrinterDevice(instance, devicePath));
+            if (ParseDeviceKey(keyName) is { } device)
+            {
+                devices.Add(device);
+            }
         }
 
         return devices;
+    }
+
+    /// <summary>
+    /// 注册表接口键名 → 设备（纯函数，单测锚定）：
+    /// 键名 <c>##?#USB#VID_xxxx&amp;PID_xxxx#serial#{guid}</c> 即设备接口符号链接，CreateFile 路径 =
+    /// 前缀 <c>##?#</c> 换 <c>\\?\</c>、**接口 GUID 尾巴必须保留**（剥掉就不是接口路径，CreateFile 打不开——
+    /// TT065-60 真机实证）；展示名取去前缀与 GUID 尾巴的实例段。非 USB 接口键返回 null。
+    /// </summary>
+    internal static UsbPrinterDevice? ParseDeviceKey(string keyName)
+    {
+        const string Prefix = "##?#USB#";
+        if (!keyName.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var suffixIndex = keyName.LastIndexOf("#{", StringComparison.Ordinal);
+        if (suffixIndex < 0)
+        {
+            return null;
+        }
+
+        var displayName = keyName[4..suffixIndex]; // USB#VID_x&PID_y#serial
+        var devicePath = @"\\?\" + keyName[4..]; // 保留 GUID 尾巴；符号链接大小写不敏感，保留原大小写
+        return new UsbPrinterDevice(displayName, devicePath);
     }
 
     /// <summary>
@@ -61,7 +86,7 @@ public static class UsbPrinterDeviceDiscovery
         return devices.Count == 0 ? null : devices[0].DevicePath;
     }
 
-    /// <summary>设备清单的中文可读列表（错误提示用，如「USB VID_1203&amp;PID_0273 (000001)」）。</summary>
+    /// <summary>设备清单的中文可读列表（错误提示用，如「USB#VID_1203&amp;PID_0273#serial」）。</summary>
     public static string DescribeDevices(IReadOnlyList<UsbPrinterDevice> devices)
         => devices.Count == 0
             ? "未发现任何 USB 打印机"

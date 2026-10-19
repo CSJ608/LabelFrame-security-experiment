@@ -15,4 +15,8 @@
     <ProjectReference Include="..\LabelFrame.Core\LabelFrame.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="LabelFrame.WinHost.Tests" />
+  </ItemGroup>
+
 </Project>

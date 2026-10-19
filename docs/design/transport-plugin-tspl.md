@@ -28,8 +28,8 @@
 | `TsplPrinterTransport` | TsplPrinterTransport.cs | 传输实例：`IPrintTransport` + `IPrinterStatusProvider` + `ITestableTransport`；双通道开链、`ESC ! ?` 查询带重试、状态位解析（public static `ParseStatusByte`＝单测锚点） |
 | `TsplTransportKind` | TsplTransportKind.cs | 连接类型枚举（Tcp / Usb）；字符串参数跨插件边界后于此解析 |
 | `ITsplLink` / `TcpTsplLink` / `UsbTsplLink` | TsplLink.cs | 通道链路抽象（一次打开的连接：写 / 读）：public 接口＝传输构造的注入缝（测试替身） |
-| `UsbRawDevice` | UsbRawDevice.cs | USB 原始设备通道（internal）：CreateFile 重叠 IO + 每操作超时；OVERLAPPED 驻留 HGlobal 直至操作收尾 |
-| `UsbPrinterDeviceDiscovery` | UsbPrinterDevice.cs | USB 设备发现：注册表 `DeviceClasses\{GUID_DEVINTERFACE_USBPRINT}` 枚举；设备路径 = 接口键名前缀 `##?#` 换 `\\?\` 小写化 |
+| `UsbRawDevice` | UsbRawDevice.cs | USB 原始设备通道（internal）：CreateFile 同步 IO + 看门狗超时（重叠 IO 真机不收尾）；写超时抛中文错误 / 读超时返回 null |
+| `UsbPrinterDeviceDiscovery` | UsbPrinterDevice.cs | USB 设备发现：注册表 `DeviceClasses\{GUID_DEVINTERFACE_USBPRINT}` 枚举；设备路径 = 接口键名前缀 `##?#` 换 `\\?\`（接口 GUID 尾巴保留、原大小写），`ParseDeviceKey` 纯函数单测锚定 |
 | `TsplLabelCompiler` | TsplLabelCompiler.cs | `ILabelCommandCompiler` 实现：直接打印形态（SIZE→CLS→元素→PRINT，不下载表单——「自管模板不进打印机」口径）；纯函数性质 |
 | `TsplTextWidthMeasurer` | TsplTextWidthMeasurer.cs | `ITextWidthMeasurer` 的 TSPL 缩放字体实现——驱动 `LabelLayoutResolver` 区域锚定换算 |
 | `TsplImageEncoder` | TsplImageEncoder.cs | `ILabelImageEncoder` 实现：整版位图 → BITMAP 原始二进制流（头尾 ASCII + 位图字节一体） |
@@ -53,18 +53,18 @@
 
 - **发送**：文本指令 UTF-8 编码、二进制指令流原样（`SendAsync(string)` / `SendAsync(byte[])` 双重载）；异常统一包装中文 `InvalidOperationException`（消息含 `DescribeTarget()`）；
 - **连接测试**（`TestAsync`）：`ESC ! ?` 有应答才算就绪（能连 ≠ 打印机活着）；
-- **状态查询**（`GetStatusAsync`）：发送 `ESC ! ?`（0x1B 0x21 0x3F）读 1 字节，单次 500ms 超时、最多 3 次、间隔 200ms（实测语义：任务后短暂无应答）；`ParseStatusByte` 按 TSPL2 手册位语义解析（bit0 头开 / bit1 卡纸 / bit2 缺纸 / bit3 色带尽 / bit4 暂停 / bit7 其他错误；实测 0x04 = 缺纸、错误位任务后锁存），Message 最小口径只报可行动状态。
+- **状态查询**（`GetStatusAsync`）：发送 `ESC ! ?`（0x1B 0x21 0x3F）读 1 字节，单次 500ms 超时、最多 3 次、间隔 200ms（实测语义：任务后短暂无应答）；`ParseStatusByte` 按 TSPL2 手册位语义解析（bit0 头开 / bit1 卡纸 / bit2 缺纸 / bit3 色带尽 / bit4 暂停 / bit5 打印中 / bit7 其他错误；TT065-60 真机定案：头开即时报 0x01、多位按位或组合如 0x05、**缺纸位静态不报——走纸 / 打印尝试后才置 0x04 并锁存，装纸走纸后清除**），Message 最小口径只报可行动状态。
 
 ### 3.3 原生指令编译主链（`TsplLabelCompiler.CompileAsync`）
 
-输入原始 `LabelDocument`；输出**整页自包含** TSPL2 文本：`SIZE w mm,h mm` + `DIRECTION 1` + `CODEPAGE UTF-8` + `CLS` → 逐元素 → `PRINT 1`。**GAP / BLINE 不发送**（媒介间隙 / 黑标属耗材属性，交打印机既有标定——真机验证项）；DIRECTION 显式 1（打印机内存值不可依赖）。元素分发表：
+输入原始 `LabelDocument`；输出**整页自包含** TSPL2 文本：`SIZE w mm,h mm` + `DIRECTION 1` + `CODEPAGE UTF-8` + `CLS` → 逐元素 → `PRINT 1`。**GAP / BLINE 不发送**（媒介间隙 / 黑标属耗材属性，交打印机既有标定——真机验证正常）；DIRECTION 显式 1（打印机内存值不可依赖）。元素分发表：
 
 | 元素 | 处置 |
 |---|---|
 | 区域（`LabelRegionElement`） | `BorderMm > 0` → `BOX`（右下角坐标形态）；无边框跳过——版式容器自身不出指令 |
 | 文本 | 边框 BOX + `TEXT x,y,"0",0,xPt,yPt,"content"`（缩放字体 0 磅值字号＝连续缩放；宽度未指定随高度）；加粗近似 = 同内容偏移 1 点重绘（无粗体字体变体）；字符覆盖＝可打印 ASCII + Latin-1，中文等显式失败 `LF_ENC_002`（内置字体无汉字字形，装中文字库前不可表示） |
 | Code 128 条码 | 边框 BOX + `BARCODE x,y,"128",h,human,0,narrow,1,"v"`（`128` 自动子集；narrow = 模块宽 dot、wide 恒 1；human = displayValue ? 2 居中 : 0）；中文等按 `LF_ENC_001` 拒绝 |
-| 二维码 | 边框 BOX + `QRCODE x+inset,y+inset,ECC,cell,A,0,"v"`（mode A 自动；cell = 边长点数 ÷（矩阵 + 2×静区）钳位 1..10，矩阵按 ISO 容量表估版本 → 17+4v）；中文值经页级 CODEPAGE UTF-8 透传——**编码行为以真机定案（AC-07）** |
+| 二维码 | 边框 BOX + `QRCODE x+inset,y+inset,ECC,cell,A,0,"v"`（mode A 自动；cell = 边长点数 ÷（矩阵 + 2×静区）钳位 1..10，矩阵按 ISO 容量表估版本 → 17+4v）；中文值经页级 CODEPAGE UTF-8 透传（真机定案可扫——AC-07） |
 | 线（`LabelLineElement`） | 水平 / 垂直 → `BAR x,y,w,h`（跨度 × 线宽，dot）；斜线显式失败（BAR 仅正交） |
 | 图片（`SourceKey` 空） | 静默跳过（「未指定 = 不存在于打印面」，与两渲染器同口径） |
 | 图片（有 key）/ 未知类型 | **显式失败**（消息含「可将打印方式切回图片」）——不回退不混合（§5.4.4） |
@@ -73,14 +73,14 @@
 
 ### 3.4 图片模式编码（`TsplImageEncoder.EncodeImage`）
 
-`SIZE` + `DIRECTION 1` + `CLS` + `BITMAP 0,0,RowBytes,Height,0,` + **原始位图字节** + `\r\nPRINT 1`。`LabelBitmap` 线格式（行优先 / MSB 在前 / 1=黑点）与 TSPL BITMAP 数据格式一致（手册示意图核对），零转码逐字节落流；mode 0 = OVERWRITE（CLS 后缓冲整版覆盖）。产物为二进制指令流 → `LabelJobItem.CommandBytes`（BLOB）→ Worker `SendAsync(byte[])` 回放（决策 #195）。
+`SIZE` + `DIRECTION 1` + `CLS` + `BITMAP 0,0,RowBytes,Height,0,` + **原始位图字节** + `\r\nPRINT 1`。`LabelBitmap` 线格式（行优先 / MSB 在前）与 TSPL BITMAP 一致，**位极性相反**——TSPL 位 0 = 印点（黑）、1 = 空白（手册 + TT065-60 真机反色实证），逐字节取反落流；mode 0 = OVERWRITE（CLS 后缓冲整版覆盖）。产物为二进制指令流 → `LabelJobItem.CommandBytes`（BLOB）→ Worker `SendAsync(byte[])` 回放（决策 #195）。
 
 ## 4. 对外契约与依赖
 
 **接口面**（命名空间 `LabelFrame.TransportPlugin.Tspl`）：
 
 - public：`TsplTransportPlugin`（`ITransportPlugin` + `ILabelCommandCompiler` + `ILabelImageEncoder`）、`TsplPrinterTransport`（三接口 + public 注入构造）、`TsplTransportKind`、`TsplLabelCompiler`、`TsplTextWidthMeasurer`、`TsplImageEncoder`、`ITsplLink`（注入缝）；
-- internal（无 `InternalsVisibleTo`，测试经 public 面与 `CompileAsync` 输出间接覆盖）：`TsplBuiltInFontMetrics` / `TsplQrCodeMetrics` / `UsbRawDevice` / `UsbPrinterDeviceDiscovery` / 转义器；
+- internal（`InternalsVisibleTo` WinHost.Tests——`ParseDeviceKey` 纯函数直测；其余经 public 面与 `CompileAsync` 输出间接覆盖）：`TsplBuiltInFontMetrics` / `TsplQrCodeMetrics` / `UsbRawDevice` / `UsbPrinterDeviceDiscovery` / 转义器；
 - 插件 id 恒取 Core `TransportPluginIdPolicy.TsplPluginId`（`labelframe-transport-tspl`）——manifest.pluginId / DLL `Id` / 连接配置 pluginId 三处一致；i18n 键全套（DIM `DisplayNameKey` / `DescriptionKey` + spec `LabelKey` / `HintKey` / 选项 `LabelKey`，决策 #192），zh 词条 = 插件侧中文原文由 `web/src/lib/pluginText.test.ts` 镜像锚定。
 
 **依赖**：`LabelFrame.Core` 是**唯一工程依赖 = 插件 ABI 边界**（纯托管，零 NuGet 依赖——与 zebra 插件的 SDK 毒丸清单对照，本插件无原生 / SDK 依赖）。目标框架 `net10.0-windows10.0.26100`（与 WinHost windows 腿一致——TFM 越前破坏装配；USB P/Invoke 用 Windows API）。
@@ -116,12 +116,13 @@
 修改本模块前必读：
 
 1. **只依赖 Core＝ABI 边界**：引用 WinHost / Rendering 任一工程即破坏外置性；本插件虽纯托管，仍随包自带全部伴生 DLL（当前仅主 DLL 一件——构建脚本断言「恰好 1 个 DLL」，混入宿主必带件即红）。
-2. **OVERLAPPED 结构生命周期**：重叠 IO 的 OVERLAPPED 须驻留非托管内存（HGlobal）直至 `GetOverlappedResult` 收尾——值封送只在 P/Invoke 调用期有效，未决 IO 期间结构被 GC 移动 = 未定义行为。超时路径必须 `CancelIoEx` 后再释放。
-3. **USB 设备路径来自注册表键名**：`DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}`（GUID_DEVINTERFACE_USBPRINT）子键名前缀 `##?#` 对应 CreateFile 路径前缀 `\\?\`（其余小写化）；接口 GUID 勿凭记忆猜（2026-10-16 本机双设备 VID_0A5F / VID_1203 实证）。
+2. **usbprint 重叠 IO 真机不收尾**：TT065-60 实测 `FILE_FLAG_OVERLAPPED` 写入挂起（OVERLAPPED 结构对齐修正后仍超时），同步 IO 即时完成——本通道一律同步 CreateFile + 看门狗（Task 等待超时即按失败语义处理，被放弃的阻塞线程随链路关闭、句柄释放中止未决 IO 退出）。
+3. **USB 设备路径来自注册表键名**：`DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}`（GUID_DEVINTERFACE_USBPRINT）子键名前缀 `##?#` 对应 CreateFile 路径前缀 `\\?\`、**接口 GUID 尾巴必须保留**、保留原大小写（旧实现剥 `#\` 段与 GUID 尾巴 → 路径不存在，TT065-60 真机实证）；接口 GUID 勿凭记忆猜（2026-10-16 本机双设备 VID_0A5F / VID_1203 实证）。
 4. **`ESC ! ?` 位语义按 TSPL2 手册**（bit0 头开 / 1 卡纸 / 2 缺纸 / 3 色带尽 / 4 暂停 / 5 打印中 / 7 其他）；`ESC` 前缀 = 立即响应、`~` 前缀 = 就绪才响应（`~!?` 非 TSC 官方指令）。实测错误位任务后锁存、紧贴任务短暂无应答——查询带重试（3 × 500ms）为此设计。
-5. **BITMAP 数据必须精确 width×height 字节原始二进制**：不转十六进制（决策 #195 明确）；`LabelBitmap` 的行优先 / MSB / 1=黑与 TSPL 一致，勿做位翻转。
-6. **GAP / BLINE 不发**：媒介间隙是耗材属性，发错比不发更糟（打印机既有标定兜底）；DIRECTION 必须显式（打印机内存值不可依赖）。两者均为真机验证项（AC-07）。
-7. **QR 中文透传待真机定案**：手册无「CODEPAGE UTF-8 + QRCODE」的逐字承诺（CODEPAGE 定义 + 官方 FAQ 组合推断）；真机若静默过滤，编译器须改为显式失败（对齐 zebra QR 中文口径）——AC-07 定案项。
+5. **BITMAP 数据必须精确 width×height 字节原始二进制**：不转十六进制（决策 #195 明确）；行优先 / MSB 与 `LabelBitmap` 一致，**位极性相反（TSPL 位 0 = 印点）——必须逐位取反**（TT065-60 真机反色实证，勿「优化」掉取反）。
+6. **GAP / BLINE 不发**：媒介间隙是耗材属性，发错比不发更糟（打印机既有标定兜底）；DIRECTION 必须显式（打印机内存值不可依赖）。真机验证通过（GAP 不发走纸正常、DIRECTION 1 方向正确——AC-07）。
+7. **QR 中文 = CODEPAGE UTF-8 透传（真机定案）**：TT065-60 实测中文 QR 内容手机可扫、原文无损（AC-07）；无静默过滤，不需要显式失败分支。
 8. **native 编译显式失败，不回退不混合**：不支持元素 / 字符以失败结果返回（`LF_ENC_001` / `LF_ENC_002`），不自动回退图片、不做元素级混合；不要往编译器加排版模拟（自动换行 / 缩放 / 图片均裁剪——§5.4.1 裁剪原则）。
 9. **文本字号单位是磅不是倍率**：TSPL 缩放字体 "0" 的 x/y-mult 单位为 point（1 pt = 1/72 inch）；点阵字体 1~5 才是整数倍率（1..10）且不支持连续字高——编译器只用字体 0，勿按倍率口径换算。
 10. **TFM 与宿主 windows 腿一致**（`net10.0-windows10.0.26100`）：插件由宿主运行时字节加载，TFM 越前破坏装配；P/Invoke 依赖 Windows API（usbprint CreateFile），非 Windows 端不装配本插件（`.lfplugin` 平台门，决策 #157）。
+11. **OEM 资料分辨率不可尽信**：TT065-60 OEM 规格标 203dpi，真机实测 **300dpi**（版面缩比 203/300 实证；`~!T` 回读机型名不含分辨率信息）；DPI 是主机级配置（`HostOptions.Dpi` / `LABELFRAME_DPI`），接 300dpi 机型必须配置一致，否则原生编译版面整体缩小约三分之一。

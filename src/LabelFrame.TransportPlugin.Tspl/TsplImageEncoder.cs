@@ -7,7 +7,8 @@ namespace LabelFrame.TransportPlugin.Tspl;
 
 /// <summary>
 /// TSPL 图片模式编码器（ILabelImageEncoder）：整张标签的 1bpp 位图经 BITMAP 原始二进制输出
-/// （mode 0 = OVERWRITE；LabelBitmap 的行优先 / MSB 在前 / 1=黑点线格式与 TSPL BITMAP 数据一致）。
+/// （mode 0 = OVERWRITE；LabelBitmap 的行优先 / MSB 在前与 TSPL BITMAP 一致，位极性相反——
+/// TSPL 位 0 = 印点（黑）、1 = 空白，输出时逐字节取反）。
 /// 输出为二进制指令流（头尾 ASCII 指令 + 位图原始字节），经 LabelJobItem.CommandBytes 走二进制回放。
 /// </summary>
 public sealed class TsplImageEncoder : ILabelImageEncoder
@@ -32,7 +33,11 @@ public sealed class TsplImageEncoder : ILabelImageEncoder
         var head = Encoding.ASCII.GetBytes(header.ToString());
         var command = new byte[head.Length + bitmap.Pixels.Length + trailer.Length];
         head.CopyTo(command, 0);
-        bitmap.Pixels.CopyTo(command, head.Length);
+        for (var i = 0; i < bitmap.Pixels.Length; i++)
+        {
+            command[head.Length + i] = (byte)~bitmap.Pixels[i];
+        }
+
         trailer.CopyTo(command.AsSpan(head.Length + bitmap.Pixels.Length));
         return command;
     }
