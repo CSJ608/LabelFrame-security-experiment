@@ -7,7 +7,7 @@
 
 **做什么**：Client Host——单进程本地打印服务（决策 #7 本地服务统一入口）。同一工程多目标编译两形态（决策 #9 / #84）：
 
-- **Windows 完整客户端**（`net10.0-windows10.0.26100`，WinExe）：HTTP API＋完整 Web UI 静态托管（决策 #53）＋WebView2 界面壳＋系统托盘＋单实例守卫（决策 #99）＋内置传输（log / tcp9100 / winspool）＋外部传输插件加载＋插件安装 / 卸载＋Zebra 存量迁移（决策 #123）＋统一退出协调（决策 #112）；
+- **Windows 完整客户端**（`net10.0-windows10.0.26100`，WinExe）：HTTP API＋完整 Web UI 静态托管（决策 #53）＋WebView2 界面壳＋系统托盘＋单实例守卫（决策 #99）＋内置传输（log / tcp9100 / winspool）＋外部传输插件加载＋插件安装 / 卸载＋官方插件（zebra / tspl）存量懒激活迁移（决策 #123 ③ / #195）＋统一退出协调（决策 #112）；
 - **Linux 无头 Log 客户端**（`net10.0`，AssemblyName `LabelFrame.ClientHost`）：仅注册内置 log 传输，不加载外部插件、不启动浏览器或托盘；作业队列 / Server 轮询 / Skia 渲染 / 结果回报与 Windows 共用同一代码路径（Docker 镜像随发版发布，决策 #87）。
 
 两形态的业务核心一致：本机作业提交→队列→打印 Worker 串行出纸；连接管理（先测试后生效，决策 #50）；Server 路由（注册 / 长轮询领取 / 回报 / 进度上报，决策 #21 / #60 / #101）；批次节流（决策 #74 / #100）；Log 模拟打印（PNG 出图＋作业数据留痕，决策 #139）。
@@ -49,7 +49,7 @@
 | API 端点（Api/） | `JobsApi` / `TransportApi` / `PrinterApi` / `PluginApi` / `HostApi` / `PrintSettingsApi` / `Contracts` | Api/ 目录 | 宿主专属端点（分组实现）；`Contracts.cs` 只留宿主专属 DTO（通用契约在 LabelFrame.Api，决策 #75） |
 | 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；批次设置（决策 #74）；出图目录保留清理（决策 #136）；本机 IPv4 枚举（决策 #61） |
 
-**多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool / Zebra 迁移六个文件，`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
+**多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool 五文件（列表另含已删除的 `ZebraPluginMigration.cs` 残项＝no-op；更名后的 `OfficialPluginMigration.cs` 不在 Remove 列表、实际进入 Linux 编译面——引用类型全在 Core 可编译，Windows 专属调用点在 `#if WINDOWS` 内），`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
 
 **路径约定**：用户级（`%LOCALAPPDATA%\LabelFrame\`）＝jobs.db / templates.db / logs.db / connection.json / print-settings.json / print\ / logs\（app-*.log）/ host.log；机器级（`%ProgramData%\LabelFrame\Client\`）＝settings.json（ServerUrl）与 plugins\（外部插件目录，决策 #68）。
 
@@ -60,7 +60,7 @@
 1. 配置装配：appsettings `WinHost` 节绑定 → `ApplyEnvironmentOverrides()`（`LABELFRAME_*` 优先级最高）→ `--autostart` 强制「仅托盘不弹界面」（决策 #99 D4）；
 2. host.log 写入器：`DailyRotatingFileWriter`（`TextWriter.Synchronized` 包裹；打开失败回退 `TextWriter.Null` 不阻断启动）；
 3. 单实例：`SingleInstanceGuard.TryAcquire()` 拿不到锁 → `SignalActivate()`（已有实例显示窗口）→ 本次启动退出，不再走到端口监听；
-4. `WinHostApp.BuildAsync`（Serilog 经 `configureBuilder` 挂真实 builder——见 §6.1）：传输注册表装配（内置三件＋外部插件目录扫描＋`ZebraPluginMigration.Run` 须先于扫描）→ 各 Store 初始化 → 全部端点映射 → Web UI 探测托管（`web/dist` 配置优先，未找到仅 API）→ 路由协调器按当前配置拉起（未配置地址空转）；
+4. `WinHostApp.BuildAsync`（Serilog 经 `configureBuilder` 挂真实 builder——见 §6.1）：传输注册表装配（内置三件＋外部插件目录扫描＋`OfficialPluginMigration.Run` 须先于扫描）→ 各 Store 初始化 → 全部端点映射 → Web UI 探测托管（`web/dist` 配置优先，未找到仅 API）→ 路由协调器按当前配置拉起（未配置地址空转）；
 5. 界面壳：`WindowUiShell.TryStart`（WebView2 可用时）否则 `BrowserUiShell` 回退；托盘 `TrayIconService.Start`（双击 / 菜单「打开界面」→ `uiShell.OpenUi()`；「退出」→ 退出协调器）；
 6. `RunAsync` 异常 → `DescribeStartupFailure`（端口占用转中文可行动提示）→ 有界面壳走 `ShowFatalError` 消息框、无界面壳同时写 stderr；`finally` 统一 `RunCleanup()` → `MarkNaturalExitCompleted()` → `Environment.Exit`。
 
@@ -100,7 +100,7 @@
 | `GET /healthz` | WinHostApp | service / platform / headless / transport / pluginId / displayText（旧字段 transport 兼容旧前端徽标） |
 | `POST/GET /api/jobs`、`GET /api/jobs/{id}`、`suspend/resume/cancel`、`items/{index}/retry` | JobsApi | 提交 / 列表 / 详情 / 状态迁移 / 失败项重打；Log 模式视图附带 `printImageDir` / `printImageCount` |
 | `GET/POST /api/transport`、`GET /api/transport/plugins` | TransportApi | 连接查询 / 切换 / 测试（切换与测试统一 200＋`ok` 布尔）；已装配插件列表（含 `supportsDocumentCompile` 能力位） |
-| `GET /api/printer/status`、`POST /api/printer/test` | PrinterApi | 状态（按传输能力降级）；测试页（与正式打印同源：Skia 整版位图经 ^GF） |
+| `GET /api/printer/status`、`POST /api/printer/test` | PrinterApi | 状态（按传输能力降级）；测试页（与正式打印同源：Skia 整版位图按连接插件分派图片指令编码——命中 `ILabelImageEncoder` 出品牌二进制，否则 ^GF） |
 | `GET /api/plugins/installed`、`POST install/uninstall` | PluginApi（仅 Windows） | 插件安装 / 卸载（写文件＋重启生效） |
 | `GET/POST /api/host/config` | HostApi | 机器级 ServerUrl（仅回环可写；GET 含只读 `version`＝客户端「检查更新」比较口径）＋本机 `ips` |
 | `GET/POST /api/host/print-settings` | PrintSettingsApi（经 HostApi 挂载） | 批次作业设置（仅回环可写、保存即生效） |
@@ -108,7 +108,7 @@
 | 模板 / 出图 / 日志端点 | LabelFrame.Api 共享实现 | `MapTemplateApi` / `MapRenderApi` / `MapLogApi`（错误码用宿主前缀，决策 #75） |
 | Web UI 静态托管 | WinHostApp（仅 Windows） | `web/dist` 探测（配置 / 安装目录 / 仓库开发路径三级候选）＋SPA 回退（未匹配 `/api` 返回 index.html） |
 
-**配置面**（`HostOptions`，决策 #19）：appsettings `WinHost` 节＋`LABELFRAME_*` 环境变量覆盖（监听 / 三库路径 / 传输默认 / 路由轮询与进度间隔 / 日志级别与目录 / 保留天数 / 界面与托盘开关等约 30 项；`ProductVersion = "0.35.0"` 与打包脚本同步）。**回调契约**：`SubmitJobRequest.callbackUrl` 接受但忽略（直连模式无出站回调，决策 #154 ④）。
+**配置面**（`HostOptions`，决策 #19）：appsettings `WinHost` 节＋`LABELFRAME_*` 环境变量覆盖（监听 / 三库路径 / 传输默认 / 路由轮询与进度间隔 / 日志级别与目录 / 保留天数 / 界面与托盘开关等约 30 项；`ProductVersion = "1.0.0"` 与打包脚本同步）。**回调契约**：`SubmitJobRequest.callbackUrl` 接受但忽略（直连模式无出站回调，决策 #154 ④）。
 
 **数据文件**：`connection.json`（用户级，TransportManager 持久化，旧格式自动迁移）；`settings.json`（机器级 ServerUrl，决策 #57）；`print-settings.json`（批次设置，原子写）；`print\{jobId}\`（Log 出图，按天保留默认 31，决策 #136）；`host-yyyyMMdd.log` / `app-yyyyMMdd.log`（按日轮转保留 31，决策 #108）。
 
@@ -166,4 +166,4 @@
 12. **`UiReadiness` 探测异常口径**：仅调用方取消才中断等待；探测自身的超时（HttpClient Timeout 抛 TaskCanceled）视为未就绪继续等——两类 `OperationCanceledException` 语义不同。本机探测禁用系统代理（`UseProxy = false`）。
 13. **`/api/host/shutdown` 的队列锁门槛**：`TryPrepareForShutdownAsync` 在队列锁内原子拒绝正在打印的退出并停止新提交 / 领取——MSI 升级链（决策 #163）依赖「检查与开始打印之间无竞态」这一语义，放宽会复现升级期文件占用弹窗。
 14. **csproj 毒丸清单与良性告警**：WebView2 包 buildTransitive 引入 Wpf 变体产生 MSB3277（良性，降级为 Message）；`SkiaSharp.NativeAssets.Win32` 附带 81MB 原生 pdb，Publish 后删除目标（决策 #111 ⑥）；测试工程引用 Zebra 插件工程时 MAUI / WinUI 链毒丸清单须逐包 `ExcludeAssets="all"` 显式排除（决策 #111 ⑤，SDK 升级须复查）。
-15. **Linux 目标的编译裁剪面**：csproj `Compile Remove` 六文件（托盘 / 界面壳 / winspool / Zebra 迁移）与源码 `#if WINDOWS` 必须同步维护——把 Windows 专属类型泄漏进 net10.0 目标即断 Linux 构建（ClientHost.Tests 锚定 headless＋仅 log 插件＋无插件端点）。
+15. **Linux 目标的编译裁剪面**：csproj `Compile Remove`（托盘 / 界面壳 / winspool 五文件＋已删除的 `ZebraPluginMigration.cs` 残项 no-op）与源码 `#if WINDOWS` 必须同步维护——把 Windows 专属类型泄漏进 net10.0 目标即断 Linux 构建（ClientHost.Tests 锚定 headless＋仅 log 插件＋无插件端点）。`OfficialPluginMigration.cs` 现随重命名进入 Linux 编译面（引用全在 Core、Windows 专属调用点在 `#if WINDOWS` 内）；重命名 Windows 专属文件时须同步刷新 Remove 列表。

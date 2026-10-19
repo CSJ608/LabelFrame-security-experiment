@@ -44,7 +44,7 @@ public sealed class LabelJobQueue : IDisposable
     public Task<(LabelJob Job, bool Created)> SubmitAsync(string requestId, IReadOnlyList<string> zplLabels, CancellationToken cancellationToken = default)
         => SubmitAsync(requestId, zplLabels.Select(LabelJobPayload.OfText).ToList(), cancellationToken);
 
-    /// <summary>提交作业（文本 / 二进制双形态载荷，决策 #195）：requestId 已存在时返回已有作业（幂等）。</summary>
+    /// <summary>提交作业（文本 / 二进制双形态载荷）：requestId 已存在时返回已有作业（幂等）。</summary>
     /// <param name="requestId">幂等键。</param>
     /// <param name="payloads">每张标签的回放载荷（文本或二进制二选一；批内顺序）。</param>
     /// <returns>作业与是否新建（false 表示 requestId 重放返回已有作业）。</returns>

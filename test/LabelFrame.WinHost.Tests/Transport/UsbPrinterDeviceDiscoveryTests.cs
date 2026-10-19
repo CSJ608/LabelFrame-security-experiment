@@ -3,7 +3,7 @@ using LabelFrame.TransportPlugin.Tspl;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// usbprint 注册表接口键名解析回归（AC-07 真机发现的路径缺陷：旧实现剥掉「#\」前缀段与接口 GUID 尾巴，
+/// usbprint 注册表接口键名解析回归（真机发现的路径缺陷：旧实现剥掉「#\」前缀段与接口 GUID 尾巴，
 /// 生成不存在的设备路径导致 CreateFile 打不开）。键名形状取自 TT065-60 真机注册表。
 /// </summary>
 public class UsbPrinterDeviceDiscoveryTests

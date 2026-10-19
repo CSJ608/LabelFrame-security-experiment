@@ -56,7 +56,7 @@
     <ProjectReference Include="..\LabelFrame.TransportPlugin.Sample\LabelFrame.TransportPlugin.Sample.csproj" />
     <!-- Zebra 官方插件工程：迁移后的传输行为测试与官方包安装 / 版本比较用例的程序集来源 -->
     <ProjectReference Include="..\..\src\LabelFrame.TransportPlugin.Zebra\LabelFrame.TransportPlugin.Zebra.csproj" />
-    <!-- TSPL 官方插件工程（迭代 143，决策 #195）：编译器 / 传输 / 图片编码测试的程序集来源 -->
+    <!-- TSPL 官方插件工程：编译器 / 传输 / 图片编码测试的程序集来源 -->
     <ProjectReference Include="..\..\src\LabelFrame.TransportPlugin.Tspl\LabelFrame.TransportPlugin.Tspl.csproj" />
   </ItemGroup>
 

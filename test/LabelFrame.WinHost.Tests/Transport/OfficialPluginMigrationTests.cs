@@ -154,7 +154,7 @@ public class OfficialPluginMigrationTests
     [Fact]
     public void Run_with_tspl_config_and_bundled_package_should_auto_install()
     {
-        // TSPL 懒激活（迭代 143，决策 #195）：connection.json 引用官方 id → 自动装附带包
+        // TSPL 懒激活：connection.json 引用官方 id → 自动装附带包
         var (options, root, messages) = Create(connectionJson: """{"PluginId":"labelframe-transport-tspl","Params":{"kind":"Usb","usbName":""}}""");
         try
         {

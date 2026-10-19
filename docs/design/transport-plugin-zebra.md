@@ -100,7 +100,7 @@ Fake 经 `scripts/build-fake-android-plugin.ps1` 打包（`platforms:["android"]
 
 | 消费方 | 用途 |
 |---|---|
-| WinHost.Tests | 唯一 ProjectReference 消费方：`ZebraLabelCompilerTests`（编译器 + 度量器）、`ZebraPrinterTransportTests` / `PrinterStatusTests`（传输与状态）、`TransportParameterVisibilityTests`（参数显隐）、`ZebraPluginMigrationTests`（旧 id / 旧配置自动迁移安装）、`ZebraNativeSubmissionTests`（native 模式提交链）、`PluginLoadLifecycleTests` + `OfficialPackageFactory`（从插件 bin 目录取真实 DLL 组生产同构包）、`WinHostEndpointsTests`（Sample 外部 DLL 目录加载集成） |
+| WinHost.Tests | 唯一 ProjectReference 消费方：`ZebraLabelCompilerTests`（编译器 + 度量器）、`ZebraPrinterTransportTests` / `PrinterStatusTests`（传输与状态）、`TransportParameterVisibilityTests`（参数显隐）、`OfficialPluginMigrationTests`（旧 id / 旧配置自动迁移安装——类已随 WinHost 重命名，覆盖 zebra / tspl 双官方插件）、`ZebraNativeSubmissionTests`（native 模式提交链）、`PluginLoadLifecycleTests` + `OfficialPackageFactory`（从插件 bin 目录取真实 DLL 组生产同构包）、`WinHostEndpointsTests`（Sample 外部 DLL 目录加载集成） |
 | Core.Tests | 引用 Fake + Sample：插件包读写 / 目录加载 / 安装器跨平台 / 外部插件注册表 / SafeFileName 测试 |
 | Server.Tests | `PluginPackagesServiceTests`（Sample.dll 名构造 zip，服务端分发校验） |
 | Bootstrapper.Tests | Payload 落位 / 清理测试以 `labelframe-transport-zebra` manifest 字符串构造插件包 |

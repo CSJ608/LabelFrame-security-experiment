@@ -18,14 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LabelFrame.WinHost.Tests.Jobs;
 
-/// <summary>
-/// 图片模式编码器按连接插件分派（决策 #195，AC-02）：未实现 ILabelImageEncoder 的连接
-/// （Zebra / 内置 log）输出与宿主 ZplImageEncoder 逐字节一致（semver 加法零回归）；
-/// 实现该接口的连接（TSPL / fake）产出二进制 CommandBytes（Zpl 互斥为空）；
-/// 连接级选项（决策 #196「反色处理」）按连接参数构造传入，缺省 / 非法值回退 false；
-/// fake 编码器仅实现旧签名 = 选项重载 DIM 委托的行为不变实证；
-/// Worker 双路径回放（二进制走 SendAsync(byte[])）；IPrintTransport 二进制重载 DIM 缺省抛 NotSupportedException。
-/// </summary>
+/// <summary>图片模式编码器按连接插件分派的行为矩阵（未实现 / 实现 / 连接级选项 / 双路径回放）。</summary>
 public class TsplImageDispatchTests
 {
     /// <summary>fake 图片编码插件：图片模式返回固定位图指令流（标记字节），native 不实现由基类承载。</summary>
@@ -167,7 +160,7 @@ public class TsplImageDispatchTests
     [Fact]
     public async Task Image_mode_with_invert_image_param_should_pass_option_to_tspl_encoder()
     {
-        // 决策 #196：连接参数 invertImage=true → 编码选项 InvertBits=true（跳过取反透传）
+        // 连接参数 invertImage=true → 编码选项 InvertBits=true（跳过取反透传）
         var (service, _) = CreateService("""{ "pluginId": "labelframe-transport-tspl", "params": { "kind": "Tcp", "host": "127.0.0.1", "invertImage": "true" } }""");
 
         var item = await SubmitSingleAsync(service, "req-tspl-invert-on");

@@ -6,9 +6,8 @@ using LabelFrame.TransportPlugin.Tspl;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// TSPL 传输单测（mock 链路，AC-03）：发送（文本 UTF-8 / 二进制透传）、ESC ! ? 状态语义（单字节位映射）与
-/// 重试（无应答重试 / 三次全无离线）、USB 设备发现（留空自动发现第一台 / 名称匹配 / 无设备与无匹配可行动错误）、
-/// 连接测试（有应答即就绪）、参数构造（TCP 缺地址拒绝）。不碰真机（本轮零真机口径）。
+/// TSPL 传输单测（mock 链路，不碰真机）：发送（文本 UTF-8 / 二进制透传）、ESC ! ? 状态语义、
+/// 重试、USB 设备发现、连接测试与参数构造。
 /// </summary>
 public class TsplPrinterTransportTests
 {

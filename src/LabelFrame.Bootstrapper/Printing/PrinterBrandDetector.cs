@@ -1,6 +1,6 @@
 namespace LabelFrame.Bootstrapper.Printing;
 
-/// <summary>打印机品牌预选：读 Windows 已装打印机驱动名，ZDesigner → zebra、TSC → tspl 预勾选；其余品牌从零勾选（扩表零契约变更；tspl 行 = 指令集维度，决策 #195）。</summary>
+/// <summary>打印机品牌预选：读 Windows 已装打印机驱动名，ZDesigner → zebra、TSC → tspl 预勾选；其余品牌从零勾选（扩表零契约变更；tspl 行 = 指令集维度）。</summary>
 public static class PrinterBrandDetector
 {
     private static readonly (string Keyword, string Brand)[] Rules =

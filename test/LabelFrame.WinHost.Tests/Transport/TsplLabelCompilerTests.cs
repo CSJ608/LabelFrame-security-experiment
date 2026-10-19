@@ -8,12 +8,7 @@ using LabelFrame.TransportPlugin.Tspl;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// TSPL 原生指令编译器单测（TSPL2 基线，决策 #195）：页结构（SIZE / DIRECTION / CODEPAGE UTF-8 / CLS / PRINT）+
-/// 文本编译（TEXT 缩放字体 0 磅值换算 / 锚定与对齐坐标换算 / 加粗双绘 / 引号转义 / 中文 LF_ENC_002 拒绝）+
-/// Code 128 条码（BARCODE "128" 结构 / 模块宽映射 / displayValue 映射 / 中文 LF_ENC_001）+
-/// QR 二维码（QRCODE 结构 / cell width 换算与钳位 / 静区居中 / UTF-8 中文透传）+
-/// 线（BAR 水平 / 垂直 / 斜线拒绝）与边框（BOX 右下角形态，含区域）。
-/// 编译输出为确定性文本，不依赖真机；真机效果验收转待验收（AC-07）。
+/// TSPL 原生指令编译器单测（按文件内分节分组：页结构 / 文本 / 条码 / 二维码 / 线与边框）。
 /// </summary>
 public class TsplLabelCompilerTests
 {

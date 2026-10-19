@@ -51,7 +51,7 @@ public sealed class SqliteLabelJobStore : ILabelJobStore
         await MigrateCommandBytesAsync(connection, cancellationToken);
     }
 
-    /// <summary>旧库兼容迁移：job_items 表缺少 command_bytes 列时补列（决策 #195 二进制指令载荷；已存在则跳过；失败静默忽略，不影响启动）。</summary>
+    /// <summary>旧库兼容迁移：job_items 表缺少 command_bytes 列时补列（已存在则跳过；失败静默忽略，不影响启动）。</summary>
     private static async Task MigrateCommandBytesAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         var hasCommandBytes = false;

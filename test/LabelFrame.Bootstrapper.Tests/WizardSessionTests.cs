@@ -30,7 +30,7 @@ public sealed class WizardSessionTests
     [Fact]
     public async Task Load_manifest_with_tsc_printer_should_preselect_tspl()
     {
-        // 指令集维度品牌预选（决策 #195）：TSC 驱动名 → tspl 勾选（同一插件服务 TSC 及兼容机）
+        // 指令集维度品牌预选：TSC 驱动名 → tspl 勾选（同一插件服务 TSC 及兼容机）
         var session = new WizardSession(installedPrinterNames: () => ["TSC TT065-60"])
         {
             ManifestSource = FixturePath("install-manifest.full.json"),

@@ -11,7 +11,7 @@ public interface IPrintTransport
     /// <summary>
     /// 发送打印机指令（二进制形态，如 TSPL BITMAP 原始位图指令流）。
     /// 默认实现抛 NotSupportedException——不支持二进制指令的通道收到二进制载荷时显式失败
-    /// （决策 #195：DIM 缺省实现保证既有插件与内置通道二进制兼容，不受本重载影响）。
+    /// DIM 缺省实现保证既有插件与内置通道二进制兼容，不受本重载影响。
     /// </summary>
     /// <param name="command">二进制指令流。</param>
     /// <param name="cancellationToken">取消令牌。</param>

@@ -95,7 +95,7 @@ public sealed class BundleVariableMapTests
     [Fact]
     public void To_variables_current_manifest_with_tspl_selected_should_set_tspl_flag()
     {
-        // 指令集维度品牌选项（决策 #195）：勾选 tspl → InstallPluginTspl 置位（同一插件服务 TSC 及兼容机）
+        // 指令集维度品牌选项：勾选 tspl → InstallPluginTspl 置位（同一插件服务 TSC 及兼容机）
         var plan = Resolver.Resolve(
             LoadManifest("install-manifest.current.json"),
             TopologyPreset.Standalone,

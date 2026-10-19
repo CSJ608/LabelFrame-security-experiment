@@ -6,7 +6,7 @@ namespace LabelFrame.WinHost.Transport;
 /// <summary>
 /// 存量升级兼容：启动时检测「已用官方插件配置」（connection.json 引用官方插件 id / 旧别名 / 旧内置模式）
 /// 且外置插件未安装时，自动安装随客户端 MSI 附带的官方插件包（plugin-packages\*.lfplugin），本次启动即完成装配。
-/// 官方 id 清单：zebra（含旧 id 别名与旧 Mode=Zebra，迭代 63）＋ tspl（迭代 143，决策 #195）。
+/// 官方 id 清单：zebra（含旧 id 别名与旧 Mode=Zebra）＋ tspl。
 /// 无附带包（开发目录裸跑 / 自定义部署）时 host.log 中文提示引导安装，不阻断启动。
 /// </summary>
 public static class OfficialPluginMigration

@@ -1,6 +1,6 @@
 # LabelFrame.TransportPlugin.Tspl 模块设计
 
-> 覆盖：`src/LabelFrame.TransportPlugin.Tspl/`（9 文件，约 1000 行）· 基线：`iter/143-tspl-plugin`（2026-10-16，迭代 143 / #378）
+> 覆盖：`src/LabelFrame.TransportPlugin.Tspl/`（12 文件，约 1200 行）· 基线：`master` `a95a43d`（2026-10-19；含 #378 立项、#381 真机三缺陷修复、#383 反色处理开关）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表（本迭代主决策 #195）。
 
 ## 1. 职责与边界
@@ -89,7 +89,7 @@
 
 | 消费方 | 用途 |
 |---|---|
-| WinHost.Tests | 唯一 ProjectReference 消费方：`TsplLabelCompilerTests`（编译矩阵）、`TsplPrinterTransportTests`（mock 链路传输矩阵）、`TsplImageEncoderTests`、`TsplImageDispatchTests`（分派字节不变 + 二进制载荷）、`OfficialPluginMigrationTests`（懒激活） |
+| WinHost.Tests | 唯一 ProjectReference 消费方：`TsplLabelCompilerTests`（编译矩阵——输出为确定性文本、不依赖真机）、`TsplPrinterTransportTests`（mock 链路传输矩阵）、`TsplImageEncoderTests`、`TsplImageDispatchTests`（分派字节不变 + 二进制载荷）、`TsplTransportPluginParameterTests`（反色参数声明）、`UsbPrinterDeviceDiscoveryTests`（注册表键名解析回归）、`OfficialPluginMigrationTests`（懒激活） |
 | scripts + 发版流水线 | `build-tspl-plugin.ps1`（.lfplugin 构建，64MB 上限断言）；`release.yml` 构建附件 + Client MSI 附带断言 + Bundle 落位 + 离线包收录 |
 | web | `pluginLabels.json` zh + en 词条（键空间 `plugin.labelframe-transport-tspl.*`） |
 

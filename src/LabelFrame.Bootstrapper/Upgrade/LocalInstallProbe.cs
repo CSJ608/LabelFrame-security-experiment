@@ -10,7 +10,7 @@ namespace LabelFrame.Bootstrapper.Upgrade;
 /// <param name="ServerMsiVersion">服务端 MSI 已装版本（MSI 注册表，同族多产品取最高；未装为 null）。</param>
 /// <param name="ClientMsiVersion">客户端 MSI 已装版本（同上）。</param>
 /// <param name="ZebraPluginVersion">Zebra 官方插件已装版本（落位目录 manifest.json；未装为 null）。</param>
-/// <param name="TsplPluginVersion">TSPL 官方插件已装版本（同上，决策 #195）。</param>
+/// <param name="TsplPluginVersion">TSPL 官方插件已装版本（同上）。</param>
 /// <param name="Runtime">运行时探测结果。</param>
 public sealed record LocalInstallSnapshot(
     string? ServerMsiVersion,

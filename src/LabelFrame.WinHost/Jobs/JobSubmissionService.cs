@@ -111,9 +111,7 @@ public sealed class JobSubmissionService
             renderedItems = rendered.Items!;
             try
             {
-                // 图片指令编码按连接插件分派（决策 #195）：插件实现 ILabelImageEncoder 则输出品牌图片指令（二进制），
-                // 未实现（Zebra / 内置通道）维持 ^GF 文本——输出逐字节不变；
-                // 连接级选项（决策 #196「反色处理」）按当前连接参数构造，键缺失 / 非法值回退 false
+                // 图片指令编码按连接插件分派：未实现 ILabelImageEncoder 的连接（Zebra / 内置通道）维持 ^GF 文本，输出逐字节不变
                 var imageEncoder = _pluginRegistry.GetImageEncoder(config.PluginId);
                 var encodeOptions = new LabelImageEncodeOptions(
                     InvertBits: config.Params.TryGetValue(LabelImageEncodeOptions.InvertBitsParameterKey, out var invertRaw)

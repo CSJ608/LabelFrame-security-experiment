@@ -114,7 +114,7 @@ public sealed class JobPrintWorker : BackgroundService
                 try
                 {
                     // 每次发送前取当前连接（切换后下一张生效；正在发送的这一张不受影响）；
-                    // 回放载荷双形态（决策 #195）：二进制载荷（如 TSPL BITMAP）优先，文本载荷走既有字符串路径
+                    // 回放载荷双形态：二进制载荷优先，文本载荷走既有字符串路径
                     if (item.CommandBytes is { Length: > 0 })
                     {
                         await _transportManager.CurrentTransport.SendAsync(item.CommandBytes, stoppingToken);

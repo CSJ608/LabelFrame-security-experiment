@@ -7,7 +7,7 @@ namespace LabelFrame.Bootstrapper.Topology;
 /// <remarks>兼容义务：常量须与 LabelFrame.Core 的 TransportPluginIdPolicy 保持一致（本库独立于 Core，net48 腿不引用 net10 目标的 Core）——变更必须两侧同步。</remarks>
 public static class BrandPluginMap
 {
-    /// <summary>品牌 id → 插件包 pluginId（指令集维度映射，决策 #195：tspl = TSC 及 TSPL 兼容品牌共用；无映射返回 null：清单出现未知品牌条目按组件 id 兜底展示）。</summary>
+    /// <summary>品牌 id → 插件包 pluginId（指令集维度映射；无映射返回 null：清单出现未知品牌条目按组件 id 兜底展示）。</summary>
     public static string? PluginIdOf(string brand) => brand switch
     {
         "zebra" => "labelframe-transport-zebra",

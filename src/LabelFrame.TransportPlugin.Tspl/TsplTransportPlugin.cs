@@ -5,12 +5,11 @@ using LabelFrame.Core.Transport.Plugins;
 namespace LabelFrame.TransportPlugin.Tspl;
 
 /// <summary>
-/// TSPL 指令集传输官方插件（指令集维度单插件，决策 #195——服务 TSC 及全部 TSPL 兼容品牌）：
+/// TSPL 指令集传输官方插件（指令集维度单插件——服务 TSC 及全部 TSPL 兼容品牌）：
 /// TCP 9100 / USB 免驱动直连双通道 + ESC ! ? 状态查询；native 编译（TEXT / BARCODE / QRCODE / BAR / BOX）
 /// 与图片模式 BITMAP 二进制编码（ILabelImageEncoder）双能力面。
 /// </summary>
-/// <remarks>原生指令模式的文本不支持中文（TSPL 内置字体无汉字字形，需打印机安装中文字库后再议）——
-/// Description 与 printMode Hint 的限制文案即为此设；QR 中文经 CODEPAGE UTF-8 透传，行为以真机定案。</remarks>
+/// <remarks>原生指令模式的文本不支持中文（TSPL 内置字体无汉字字形，需打印机安装中文字库后再议）。</remarks>
 public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompiler, ILabelImageEncoder
 {
     private readonly TsplLabelCompiler _compiler = new();

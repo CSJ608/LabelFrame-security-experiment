@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace LabelFrame.WinHost.Api;
 
-/// <summary>打印机状态 / 测试页端点（测试页与正式打印同源：Skia 整版位图经 ^GF 发送）。</summary>
+/// <summary>打印机状态 / 测试页端点（测试页与正式打印同源：Skia 整版位图按连接分派图片指令编码）。</summary>
 internal static class PrinterApi
 {
     public static IEndpointRouteBuilder MapPrinterApi(this IEndpointRouteBuilder app, int dpi)
@@ -29,7 +29,6 @@ internal static class PrinterApi
     app.MapPost("/api/printer/test", async (ITransportManager transportManager, ITransportPluginRegistry pluginRegistry, ILabelBitmapRenderer renderer, ZplImageEncoder encoder, ILoggerFactory loggerFactory, CancellationToken ct) =>
     {
         // 测试页与正式打印同源：Skia 渲染整版位图，图片指令编码按连接插件分派
-        //（插件实现 ILabelImageEncoder 则输出品牌图片指令，否则 ^GF——决策 #195，与提交链同一分派）
         var document = new LabelDocument
         {
             Layout = new LabelLayout

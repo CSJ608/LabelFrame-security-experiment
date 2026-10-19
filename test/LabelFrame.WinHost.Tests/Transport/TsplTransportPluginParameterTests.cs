@@ -3,11 +3,7 @@ using LabelFrame.TransportPlugin.Tspl;
 
 namespace LabelFrame.WinHost.Tests.Transport;
 
-/// <summary>
-/// TSPL 插件「反色处理」参数声明（决策 #196，AC-02）：Bool 类型、默认关闭、
-/// 仅 printMode=image 可见（决策 #186 VisibleWhen）、键名遵循 plugin.&lt;id&gt;.&lt;paramKey&gt; 约定
-/// 且与 Core 选项类型的参数键约定常量一致。
-/// </summary>
+/// <summary>TSPL 插件「反色处理」参数声明测试。</summary>
 public class TsplTransportPluginParameterTests
 {
     [Fact]

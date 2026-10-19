@@ -18,7 +18,7 @@ public sealed class LabelJobItem
     /// <summary>持久化的打印机指令·文本形态（字段与 DB 列名沿用 zpl 不改名——存量库兼容；图片模式 = ^GF 位图 ZPL，原生指令模式 = 插件编译的品牌原生文本指令；不可变，重启后可续打且不重打）。</summary>
     public required string Zpl { get; init; }
 
-    /// <summary>持久化的打印机指令·二进制形态（决策 #195：如 TSPL BITMAP 原始位图指令流；与 Zpl 互斥——非空者即回放载荷，存量行 null 走文本路径）。</summary>
+    /// <summary>持久化的打印机指令·二进制形态（如 TSPL BITMAP 原始位图指令流；与 Zpl 互斥——非空者即回放载荷，存量行 null 走文本路径）。</summary>
     public byte[]? CommandBytes { get; init; }
 
     /// <summary>失败问题码。</summary>

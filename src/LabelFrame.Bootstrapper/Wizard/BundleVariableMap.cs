@@ -20,7 +20,7 @@ public static class BundleVariableMap
     /// <summary>是否安装 Zebra 品牌插件（plugin-zebra 落位包条件）。</summary>
     public const string ZebraPluginVariable = "InstallPluginZebra";
 
-    /// <summary>是否安装 TSPL 指令集插件（plugin-tspl 落位包条件，决策 #195）。</summary>
+    /// <summary>是否安装 TSPL 指令集插件（plugin-tspl 落位包条件）。</summary>
     public const string TsplPluginVariable = "InstallPluginTspl";
 
     /// <summary>.NET 10 Desktop Runtime 是否已装（链内 DetectCondition 消费，BA 于 Detect 前写入）。</summary>

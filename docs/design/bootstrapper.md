@@ -29,13 +29,13 @@
 | 分组 | 类型 | 角色 |
 |---|---|---|
 | Manifest | `InstallManifest` / `ManifestComponent` / `InstallManifestLoader` / `LatestPointer` / `InstallManifestFormatException` | 清单解析与校验（fail-closed：schema 超新拒绝、字段 / 枚举 / sha256 形态 / dependsOn 引用全断言）；来源 = 本地路径（同步读）或 URL（单次只读 GET）；`LatestPointer` = 清单新鲜度指针（解析失败返回 null 静默跳过，`DeriveSource` 由清单来源推导 latest.json 地址） |
-| Topology | `ITopologyResolver` / `TopologyResolver` / `TopologyPreset` / `TopologyOptions` / `TopologyPlan` / `PlannedComponent` / `InstallTargets` / `BrandPluginMap` | 「角色 + 开关 → 组件集合」：核心组件 topologies 命中即纳入、开关组件（webui / plugin-*）仍受 topologies 过滤、dependsOn 闭包递归纳入、Kahn 拓扑序（同层取清单声明序，环拒绝）；`InstallTargets` 给确认页展示用目标位置描述；`BrandPluginMap` = brand → pluginId 桥（`zebra → labelframe-transport-zebra`） |
+| Topology | `ITopologyResolver` / `TopologyResolver` / `TopologyPreset` / `TopologyOptions` / `TopologyPlan` / `PlannedComponent` / `InstallTargets` / `BrandPluginMap` | 「角色 + 开关 → 组件集合」：核心组件 topologies 命中即纳入、开关组件（webui / plugin-*）仍受 topologies 过滤、dependsOn 闭包递归纳入、Kahn 拓扑序（同层取清单声明序，环拒绝）；`InstallTargets` 给确认页展示用目标位置描述；`BrandPluginMap` = brand → pluginId 桥（指令集维度：`zebra → labelframe-transport-zebra`、`tspl → labelframe-transport-tspl`） |
 | Downloads | `CacheSourceFallback` / `CacheRetryPolicy` / `DownloadFailureClassifier` | 多源回退状态机（每链包失败计数，有效源序 `[布局本地文件] ++ urls`，`min(N, count-1)` 取源，计数达 count 即源耗尽）；缓存重试策略（指数退避 500ms×2^(n-1) 上限 30s + 连续无进展 3 次终止）；HRESULT → 失败分类（源不可达 / 网络中断 / 校验失败 / 未分类）+ 差异化中文提示 |
 | OfflineLayout | `OfflineLayoutBuilder` / `OfflineLayoutNaming` / `LayoutModeArguments` / `OfflineLayoutException` | 布局目录生成（逐组件 urls 顺序下载、按策略校验一致才落位：常规 = sha256，evergreen = Authenticode 发布者验签；幂等复用）；命名约定（urls[0] 末段 → 固定名兜底表 → null）；`--layout` / `--manifest` 参数解析（Windows 风格命令行拆分） |
 | Placement | `PayloadPlacer` / `PlacementMarker` | 非 MSI 落位内核：zip 清空目录整包解压（staging 临时目录近似原子替换）；`.lfplugin` 版本比较（新覆盖 / 同版幂等跳过 / 降级拒绝）；落位凭据文件（`.labelframe-bundle-placement`，内容 = Bundle 版本）与清理（只清 Bundle 落位目录，父目录已空才移除，失败尽力而为） |
 | Prerequisites | `RuntimeProbe` / `EvergreenRuntime` / `EvergreenPayloadAcquirer` / `IAuthenticodeVerifier` / `WinTrustAuthenticodeVerifier` / `AuthenticodePublisherPolicy` | 运行时探测（.NET 双 runtime = `dotnet\shared\<框架>` 目录枚举文件版本探测；WebView2 = EdgeUpdate 注册表 HKLM+HKCU）；evergreen 源解析（本地优先 → urls）与获取验签编排；WinVerifyTrust P/Invoke 验签 + 发布者 CN 策略 |
-| Printing | `InstalledPrinters` / `PrinterBrandDetector` | 已装打印机名枚举（读不到按空集）与品牌预选（`ZDesigner → zebra`，当前唯一规则） |
-| Upgrade | `LocalInstallProbe` / `UpgradeAssessor` / `UpgradePresentation` / `VersionSemantics` | 本机已装快照（MSI 注册表 `MsiEnumRelatedProducts`+`MsiGetProductInfo` 按 UpgradeCode 枚举取最高 / 插件落位目录 manifest.json / 运行时复用）；组件级动作判定（Install / Upgrade / UpToDate / LocalNewer / NotTracked）；呈现文案纯函数；统一版本比较（可解析 `Version` 按其比较、缺失段视为 0，否则字符串 Ordinal） |
+| Printing | `InstalledPrinters` / `PrinterBrandDetector` | 已装打印机名枚举（读不到按空集）与品牌预选（指令集维度双规则：`ZDesigner → zebra`、`TSC → tspl`） |
+| Upgrade | `LocalInstallProbe` / `UpgradeAssessor` / `UpgradePresentation` / `VersionSemantics` | 本机已装快照（MSI 注册表 `MsiEnumRelatedProducts`+`MsiGetProductInfo` 按 UpgradeCode 枚举取最高 / 插件落位目录 manifest.json——Zebra / TSPL 两官方插件各一版本字段 / 运行时复用）；组件级动作判定（Install / Upgrade / UpToDate / LocalNewer / NotTracked）；呈现文案纯函数；统一版本比较（可解析 `Version` 按其比较、缺失段视为 0，否则字符串 Ordinal） |
 | Wizard | `WizardSession` / `WizardNavigator<TPage>` / `WizardForegroundActivator` / `ServerUrlStore` / `ServerUrlInput` / `BundleVariableMap` / `ChainPackageMap` / `ExecuteBoundaryNotice` | 问卷会话（UI 无关状态机，全程只读）；导航状态机（绝对索引 + 惰性装配 + 越界防御）；首显置前组合拳（7 个 Win32 调用点全注入）；服务端地址存取（与 WinHost `HostConfigStore` 同一事实源）与输入规范化；Burn 变量名常量与拓扑计划 → 变量映射；链包 id ↔ 组件 id 映射；执行边界 UI 明示文案 |
 | Compatibility | `IsExternalInit` | net48 腿的 record 支持（`#if NET48` 条件编译） |
 
@@ -54,7 +54,7 @@
 
 ### 3.1 交互安装主链（`Run` → 向导 → `ExecuteInstallAsync`）
 
-1. **启动期（`Detect` 前）**：`RuntimeProbe` 探测三项运行时 → 写 Burn 探测变量（`DesktopRuntimeInstalled` 等，链内 DetectCondition 消费）；写落位目标变量（`WebUiTargetDir` / `PluginZebraTargetDir` 纯函数重算——非交互卸载会话同样需要 `[变量]` 可解析）；读落位凭据比对 `WixBundleVersion` 写 Present 变量（清理包 DetectCondition 消费）。
+1. **启动期（`Detect` 前）**：`RuntimeProbe` 探测三项运行时 → 写 Burn 探测变量（`DesktopRuntimeInstalled` 等，链内 DetectCondition 消费）；写落位目标变量（`WebUiTargetDir` / `PluginZebraTargetDir` / `PluginTsplTargetDir` 纯函数重算——非交互卸载会话同样需要 `[变量]` 可解析）；读落位凭据（webui / zebra / tspl 三处）比对 `WixBundleVersion` 写 Present 变量（清理包 DetectCondition 消费）。
 2. **命令路由**：`LayoutAction.Layout` / `--layout` → 布局生成；非 Install 动作或静默显示级别 → `RunUnattended`；否则进向导。
 3. **清单来源**：命令行 `--manifest` > 引导 EXE 同目录邻接 `install-manifest.json`（`WixBundleOriginalSourceFolder` 探测，离线首装入口）> 稳定通道 URL（`WizardSession.StableChannelManifestUrl`）。
 4. **问卷（只读）**：`WizardSession.LoadManifestAsync` 一次完成——加载清单 → 解析本地源目录 → 读 latest.json（可推导才读，失败跳过）→ 探测已配服务端地址（settings.json 预填）→ 本机已装快照 + 升级评估 → 按已装打印机名预选品牌。
@@ -106,7 +106,7 @@
 
 **跨模块同源事实**（双维护，变更须两侧同步）：
 
-- `BrandPluginMap`（`zebra → labelframe-transport-zebra`）与 Core `TransportPluginIdPolicy.ZebraPluginId` 常量一致——共享库不引用 Core（net48 腿不引用 net10 目标的 Core）；
+- `BrandPluginMap`（`zebra → labelframe-transport-zebra`、`tspl → labelframe-transport-tspl`）与 Core `TransportPluginIdPolicy.ZebraPluginId` / `TsplPluginId` 常量一致——共享库不引用 Core（net48 腿不引用 net10 目标的 Core）；
 - `ServerUrlStore`（`%ProgramData%\LabelFrame\Client\settings.json` 的 `serverUrl`）与 WinHost `HostConfigStore` 同一事实源；`ServerUrlInput.LocalServerDefault`（`http://127.0.0.1:53961`）与 Server `ServerOptions.DefaultListenUrl` 一致；
 - `LocalInstallProbe` 的两个 UpgradeCode 常量与 `packaging/main-server.wxs` / `packaging/main.wxs` 事实对应。
 
@@ -132,6 +132,7 @@
 | evergreen 载荷改 Authenticode 发布者验签 + 已装跳过 acquire | #153（§6.2 / §6.9） |
 | 引导体验：BA 首显主动置前组合拳 + 闪烁兜底 | #168 |
 | 官方插件体系（brand → 组件 id → pluginId 三段映射、版本比较率先） | #123（§6.8） |
+| 品牌映射改指令集维度（TSC 及 TSPL 兼容品牌共用 tspl 插件——预选规则 / BrandPluginMap / 变量与链包映射四处接线） | #195（§6.8） |
 | 安装链中文单语（i18n 范围限定） | #164 |
 | 品牌 v02（BA 图标 / 向导头部 lockup 嵌入资源） | #172 |
 | 注释极简化与模块文档分工（本文档的存在依据） | #187 / #189 |

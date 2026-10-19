@@ -6,9 +6,7 @@ using LabelFrame.TransportPlugin.Tspl;
 namespace LabelFrame.WinHost.Tests.Transport;
 
 /// <summary>
-/// TSPL 图片模式编码器单测：输出 = ASCII 头（SIZE / DIRECTION / CLS / BITMAP 参数行）+ 位图原始字节 +
-/// ASCII 尾（PRINT）——BITMAP 数据非十六进制转码；行优先 / MSB 在前与 LabelBitmap 一致，
-/// 位极性相反（TSPL 0 = 印点），逐字节取反后落流（TT065-60 真机反色实证 + TSPL2 手册）。
+/// TSPL 图片模式编码器单测：输出布局（ASCII 头 + 位图原始字节 + ASCII 尾）与位极性逐字节取反锚定。
 /// </summary>
 public class TsplImageEncoderTests
 {
@@ -47,7 +45,7 @@ public class TsplImageEncoderTests
     [Fact]
     public void EncodeImage_with_invert_enabled_should_pass_pixels_through()
     {
-        // 决策 #196 InvertBits 开启 = 跳过极性取反原样透传（位极性相反机型的用户侧自救）
+        // InvertBits 开启 = 跳过极性取反原样透传（位极性相反机型的用户侧自救）
         var bitmap = new LabelBitmap(8, 2, [0xFF, 0x00]);
 
         var command = new TsplImageEncoder().EncodeImage(bitmap, 40, 20, 203, new LabelImageEncodeOptions(InvertBits: true));

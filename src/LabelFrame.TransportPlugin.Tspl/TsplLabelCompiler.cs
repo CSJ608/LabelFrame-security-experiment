@@ -11,14 +11,7 @@ namespace LabelFrame.TransportPlugin.Tspl;
 /// TSPL 原生指令编译器（TSPL2 基线）：LabelDocument → 整页自包含 TSPL 文本指令；纯函数性质
 /// （同输入同输出、不访问打印机）。直接打印形态（SIZE→CLS→元素→PRINT，不下载表单存储）。
 /// </summary>
-/// <remarks>
-/// 元素口径（§5.4.1 裁剪原则——实现不了的不强求）：文本 = TEXT（缩放字体 0，字号按磅值近似）；
-/// Code 128 = BARCODE "128"（自动子集）；二维码 = QRCODE（mode A 自动，cell 1..10）；
-/// 线 = BAR（水平 / 垂直）；边框（含区域）= BOX——Zebra 原生模式不支持的差异能力。
-/// 中文文本显式失败（LF_ENC_002：内置字体无汉字字形，装中文字库前不可表示）；
-/// QR 中文经页级 CODEPAGE UTF-8 透传（行为以真机定案，AC-07）。
-/// GAP / BLINE 不发送——媒介间隙 / 黑标属耗材属性，交由打印机既有标定；DIRECTION 显式 1 保证确定性。
-/// </remarks>
+/// <remarks>中文文本显式失败：TSPL 内置字体无汉字字形，装中文字库前不可表示。</remarks>
 public sealed class TsplLabelCompiler : ILabelCommandCompiler
 {
     /// <inheritdoc />
@@ -197,7 +190,7 @@ public sealed class TsplLabelCompiler : ILabelCommandCompiler
     }
 
     /// <summary>编译单个二维码元素（QRCODE，版本估算 → cell width 换算，矩阵按静区居中内缩）。</summary>
-    /// <remarks>cell width 钳位 1..10（TSPL2 规格）；中文值经页级 CODEPAGE UTF-8 透传，编码行为以真机定案（AC-07）。</remarks>
+    /// <remarks>cell width 钳位 1..10（TSPL2 规格）。</remarks>
     private static ElementResult CompileQrCode(
         LabelQrCodeElement element,
         LabelDocument document,

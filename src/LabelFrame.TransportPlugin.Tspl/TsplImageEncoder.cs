@@ -8,9 +8,8 @@ namespace LabelFrame.TransportPlugin.Tspl;
 /// <summary>
 /// TSPL 图片模式编码器（ILabelImageEncoder）：整张标签的 1bpp 位图经 BITMAP 原始二进制输出
 /// （mode 0 = OVERWRITE；LabelBitmap 的行优先 / MSB 在前与 TSPL BITMAP 一致，位极性相反——
-/// TSPL 位 0 = 印点（黑）、1 = 空白，输出时逐字节取反；决策 #196 选项 InvertBits 开启 = 跳过取反
+/// TSPL 位 0 = 印点（黑）、1 = 空白，输出时逐字节取反；选项 InvertBits 开启 = 跳过取反
 /// 原样透传，位极性相反的兼容机型用户侧自救）。
-/// 输出为二进制指令流（头尾 ASCII 指令 + 位图原始字节），经 LabelJobItem.CommandBytes 走二进制回放。
 /// </summary>
 public sealed class TsplImageEncoder : ILabelImageEncoder
 {
