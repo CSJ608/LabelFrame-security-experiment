@@ -14,7 +14,17 @@ description: LabelFrame 注释卫生与设计文档同步核查（决策 #187 / 
 
 ## 核查流程
 
-1. **确定基线**：用户指定 base（ref / 提交号）优先；未指定时用最近 `v*` tag；再无则问用户或取可视范围内合理基线并说明。
+### 范围与基线（增量核查，不全仓扫描）
+
+- **文件范围**：`src/` `test/` `web/src/` 的**代码注释域**（`git diff base..HEAD` 的新增注释行）。`docs/`、`CHANGELOG.md`、`ROADMAP.md`、`DESIGN.md` 是过程引用的合法居所（决策表 / 记账靠它运作），**不查**；字符串域（测试夹具 / 断言消息 / describe / it 标题 / CLI Usage 文本）按既定口径**不查**。
+- **基线（base）选择策略**：
+  - 日常迭代自查：本分支对 `master`（或 `HEAD~N`）——PR 前自查用；
+  - 阶段核查：上次修复 PR 的 squash 提交号（每次修复后在 Issue 记录终态提交，下次从这里续）；
+  - 发版前：上一个 `v*` tag。
+
+### 执行步骤
+
+1. **确定基线**：用户指定 base（ref / 提交号）优先；未指定按上述策略取并说明。
 2. **机器扫描**：
    - `python scripts/check-comment-hygiene.py <base>`（A：过程标记，确定级）
    - `python scripts/check-comment-hygiene.py <base> --full`（B：结构变化-文档同步启发式，提示级）
@@ -25,6 +35,10 @@ description: LabelFrame 注释卫生与设计文档同步核查（决策 #187 / 
    - **文档过时**：docs/design/ 哪篇哪节与代码不符；
    - 提示级（B 命中）：哪些提交可能触发 #189 ④。
 5. **只报告不动手**——用户明确说"修"才进入修复模式。
+
+### 加速：核查工作流（多模块并行）
+
+语义抽查与文档同步核对可按模块分片并行——用保存的工作流 `comment-hygiene-check`（`.zcode/workflows/`，随仓库版本化）：机器扫描先行，再按改动模块并行派核查子代理（读各自模块 diff、判尺度、核 docs/design 断言），汇总分级报告。改动模块多时显著快于串行。会话内调用形态：CreateWorkflow saved `comment-hygiene-check`，args `base=<基线>`。
 
 ## 修复模式（用户明示后）
 
