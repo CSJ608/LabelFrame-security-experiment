@@ -20,6 +20,7 @@ import type {
   PrinterStatus,
   PrinterTestResult,
   PrintSettings,
+  ServerInfo,
   SubmitJobRequest,
   TemplatePackage,
   TemplateSummary,
@@ -351,6 +352,9 @@ export const serverApi = {
 
   // ── 本机 IPv4 候选（下载中心「连接信息」卡；只读枚举，协议与端口由前端按 origin 拼装）──
   listServerIpv4Candidates: () => serverRequest<Ipv4Candidates>('/api/server/ipv4-candidates'),
+
+  // ── 服务端自描述（下载中心「连接信息」卡；publicBaseUrl 通告优先于前端 origin 推导）──
+  getServerInfo: () => serverRequest<ServerInfo>('/api/server/info'),
 
   // ── 插件包分发（仅 Server 实现；64MB 上限与校验在后端，前端按 sizeBytes 预检）──
   listPluginPackages: () => serverRequest<PluginPackageInfo[]>('/api/plugin-packages'),

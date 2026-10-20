@@ -1,9 +1,11 @@
 // 下载中心页：页内三 tab——「快速访问」（默认）/「Windows 包管理」/「Android 包管理」。
 // tab 状态由路由 sub 段承载（#/packages/<sub>，旧 #dc= 分享链接经 parseHash 兼容映射直达），刷新 / 直链均还原当前 tab。
 // 快速访问 = 消费视图：Windows / Android 各一张「最新上传」卡（按上架 / 修改时间倒序取第一条，删除自动回退，
-// 不做版本号解析）；「服务端信息」卡：大二维码（内容 = 选中裸地址 URL）+ 地址 + 复制。地址候选来自
-// GET /api/server/ipv4-candidates（私网优先）：默认取与 origin 匹配者，localhost / 无匹配回退首个候选（不产生
-// localhost 废码）；多网卡可切换，二维码 / 地址 / 复制同步更新。
+// 不做版本号解析）；「服务端信息」卡：大二维码（内容 = 选中裸地址 URL）+ 地址 + 复制。地址解析通告优先：
+// GET /api/server/info 的 publicBaseUrl 非空时直接采用（候选切换整块不渲染）；无通告（未配置 / 旧版服务端 /
+// 请求失败）时按 GET /api/server/ipv4-candidates（私网优先）推导——默认取与 origin 匹配者，localhost /
+// 无匹配回退首个候选（不产生 localhost 废码），并携带 pathname 推导的部署子路径前缀；多网卡可切换，
+// 二维码 / 地址 / 复制同步更新。
 // 管理退居专职 tab：Windows（client-packages）/ Android（pda-packages）上传 / 下载 / 删除（确认 Modal）；
 // 客户端设置页「更新与安装包」仍走 GET /api/client-packages 下载。
 
@@ -20,7 +22,7 @@ import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
 import { formatSize } from '../lib/download'
 import { copyText } from '../lib/clipboard'
-import { joinAddress, pickDefaultAddress } from '../lib/connection'
+import { deriveBasePath, joinAddress, pickDisplayAddress } from '../lib/connection'
 
 /** 修改时间：本地时间 MM-dd HH:mm:ss。 */
 function formatTime(iso?: string): string {
@@ -282,23 +284,30 @@ function pageOrigin(): string {
   return typeof window !== 'undefined' ? window.location.origin : ''
 }
 
-/** 候选 IP 按当前 origin 的协议与端口拼装完整地址（默认端口时省略端口段）。 */
-function candidateUrl(ip: string): string {
+/** 当前部署子路径前缀（hash 路由下 pathname 即部署前缀；根部署与非浏览器环境回退空串）。 */
+function pageBasePath(): string {
+  return typeof window !== 'undefined' ? deriveBasePath(window.location.pathname) : ''
+}
+
+/** 候选 IP 按当前 origin 的协议与端口 + 部署前缀拼装完整地址（默认端口时省略端口段）。 */
+function candidateUrl(ip: string, basePath: string): string {
   try {
     const u = new URL(pageOrigin())
-    return joinAddress(u.protocol, ip, u.port)
+    return joinAddress(u.protocol, ip, u.port, basePath)
   } catch {
     return ip
   }
 }
 
 /** 连接信息卡：大二维码居中（内容 = 选中裸地址 URL——PDA 扫码枪键盘直填即得地址）+ 地址文本 + 复制按钮；
- * 多网卡候选可切换（二维码 / 地址 / 复制同步更新）。候选 = GET /api/server/ipv4-candidates（私网优先）；
- * 默认选择规则见 lib/connection.ts pickDefaultAddress。
+ * 地址解析通告优先：GET /api/server/info 的 publicBaseUrl 非空时直接采用（多网卡候选切换整块不渲染）；
+ * 无通告时走 GET /api/server/ipv4-candidates（私网优先）推导并携带部署子路径前缀，
+ * 默认选择规则见 lib/connection.ts pickDisplayAddress / pickDefaultAddress。
  */
 function ConnectionCard() {
   const { t } = useTranslation('downloadCenter')
   const [candidates, setCandidates] = useState<string[] | null>(null)
+  const [publicBaseUrl, setPublicBaseUrl] = useState<string | null>(null)
   const [selected, setSelected] = useState<string>(pageOrigin())
   const [copied, setCopied] = useState(false)
 
@@ -313,15 +322,30 @@ function ConnectionCard() {
         // 旧版服务端（无该端点）/ 请求失败：候选置空 → 展示回退当前 origin（不阻塞首屏）
         if (!cancelled) setCandidates([])
       })
+    // 与候选并行拉服务端自描述：publicBaseUrl 通告优先于前端推导
+    serverApi
+      .getServerInfo()
+      .then((info) => {
+        if (cancelled) return
+        const announced = typeof info.publicBaseUrl === 'string' ? info.publicBaseUrl.trim() : ''
+        setPublicBaseUrl(announced || null)
+      })
+      .catch(() => {
+        // 旧版服务端（无该字段）/ 请求失败：视为无通告，不影响候选拉取与首屏
+        if (!cancelled) setPublicBaseUrl(null)
+      })
     return () => {
       cancelled = true
     }
   }, [])
 
+  const basePath = pageBasePath()
+
   useEffect(() => {
-    if (candidates === null) return
-    setSelected(pickDefaultAddress(pageOrigin(), candidates))
-  }, [candidates])
+    // 通告与候选都未返回时保持初始 origin（无更优信息不猜测）；任一返回即解析（通告优先在 pickDisplayAddress 内）
+    if (publicBaseUrl === null && candidates === null) return
+    setSelected(pickDisplayAddress(publicBaseUrl, pageOrigin(), candidates, basePath))
+  }, [publicBaseUrl, candidates, basePath])
 
   const copy = async () => {
     if (await copyText(selected)) {
@@ -353,15 +377,15 @@ function ConnectionCard() {
           {copied ? t('connection.copied') : t('connection.copy')}
         </button>
       </div>
-      {candidates !== null && candidates.length > 1 && (
+      {!publicBaseUrl && candidates !== null && candidates.length > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           <span className="hint">{t('connection.candidates')}</span>
           {candidates.map((ip) => (
             <button
               key={ip}
-              className={'btn sm' + (selected === candidateUrl(ip) ? ' active' : '')}
-              onClick={() => setSelected(candidateUrl(ip))}
-              title={candidateUrl(ip)}
+              className={'btn sm' + (selected === candidateUrl(ip, basePath) ? ' active' : '')}
+              onClick={() => setSelected(candidateUrl(ip, basePath))}
+              title={candidateUrl(ip, basePath)}
             >
               {ip}
             </button>

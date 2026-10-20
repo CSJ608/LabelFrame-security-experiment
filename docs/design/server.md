@@ -20,7 +20,7 @@
 | 分组 | 文件 | 角色 |
 |---|---|---|
 | 入口与装配 | Program.cs | top-level 组装：配置绑定、日志通道、DI 单例、4 个后台服务、端点映射、SPA fallback |
-| | ServerOptions.cs | 配置面：全部默认值 + `LABELFRAME_SERVER_*` 环境变量覆盖（约 18 项） |
+| | ServerOptions.cs | 配置面：全部默认值 + `LABELFRAME_SERVER_*` 环境变量覆盖（约 20 项） |
 | 领域服务 | ServerService.cs | 设备 / 作业业务编排：提交（幂等门）、领取、回报、进度、视图组装、IP 规范化 |
 | | ServerException.cs / ServerErrorCodes.cs | 携问题码领域异常与 `LF_SRV_001~013` 码表（新增码须同步 web 端码表） |
 | 存储 | ServerDb.cs + ServerDbStore.cs / ServerDeviceStore.cs / ServerJobStore.cs / JobCallbackStore.cs | SQLite 三表访问按聚合拆分：ServerDb＝建库与旧库迁移入口、ServerDbStore＝共享基类（每操作一连接）、设备 / 作业 / 回调三存储类 |
@@ -91,10 +91,12 @@
 | `GET /api/devices/{id}/jobs/notify` / `jobs/pending` | 长轮询通知（心跳保活）/ 领取（含载荷） |
 | `POST /api/devices/{id}/jobs/{jobId}/result` / `progress` | 终态回报 / 进度增量（错误语义一致：404 / 403 / 409 / 400） |
 | `GET/POST/GET/DELETE /api/client-packages`、`/api/pda-packages`、`/api/plugin-packages` | 三类包列表 / 上传 / 下载 / 删除（文件名路径穿越防护；APK 下载 MIME 专用；插件包上传先校验后落盘） |
-| `GET /healthz`、`/api/server/info`、`/api/server/ipv4-candidates` | 健康检查 / 版本与 UI 探测 / 本机 IPv4 候选（下载中心连接信息卡） |
+| `GET /healthz`、`/api/server/info`、`/api/server/ipv4-candidates` | 健康检查 / 版本与 UI 探测（含 `publicBaseUrl` 对外基地址通告，null＝未配置）/ 本机 IPv4 候选（下载中心连接信息卡） |
 | 共享端点（LabelFrame.Api 装配） | `/api/templates*`、`/api/print/render*`、`/api/import/*`、`/api/logs*` |
 
 错误体系：`LF_SRV_001~013`（新增码须同步 `web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译）；错误消息模板化，`params` 随异常透传 `ErrorView` 供展示端按码表插值（决策 #166）。
+
+**对外基地址通告**（`LABELFRAME_SERVER_PUBLIC_BASE_URL`，决策 #202）：部署侧向 Server 声明「设备实际可达」的对外基地址，经 `/api/server/info` 的 `publicBaseUrl` 字段下发（null＝未配置；兼容新增字段，旧前端无感）。值须为 http(s) 绝对 URL：尾斜杠归一去除；非法值（相对地址 / 非 http(s) scheme）启动时告警并忽略、按未配置处理。典型场景两类：反向代理子路径部署（如 nginx `location /labelframe/` → 容器 53961、对外 80 端口——前端按页面地址推导会丢对外端口与子路径）；容器 / 端口映射部署（`ipv4-candidates` 只能枚举容器内网 IP，对外不可达）。前端消费口径（存在即优先展示并隐藏候选切换；未配置时按 `location.pathname` 推导部署前缀兜底）见 [web-frontend.md](web-frontend.md) §3.6。
 
 **依赖**：`LabelFrame.Core`（`SqliteSupport` / `TemplateStore` / `SqliteLogStore` / `SafeFileName` / `PluginPackageReader` / `TransportPluginIdPolicy` / `ErrorMessageTemplates` / `LabelElementJsonConverter`）＋ `LabelFrame.Api`（共享 DTO 与端点）＋ `LabelFrame.Rendering`（`SkiaLabelRenderer` 单例，模板预览 / 调试出图共用）＋ NuGet：`Microsoft.Data.Sqlite.Core 8.0.4` + `SQLitePCLRaw.provider/lib.e_sqlite3 2.1.13`、`Microsoft.Extensions.Hosting.WindowsServices 10.0.0`（仅 windows TFM）。目标框架 `net10.0;net10.0-windows` 双目标（决策 #59）。
 
@@ -126,6 +128,7 @@
 | 日志保留量闸（文本 50MB / logs.db 256MB / VACUUM） | #173 |
 | 错误消息多语言链路（ErrorView.params + 码表） | #166 |
 | 下载中心连接信息卡（ipv4-candidates） | #169 |
+| 对外可达基地址通告（LABELFRAME_SERVER_PUBLIC_BASE_URL） | #202 |
 | 测试体系（同装配集成测试、TimeProvider、Perf/Soak Trait、SQLite provider 竞态与测试串行） | #82 / #83 / #66 / #85 |
 
 ## 6. 平台坑与不变量

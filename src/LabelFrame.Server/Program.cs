@@ -130,6 +130,7 @@ app.MapGet("/api/server/info", (ServerOptions options) =>
     Results.Ok(new
     {
         listenUrl = options.ListenUrl,
+        publicBaseUrl = options.PublicBaseUrl,
         uiEnabled = ServerPluginUi.IsEnabled(options.WebUiPath),
         version = ServerOptions.ProductVersion,
     }));

@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     uploadPdaPackage: vi.fn(),
     deletePdaPackage: vi.fn(),
     listServerIpv4Candidates: vi.fn(),
+    getServerInfo: vi.fn(),
   },
   copyText: vi.fn(),
 }))
@@ -47,6 +48,14 @@ const PDA_PKGS = [
   { fileName: 'LabelFrame-AndroidHost-0.25.0.apk', sizeBytes: 24 * 1024 * 1024, modifiedAt: '2026-09-01T08:00:00Z' },
 ]
 
+/** 服务端自描述默认形态（无通告——publicBaseUrl 未配置为 null）。 */
+const SERVER_INFO_NO_ANNOUNCE = {
+  listenUrl: 'http://localhost:53961',
+  uiEnabled: true,
+  version: '0.18.0',
+  publicBaseUrl: null,
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   window.location.hash = ''
@@ -57,6 +66,7 @@ beforeEach(() => {
   mocks.server.uploadPdaPackage.mockResolvedValue([])
   mocks.server.deletePdaPackage.mockResolvedValue(undefined)
   mocks.server.listServerIpv4Candidates.mockResolvedValue({ candidates: ['10.20.30.40', '192.168.1.9'] })
+  mocks.server.getServerInfo.mockResolvedValue(SERVER_INFO_NO_ANNOUNCE)
   mocks.copyText.mockResolvedValue(true)
 })
 
@@ -321,6 +331,69 @@ describe('下载中心页 · 连接信息卡（AC-04 / AC-05，迭代 118 · #27
     render(<DownloadCenterRouteHarness />)
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(window.location.origin)).toBeTruthy())
+  })
+})
+
+describe('下载中心页 · 连接信息卡：通告地址优先与部署子路径前缀', () => {
+  afterEach(() => {
+    // 子路径用例改写了 pathname，还原根路径形态供同文件后续用例
+    window.history.pushState({}, '', '/')
+  })
+
+  it('服务端通告 publicBaseUrl：地址 / 二维码 / 复制均为通告值，候选切换整块不渲染（多候选已加载亦然）', async () => {
+    mocks.server.getServerInfo.mockResolvedValue({ ...SERVER_INFO_NO_ANNOUNCE, publicBaseUrl: 'https://print.example.com' })
+    render(<DownloadCenterRouteHarness />)
+    await screen.findByText('服务端信息')
+
+    // 地址文本 = 通告值（不再走 origin / 候选推导）
+    expect(await screen.findByText('https://print.example.com')).toBeTruthy()
+    // 大二维码 title = 同一通告地址
+    const qr = screen.getAllByTitle('https://print.example.com').find((el) => el.tagName === 'IMG')
+    expect(qr).toBeTruthy()
+    expect(qr!.getAttribute('src')).toMatch(/^data:image\/gif;base64,/)
+
+    // 候选已加载（两条）但候选切换整块不渲染
+    expect(screen.queryByText('地址候选')).toBeNull()
+    expect(screen.queryByRole('button', { name: '10.20.30.40' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '192.168.1.9' })).toBeNull()
+
+    // 复制内容 = 通告值
+    fireEvent.click(screen.getByRole('button', { name: '复制' }))
+    await waitFor(() => expect(mocks.copyText).toHaveBeenCalledWith('https://print.example.com'))
+  })
+
+  it('server/info 请求失败：视为无通告，走既有候选推导，不阻塞首屏', async () => {
+    mocks.server.getServerInfo.mockRejectedValue(new Error('info down'))
+    render(<DownloadCenterRouteHarness />)
+    expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText(`http://10.20.30.40:${window.location.port}`)).toBeTruthy())
+  })
+
+  it('旧版服务端无 publicBaseUrl 字段：视为无通告，走既有候选推导', async () => {
+    mocks.server.getServerInfo.mockResolvedValue({ listenUrl: 'http://localhost:53961', uiEnabled: true, version: '0.17.0' })
+    render(<DownloadCenterRouteHarness />)
+    await screen.findByText('服务端信息')
+    await waitFor(() => expect(screen.getByText(`http://10.20.30.40:${window.location.port}`)).toBeTruthy())
+  })
+
+  it('子路径部署（pathname /labelframe/，hash 路由下 pathname 即部署前缀）：无通告时地址带 /labelframe 前缀', async () => {
+    window.history.pushState({}, '', '/labelframe/')
+    render(<DownloadCenterRouteHarness />)
+    await screen.findByText('服务端信息')
+    await waitFor(() => expect(screen.getByText(`http://10.20.30.40:${window.location.port}/labelframe`)).toBeTruthy())
+
+    // 候选切换地址同样携带前缀
+    fireEvent.click(screen.getByRole('button', { name: '192.168.1.9' }))
+    await waitFor(() =>
+      expect(screen.getByText(`http://192.168.1.9:${window.location.port}/labelframe`)).toBeTruthy(),
+    )
+  })
+
+  it('根路径部署（pathname /）：地址不带额外路径段（回归）', async () => {
+    render(<DownloadCenterRouteHarness />)
+    await screen.findByText('服务端信息')
+    await waitFor(() => expect(screen.getByText(`http://10.20.30.40:${window.location.port}`)).toBeTruthy())
+    expect(screen.queryByText(new RegExp(`http://10\\.20\\.30\\.40:${window.location.port}/.+`))).toBeNull()
   })
 })
 

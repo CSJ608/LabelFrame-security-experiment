@@ -23,7 +23,7 @@
 | 根 | `App.tsx`（Shell） | 应用壳：左侧主导航 + 底部状态栏 + 日志抽屉；`switchTab` 统一切页入口（透传设计器离开守卫）；`useHashRoute` 路由接线；`ROUTE_ALLOWED` = 本构建 tab 集 |
 | state | `AppContext.tsx` | 全局状态：连接探测（服务端 `connected` 与本机 `localServiceUp` 各自独立）、机器级配置（deviceId / deviceName / ips / version）、传输配置、状态栏消息、日志（上限 300 行）、`printDraft` 草稿、默认目标设备 |
 | state | `draft.ts` | DataPrint 会话草稿纯逻辑（可注入存储）：`selectedName` / 按模板分键的字段值与 dirty 键 / `debugMode` / `jobId`；`mergeDraftValues` 按 key 存在性合并（用户清空不被 testData 顶回） |
-| lib/api | `client.ts` / `types.ts` | fetch 封装（双 base、超时分档 normal 30s / heavy 120s、超时与网络错误归一化、`ApiError`）；`serverApi`（业务 API + 客户端 / PDA / 插件包分发 + IPv4 候选）与 `localApi`（transport / printer / host config / print-settings / 插件安装卸载 + 单机降级业务 API）；`types.ts` 为后端契约 DTO 镜像 |
+| lib/api | `client.ts` / `types.ts` | fetch 封装（双 base、超时分档 normal 30s / heavy 120s、超时与网络错误归一化、`ApiError`）；`serverApi`（业务 API + 客户端 / PDA / 插件包分发 + IPv4 候选与对外基地址通告）与 `localApi`（transport / printer / host config / print-settings / 插件安装卸载 + 单机降级业务 API）；`types.ts` 为后端契约 DTO 镜像 |
 | lib/router | `router.ts` | 自研 hash 路由（决策 #177）：`parseHash`（含旧 `#dc=` 折算）纯函数 + `useHashRoute` hook（pushState 入栈带序号戳 / replaceState 不入栈 / 守卫挂起 pre-revert 按戳差回退） |
 | lib/tabs·uiMode | `tabs.ts` / `uiMode.ts` | 主导航元数据单源（`SERVER_TABS` / `CLIENT_TABS`，供导航渲染 / 路由白名单 / 帮助页集三处派生）；构建期 `isServerUi` |
 | lib/design | `geometry.ts` | 几何换算与常量（`PX=4` 即 1mm=4px、`PAD_MM=10`、`RULER=20`）、拖动落点提交 `commitDragPosition`（模型盒域）、多选刚性补丁 `multiDragRigidPatches`、视口坐标换算（含页面缩放修正 `viewportToLogic`） |
@@ -36,7 +36,7 @@
 | lib | `printerStatusText.ts` | 打印机状态消息展示端翻译（决策 #201）：后端 `GetStatusAsync` 消息为中文——静态消息精确映射＋参数化模板（命名捕获组插值）翻译为当前语言，zh 词条与后端文案逐字锚定（防漂移测试）；未命中回退原文 |
 | lib | `pluginText.ts` | 插件自描述文案展示端翻译（决策 #192）：有键且 pluginLabels 域有词条 → 当前语言词条、否则原文回退；键由插件侧声明（spec `labelKey` / `hintKey` 与接口 DIM），本模块不拼键；插件管理页包名映射 `pluginPackageName` 按 pluginId 查词条（manifest 键通道待「插件包内嵌词条」机制） |
 | lib | `guide.ts` / `help.ts` / `helpLink.ts` | 新手引导纯数据（五步、localStorage 首见标记 `labelframe.guide.client.v1`，决策 #170）；帮助体系 V3 纯数据（`HELP_PAGES` 八页、演示预设 `HELP_DEMO_PRESETS`、深链示例元素 `HELP_LINK_ELEMENTS`，决策 #176 / #178 / #179）；深链页内轮询 hook（80ms / 4s） |
-| lib | `settings.ts` / `clipboard.ts` / `connection.ts` / `download.ts` / `errorLogging.ts` / `jobStatus.ts` / `pluginLimits.ts` / `update.ts` / `deviceDisplay.ts` / `excel/mapping.ts` | 服务端地址 localStorage 兜底；剪贴板降级（Clipboard API → execCommand / 一次性 paste 捕获）；下载中心默认地址选择；blob 下载；全局错误 console 留痕；作业状态文案 hook；插件包 64MB 预检；客户端检查更新版本比较；设备显示名回退 |
+| lib | `settings.ts` / `clipboard.ts` / `connection.ts` / `download.ts` / `errorLogging.ts` / `jobStatus.ts` / `pluginLimits.ts` / `update.ts` / `deviceDisplay.ts` / `excel/mapping.ts` | 服务端地址 localStorage 兜底；剪贴板降级（Clipboard API → execCommand / 一次性 paste 捕获）；下载中心连接地址两级推导（通告基地址优先＋子路径推导兜底，§3.6）；blob 下载；全局错误 console 留痕；作业状态文案 hook；插件包 64MB 预检；客户端检查更新版本比较；设备显示名回退 |
 | i18n | `index.ts` / `errorMessages.ts` | i18n 基座（决策 #165）：14 个域命名空间、zh-CN 源语言 + en 全覆盖（vitest 断言）、`fallbackLng`/`fallbackNS: common`、语言切换单点 `changeLocale`（持久化 + `<html lang>` / `<title>` 同步）；LF_* 错误码展示端翻译（zh 直接后端 message，en 已知码按码表插值、参数不全回退后端中文，决策 #166） |
 | components | `Modal` / `Popover` / `HelpDot` / `Guide` / `Icon` / `TransportPanel` / `ErrorBoundary` | 通用组件：模态框（Esc / 遮罩关闭）；锚定弹出菜单（portal + fixed，防 `overflow:hidden` 裁剪——决策 #152）；「?」就地文档点（受控气泡，与帮助文章同源词条）；分步气泡引导（spotlight box-shadow 挖洞，自研）；内联 SVG 图标集；设置页连接方式完整面板；渲染异常错误页 |
 | pages | `Designer.tsx`（586 行编排壳）+ `designer/` 组件与 hooks | 设计器页：顶栏 / 左栏（控件 / 字段 / 图层）/ 画布 / 右栏（属性 / 测试数据）三栏 + 三个 Modal（覆盖确认 / 离开三选 / 快捷键）；编排已拆 hooks——`useDesignerActions`（元素操作）/ `useHelpLinkDraft`（深链演示）/ `useImageAssets`（图片资源）/ `useTemplateSave`（保存）/ `useLeaveGuard`（离开保护）＋ `designState` / `images` 纯逻辑（机制层 lib/design/ 不动）；打印 DPI＝客户端全局口径（预览按设置页生效值缩放、无设计器局部 DPI 控件）；画布组件 `CanvasViewport`（react-konva：拖动高频操作直走 Konva 实例、dragend 才提交状态）、`ElementNode`（元素声明式渲染，图片三态）、`PropsPanel`（分组属性 + 文档点 + 演示插槽）、`SidePanel`、`shortcuts` |
@@ -84,6 +84,14 @@
 3. 组件内文案经 `useTranslation('<域>')` 订阅（语言切换即时重渲染）；**异步闭包**（轮询 catch、请求失败分支）不捕组件 `t`（语言切换后闭包过期），改读 i18next 单例 `i18next.t('<域>:<key>')`（构造期即当时语言）；
 4. lint 防线：`web/.oxlintrc.json` 自定义规则 `labelframe/no-bare-cjk-jsx` 拦截裸中文 JSX（防新增文案绕过 key 化）；
 5. 后端中文**数据**（非错误码）在非中文界面的两条展示端映射（决策 #201）：连接徽标 `formatTransport`——中文界面用后端 `displayText` 原文、非中文界面按插件 spec 词条组合本地化摘要；打印机状态消息 `printerStatusMessage`——已知静态 / 模板消息查词条翻译，未命中回退原文（后端 API 文案本身仍为中文，不在该口径内）。
+
+### 3.6 下载中心连接地址两级推导（决策 #202）
+
+连接信息卡的地址要「设备实际可达」，两级口径（此前裸取 `window.location.origin` 推导——反代子路径部署下丢对外端口与路径）：
+
+1. **部署侧通告优先**：`GET /api/server/info` 兼容新增字段 `publicBaseUrl`（环境变量 `LABELFRAME_SERVER_PUBLIC_BASE_URL` 声明，null＝未配置，见 [server.md](server.md)）——非空即直接采用为展示地址、不再走 origin 推导，多网卡候选切换整块不渲染（反代 / 容器部署下前端无从推导真实对外地址，部署侧声明是唯一权威）；旧版服务端无该字段 / 请求失败视为无通告，不阻塞首屏；
+2. **前端子路径推导兜底**：未通告时从 `location.pathname` 推导部署前缀（`deriveBasePath`：hash 路由下 pathname 稳定等于部署前缀，页内切换只动 hash；如 `http://host/labelframe/#/packages/client` → `/labelframe`，根路径 → 空串），`pickDefaultAddress` / `joinAddress`（`lib/connection.ts`）三个落点（origin 命中候选 / 回环回退首个候选 / origin 兜底）均拼接该前缀——候选选择规则不变（主机名在候选内原样使用、回环回退首个候选、其余不匹配保持当前地址，绝不替换为容器内网 IP）；根路径部署前缀为空、行为与此前一致；
+3. **边界**：各 tab 文件下载二维码仍按裸 `pageOrigin()` 拼下载相对路径，不携带部署前缀、不消费通告——不在本口径内。
 
 ## 4. 对外契约与依赖
 
@@ -135,6 +143,7 @@
 | Web 前端 i18n 地基（react-i18next、域组织、key 惯例） | #165 |
 | API 错误消息多语言链路（params + LF_* 码表） | #166 |
 | 下载中心改版（三 tab + 连接信息卡） | #169 |
+| 下载中心连接地址两级口径（部署侧通告基地址优先＋前端子路径推导兜底） | #202 |
 | 新用户首次使用引导（spotlight、localStorage 首见） | #170 |
 | 帮助体系 V2 撤回（转 V3 方向） | #171 |
 | 品牌 v02（UI 主题色不随品牌色） | #172 |

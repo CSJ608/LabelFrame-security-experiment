@@ -245,6 +245,17 @@ export interface Ipv4Candidates {
   candidates: string[]
 }
 
+// ── 服务端自描述（下载中心「连接信息」卡地址解析）──
+
+/** 服务端自描述（GET /api/server/info）；publicBaseUrl 为管理员配置的对设备可达基址通告。 */
+export interface ServerInfo {
+  listenUrl: string
+  uiEnabled: boolean
+  version: string
+  /** 未配置时为 null；旧版服务端无该字段（前端按无通告处理）。 */
+  publicBaseUrl?: string | null
+}
+
 // ── 客户端插件分发（服务端 plugin-packages + 客户端 /api/plugins 安装 / 卸载）──
 
 /** 服务端插件包列表项（GET /api/plugin-packages；invalid 条目元数据字段缺失，仅文件信息有效）。 */

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
     listPluginPackages: vi.fn(),
     listPdaPackages: vi.fn(),
     listServerIpv4Candidates: vi.fn(),
+    getServerInfo: vi.fn(),
     uploadClientPackage: vi.fn(),
     uploadPdaPackage: vi.fn(),
     deleteClientPackage: vi.fn(),
@@ -92,6 +93,7 @@ beforeEach(() => {
   mocks.server.listPluginPackages.mockResolvedValue([PLUGIN_PKG])
   mocks.server.listPdaPackages.mockResolvedValue([PDA_PKG])
   mocks.server.listServerIpv4Candidates.mockResolvedValue({ candidates: ['192.168.1.30'] })
+  mocks.server.getServerInfo.mockResolvedValue({ listenUrl: 'http://localhost:53961', uiEnabled: true, version: '0.0.0', publicBaseUrl: null })
 })
 
 afterEach(() => {

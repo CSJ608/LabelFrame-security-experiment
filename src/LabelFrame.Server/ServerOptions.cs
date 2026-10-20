@@ -17,6 +17,9 @@ public sealed class ServerOptions
     /// <summary>监听地址。</summary>
     public string ListenUrl { get; set; } = DefaultListenUrl;
 
+    /// <summary>对外通告基地址（http/https 绝对 URI，尾部斜杠已归一去除；null = 未配置，不通告）。</summary>
+    public string? PublicBaseUrl { get; set; }
+
     /// <summary>SQLite 数据库路径。</summary>
     public string DatabasePath { get; set; } = DefaultDatabasePath;
 
@@ -98,6 +101,22 @@ public sealed class ServerOptions
         if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_LISTEN") is { } listen)
         {
             ListenUrl = listen;
+        }
+
+        if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_PUBLIC_BASE_URL") is { } publicBaseUrl)
+        {
+            // 非法值按未配置处理（保持 null）并告警，不阻断启动
+            var candidate = publicBaseUrl.Trim();
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var publicBaseUri)
+                && (publicBaseUri.Scheme == Uri.UriSchemeHttp || publicBaseUri.Scheme == Uri.UriSchemeHttps))
+            {
+                PublicBaseUrl = candidate.TrimEnd('/');
+            }
+            else
+            {
+                Console.WriteLine(
+                    $"[LabelFrame] 对外通告基地址无效（LABELFRAME_SERVER_PUBLIC_BASE_URL={publicBaseUrl}）：需为 http/https 绝对地址，已按未配置处理。");
+            }
         }
 
         if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_DB") is { } db)

@@ -10,21 +10,47 @@
  * - 其余不匹配形态（如 Docker 端口映射部署：服务端枚举到的是容器内网 IP，与访问 origin 必不匹配）
  *   → 保持 origin：用户正在访问的地址就是设备可达的地址，绝不替换为连不上的容器内网 IP；
  * - 候选为空（旧版服务端 / 枚举失败 / null 未加载）→ origin 兜底（无更优信息时不猜测地址）。
+ * 三个落点（origin 命中 / 回退候选 / origin 兜底）均拼接 basePath（部署子路径前缀），根部署传空串。
  */
-export function pickDefaultAddress(origin: string, candidates: string[] | null | undefined): string {
+export function pickDefaultAddress(origin: string, candidates: string[] | null | undefined, basePath = ''): string {
   if (!origin) return origin
   try {
     const u = new URL(origin)
-    if (candidates && candidates.includes(u.hostname)) return origin
+    if (candidates && candidates.includes(u.hostname)) return origin + basePath
     const isLoopback = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '[::1]'
-    if (isLoopback && candidates && candidates.length > 0) return joinAddress(u.protocol, candidates[0], u.port)
+    if (isLoopback && candidates && candidates.length > 0) return joinAddress(u.protocol, candidates[0], u.port, basePath)
   } catch {
     // origin 非法（理论不发生：来自 window.location.origin）→ origin 兜底
   }
-  return origin
+  return origin + basePath
 }
 
-/** 按当前 origin 的协议与端口拼装候选 IP 的完整地址（默认端口为空时省略端口段）。 */
-export function joinAddress(protocol: string, ip: string, port: string): string {
-  return port ? `${protocol}//${ip}:${port}` : `${protocol}//${ip}`
+/** 按当前 origin 的协议与端口拼装候选 IP 的完整地址（默认端口为空时省略端口段；basePath 为部署子路径前缀）。 */
+export function joinAddress(protocol: string, ip: string, port: string, basePath = ''): string {
+  const host = port ? `${protocol}//${ip}:${port}` : `${protocol}//${ip}`
+  return `${host}${basePath}`
+}
+
+/**
+ * 部署子路径前缀推导：'/' → ''；'/labelframe/' → '/labelframe'（去尾部多余斜杠）；
+ * 空串 / 非 '/' 开头等异常输入 → ''。hash 路由下 window.location.pathname 即部署前缀。
+ */
+export function deriveBasePath(pathname: string): string {
+  if (typeof pathname !== 'string' || !pathname.startsWith('/')) return ''
+  let p = pathname
+  while (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1)
+  return p.length <= 1 ? '' : p
+}
+
+/**
+ * 展示地址解析（通告优先）：publicBaseUrl 非空（服务端已归一）时直接采用，完全不走 origin 推导；
+ * 否则回落 pickDefaultAddress（origin × 候选 × basePath）。
+ */
+export function pickDisplayAddress(
+  publicBaseUrl: string | null | undefined,
+  origin: string,
+  candidates: string[] | null | undefined,
+  basePath = '',
+): string {
+  return publicBaseUrl || pickDefaultAddress(origin, candidates, basePath)
 }
