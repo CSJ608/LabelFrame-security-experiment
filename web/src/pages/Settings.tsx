@@ -10,6 +10,7 @@ import type { ClientPackageInfo, InstalledPluginInfo, PluginPackageInfo, Printer
 import { formatSize } from '../lib/download'
 import { checkForUpdate } from '../lib/update'
 import { formatTransport } from '../lib/transport'
+import { printerStatusMessage } from '../lib/printerStatusText'
 import { pluginPackageTooLarge } from '../lib/pluginLimits'
 import { pluginPackageName } from '../lib/pluginText'
 import { APP_LOCALES, changeLocale, toAppLocale } from '../i18n'
@@ -447,7 +448,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                 {t('action.refresh')}
               </button>
             </div>
-            {printer && <div className="hint">{printer.message || t('printer.noExtraInfo')}</div>}
+            {printer && <div className="hint">{printerStatusMessage(printer.message) || t('printer.noExtraInfo')}</div>}
           </div>
 
           {/* 连接配置：内容常显——子节已隔离上下文，不再需要折叠收纳 */}

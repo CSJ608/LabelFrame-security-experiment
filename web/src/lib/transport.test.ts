@@ -1,7 +1,8 @@
-// 传输插件工具单元测试——displayText 优先徽标、mode→pluginId 映射
+// 传输插件工具单元测试——徽标格式化（中文 displayText 优先 / 非中文本地化组合）、mode→pluginId 映射
 // spec 默认值 / Select 枚举兼容解析（string[] 与 { value, label? }[]）、配置参数提取。
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import i18next from '../i18n'
 import type { TransportConfig, TransportPluginInfo } from './api/types'
 import {
   MODE_TO_PLUGIN_ID,
@@ -180,5 +181,169 @@ describe('spec 解析（兼容后端两种序列化）', () => {
     expect(isSpecVisible(spec, { kind: '' })).toBe(false)
     expect(isSpecVisible(spec, { kind: '   ' })).toBe(false)
     expect(isSpecVisible({ ...spec, visibleWhenValues: null }, { kind: 'Tcp' })).toBe(false)
+  })
+})
+
+// ── 非中文界面本地化组合：插件名（displayNameKey）＋ kind 选项 ＋ 关键参数 ＋ 原生指令后缀 ──
+
+const LOG_PLUGIN: TransportPluginInfo = {
+  id: 'log',
+  displayName: '模拟打印',
+  displayNameKey: 'plugin.log.displayName',
+  parameters: [],
+}
+
+const ZEBRA_OFFICIAL_PLUGIN: TransportPluginInfo = {
+  id: 'labelframe-transport-zebra',
+  displayName: 'Zebra',
+  displayNameKey: 'plugin.labelframe-transport-zebra.displayName',
+  parameters: [
+    {
+      key: 'kind',
+      label: '连接类型',
+      labelKey: 'plugin.labelframe-transport-zebra.params.kind.label',
+      type: 'Select',
+      defaultValue: 'Tcp',
+      options: [
+        { value: 'Tcp', label: 'TCP' },
+        { value: 'Usb', label: 'USB（自动发现）', labelKey: 'plugin.labelframe-transport-zebra.params.kind.opt.Usb' },
+        { value: 'Driver', label: 'Windows 驱动', labelKey: 'plugin.labelframe-transport-zebra.params.kind.opt.Driver' },
+      ],
+    },
+    { key: 'host', label: '打印机地址 / IP', type: 'String' },
+    { key: 'port', label: '端口', type: 'Int', defaultValue: 9100 },
+    { key: 'printerName', label: 'Windows 打印机名', type: 'String' },
+    { key: 'usbName', label: 'Zebra USB 打印机名', type: 'String' },
+    {
+      key: 'printMode',
+      label: '打印方式',
+      type: 'Select',
+      defaultValue: 'image',
+      options: [
+        { value: 'image', label: '图片（默认）', labelKey: 'plugin.labelframe-transport-zebra.params.printMode.opt.image' },
+        { value: 'native', label: '原生指令', labelKey: 'plugin.labelframe-transport-zebra.params.printMode.opt.native' },
+      ],
+    },
+  ],
+}
+
+const TSPL_OFFICIAL_PLUGIN: TransportPluginInfo = {
+  id: 'labelframe-transport-tspl',
+  displayName: 'TSPL（TSC 及兼容）',
+  displayNameKey: 'plugin.labelframe-transport-tspl.displayName',
+  parameters: [
+    {
+      key: 'kind',
+      label: '连接类型',
+      type: 'Select',
+      defaultValue: 'Tcp',
+      options: [
+        { value: 'Tcp', label: 'TCP' },
+        { value: 'Usb', label: 'USB（免驱动直连）', labelKey: 'plugin.labelframe-transport-tspl.params.kind.opt.Usb' },
+      ],
+    },
+    { key: 'host', label: '打印机地址 / IP', type: 'String' },
+    { key: 'port', label: '端口', type: 'Int', defaultValue: 9100 },
+    { key: 'usbName', label: 'USB 打印机名', type: 'String' },
+    {
+      key: 'printMode',
+      label: '打印方式',
+      type: 'Select',
+      defaultValue: 'image',
+      options: [
+        { value: 'image', label: '图片（默认）', labelKey: 'plugin.labelframe-transport-tspl.params.printMode.opt.image' },
+        { value: 'native', label: '原生指令', labelKey: 'plugin.labelframe-transport-tspl.params.printMode.opt.native' },
+      ],
+    },
+  ],
+}
+
+describe('formatTransport：非中文界面本地化组合', () => {
+  afterEach(() => {
+    i18next.changeLanguage('zh-CN')
+  })
+
+  it('en：模拟打印徽标走 pluginLabels 词条，不再直出后端中文 displayText', () => {
+    i18next.changeLanguage('en')
+    const cfg: TransportConfig = {
+      pluginId: 'log',
+      displayText: '模拟打印',
+      params: {},
+      mode: 'Log',
+      availablePlugins: [LOG_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('Simulated printing')
+  })
+
+  it('en：Zebra TCP → 插件名 + TCP + host:port（语言中立段原样保留）', () => {
+    i18next.changeLanguage('en')
+    const cfg: TransportConfig = {
+      pluginId: 'labelframe-transport-zebra',
+      displayText: 'Zebra TCP 192.168.1.50:9100',
+      params: { kind: 'Tcp', host: '192.168.1.50', port: 9100, printMode: 'image' },
+      mode: 'Log',
+      availablePlugins: [ZEBRA_OFFICIAL_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('Zebra TCP 192.168.1.50:9100')
+  })
+
+  it('en：Zebra USB 自动发现走选项词条、显式设备名为「USB {name}」（与后端口径一致）', () => {
+    i18next.changeLanguage('en')
+    const base = { pluginId: 'labelframe-transport-zebra', mode: 'Log' as const, availablePlugins: [ZEBRA_OFFICIAL_PLUGIN] }
+    expect(formatTransport({ ...base, displayText: 'Zebra USB（自动发现）', params: { kind: 'Usb', usbName: '', printMode: 'image' } })).toBe('Zebra USB (auto-discovery)')
+    expect(formatTransport({ ...base, displayText: 'Zebra USB DMJ261804448', params: { kind: 'Usb', usbName: 'DMJ261804448', printMode: 'image' } })).toBe('Zebra USB DMJ261804448')
+  })
+
+  it('en：Zebra 驱动 → 插件名 + 驱动选项词条 + 打印机名', () => {
+    i18next.changeLanguage('en')
+    const cfg: TransportConfig = {
+      pluginId: 'labelframe-transport-zebra',
+      displayText: 'Zebra 驱动 ZDesigner ZD421',
+      params: { kind: 'Driver', printerName: 'ZDesigner ZD421', printMode: 'image' },
+      mode: 'Log',
+      availablePlugins: [ZEBRA_OFFICIAL_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('Zebra Windows driver ZDesigner ZD421')
+  })
+
+  it('en：TSPL USB 显式设备名 + 原生指令后缀（printMode 选项词条）', () => {
+    i18next.changeLanguage('en')
+    const cfg: TransportConfig = {
+      pluginId: 'labelframe-transport-tspl',
+      displayText: 'TSPL USB VID_1203（原生指令）',
+      params: { kind: 'Usb', usbName: 'VID_1203', printMode: 'native' },
+      mode: 'Log',
+      availablePlugins: [TSPL_OFFICIAL_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('TSPL (TSC compatible) USB VID_1203 Native commands')
+  })
+
+  it('en：无 displayNameKey 的第三方插件维持后端 displayText（无本地化信息不做更薄组合）', () => {
+    i18next.changeLanguage('en')
+    const cfg: TransportConfig = {
+      pluginId: 'vendor-ble',
+      displayText: '厂商蓝牙（快速）',
+      params: { mode: 'fast' },
+      mode: 'Log',
+      availablePlugins: [VENDOR_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('厂商蓝牙（快速）')
+  })
+
+  it('zh：中文界面仍以后端 displayText 为准（零漂移）', () => {
+    i18next.changeLanguage('zh-CN')
+    const cfg: TransportConfig = {
+      pluginId: 'log',
+      displayText: '模拟打印',
+      params: {},
+      mode: 'Log',
+      availablePlugins: [LOG_PLUGIN],
+    }
+    expect(formatTransport(cfg)).toBe('模拟打印')
+  })
+
+  it('en：旧后端（无 availablePlugins）维持按 mode 本地格式化', () => {
+    i18next.changeLanguage('en')
+    expect(formatTransport({ mode: 'Tcp', params: { tcpHost: '192.168.1.50', tcpPort: 9100 } })).toBe('Network printer 192.168.1.50:9100')
   })
 })

@@ -56,6 +56,25 @@
     "debugImagesFailed": "Failed to download debug images",
     "pluginTooLarge": "The plugin package exceeds the size limit (about 64 MB max)."
   },
+  "printerStatus": {
+    "logOnline": "Simulated printing is online.",
+    "headOpen": "Printhead is open; close the printhead.",
+    "paperJam": "Paper jam; open the cover, clear it and retry.",
+    "paperOut": "Paper out; load label stock.",
+    "ribbonOut": "Ribbon is used up; replace the ribbon.",
+    "otherError": "Printer reports another error (0x80); check the printer.",
+    "paused": "Paused; press the printer's pause key to resume.",
+    "driverNoStatus": "Driver mode cannot read printer status (treated as online).",
+    "unsupported": "The current transport does not support status queries.",
+    "emptyResponse": "Connected to the printer, but no status response was returned (the printer may not answer status queries when paper is out, media is exhausted, or the printhead is open).",
+    "timeout": "Status query timed out (no response for {{sec}} s from {{target}}) — the printer may be offline, out of paper, or the printhead may be open.",
+    "connectFailed": "Connection failed: {{reason}}",
+    "ioFailed": "Communication with the printer failed: {{reason}}",
+    "tsplNoResponse": "TSPL printer did not respond to the status query ({{target}}).",
+    "tsplReadFailed": "Failed to read TSPL printer status ({{target}}): {{reason}}",
+    "zebraReadFailed": "Failed to read Zebra printer status ({{target}}): {{reason}}",
+    "truncated": "Status response is incomplete and cannot be parsed (first line has only {{fields}} fields, expected at least 3)."
+  },
   "transport": {
     "log": "Simulated printing",
     "tcpPrinter": "Network printer {{addr}}",

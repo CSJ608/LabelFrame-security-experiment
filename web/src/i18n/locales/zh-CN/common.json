@@ -56,6 +56,25 @@
     "debugImagesFailed": "下载调试图片失败",
     "pluginTooLarge": "插件包超过大小上限（最大约 64MB）。"
   },
+  "printerStatus": {
+    "logOnline": "日志模拟在线。",
+    "headOpen": "打印头未闭合，请合上打印头。",
+    "paperJam": "卡纸，请开盖清理后重试。",
+    "paperOut": "缺纸，请装纸。",
+    "ribbonOut": "色带已用尽，请更换色带。",
+    "otherError": "打印机报其他错误（0x80），请检查打印机状态。",
+    "paused": "已暂停，按打印机的暂停键恢复。",
+    "driverNoStatus": "驱动模式无法读回打印机状态（默认在线）。",
+    "unsupported": "当前传输不支持状态查询。",
+    "emptyResponse": "已连上打印机，但未返回状态响应（缺纸 / 耗材用尽 / 打印头打开等状态下打印机可能不响应状态查询）。",
+    "timeout": "状态查询超时（{{sec}} 秒无响应，{{target}}）——打印机可能离线、缺纸或打印头打开。",
+    "connectFailed": "连接失败：{{reason}}",
+    "ioFailed": "与打印机通讯失败：{{reason}}",
+    "tsplNoResponse": "TSPL 打印机状态无应答（{{target}}）。",
+    "tsplReadFailed": "读取 TSPL 打印机状态失败（{{target}}）：{{reason}}",
+    "zebraReadFailed": "读取 Zebra 打印机状态失败（{{target}}）：{{reason}}",
+    "truncated": "状态响应不完整，无法解析（首行仅 {{fields}} 个字段，期望至少 3 个）。"
+  },
   "transport": {
     "log": "模拟打印",
     "tcpPrinter": "网络打印机 {{addr}}",

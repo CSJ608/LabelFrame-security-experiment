@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Settings",
-    "subtitle": "Server address / local connection and printers"
+    "subtitle": "General / printing / updates & plugins"
   },
   "navRegion": "Settings menu",
   "general": { "title": "General" },

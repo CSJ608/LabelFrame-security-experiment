@@ -1,6 +1,6 @@
 # web 前端模块设计
 
-> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 68 代码文件 + 58 测试）· 基线：`master` `7486dae`（2026-10-19）
+> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 69 代码文件 + 59 测试）· 基线：`master` `041942d`（2026-10-20）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界
@@ -32,7 +32,8 @@
 | lib/design | `convert.ts` | 设计器内部模型 ↔ 后端模板契约双向转换：`toBackendElement`（严格镜像后端 converter 的省略规则——非默认值才写字段）、`fromBackendElements`（region 按是否被锚定判别容器 / 矩形）、`applyContractDisplayNames`（契约显示名回填元素，往返不丢） |
 | lib/design | `types.ts` / `model.ts` / `fields.ts` | 7 型元素模型（Text / Barcode / QrCode / Rect / Image / Line / Region）与默认值、内容态判别（`elementContentState`，不依赖本地化字符串比较）、容器锚定重算（`containerRegionIdFor`：中心点落入 Region 即锚定）、契约字段自动推导（`deriveFieldInfos`，字段填充元素按序去重、显示名取首个非空） |
 | lib/design | `barcode.ts` / `imageCompress.ts` / `format.ts` | 条码 / 二维码 canvas 渲染（JsBarcode CODE128 / qrcode-generator，未绑定占位框）；上传图片浏览器内压缩（>1MB 降采样长边 ≤2000px + 重编码 JPEG q0.85 / BMP→PNG，产物仍超限且无透明通道才转 JPEG）；设计 JSON 交换格式（`labelframe-web-design` v1）导入导出 |
-| lib | `transport.ts` | 连接方式的显示与参数逻辑：模式 / 插件标签（随语言）、旧模式 ↔ 插件 id 映射、徽标格式化、插件参数 spec 工具（条件可见性 `isSpecVisible` 与后端逐条对齐） |
+| lib | `transport.ts` | 连接方式的显示与参数逻辑：模式 / 插件标签（随语言）、旧模式 ↔ 插件 id 映射、徽标格式化（中文界面后端 `displayText` 优先；非中文界面且插件声明 `displayNameKey` 时按 spec 组合本地化摘要——插件名＋kind 选项词条＋关键参数＋原生指令后缀，无键第三方插件与旧后端回退原口径，决策 #201）、插件参数 spec 工具（条件可见性 `isSpecVisible` 与后端逐条对齐） |
+| lib | `printerStatusText.ts` | 打印机状态消息展示端翻译（决策 #201）：后端 `GetStatusAsync` 消息为中文——静态消息精确映射＋参数化模板（命名捕获组插值）翻译为当前语言，zh 词条与后端文案逐字锚定（防漂移测试）；未命中回退原文 |
 | lib | `pluginText.ts` | 插件自描述文案展示端翻译（决策 #192）：有键且 pluginLabels 域有词条 → 当前语言词条、否则原文回退；键由插件侧声明（spec `labelKey` / `hintKey` 与接口 DIM），本模块不拼键；插件管理页包名映射 `pluginPackageName` 按 pluginId 查词条（manifest 键通道待「插件包内嵌词条」机制） |
 | lib | `guide.ts` / `help.ts` / `helpLink.ts` | 新手引导纯数据（五步、localStorage 首见标记 `labelframe.guide.client.v1`，决策 #170）；帮助体系 V3 纯数据（`HELP_PAGES` 八页、演示预设 `HELP_DEMO_PRESETS`、深链示例元素 `HELP_LINK_ELEMENTS`，决策 #176 / #178 / #179）；深链页内轮询 hook（80ms / 4s） |
 | lib | `settings.ts` / `clipboard.ts` / `connection.ts` / `download.ts` / `errorLogging.ts` / `jobStatus.ts` / `pluginLimits.ts` / `update.ts` / `deviceDisplay.ts` / `excel/mapping.ts` | 服务端地址 localStorage 兜底；剪贴板降级（Clipboard API → execCommand / 一次性 paste 捕获）；下载中心默认地址选择；blob 下载；全局错误 console 留痕；作业状态文案 hook；插件包 64MB 预检；客户端检查更新版本比较；设备显示名回退 |
@@ -81,7 +82,8 @@
 1. 后端错误统一 `ApiError`（code + 展示 message + 可选 fieldKey / params）；传输层失败归一化为 `TIMEOUT` / `NETWORK_ERROR`（消息按目标区分「服务端」/「本机客户端」）；
 2. `resolveApiErrorMessage`（决策 #166）：zh-CN 直接采用后端中文 message（中文权威在后端）；en 已知 LF_* 码按 `errorCodes` 域码表插值渲染，模板参数不全或未知码回退后端中文——任何输入不出现裸 `{{key}}` 残缺；
 3. 组件内文案经 `useTranslation('<域>')` 订阅（语言切换即时重渲染）；**异步闭包**（轮询 catch、请求失败分支）不捕组件 `t`（语言切换后闭包过期），改读 i18next 单例 `i18next.t('<域>:<key>')`（构造期即当时语言）；
-4. lint 防线：`web/.oxlintrc.json` 自定义规则 `labelframe/no-bare-cjk-jsx` 拦截裸中文 JSX（防新增文案绕过 key 化）。
+4. lint 防线：`web/.oxlintrc.json` 自定义规则 `labelframe/no-bare-cjk-jsx` 拦截裸中文 JSX（防新增文案绕过 key 化）；
+5. 后端中文**数据**（非错误码）在非中文界面的两条展示端映射（决策 #201）：连接徽标 `formatTransport`——中文界面用后端 `displayText` 原文、非中文界面按插件 spec 词条组合本地化摘要；打印机状态消息 `printerStatusMessage`——已知静态 / 模板消息查词条翻译，未命中回退原文（后端 API 文案本身仍为中文，不在该口径内）。
 
 ## 4. 对外契约与依赖
 
@@ -112,6 +114,7 @@
 | 服务端 / 客户端拆分（templateName + labels 契约） | #52 |
 | UI 归属反转（Client 托管完整 Web UI） | #53 |
 | 插件自描述文案展示端翻译（spec 键 + 接口 DIM，pluginLabels 查词条回退原文） | #192 |
+| 后端中文数据的非中文界面展示端映射（连接徽标本地化组合＋状态消息已知映射） | #201 |
 | 机器级 ServerUrl（/api/host/config，优先于 localStorage） | #57 |
 | 服务端管理界面插件形态（WebUiPath 运行时检测） | #62 |
 | 前端双构建模式（VITE_UI_MODE，client / server 双产物） | #63 |

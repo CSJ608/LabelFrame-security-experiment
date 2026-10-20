@@ -902,3 +902,70 @@ describe('帮助深链（#316 决策 #178）', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+// ── 英文界面残留收口：状态卡徽标本地化组合＋状态消息已知映射＋副标题（渲染级验证）──
+
+describe('设置页英文态：状态卡无中文残留', () => {
+  afterEach(async () => {
+    const { changeLocale } = await import('../i18n')
+    changeLocale('zh-CN')
+  })
+
+  const PLUGIN_LOG = {
+    id: 'log',
+    displayName: '模拟打印',
+    displayNameKey: 'plugin.log.displayName',
+    description: '模拟打印：不连接真实打印机。',
+    descriptionKey: 'plugin.log.desc',
+    parameters: [],
+  }
+
+  async function renderEnStatusCard() {
+    window.localStorage.setItem('labelframe.locale', 'en')
+    const { changeLocale } = await import('../i18n')
+    changeLocale('en')
+    mocks.local.getTransport.mockResolvedValue({
+      mode: 'Log',
+      pluginId: 'log',
+      displayText: '模拟打印',
+      params: {},
+      availablePlugins: [PLUGIN_LOG],
+    })
+    mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '日志模拟在线。' })
+    renderSettings()
+    return await screen.findByTestId('print-status-card')
+  }
+
+  it('当前连接徽标走本地化组合（Simulated printing），状态消息走已知映射（Simulated printing is online.），卡片内无中文', async () => {
+    const card = await renderEnStatusCard()
+    expect(within(card).getByText('Simulated printing')).toBeTruthy()
+    expect(card.textContent).toContain('Simulated printing is online.')
+    expect(card.textContent).not.toMatch(/[\u4e00-\u9fff]/)
+  })
+
+  it('未知状态消息回退原文（后端口径），不误报不崩', async () => {
+    window.localStorage.setItem('labelframe.locale', 'en')
+    const { changeLocale } = await import('../i18n')
+    changeLocale('en')
+    mocks.local.getTransport.mockResolvedValue({ mode: 'Log', pluginId: 'log', displayText: '模拟打印', params: {}, availablePlugins: [PLUGIN_LOG] })
+    mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '厂商私有提示' })
+    renderSettings()
+    const card = await screen.findByTestId('print-status-card')
+    expect(card.textContent).toContain('厂商私有提示')
+  })
+
+  it('中文界面口径不变：徽标与消息均为后端原文', async () => {
+    mocks.local.getTransport.mockResolvedValue({
+      mode: 'Log',
+      pluginId: 'log',
+      displayText: '模拟打印',
+      params: {},
+      availablePlugins: [PLUGIN_LOG],
+    })
+    mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '日志模拟在线。' })
+    renderSettings()
+    const card = await screen.findByTestId('print-status-card')
+    expect(within(card).getByText('模拟打印')).toBeTruthy()
+    expect(card.textContent).toContain('日志模拟在线。')
+  })
+})

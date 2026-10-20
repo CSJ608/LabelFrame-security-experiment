@@ -1,9 +1,11 @@
 // 连接方式：模式标签 / 徽标格式化 / 参数默认值。
 // 传输插件化——availablePlugins（spec 驱动表单）优先；旧后端（无 availablePlugins）回退内置 4 模式。
-// 徽标：新后端 displayText 优先，旧后端按 mode + params 本地格式化（common.transport.* 词条，
-// 调用点均在组件渲染期求值，语言切换后随重渲染更新）。
+// 徽标：中文界面新后端 displayText 优先，旧后端按 mode + params 本地格式化（common.transport.* 词条）；
+// 非中文界面插件元数据可用时组合本地化摘要（后端文案为中文，直出会残留），
+// 调用点均在组件渲染期求值，语言切换后随重渲染更新。
 
 import i18next from '../i18n'
+import { pluginText } from './pluginText'
 import type { PluginParams, PluginParamValue, TransportConfig, TransportMode, TransportParams, TransportParameterSpec, TransportPluginInfo, ZebraKind } from './api/types'
 
 export const ALL_TRANSPORT_MODES: TransportMode[] = ['Log', 'Tcp', 'WindowsDriver', 'Zebra']
@@ -67,9 +69,55 @@ export function isNativePrintMode(cfg: TransportConfig | null | undefined): bool
   return typeof raw === 'string' && raw.trim().toLowerCase() === 'native'
 }
 
-/** 徽标 / 状态栏文本：新后端 displayText 优先；旧后端按 mode 格式化为用户语摘要（`模拟打印` / `网络打印机 192.168.1.50:9100` / `Windows 打印机 打印机名` / `Zebra USB`）。 */
+/** 当前界面是否中文——中文徽标沿用后端 displayText 原文（与后端 Describe 口径一致，零漂移）。 */
+function isZhUi(): boolean {
+  return (i18next.language ?? '').toLowerCase().startsWith('zh')
+}
+
+/** 非中文界面的插件连接摘要：插件名（displayNameKey 词条）＋ kind 选项标签 ＋ 关键参数
+ *  （USB 设备名 / host:port / Windows 打印机名）＋原生指令后缀——信息量与后端 Describe 对齐。
+ *  spec 未声明 i18n 键的第三方插件按原文回退（pluginText 语义）；找不到插件元数据返回 null 由调用方回退。 */
+function localizedPluginSummary(cfg: TransportConfig): string | null {
+  const plugin = cfg.availablePlugins?.find((p) => p.id === effectivePluginId(cfg))
+  // 未声明 displayNameKey 的第三方插件无本地化信息——维持后端 displayText 口径，不做更薄的组合
+  if (!plugin?.displayNameKey) return null
+  const params = (cfg.params ?? {}) as PluginParams
+  const parts = [pluginText(plugin.displayNameKey, plugin.displayName)]
+  const kindSpec = plugin.parameters.find((s) => s.key === 'kind')
+  const kind = typeof params.kind === 'string' ? params.kind.trim() : ''
+  const usbName = typeof params.usbName === 'string' ? params.usbName.trim() : ''
+  const printerName = typeof params.printerName === 'string' ? params.printerName.trim() : ''
+  const host = typeof params.host === 'string' ? params.host.trim() : ''
+  if (kindSpec && kind) {
+    const opt = specOptions(kindSpec).find((o) => o.value.toLowerCase() === kind.toLowerCase())
+    if (opt) {
+      // USB 显式指定设备名时后端口径为「USB {name}」（不带自动发现字样），保持一致避免摘要冗余
+      if (kind.toLowerCase() === 'usb' && usbName) parts.push(`USB ${usbName}`)
+      else parts.push(pluginText(opt.labelKey, opt.label))
+    }
+  }
+  if (host) {
+    const port = params.port
+    parts.push(port === null || port === undefined || String(port).trim() === '' ? host : `${host}:${port}`)
+  }
+  if (printerName) parts.push(printerName)
+  if (isNativePrintMode(cfg)) {
+    const modeSpec = plugin.parameters.find((s) => s.key === 'printMode')
+    const opt = modeSpec ? specOptions(modeSpec).find((o) => o.value === 'native') : undefined
+    if (opt) parts.push(pluginText(opt.labelKey, opt.label))
+  }
+  return parts.filter(Boolean).join(' ')
+}
+
+/** 徽标 / 状态栏文本：中文界面后端 displayText 优先（口径一致）；非中文界面插件元数据可用时
+ * 组合本地化摘要（后端 Describe 为中文，英文界面直出会残留中文）；旧后端按 mode 格式化为用户语摘要
+ * （`模拟打印` / `网络打印机 192.168.1.50:9100` / `Windows 打印机 打印机名` / `Zebra USB`）。 */
 export function formatTransport(cfg: TransportConfig | null | undefined): string {
   if (!cfg) return ''
+  if (!isZhUi()) {
+    const summary = localizedPluginSummary(cfg)
+    if (summary !== null) return summary
+  }
   if (cfg.displayText) return cfg.displayText
   const p = cfg.params
   switch (cfg.mode) {
