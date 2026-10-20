@@ -352,14 +352,13 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
     })
   }
 
-  it('AC-01：连接方式摘要与测试打印说明均显示「模拟打印」，无「LOG」直出', async () => {
+  it('AC-01：状态总览卡摘要显示「模拟打印」，无「LOG」直出', async () => {
     mockLogPluginTransport()
     renderSettings()
-    // 状态总览卡摘要（displayText 优先 = 插件 Describe 用户语）与模式单选同屏
+    // 状态总览卡摘要（displayText 优先 = 插件 Describe 用户语）与模式单选同屏；
+    // 测试打印区不再重复标注当前连接（说明行已随状态总览卡承载移除）
     await waitFor(() => expect(screen.getByTestId('print-status-card').textContent).toContain('模拟打印'))
-    // 测试打印说明（打印机分组）：当前连接方式：模拟打印
-    const printerSection = settingsMain()
-    await waitFor(() => expect(printerSection.textContent).toContain('当前连接方式：模拟打印'))
+    expect(screen.queryByText(/当前连接方式/)).toBeNull()
     // 全页无「LOG」直出（起选项名亦为「模拟打印」，页面无任何「Log」字样）
     expect(screen.queryByText(/LOG/)).toBeNull()
     expect(screen.queryByText(/Log/)).toBeNull()
@@ -380,9 +379,9 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
     mockLogPluginTransport()
     renderSettings()
     openTransportPanel()
-    // 说明文两处直出同一 Description（面板说明行 + 无参数编辑区占位），均不含拼接残句
+    // 说明文单处直出（面板插件描述行；无参数编辑区不再重复渲染），不含拼接残句
     const hints = await screen.findAllByText(/模拟打印：不连接真实打印机/)
-    expect(hints.length).toBeGreaterThan(0)
+    expect(hints.length).toBe(1)
     expect(screen.queryByText(/（无参数）/)).toBeNull()
     expect(screen.queryByText(/联调/)).toBeNull()
   })

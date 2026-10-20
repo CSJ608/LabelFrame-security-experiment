@@ -63,8 +63,7 @@
     "sending": "Sending…",
     "test": "Test Print",
     "sent": "Test page sent; check whether the printer outputs paper.",
-    "sendFailed": "Failed to send the test page.",
-    "hint": "Test Print sends one test page (a test barcode) to the currently connected printer. Current connection: {{transport}} (simulated printing needs no printer)."
+    "sendFailed": "Failed to send the test page."
   },
   "updates": {
     "title": "Updates & Packages",

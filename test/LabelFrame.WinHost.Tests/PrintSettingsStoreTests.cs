@@ -154,7 +154,7 @@ public class PrintSettingsStoreTests
             File.WriteAllText(path, "{ \"batchEnabled\": false, \"batchSize\": 10, \"batchIntervalMs\": 500, \"dpi\": 300 }");
             Assert.Equal(300, new PrintSettingsStore(path).Load().Dpi);
 
-            File.WriteAllText(path, "{ \"batchEnabled\": false, \"batchSize\": 10, \"batchIntervalMs\": 500, \"dpi\": 600 }");
+            File.WriteAllText(path, "{ \"batchEnabled\": false, \"batchSize\": 10, \"batchIntervalMs\": 500, \"dpi\": 400 }");
             Assert.Null(new PrintSettingsStore(path).Load().Dpi); // 白名单外 → 继承宿主配置
         }
         finally

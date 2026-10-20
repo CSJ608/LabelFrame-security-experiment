@@ -514,6 +514,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                     >
                       <option value={203}>203 dpi</option>
                       <option value={300}>300 dpi</option>
+                      <option value={600}>600 dpi</option>
                     </select>
                   </label>
                   <div className="hint" style={{ flex: 1, minWidth: 220 }}>{t('batch.dpiHint')}</div>
@@ -546,9 +547,6 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   {testPrinting ? t('printer.sending') : t('printer.test')}
                 </button>
                 {printResult && <span className={printResult.ok ? 'badge ok' : 'badge err'}>{printResult.msg}</span>}
-              </div>
-              <div className="hint">
-                {t('printer.hint', { transport: formatTransport(app.transportConfig) || app.transport || t('value.unknown') })}
               </div>
             </div>
           </div>

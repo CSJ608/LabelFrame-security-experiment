@@ -47,7 +47,7 @@
 | | `ServerRoutingWorker` | Routing/ServerRoutingWorker.cs | 主循环（注册心跳→长轮询 notify→领取→投入本地队列）＋独立回报循环（终态回报＋进度节流上报）（决策 #60 / #101） |
 | | `ServerJobPoller` / `IServerJobPoller` / `ProgressThrottle` | Routing/ServerJobPoller.cs、IServerJobPoller.cs、ProgressThrottle.cs | Server HTTP 客户端（注册 / pending / notify / result / progress 五端点）；单作业进度节流（计数有变化才发＋最小间隔，失败不 Mark 可重试） |
 | API 端点（Api/） | `JobsApi` / `TransportApi` / `PrinterApi` / `PluginApi` / `HostApi` / `PrintSettingsApi` / `Contracts` | Api/ 目录 | 宿主专属端点（分组实现）；`Contracts.cs` 只留宿主专属 DTO（通用契约在 LabelFrame.Api，决策 #75） |
-| 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；打印设置：批次节流（决策 #74）＋打印 DPI（203/300 白名单，未设置继承宿主配置，GET 回生效值、保存即生效）；出图目录保留清理（决策 #136）；本机 IPv4 枚举（决策 #61） |
+| 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；打印设置：批次节流（决策 #74）＋打印 DPI（203/300/600 白名单，未设置继承宿主配置，GET 回生效值、保存即生效）；出图目录保留清理（决策 #136）；本机 IPv4 枚举（决策 #61） |
 
 **多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool / 官方插件迁移六文件，`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
 

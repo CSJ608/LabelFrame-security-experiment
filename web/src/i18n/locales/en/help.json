@@ -184,7 +184,7 @@
       },
       "batch": {
         "title": "Print Batching",
-        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing.\n“Print DPI” selects the printer’s actual resolution (203 / 300) — a mismatch makes the whole layout print smaller. Changes take effect immediately after saving, no restart needed."
+        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing.\n“Print DPI” selects the printer’s actual resolution (203 / 300 / 600) — a mismatch makes the whole layout print smaller. Changes take effect immediately after saving, no restart needed."
       },
       "printer": {
         "title": "Printer",

@@ -180,7 +180,7 @@ public class PrintSettingsApiTests
     }
 
     [Theory]
-    [InlineData(600)]
+    [InlineData(400)]
     [InlineData(0)]
     public async Task Post_dpi_out_of_whitelist_should_return_400(int dpi)
     {

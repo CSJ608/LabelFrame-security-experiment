@@ -5,7 +5,7 @@ public sealed record PrintSettingsDto(bool BatchEnabled, int BatchSize, int Batc
 
 /// <summary>
 /// 打印设置（选项模型）：全局单例，API 线程写、打印 Worker 线程读，
-/// 读写统一走 lock 保证跨线程可见性。保存即生效，无需重启。打印 DPI 为 203/300 白名单，
+/// 读写统一走 lock 保证跨线程可见性。保存即生效，无需重启。打印 DPI 为 203/300/600 白名单，
 /// 未设置时由宿主配置（appsettings WinHost:Dpi / 环境变量 LABELFRAME_DPI）兜底。
 /// </summary>
 public sealed class PrintSettings
@@ -19,8 +19,8 @@ public sealed class PrintSettings
     /// <summary>默认：批次打印间隔（毫秒）。</summary>
     public const int DefaultBatchIntervalMs = 500;
 
-    /// <summary>支持的打印 DPI 白名单（与打印机常见分辨率一致）。</summary>
-    public static readonly int[] SupportedDpis = [203, 300];
+    /// <summary>支持的打印 DPI 白名单（标签打印机主流三档分辨率）。</summary>
+    public static readonly int[] SupportedDpis = [203, 300, 600];
 
     private readonly object _gate = new();
     private bool _batchEnabled = DefaultEnabled;
@@ -58,7 +58,7 @@ public sealed class PrintSettings
 
         if (dpi is not null && !SupportedDpis.Contains(dpi.Value))
         {
-            return "打印 DPI 仅支持 203 或 300。";
+            return "打印 DPI 仅支持 203、300 或 600。";
         }
 
         return null;

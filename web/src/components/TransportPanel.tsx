@@ -277,10 +277,9 @@ export function TransportPluginParamsEditor({
   params: PluginParams
   setParam: (key: string, value: PluginParamValue) => void
 }) {
-  const { t } = useTranslation('settings')
   if (plugin.parameters.length === 0) {
-    // 无参数时说明文直出插件 Description（后端句读已完整），不再追加「（无参数）。」拼接残句
-    return <div className="hint">{plugin.description ? pluginText(plugin.descriptionKey, plugin.description) : t('transportForm.noParams')}</div>
+    // 无参数插件不渲染编辑区：说明文由面板的插件描述行承载（此处再直出会整行重复）
+    return null
   }
   // 可见参数按 row 分组成行：null = 各自成行（唯一行键），行序 = 首个成员的声明序
   const rows: { key: string; specs: TransportParameterSpec[] }[] = []
