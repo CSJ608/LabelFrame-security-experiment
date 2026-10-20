@@ -1,6 +1,6 @@
 # LabelFrame.Core 模块设计（契约中枢）
 
-> 覆盖：`src/LabelFrame.Core/`（76 文件，约 4,700 行）＋ `test/LabelFrame.Core.Tests/`（32 文件，约 3,600 行）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
+> 覆盖：`src/LabelFrame.Core/`（76 文件，约 4,700 行）＋ `test/LabelFrame.Core.Tests/`（32 文件，约 3,600 行）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

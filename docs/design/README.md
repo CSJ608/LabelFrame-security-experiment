@@ -1,6 +1,5 @@
 # 模块设计文档（docs/design/）
 
-> 承载：迭代 138（[#353](https://github.com/marci-labs/LabelFrame/issues/353)）· 结构模板：arc42 裁剪六节（业界调研结论见 Issue 正文）。
 > 每篇描述一个模块的**现状设计**（逆向自代码），后续演进以代码与 [DESIGN.md](../DESIGN.md) 决策表为准。
 
 ## 与既有文档的分工
@@ -8,10 +7,10 @@
 | 文档 | 回答的问题 | 更新时机 |
 |---|---|---|
 | [DESIGN.md](../DESIGN.md) | **Why**——愿景、总体架构、关键技术决策表（160+ 条决策原文） | 决策发生时 |
-| [ARCHITECTURE-REVIEW.md](../ARCHITECTURE-REVIEW.md) | **When**——某时点的全仓架构评审快照（体量度量、热点、对标） | 评审时点 |
+| [archive/ARCHITECTURE-REVIEW.md](../archive/ARCHITECTURE-REVIEW.md) | **When**——某时点的全仓架构评审快照（体量度量、热点、对标） | 评审时点 |
 | docs/design/*.md（本目录） | **How**——各模块的机制、契约、取舍与坑（模块级现状设计） | 模块设计实质变化时 |
 
-同一事实只在一处维护：决策原文只在 DESIGN.md，本目录只引决策号不重复叙述；全仓级视图只在 ARCHITECTURE-REVIEW.md。
+同一事实只在一处维护：决策原文只在 DESIGN.md，本目录只引决策号不重复叙述；全仓级视图只在 archive/ARCHITECTURE-REVIEW.md（时点快照，后续演进以代码与决策表为准）。
 
 ## 模块清单
 
@@ -24,7 +23,7 @@
 | LabelFrame.WinHost | [winhost.md](winhost.md) | Client Host（Windows 完整客户端 + Linux 无头 Log 客户端） | ✅ |
 | LabelFrame.AndroidHost | [androidhost.md](androidhost.md) | Android / PDA 打印宿主 | ✅ |
 | LabelFrame.TransportPlugin.Zebra | [transport-plugin-zebra.md](transport-plugin-zebra.md) | Zebra 官方外置传输插件（插件 ABI 面） | ✅ |
-| LabelFrame.TransportPlugin.Tspl | [transport-plugin-tspl.md](transport-plugin-tspl.md) | TSPL 指令集官方外置传输插件（指令集维度单插件，迭代 143 / #378） | ✅ |
+| LabelFrame.TransportPlugin.Tspl | [transport-plugin-tspl.md](transport-plugin-tspl.md) | TSPL 指令集官方外置传输插件（指令集维度单插件） | ✅ |
 | LabelFrame.Bootstrapper（三件） | [bootstrapper.md](bootstrapper.md) | 安装引导（共享库 / BA / PayloadTool，三件合一） | ✅ |
 | web 前端 | [web-frontend.md](web-frontend.md) | `web/src/`（pages / lib / components / i18n / state） | ✅ |
 

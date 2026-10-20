@@ -1,6 +1,6 @@
 # LabelFrame.AndroidHost 模块设计
 
-> 覆盖：`src/LabelFrame.AndroidHost/`（31 个 .cs 文件，约 4,970 行）＋ `test/LabelFrame.AndroidHost.Tests/`（2 测试文件）· 基线：`master` `7486dae`（2026-10-19，含迭代 140 拆分增量回填）
+> 覆盖：`src/LabelFrame.AndroidHost/`（31 个 .cs 文件，约 4,970 行）＋ `test/LabelFrame.AndroidHost.Tests/`（2 测试文件）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

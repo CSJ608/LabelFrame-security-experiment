@@ -1,6 +1,6 @@
 # web 前端模块设计
 
-> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 68 代码文件 + 58 测试）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
+> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 68 代码文件 + 58 测试）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界
@@ -88,7 +88,7 @@
 **对外接口面**（本模块是 UI 叶子，无下游代码消费方；「对外」= 构建产物与 HTTP 消费契约）：
 
 - 构建产物：`web/dist`（client）与 `web/dist-server`（server）——由 CI（`pnpm lint / test` + 双模式构建）产出，WinHost 静态托管 dist（`WinHostApp.cs`，探测 `web/dist` 未找到仅提供 API）、Server 经 `WebUiPath` 插件目录托管 dist-server（`ServerPluginUi.cs`）；
-- HTTP 消费契约：`lib/api/types.ts` 是后端契约 DTO 的前端镜像（对齐 docs/FRONTEND-SPEC.md），覆盖 healthz / 模板 CRUD + 导入导出 + 预览 / 作业提交与查询 / 设备目录 / 日志 / Excel 导入与模板下载 / transport / printer / host config / print-settings / 客户端与 PDA 与插件包分发 / 插件安装卸载；
+- HTTP 消费契约：`lib/api/types.ts` 是后端契约 DTO 的前端镜像（对齐 [archive/FRONTEND-SPEC.md](../archive/FRONTEND-SPEC.md) 历史交付规格，现行以后端契约为准），覆盖 healthz / 模板 CRUD + 导入导出 + 预览 / 作业提交与查询 / 设备目录 / 日志 / Excel 导入与模板下载 / transport / printer / host config / print-settings / 客户端与 PDA 与插件包分发 / 插件安装卸载；
 - 构建期约定：`VITE_UI_MODE`（`server` | 缺省 `client`）、vite dev proxy（`/api` + `/healthz` → 53961（server 模式）或 53960）；
 - 前端产物自检：release 工作流按构建特征串断言双产物区分（决策 #150）——改动页集 / 特征文案须同步自检断言。
 

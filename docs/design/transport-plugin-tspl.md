@@ -1,7 +1,7 @@
 # LabelFrame.TransportPlugin.Tspl 模块设计
 
-> 覆盖：`src/LabelFrame.TransportPlugin.Tspl/`（12 文件，约 1200 行）· 基线：`master` `a95a43d`（2026-10-19；含 #378 立项、#381 真机三缺陷修复、#383 反色处理开关）
-> 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表（本迭代主决策 #195）。
+> 覆盖：`src/LabelFrame.TransportPlugin.Tspl/`（12 文件，约 1200 行）· 基线：`master` `a95a43d`（2026-10-19）
+> 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界
 
@@ -15,7 +15,7 @@
 
 - 插件包安装 / 加载 / 注册 / 版本比较——Core 的 `PluginInstaller` / `PluginDirectoryLoader` / `TransportPluginRegistry`（决策 #127）；
 - 宿主侧编码分派时序与持久化——WinHost `JobSubmissionService`（按连接插件分派，未实现该接口的连接维持 `^GF` 逐字节不变）与 `LabelJobItem.CommandBytes`（BLOB，决策 #195）；
-- 外部表单唤醒 / 变量灌装与 raw 指令透传——另立 Issue 挂账（#379）；
+- 外部表单唤醒 / 变量灌装与 raw 指令透传——挂账另立（开放设计预案 Issue，ROADMAP 在案）；
 - PDA 侧 TSPL——待 Windows 真机效果验证后另议（DESIGN §5.4.7）；
 - winspool 驱动通道——免驱动双通道已覆盖，驱动队列场景另议；
 - 图片渲染——图片模式整链在宿主（Rendering + 位图分派），插件只做「位图 → BITMAP 字节流」编码。
@@ -64,7 +64,7 @@
 | 区域（`LabelRegionElement`） | `BorderMm > 0` → `BOX`（右下角坐标形态）；无边框跳过——版式容器自身不出指令 |
 | 文本 | 边框 BOX + `TEXT x,y,"0",0,xPt,yPt,"content"`（缩放字体 0 磅值字号＝连续缩放；宽度未指定随高度）；加粗近似 = 同内容偏移 1 点重绘（无粗体字体变体）；字符覆盖＝可打印 ASCII + Latin-1，中文等显式失败 `LF_ENC_002`（内置字体无汉字字形，装中文字库前不可表示） |
 | Code 128 条码 | 边框 BOX + `BARCODE x,y,"128",h,human,0,narrow,1,"v"`（`128` 自动子集；narrow = 模块宽 dot、wide 恒 1；human = displayValue ? 2 居中 : 0）；中文等按 `LF_ENC_001` 拒绝 |
-| 二维码 | 边框 BOX + `QRCODE x+inset,y+inset,ECC,cell,A,0,"v"`（mode A 自动；cell = 边长点数 ÷（矩阵 + 2×静区）钳位 1..10，矩阵按 ISO 容量表估版本 → 17+4v）；中文值经页级 CODEPAGE UTF-8 透传（真机定案可扫——AC-07） |
+| 二维码 | 边框 BOX + `QRCODE x+inset,y+inset,ECC,cell,A,0,"v"`（mode A 自动；cell = 边长点数 ÷（矩阵 + 2×静区）钳位 1..10，矩阵按 ISO 容量表估版本 → 17+4v）；中文值经页级 CODEPAGE UTF-8 透传（真机定案可扫） |
 | 线（`LabelLineElement`） | 水平 / 垂直 → `BAR x,y,w,h`（跨度 × 线宽，dot）；斜线显式失败（BAR 仅正交） |
 | 图片（`SourceKey` 空） | 静默跳过（「未指定 = 不存在于打印面」，与两渲染器同口径） |
 | 图片（有 key）/ 未知类型 | **显式失败**（消息含「可将打印方式切回图片」）——不回退不混合（§5.4.4） |
@@ -110,7 +110,7 @@
 | 图片模式「反色处理」连接级开关（`ILabelImageEncoder` 选项重载 + `invertImage` 参数键约定） | #196 |
 | 注释极简化（本篇承接源码设计知识） | #189 |
 
-**迭代 143 四项用户拍板**（Issue #378 待决议）：指令集维度单插件 / MSI 附带同款 zebra / USB 留空自动发现＋可指定 / TSPL2 基线＋反白（REVERSE）不做。
+**四项用户拍板**：指令集维度单插件 / MSI 附带同款 zebra / USB 留空自动发现＋可指定 / TSPL2 基线＋反白（REVERSE）不做。
 
 ## 6. 平台坑与不变量
 
@@ -121,8 +121,8 @@
 3. **USB 设备路径来自注册表键名**：`DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}`（GUID_DEVINTERFACE_USBPRINT）子键名前缀 `##?#` 对应 CreateFile 路径前缀 `\\?\`、**接口 GUID 尾巴必须保留**、保留原大小写（旧实现剥 `#\` 段与 GUID 尾巴 → 路径不存在，TT065-60 真机实证）；接口 GUID 勿凭记忆猜（2026-10-16 本机双设备 VID_0A5F / VID_1203 实证）。
 4. **`ESC ! ?` 位语义按 TSPL2 手册**（bit0 头开 / 1 卡纸 / 2 缺纸 / 3 色带尽 / 4 暂停 / 5 打印中 / 7 其他）；`ESC` 前缀 = 立即响应、`~` 前缀 = 就绪才响应（`~!?` 非 TSC 官方指令）。实测错误位任务后锁存、紧贴任务短暂无应答——查询带重试（3 × 500ms）为此设计。
 5. **BITMAP 数据必须精确 width×height 字节原始二进制**：不转十六进制（决策 #195 明确）；行优先 / MSB 与 `LabelBitmap` 一致，**位极性相反（TSPL 位 0 = 印点）——必须逐位取反**（TT065-60 真机反色实证，勿「优化」掉取反）。
-6. **GAP / BLINE 不发**：媒介间隙是耗材属性，发错比不发更糟（打印机既有标定兜底）；DIRECTION 必须显式（打印机内存值不可依赖）。真机验证通过（GAP 不发走纸正常、DIRECTION 1 方向正确——AC-07）。
-7. **QR 中文 = CODEPAGE UTF-8 透传（真机定案）**：TT065-60 实测中文 QR 内容手机可扫、原文无损（AC-07）；无静默过滤，不需要显式失败分支。
+6. **GAP / BLINE 不发**：媒介间隙是耗材属性，发错比不发更糟（打印机既有标定兜底）；DIRECTION 必须显式（打印机内存值不可依赖）。真机验证通过（GAP 不发走纸正常、DIRECTION 1 方向正确——真机实证）。
+7. **QR 中文 = CODEPAGE UTF-8 透传（真机定案）**：TT065-60 实测中文 QR 内容手机可扫、原文无损；无静默过滤，不需要显式失败分支。
 8. **native 编译显式失败，不回退不混合**：不支持元素 / 字符以失败结果返回（`LF_ENC_001` / `LF_ENC_002`），不自动回退图片、不做元素级混合；不要往编译器加排版模拟（自动换行 / 缩放 / 图片均裁剪——§5.4.1 裁剪原则）。
 9. **文本字号单位是磅不是倍率**：TSPL 缩放字体 "0" 的 x/y-mult 单位为 point（1 pt = 1/72 inch）；点阵字体 1~5 才是整数倍率（1..10）且不支持连续字高——编译器只用字体 0，勿按倍率口径换算。
 10. **TFM 与宿主 windows 腿一致**（`net10.0-windows10.0.26100`）：插件由宿主运行时字节加载，TFM 越前破坏装配；P/Invoke 依赖 Windows API（usbprint CreateFile），非 Windows 端不装配本插件（`.lfplugin` 平台门，决策 #157）。

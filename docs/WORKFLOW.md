@@ -43,7 +43,7 @@
 | 迭代索引与状态总览 | [ROADMAP.md](ROADMAP.md)（结项时更新一行；迭代 0-41 历史详情在 [archive/ROADMAP-ITERATIONS.md](archive/ROADMAP-ITERATIONS.md)） |
 | 版本正文 | [CHANGELOG.md](../CHANGELOG.md) + GitHub Release |
 | 架构与关键技术决策 | [DESIGN.md](DESIGN.md) 决策表 |
-| 验收欠账 | 打 `待验收` 标签的 Issue（存量见 [ACCEPTANCE-BACKLOG.md](ACCEPTANCE-BACKLOG.md)，消化后退役） |
+| 验收欠账 | 打 `待验收` 标签的 Issue |
 | 契约行为 | 代码 + DESIGN.md「5. API 概览」等章节 |
 
 同一事实只在一处维护，其他位置只留链接；Issue / PR 已能接续时不另建本地交接文件。

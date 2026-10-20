@@ -1,6 +1,6 @@
 # LabelFrame.WinHost 模块设计（Client Host）
 
-> 覆盖：`src/LabelFrame.WinHost/`（40 文件，约 5600 行）＋测试 `test/LabelFrame.WinHost.Tests/`（65 文件，含 `Rendering/` 子目录＝Rendering 模块的测试）、`test/LabelFrame.ClientHost.Tests/`（Linux 目标）、`test/LabelFrame.Benchmarks/`（渲染 / 编码 / 队列热路径基准）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
+> 覆盖：`src/LabelFrame.WinHost/`（40 文件，约 5600 行）＋测试 `test/LabelFrame.WinHost.Tests/`（65 文件，含 `Rendering/` 子目录＝Rendering 模块的测试）、`test/LabelFrame.ClientHost.Tests/`（Linux 目标）、`test/LabelFrame.Benchmarks/`（渲染 / 编码 / 队列热路径基准）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

@@ -21,7 +21,7 @@
 - **七页向导流程**：欢迎（新装 / 升级检测，含离线安装指引）→ 拓扑预设（单机一体 / 服务端 / 打印客户端等，选错可重跑改选）→ 品牌多选（按已装打印机驱动名预选：检测到 ZDesigner 预选 Zebra、检测到 TSC 预选「TSC 及 TSPL 兼容机」；选项来自清单插件条目）→ 管理界面开关（服务端网页管理界面，可选）→ 确认安装计划（组件清单 + 本机已装版本对照）→ 安装进度（逐组件下载 + 校验 + 安装，失败自动回滚并给出中文失败分类）→ 完成。
 - **前置说明**：引导程序自带 .NET 10 Desktop Runtime / ASP.NET Core Runtime / WebView2 运行时**前置链**——本机缺失时自动按官方直链下载补装（已装则跳过），无需手工预装运行时；这正是它优于 MSI 直装的主要场景（MSI 直装缺失运行时会拦截并给下载链接，需手动补装）。
 - **升级**：本机已装 LabelFrame 时重跑引导程序即进入升级模式（列出可升级组件「现版本 → 新版本」，复用同一安装链完成覆盖升级，用户配置保留）；客户端设置页「检查更新」发现新版本时也会指向此入口。
-- **离线 / 内网**：欢迎页提供离线安装指引；完全离线的预下载布局目录形态见相邻迭代排期（当前内网可先在有网机器装好后整机克隆或用 MSI + 手动运行时部署）。
+- **离线 / 内网**：欢迎页提供离线安装指引；完全离线可在有网机器用 `scripts\make-offline-layout.ps1`（或引导程序 `--layout`）预生成组件布局目录后拷贝部署（当前内网也可先在有网机器装好后整机克隆或用 MSI + 手动运行时部署）。
 - **SmartScreen「未知发布者」提示**：引导 EXE 当前使用自签证书签名（与 MSI 同通道，见「自动化发布与签名」一节）——公网下载首次运行 Windows 可能提示「未知发布者」，点「更多信息 → 仍要运行」即可；下载完整性由 install manifest 的 sha256 强制校验保障。内网可把自签根证书加入受信任根消除提示。
 - **安装日志（排障）**：Burn 引擎日志在 `%TEMP%\LabelFrame*.log`（失败报告页可直接打开本次日志；按通配查找）。
 - 本地手工构建（发版链之外）：`scripts\build-bundle.ps1 -Version x.y.z`（需 WiX v7；Secrets 在场时 `-Sign` 复用 MSI 证书签名）。
@@ -31,7 +31,7 @@
 下载：[GitHub Releases](https://github.com/marci-labs/LabelFrame/releases)。
 
 - **LabelFrame-Server-x.x.x.msi** → `C:\Program Files\LabelFrame\Server`：无头服务端（模板库 / 作业中心 / 设备投递 / 调试出图 / 日志 / Excel），不接打印机、不提供 Web UI；安装为 Windows 服务 `LabelFrameServer`，数据在 `%ProgramData%\LabelFrame\server`。
-- **LabelFrame-Client-x.x.x.msi** → `C:\Program Files\LabelFrame\Client`：打印客户端，以应用窗口（WebView2 嵌入界面壳）托管完整界面（模板设计 / 数据与打印 / 连接配置 / 作业历史；不提供「PDA 日志」页——设备日志回传能力立项前不包含），本机地址 `http://127.0.0.1:53960`；窗口关闭后服务驻留系统托盘（真正退出走托盘「退出」）。
+- **LabelFrame-Client-x.x.x.msi** → `C:\Program Files\LabelFrame\Client`：打印客户端，以应用窗口（WebView2 嵌入界面壳）托管完整界面（模板设计 / 数据与打印 / 连接配置 / 作业历史；不提供「PDA 日志」页——设备日志回传能力暂未包含），本机地址 `http://127.0.0.1:53960`；窗口关闭后服务驻留系统托盘（真正退出走托盘「退出」）。
 
 要点：
 
@@ -254,7 +254,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 - 连接配置：`%LOCALAPPDATA%\LabelFrame\connection.json`，格式 `{ "pluginId": "tcp9100", "params": { "host": "...", "port": "9100" } }`；旧格式自动迁移。
 - 内置传输插件：`log`（模拟打印）、`tcp9100`、`winspool`（Windows 驱动）。插件接口见 DESIGN「传输插件」相关决策记录。
 - **Zebra 品牌传输已外置为官方插件**：插件 id `labelframe-transport-zebra`，`.lfplugin` 包随 GitHub Release 发布（`labelframe-transport-zebra-<版本>.lfplugin`）并经客户端 MSI 附带（安装目录 `plugin-packages\`）；连接配置引用 Zebra 时插件未装则客户端启动自动从附带包安装（升级无断裂），也可在「插件管理」手动安装 / 升级（官方插件覆盖安装带版本比较：新版本覆盖、同版本幂等、降级需先卸载）。未安装该插件时 Zebra 品牌不可用（连接引用则回退默认连接并在 host.log 留痕）。
-- **TSPL 指令集传输已外置为官方插件**：插件 id `labelframe-transport-tspl`，服务 TSC 及 TSPL 兼容品牌（指令集维度单插件）；TCP 9100 网口与 USB 免驱动直连双通道，原生指令模式（文本 / Code 128 条码 / 二维码 / 线 / 矩形框直出指令）与图片模式（整版 `BITMAP` 位图，带「反色处理」开关应对位极性相反的兼容机型）双能力；打印机状态（`ESC ! ?`：缺纸 / 卡纸 / 打印头开 / 色带尽 / 暂停等）实时查询。分发与安装语义同 Zebra：`.lfplugin` 包随 GitHub Release 发布并经客户端 MSI 附带、连接引用未装时启动自动安装、覆盖安装带版本比较（决策 #195 / #196）。
+- **TSPL 指令集传输已外置为官方插件**：插件 id `labelframe-transport-tspl`，服务 TSC 及 TSPL 兼容品牌（指令集维度单插件）；TCP 9100 网口与 USB 免驱动直连双通道，原生指令模式（文本 / Code 128 条码 / 二维码 / 线 / 矩形框直出指令）与图片模式（整版 `BITMAP` 位图，带「反色处理」开关应对位极性相反的兼容机型）双能力；打印机状态（`ESC ! ?`：缺纸 / 卡纸 / 打印头开 / 色带尽 / 暂停等）实时查询。分发与安装语义同 Zebra：`.lfplugin` 包随 GitHub Release 发布并经客户端 MSI 附带、连接引用未装时启动自动安装、覆盖安装带版本比较。
 
 ## 9. 自动化发布与签名
 

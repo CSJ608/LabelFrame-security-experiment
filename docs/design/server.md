@@ -1,6 +1,6 @@
 # LabelFrame.Server 模块设计
 
-> 覆盖：`src/LabelFrame.Server/`（30 文件，约 3,550 行）＋ `test/LabelFrame.Server.Tests/`（33 文件，约 5,130 行）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
+> 覆盖：`src/LabelFrame.Server/`（30 文件，约 3,550 行）＋ `test/LabelFrame.Server.Tests/`（33 文件，约 5,130 行）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界
@@ -145,4 +145,4 @@
 11. **Kestrel 请求体上限已接 64MB**：`MaxRequestBodySize = PluginPackageLimits.MaxBytes`——默认约 30MB 会让插件包上传返回 413 且无错误体。
 12. **停机超时 5s 是安装链契约**：MSI 升级 / 卸载依赖 Server 5 秒内停止（决策 #60），调大会拖慢安装链。
 13. **文件名一律经 `SafeFileName` 规范化**：三个包目录服务共享基类的路径穿越防护（拒绝路径分隔符 / `..`），绕过即在服务端开目录穿越读写。
-14. **错误码新增的联动义务**：`LF_SRV_*` 新码须同步 web 端码表（`errorCodes.json`，覆盖断言测试挡漏译）；同一语义不得复用旧码带不同参数键集（历史拆码 #113 / LF_SRV_012、LF_SRV_013 均为此）。
+14. **错误码新增的联动义务**：`LF_SRV_*` 新码须同步 web 端码表（`errorCodes.json`，覆盖断言测试挡漏译）；同一语义不得复用旧码带不同参数键集（历史拆码 LF_SRV_012、LF_SRV_013 均为此）。

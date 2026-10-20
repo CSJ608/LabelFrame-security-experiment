@@ -1,6 +1,6 @@
 # LabelFrame.Api 模块设计
 
-> 覆盖：`src/LabelFrame.Api/`（8 文件，约 640 行）· 基线：`master` `7486dae`（2026-10-19，含迭代 139～147 增量回填）
+> 覆盖：`src/LabelFrame.Api/`（8 文件，约 640 行）· 基线：`master` `7486dae`（2026-10-19）
 > 端点契约细节（路径 / 请求响应形态 / 错误码全集 / 状态机）见 [DESIGN.md](../DESIGN.md) §5「API 概览」，本篇不重复；分工与模板说明见 [README.md](README.md)。
 
 ## 1. 职责与边界
