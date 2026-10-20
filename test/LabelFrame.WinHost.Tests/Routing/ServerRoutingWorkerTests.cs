@@ -379,7 +379,7 @@ public class ServerRoutingWorkerTests
         return new JobSubmissionService(
             queue,
             new ZplImageEncoder(),
-            dpi: 203,
+            dpiProvider: () => 203,
             new SkiaLabelRenderer(),
             templates,
             manager,

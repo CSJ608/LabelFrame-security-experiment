@@ -138,7 +138,7 @@ public class PrintImageRetentionCleanerTests
             var service = new JobSubmissionService(
                 new LabelJobQueue(store),
                 new ZplImageEncoder(),
-                dpi: 203,
+                dpiProvider: () => 203,
                 new SkiaLabelRenderer(),
                 templates,
                 transportManager,

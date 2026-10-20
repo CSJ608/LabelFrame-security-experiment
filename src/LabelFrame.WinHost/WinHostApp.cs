@@ -136,7 +136,7 @@ public static class WinHostApp
         builder.Services.AddSingleton(sp => new JobSubmissionService(
             queue,
             sp.GetRequiredService<ZplImageEncoder>(),
-            options.Dpi,
+            () => printSettings.EffectiveDpi(options.Dpi),
             skiaRenderer,
             templateStore,
             transportManager,
@@ -188,16 +188,16 @@ public static class WinHostApp
                 displayText = registry.Describe(transportManager.CurrentConfig.PluginId, new TransportPluginParameters(transportManager.CurrentConfig.Params)),
             }));
 
-        // 模板 / 出图 / 日志端点与 Server 共享（实现见 LabelFrame.Api.Endpoints）
+        // 模板 / 出图 / 日志端点与 Server 共享（实现见 LabelFrame.Api.Endpoints）；DPI 逐次取运行时生效值（设置页保存即生效）
         app.MapTemplateApi(new TemplateApiOptions(
             templateStore,
             skiaRenderer,
-            options.Dpi,
+            () => printSettings.EffectiveDpi(options.Dpi),
             JobErrorCodes.InvalidRequest,
             ApiErrorCodes.TemplateNotFound));
 
         // 图片资源解析与共享出图端点同源：base64 附带优先、按名回退本地模板库
-        app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, options.Dpi, JobErrorCodes.InvalidRequest));
+        app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, () => printSettings.EffectiveDpi(options.Dpi), JobErrorCodes.InvalidRequest));
 
         // 补挂该端点前客户端 /api/logs 命中 SPA 回退返回 index.html——必须保持 JSON + LF_API_001
         app.MapLogApi(new LogApiOptions(logStore, JobErrorCodes.InvalidRequest));
@@ -208,7 +208,7 @@ public static class WinHostApp
         app.MapPluginApi();
 #endif
         app.MapJobsApi();
-        app.MapPrinterApi(options.Dpi);
+        app.MapPrinterApi(() => printSettings.EffectiveDpi(options.Dpi));
         app.MapHostApi(hostInfo);
 
 #if WINDOWS

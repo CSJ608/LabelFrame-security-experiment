@@ -144,4 +144,37 @@ public class PrintSettingsStoreTests
             // 清理失败不影响断言
         }
     }
+
+    [Fact]
+    public void Load_with_dpi_should_roundtrip_and_reject_out_of_whitelist()
+    {
+        var path = NewPath();
+        try
+        {
+            File.WriteAllText(path, "{ \"batchEnabled\": false, \"batchSize\": 10, \"batchIntervalMs\": 500, \"dpi\": 300 }");
+            Assert.Equal(300, new PrintSettingsStore(path).Load().Dpi);
+
+            File.WriteAllText(path, "{ \"batchEnabled\": false, \"batchSize\": 10, \"batchIntervalMs\": 500, \"dpi\": 600 }");
+            Assert.Null(new PrintSettingsStore(path).Load().Dpi); // 白名单外 → 继承宿主配置
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void Save_should_persist_dpi()
+    {
+        var path = NewPath();
+        try
+        {
+            new PrintSettingsStore(path).Save(new PrintSettingsDto(false, 10, 500, 300));
+            Assert.Equal(300, new PrintSettingsStore(path).Load().Dpi);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
 }

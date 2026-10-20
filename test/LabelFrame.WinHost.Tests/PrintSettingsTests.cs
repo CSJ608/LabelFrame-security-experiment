@@ -76,4 +76,50 @@ public class PrintSettingsTests
     {
         Assert.Equal(PrintSettings.Defaults, new PrintSettings().Snapshot());
     }
+
+    // ──打印 DPI（203/300 白名单、未设置继承宿主配置）──
+
+    [Theory]
+    [InlineData(203)]
+    [InlineData(300)]
+    public void Normalize_should_keep_whitelisted_dpi(int dpi)
+    {
+        Assert.Equal(dpi, PrintSettings.Normalize(false, 10, 500, dpi).Dpi);
+    }
+
+    [Theory]
+    [InlineData(600)]
+    [InlineData(0)]
+    [InlineData(null)]
+    public void Normalize_should_reject_non_whitelisted_dpi_to_null(int? dpi)
+    {
+        Assert.Null(PrintSettings.Normalize(false, 10, 500, dpi).Dpi);
+    }
+
+    [Fact]
+    public void Validate_should_accept_whitelist_and_reject_others()
+    {
+        Assert.Null(PrintSettings.Validate(10, 500, 203));
+        Assert.Null(PrintSettings.Validate(10, 500, 300));
+        Assert.Null(PrintSettings.Validate(10, 500, null));
+        Assert.NotNull(PrintSettings.Validate(10, 500, 600));
+    }
+
+    [Fact]
+    public void EffectiveDpi_should_fallback_when_unset_and_override_when_set()
+    {
+        var settings = new PrintSettings();
+        Assert.Equal(300, settings.EffectiveDpi(300)); // 未设置 → 宿主配置兜底
+        settings.Update(new PrintSettingsDto(false, 10, 500, 203));
+        Assert.Equal(203, settings.EffectiveDpi(300));
+        Assert.Equal(203, settings.EffectiveSnapshot(300).Dpi);
+    }
+
+    [Fact]
+    public void Update_with_non_whitelisted_dpi_should_normalize_to_null()
+    {
+        var settings = new PrintSettings();
+        settings.Update(new PrintSettingsDto(false, 10, 500, 600));
+        Assert.Null(settings.Snapshot().Dpi);
+    }
 }

@@ -111,7 +111,7 @@ beforeEach(() => {
   mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '就绪' })
   mocks.local.testPrinter.mockResolvedValue({ sent: true, bytes: 128 })
   mocks.local.setHostConfig.mockResolvedValue(undefined)
-  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500 })
+  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 })
   mocks.local.setPrintSettings.mockResolvedValue(undefined)
   mocks.probeHealthz.mockResolvedValue(true)
 })
@@ -788,7 +788,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
     fireEvent.change(screen.getByLabelText('批次打印间隔（毫秒）'), { target: { value: '800' } })
     fireEvent.click(within(withinBatch()).getByRole('button', { name: /^保存$/ }))
     expect(await screen.findByText('已保存并立即生效。')).toBeTruthy()
-    expect(mocks.local.setPrintSettings).toHaveBeenCalledWith({ batchEnabled: true, batchSize: 20, batchIntervalMs: 800 })
+    expect(mocks.local.setPrintSettings).toHaveBeenCalledWith({ batchEnabled: true, batchSize: 20, batchIntervalMs: 800, dpi: 203 })
   })
 
   it('保存失败（后端 400 ErrorView）：展示后端中文 message，不提示成功', async () => {
@@ -813,6 +813,17 @@ describe('打印批次（迭代 24 §4.4）', () => {
     expect(await screen.findByText('保存批次设置失败。')).toBeTruthy()
   })
 
+  it('打印 DPI：默认 203，切换 300 后随保存提交', async () => {
+    renderSettings()
+    openSection('打印批次')
+    const dpi = (await screen.findByLabelText('打印 DPI')) as HTMLSelectElement
+    expect(dpi.value).toBe('203')
+    fireEvent.change(dpi, { target: { value: '300' } })
+    fireEvent.click(within(withinBatch()).getByRole('button', { name: /^保存$/ }))
+    expect(await screen.findByText('已保存并立即生效。')).toBeTruthy()
+    expect(mocks.local.setPrintSettings).toHaveBeenCalledWith({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 300 })
+  })
+
   it('旧 WinHost（GET 404）：显示版本提示「当前客户端版本不支持批次作业」，不渲染表单', async () => {
     mocks.local.getPrintSettings.mockRejectedValue(new ApiError('HTTP_404', '请求失败（HTTP 404）。'))
     renderSettings()
@@ -821,6 +832,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
     expect(screen.queryByLabelText('开启批次作业')).toBeNull()
     expect(screen.queryByLabelText('每批次打印数量')).toBeNull()
     expect(screen.queryByLabelText('批次打印间隔（毫秒）')).toBeNull()
+    expect(screen.queryByLabelText('打印 DPI')).toBeNull()
     expect(screen.queryByRole('button', { name: /^保存$/ })).toBeNull()
   })
 

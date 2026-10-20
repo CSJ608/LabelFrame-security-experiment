@@ -106,7 +106,7 @@ beforeEach(() => {
   mocks.server.listDevices.mockResolvedValue([])
   mocks.local.listDevices.mockResolvedValue([])
   mocks.local.listInstalledPlugins.mockResolvedValue([])
-  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500 })
+  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 })
   mocks.server.listClientPackages.mockResolvedValue([])
   mocks.server.listPluginPackages.mockResolvedValue([])
 })

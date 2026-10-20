@@ -484,6 +484,20 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                     />
                   </label>
                 </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <label className="field" style={{ maxWidth: 190 }}>
+                    {t('batch.dpi')}
+                    <select
+                      className="input"
+                      value={printSettings.dpi}
+                      onChange={(ev) => setPrintSettings({ ...printSettings, dpi: Number(ev.target.value) })}
+                    >
+                      <option value={203}>203 dpi</option>
+                      <option value={300}>300 dpi</option>
+                    </select>
+                  </label>
+                  <div className="hint" style={{ flex: 1, minWidth: 220 }}>{t('batch.dpiHint')}</div>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <button className="btn primary" onClick={() => void savePrintSettings()} disabled={batchSaving}>
                     <Icon name="save" size={13} />

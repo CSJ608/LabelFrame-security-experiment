@@ -319,6 +319,8 @@ export interface PrintSettings {
   batchSize: number
   /** 批次打印间隔毫秒（默认 500，≥ 0；0 = 无间隔）。 */
   batchIntervalMs: number
+  /** 打印 DPI（203/300 白名单；GET 一律返回生效值——未设置时后端已按宿主配置兜底）。 */
+  dpi: number
 }
 
 /* * GET /api/printer/status。 */

@@ -1,4 +1,4 @@
-// 设计器（核心页面壳）：顶栏（模板名 / 分组 / 纸张 / DPI / 预览 / 保存）+ 左栏（控件 / 字段 / 图层）
+// 设计器（核心页面壳）：顶栏（模板名 / 分组 / 纸张 / 预览 / 保存）+ 左栏（控件 / 字段 / 图层）
 // + 画布 + 右栏（属性 / 测试数据 Tab）。stateRef 为同步真相（事件回调内先更新再 setState），
 // 历史为快照式；dirty（历史栈有已提交更改）时离开走三选 Modal，无编辑直接离开不弹窗。
 // 编排拆分：元素操作 / 深链演示 / 图片资源 / 保存 / 离开保护下沉 pages/designer/* hooks，机制层 lib/design/ 不动。
@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { localApi, serverApi } from '../lib/api/client'
+import { isServerUi } from '../lib/uiMode'
 import { ApiError } from '../lib/api/types'
 import type { TemplatePackage } from '../lib/api/types'
 import type { DesignerRequest } from '../state/types'
@@ -54,7 +55,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const [state, setState] = useState<DesignState | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'fit' | 'preview'>('fit')
-  const [dpi, setDpi] = useState(203)
+  // 打印 DPI 口径全局唯一（设置页打印设置）：预览缩放取客户端当前生效值，失败（旧宿主 404）保持 203
+  const [printDpi, setPrintDpi] = useState(203)
   const [zoom, setZoom] = useState(1)
   const [gridOn, setGridOn] = useState(true)
   const [pendingType, setPendingType] = useState<string | null>(null)
@@ -222,6 +224,21 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request, serverMode])
 
+  useEffect(() => {
+    // 客户端全局打印 DPI（设置页）；server 管理界面无本机打印语义，保持默认 203
+    if (isServerUi) return
+    let alive = true
+    localApi
+      .getPrintSettings()
+      .then((s) => {
+        if (alive) setPrintDpi(s.dpi ?? 203)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
   // ---------- 预览 ----------
   const togglePreview = useCallback(() => {
     if (viewMode === 'preview') {
@@ -234,9 +251,9 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       setZoom(1)
       setSelected([])
       selectedRef.current = []
-      app.setStatus(t('status.previewEntered', { dpi, dots: Math.round(dpi / 25.4) }))
+      app.setStatus(t('status.previewEntered', { dpi: printDpi, dots: Math.round(printDpi / 25.4) }))
     }
-  }, [app, dpi, viewMode, t])
+  }, [app, printDpi, viewMode, t])
 
   // ---------- 保存 + 离开保护 ----------
   const { doSave, save, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
@@ -365,10 +382,6 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           mm
         </label>
         <span className="toolbar-sep" />
-        <select className="input" value={dpi} onChange={(ev) => setDpi(parseInt(ev.target.value, 10))} title={t('toolbar.dpiTitle')}>
-          <option value={203}>203 dpi</option>
-          <option value={300}>300 dpi</option>
-        </select>
         <button className={'btn' + (viewMode === 'preview' ? ' active' : '')} onClick={togglePreview} title={t('toolbar.previewTitle')}>
           <Icon name="preview" size={13} />
           {viewMode === 'preview' ? t('toolbar.exitPreview') : t('toolbar.preview')}
@@ -438,7 +451,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
             state={viewState}
             selected={selected}
             viewMode={viewMode}
-            dpi={dpi}
+            dpi={printDpi}
             zoom={zoom}
             gridOn={gridOn}
             pendingType={pendingType}

@@ -20,7 +20,7 @@ namespace LabelFrame.WinHost.Api;
 /// <summary>打印机状态 / 测试页端点（测试页与正式打印同源：Skia 整版位图按连接分派图片指令编码）。</summary>
 internal static class PrinterApi
 {
-    public static IEndpointRouteBuilder MapPrinterApi(this IEndpointRouteBuilder app, int dpi)
+    public static IEndpointRouteBuilder MapPrinterApi(this IEndpointRouteBuilder app, Func<int> dpiProvider)
     {
     // ---- 打印机测试页 / 在线状态 ----
     app.MapGet("/api/printer/status", async (ITransportManager transportManager, CancellationToken ct) =>
@@ -31,6 +31,7 @@ internal static class PrinterApi
         // 测试页与正式打印同源：Skia 渲染整版位图，图片指令编码按连接插件分派；
         // 版面尺寸跟连接媒介参数（LabelMediaSize：TSPL 固件严格按 SIZE 走纸，与实体一致才出完整一张）
         var config = transportManager.CurrentConfig;
+        var dpi = dpiProvider();
         var document = BuildTestDocument(LabelMediaSize.Resolve(config.Params));
         var bitmap = renderer.RenderLabelBitmap(document, dpi);
         var imageEncoder = pluginRegistry.GetImageEncoder(config.PluginId);

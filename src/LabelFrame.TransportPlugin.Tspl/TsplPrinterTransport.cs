@@ -7,7 +7,8 @@ namespace LabelFrame.TransportPlugin.Tspl;
 
 /// <summary>
 /// TSPL 传输实例：TCP 9100 / USB 免驱动直连双通道发送 + ESC ! ? 实时状态查询（带重试）。
-/// 逐次建连（发送 / 测试 / 状态各自建连→操作→关闭）；异常统一转中文 InvalidOperationException。
+/// 逐次建连（发送 / 测试 / 状态各自建连→操作→关闭）；USB 自动发现按「打开＋应答探测」取第一台
+/// 可通讯设备；异常统一转中文 InvalidOperationException。
 /// </summary>
 public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvider, ITestableTransport
 {
@@ -186,33 +187,80 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
     private ITsplLink OpenLink() => _kind switch
     {
         TsplTransportKind.Tcp => _openTcpLink(),
-        TsplTransportKind.Usb => _openUsbLink(ResolveUsbDevicePath()),
+        TsplTransportKind.Usb => OpenUsbLink(),
         _ => throw new InvalidOperationException($"不支持的 TSPL 连接类型：{_kind}。"),
     };
 
-    /// <summary>解析 USB 设备路径：指定名匹配（含自动发现留空 → 第一台）；无可行动错误抛 InvalidOperationException。</summary>
-    private string ResolveUsbDevicePath()
+    /// <summary>
+    /// 打开 USB 链路：指定名直连匹配设备；留空自动发现——逐台「打开＋ESC ! ? 应答探测」，返回第一台
+    /// 有 TSPL 应答的<b>已打开</b>链路（打不开 / 无应答跳过继续；全部失败抛可行动错误并列探测清单——
+    /// 多 usbprint 设备并存时不能按枚举序取第一台，非 TSPL 设备须靠应答识别）。
+    /// </summary>
+    private ITsplLink OpenUsbLink()
     {
-        IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> devices;
+        if (!string.IsNullOrWhiteSpace(_usbName))
+        {
+            return _openUsbLink(ResolveUsbDevicePath());
+        }
+
+        var devices = ListUsbDevices();
+        if (devices.Count == 0)
+        {
+            throw new InvalidOperationException("未发现 USB 打印机，请检查连接或指定设备名。");
+        }
+
+        var failures = new List<string>();
+        foreach (var device in devices)
+        {
+            ITsplLink link;
+            try
+            {
+                link = _openUsbLink(device.DevicePath);
+            }
+            catch (InvalidOperationException ex)
+            {
+                failures.Add($"{device.DisplayName} 打不开（{ex.Message}）");
+                continue;
+            }
+
+            try
+            {
+                link.Write(StatusQueryCommand, StatusReadTimeoutMs);
+                if (link.Read(1, StatusReadTimeoutMs) is { Length: > 0 })
+                {
+                    return link;
+                }
+
+                failures.Add($"{device.DisplayName} 无应答");
+            }
+            catch (InvalidOperationException)
+            {
+                failures.Add($"{device.DisplayName} 探测失败");
+            }
+
+            link.Dispose();
+        }
+
+        throw new InvalidOperationException(
+            $"自动发现失败：{devices.Count} 台 USB 打印机均不可通讯（{string.Join("；", failures)}）。请在连接设置「USB 打印机名」显式指定（如 VID_1203）。");
+    }
+
+    private IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> ListUsbDevices()
+    {
         try
         {
-            devices = _listUsbDevices();
+            return _listUsbDevices();
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"枚举 USB 打印机失败：{ex.Message}");
         }
+    }
 
-        if (string.IsNullOrWhiteSpace(_usbName))
-        {
-            if (devices.Count == 0)
-            {
-                throw new InvalidOperationException("未发现 USB 打印机，请检查连接或指定设备名。");
-            }
-
-            return devices[0].DevicePath;
-        }
-
+    /// <summary>按指定名解析 USB 设备路径：精确匹配后大小写不敏感包含（实例名 / 路径）；无可行动错误抛 InvalidOperationException。</summary>
+    private string ResolveUsbDevicePath()
+    {
+        var devices = ListUsbDevices();
         var match = devices.FirstOrDefault(d => d.DisplayName.Equals(_usbName, StringComparison.OrdinalIgnoreCase))
             ?? devices.FirstOrDefault(d => d.DisplayName.Contains(_usbName, StringComparison.OrdinalIgnoreCase)
                 || d.DevicePath.Contains(_usbName, StringComparison.OrdinalIgnoreCase));

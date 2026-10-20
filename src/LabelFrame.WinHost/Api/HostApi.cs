@@ -50,8 +50,8 @@ internal static class HostApi
         return Results.Ok(new Api.HostConfigDto(serverUrl, options.DeviceId, options.DeviceName, LocalIpAddresses.EnumerateIpv4(), HostOptions.ProductVersion));
     });
     // 批次作业设置：仅回环可写、保存即生效
-    app.MapGet("/api/host/print-settings", (PrintSettings printSettings) =>
-        Api.PrintSettingsApi.Get(printSettings));
+    app.MapGet("/api/host/print-settings", (PrintSettings printSettings, HostOptions options) =>
+        Api.PrintSettingsApi.Get(printSettings, options));
 
     app.MapPost("/api/host/print-settings", (HttpContext context, PrintSettingsDto? request, PrintSettingsStore store, PrintSettings printSettings) =>
         Api.PrintSettingsApi.Post(context.Connection.RemoteIpAddress, request, store, printSettings));

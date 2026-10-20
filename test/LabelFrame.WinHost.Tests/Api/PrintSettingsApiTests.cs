@@ -16,11 +16,11 @@ public class PrintSettingsApiTests
         var settings = new PrintSettings();
         settings.Update(new PrintSettingsDto(true, 12, 400));
 
-        var response = await ExecuteAsync(PrintSettingsApi.Get(settings));
+        var response = await ExecuteAsync(PrintSettingsApi.Get(settings, new HostOptions()));
 
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         var body = await ReadJsonAsync(response);
-        Assert.Equal(new PrintSettingsDto(true, 12, 400), body);
+        Assert.Equal(new PrintSettingsDto(true, 12, 400, 203), body); // DPI 未设置 → 宿主默认生效值
     }
 
     [Fact]
@@ -35,11 +35,11 @@ public class PrintSettingsApiTests
             var settings = new PrintSettings();
             settings.Update(store.Load());
 
-            var response = await ExecuteAsync(PrintSettingsApi.Get(settings));
+            var response = await ExecuteAsync(PrintSettingsApi.Get(settings, new HostOptions()));
 
             Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
             var body = await ReadJsonAsync(response);
-            Assert.Equal(new PrintSettingsDto(true, 10, 500), body);
+            Assert.Equal(new PrintSettingsDto(true, 10, 500, 203), body);
         }
         finally
         {
@@ -130,6 +130,67 @@ public class PrintSettingsApiTests
         {
             try { if (File.Exists(path)) { File.Delete(path); } } catch { }
         }
+    }
+
+    [Fact]
+    public async Task Get_with_configured_dpi_should_return_it_as_effective_value()
+    {
+        var settings = new PrintSettings();
+        settings.Update(new PrintSettingsDto(false, 10, 500, 300));
+
+        var response = await ExecuteAsync(PrintSettingsApi.Get(settings, new HostOptions()));
+
+        var body = await ReadJsonAsync(response);
+        Assert.Equal(300, body!.Dpi);
+    }
+
+    [Fact]
+    public async Task Post_with_dpi_should_save_and_apply_immediately()
+    {
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lf-api-{Guid.NewGuid():N}.json");
+        try
+        {
+            var settings = new PrintSettings();
+            var store = new PrintSettingsStore(path);
+
+            var response = await ExecuteAsync(PrintSettingsApi.Post(IPAddress.Loopback, new PrintSettingsDto(false, 10, 500, 300), store, settings));
+
+            Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
+            Assert.Equal(300, settings.Snapshot().Dpi);
+            Assert.Equal(300, store.Load().Dpi);
+        }
+        finally
+        {
+            try { if (File.Exists(path)) { File.Delete(path); } } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task Post_without_dpi_should_preserve_stored_dpi()
+    {
+        // 旧客户端形态（请求无 dpi 字段）：只改批次设置，不得清掉已存 DPI
+        var settings = new PrintSettings();
+        settings.Update(new PrintSettingsDto(false, 10, 500, 300));
+        var store = new PrintSettingsStore(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lf-api-{Guid.NewGuid():N}.json"));
+
+        var response = await ExecuteAsync(PrintSettingsApi.Post(IPAddress.Loopback, new PrintSettingsDto(true, 10, 500), store, settings));
+
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
+        Assert.Equal(300, settings.Snapshot().Dpi);
+    }
+
+    [Theory]
+    [InlineData(600)]
+    [InlineData(0)]
+    public async Task Post_dpi_out_of_whitelist_should_return_400(int dpi)
+    {
+        var settings = new PrintSettings();
+        var store = new PrintSettingsStore(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lf-api-{Guid.NewGuid():N}.json"));
+
+        var response = await ExecuteAsync(PrintSettingsApi.Post(IPAddress.Loopback, new PrintSettingsDto(true, 10, 500, dpi), store, settings));
+
+        Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.Null(settings.Snapshot().Dpi);
     }
 
     private static async Task<(int StatusCode, string Body)> ExecuteAsync(IResult result)

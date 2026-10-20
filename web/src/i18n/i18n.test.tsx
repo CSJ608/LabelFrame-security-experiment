@@ -105,7 +105,7 @@ beforeEach(() => {
   mocks.server.listPluginPackages.mockResolvedValue([])
   mocks.local.listInstalledPlugins.mockResolvedValue([])
   mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '就绪' })
-  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500 })
+  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 })
 })
 
 afterEach(() => {

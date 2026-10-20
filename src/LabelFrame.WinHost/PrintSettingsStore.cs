@@ -44,7 +44,12 @@ public sealed class PrintSettingsStore
                 int? batchIntervalMs = root.TryGetProperty("batchIntervalMs", out var interval) && interval.TryGetInt32(out var intervalValue)
                     ? intervalValue
                     : null;
-                return PrintSettings.Normalize(batchEnabled, batchSize, batchIntervalMs);
+                // dpi 序列化为 null（未设置）时 ValueKind 非 Number——TryGetInt32 会抛而非返 false，须先判 Kind
+                int? dpi = root.TryGetProperty("dpi", out var dpiValue)
+                    && dpiValue.ValueKind == JsonValueKind.Number && dpiValue.TryGetInt32(out var dpiInt)
+                    ? dpiInt
+                    : null;
+                return PrintSettings.Normalize(batchEnabled, batchSize, batchIntervalMs, dpi);
             }
             catch
             {
@@ -73,6 +78,7 @@ public sealed class PrintSettingsStore
                     batchEnabled = value.BatchEnabled,
                     batchSize = value.BatchSize,
                     batchIntervalMs = value.BatchIntervalMs,
+                    dpi = value.Dpi,
                 }),
                 new System.Text.UTF8Encoding(false));
             File.Move(temp, _path, overwrite: true);

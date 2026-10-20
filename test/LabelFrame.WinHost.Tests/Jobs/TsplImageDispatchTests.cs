@@ -64,7 +64,7 @@ public class TsplImageDispatchTests
         var service = new JobSubmissionService(
             queue,
             new ZplImageEncoder(),
-            dpi: 203,
+            dpiProvider: () => 203,
             new SkiaLabelRenderer(),
             templates,
             manager,

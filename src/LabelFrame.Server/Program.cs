@@ -146,12 +146,12 @@ app.MapPackagesApi();
 app.MapTemplateApi(new TemplateApiOptions(
     templateStore,
     skiaRenderer,
-    serverOptions.Dpi,
+    () => serverOptions.Dpi,
     ServerErrorCodes.InvalidRequest,
     ServerErrorCodes.TemplateNotFound));
 
 // ---- 调试出图（服务端渲染，浏览器下载；打印以客户端渲染为准；图片资源=请求附带优先、按名回退模板库）----
-app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, serverOptions.Dpi, ServerErrorCodes.InvalidRequest));
+app.MapRenderApi(new RenderApiOptions(templateStore, skiaRenderer, () => serverOptions.Dpi, ServerErrorCodes.InvalidRequest));
 
 // ---- Excel 模板生成 / 设备日志 / Excel 数据导入（端点实现与 WinHost 共享，见 LabelFrame.Api.Endpoints）----
 app.MapImportApi(new ImportApiOptions(ServerErrorCodes.InvalidRequest));

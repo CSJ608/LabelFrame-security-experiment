@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
     saveTemplate: vi.fn(),
     getHostConfig: vi.fn(),
     getTransport: vi.fn(),
+    getPrintSettings: vi.fn(async () => ({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 })),
   },
 }))
 

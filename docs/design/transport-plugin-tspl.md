@@ -29,7 +29,7 @@
 | `TsplTransportKind` | TsplTransportKind.cs | 连接类型枚举（Tcp / Usb）；字符串参数跨插件边界后于此解析 |
 | `ITsplLink` / `TcpTsplLink` / `UsbTsplLink` | TsplLink.cs | 通道链路抽象（一次打开的连接：写 / 读）：public 接口＝传输构造的注入缝（测试替身） |
 | `UsbRawDevice` | UsbRawDevice.cs | USB 原始设备通道（internal）：CreateFile 同步 IO + 看门狗超时（重叠 IO 真机不收尾）；写超时抛中文错误 / 读超时返回 null |
-| `UsbPrinterDeviceDiscovery` | UsbPrinterDevice.cs | USB 设备发现：注册表 `DeviceClasses\{GUID_DEVINTERFACE_USBPRINT}` 枚举；设备路径 = 接口键名前缀 `##?#` 换 `\\?\`（接口 GUID 尾巴保留、原大小写），`ParseDeviceKey` 纯函数单测锚定 |
+| `UsbPrinterDeviceDiscovery` | UsbPrinterDevice.cs | USB 设备发现：`CM_Get_Device_Interface_List`（PRESENT 标志）枚举**在位** usbprint 接口；路径即接口符号链接（`\\?\` 前缀、接口 GUID 尾巴保留），`ParseDevicePath` 纯函数单测锚定 |
 | `TsplLabelCompiler` | TsplLabelCompiler.cs | `ILabelCommandCompiler` 实现：直接打印形态（SIZE→CLS→元素→PRINT，不下载表单——「自管模板不进打印机」口径）；纯函数性质 |
 | `TsplTextWidthMeasurer` | TsplTextWidthMeasurer.cs | `ITextWidthMeasurer` 的 TSPL 缩放字体实现——驱动 `LabelLayoutResolver` 区域锚定换算 |
 | `TsplImageEncoder` | TsplImageEncoder.cs | `ILabelImageEncoder` 实现：整版位图 → BITMAP 原始二进制流（头尾 ASCII + 位图字节一体） |
@@ -38,7 +38,7 @@
 **关键机制**：
 
 - **能力挂插件对象而非传输实例**：编译器与图片编码器实现于 `TsplTransportPlugin`（指令集级能力，与连接形态无关——同一指令集 TCP / USB 共用）；宿主装配期以 `plugin is ILabelCommandCompiler` / `plugin is ILabelImageEncoder` 探测。
-- **参数条件显隐与行层级**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb`、`invertImage`（反色处理，决策 #196）仅 `printMode=image` 可见（决策 #186 VisibleWhen）；行分组（决策 #197 `Row` init-only）：连接类型｜连接参数（host+port / usbName 按 kind 二选一）｜打印方式＋反色｜媒介宽高（`labelWidthMm` / `labelHeightMm`，Core `LabelMediaSize` 键约定——测试打印按此走纸，TSPL 严格按 SIZE 走纸的固件语义与实体一致才出完整一张；正式打印尺寸由模板决定）。`usbName` 留空 = 自动发现第一台 usbprint 设备、可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
+- **参数条件显隐与行层级**：`host` / `port` 仅 `kind=Tcp`、`usbName` 仅 `kind=Usb`、`invertImage`（反色处理，决策 #196）仅 `printMode=image` 可见（决策 #186 VisibleWhen）；行分组（决策 #197 `Row` init-only）：连接类型｜连接参数（host+port / usbName 按 kind 二选一）｜打印方式＋反色｜媒介宽高（`labelWidthMm` / `labelHeightMm`，Core `LabelMediaSize` 键约定——测试打印按此走纸，TSPL 严格按 SIZE 走纸的固件语义与实体一致才出完整一张；正式打印尺寸由模板决定）。`usbName` 留空 = 自动发现——逐台「打开＋`ESC ! ?` 应答探测」取第一台可通讯打印机（多 usbprint 设备并存时枚举序第一台≠目标机，非 TSPL 设备靠应答识别；打不开 / 无应答跳过继续，全部失败报可行动错误并附探测清单——不实现实时状态查询的兼容机须显式指定）；可填 VID（如 `VID_1203`）或设备名做包含匹配（决策 #195，对齐 zebra `usbName` 先例）。
 - **逐次建连**：发送 / 测试 / 状态查询各自「建连 → 操作 → 关闭」（与内置时代行为等价）。
 
 ## 3. 关键流程
@@ -118,7 +118,7 @@
 
 1. **只依赖 Core＝ABI 边界**：引用 WinHost / Rendering 任一工程即破坏外置性；本插件虽纯托管，仍随包自带全部伴生 DLL（当前仅主 DLL 一件——构建脚本断言「恰好 1 个 DLL」，混入宿主必带件即红）。
 2. **usbprint 重叠 IO 真机不收尾**：TT065-60 实测 `FILE_FLAG_OVERLAPPED` 写入挂起（OVERLAPPED 结构对齐修正后仍超时），同步 IO 即时完成——本通道一律同步 CreateFile + 看门狗（Task 等待超时即按失败语义处理，被放弃的阻塞线程随链路关闭、句柄释放中止未决 IO 退出）。
-3. **USB 设备路径来自注册表键名**：`DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}`（GUID_DEVINTERFACE_USBPRINT）子键名前缀 `##?#` 对应 CreateFile 路径前缀 `\\?\`、**接口 GUID 尾巴必须保留**、保留原大小写（旧实现剥 `#\` 段与 GUID 尾巴 → 路径不存在，TT065-60 真机实证）；接口 GUID 勿凭记忆猜（2026-10-16 本机双设备 VID_0A5F / VID_1203 实证）。
+3. **USB 发现必须过滤在位设备**：注册表 `DeviceClasses\{28d78fad-5a12-11d1-ae5b-0000f803a8c2}` 键残留已拔出设备的陈旧接口（Windows 不因拔出清理），裸枚举会拿到 CreateFile 打不开的路径（真机形态：多打印机机器自动发现按字母序挑中挂驱动的非目标打印机后打开失败）——发现一律走 `CM_Get_Device_Interface_List`（PRESENT 标志）。**接口 GUID 尾巴必须保留**（剥掉就不是接口路径，CreateFile 打不开，TT065-60 真机实证）；接口 GUID 勿凭记忆猜（2026-10-16 本机双设备 VID_0A5F / VID_1203 实证）；打开失败消息须含 Win32 错误号（2 设备不存在 / 5 无权限 / 32 被占用——三病因不得混一句）。
 4. **`ESC ! ?` 位语义按 TSPL2 手册**（bit0 头开 / 1 卡纸 / 2 缺纸 / 3 色带尽 / 4 暂停 / 5 打印中 / 7 其他）；`ESC` 前缀 = 立即响应、`~` 前缀 = 就绪才响应（`~!?` 非 TSC 官方指令）。实测错误位任务后锁存、紧贴任务短暂无应答——查询带重试（3 × 500ms）为此设计。
 5. **BITMAP 数据必须精确 width×height 字节原始二进制**：不转十六进制（决策 #195 明确）；行优先 / MSB 与 `LabelBitmap` 一致，**位极性相反（TSPL 位 0 = 印点）——必须逐位取反**（TT065-60 真机反色实证，勿「优化」掉取反）。
 6. **GAP / BLINE 不发**：媒介间隙是耗材属性，发错比不发更糟（打印机既有标定兜底）；DIRECTION 必须显式（打印机内存值不可依赖）。真机验证通过（GAP 不发走纸正常、DIRECTION 1 方向正确——真机实证）。

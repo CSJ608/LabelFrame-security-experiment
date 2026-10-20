@@ -18,16 +18,28 @@ internal sealed class UsbRawDevice : IDisposable
 
     private readonly SafeFileHandle _device;
 
-    /// <summary>打开设备路径（来自 UsbPrinterDeviceDiscovery）；打开失败抛中文 InvalidOperationException。</summary>
+    /// <summary>打开设备路径（来自 UsbPrinterDeviceDiscovery）；打开失败抛含 Win32 错误号的中文 InvalidOperationException。</summary>
     public UsbRawDevice(string devicePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(devicePath);
-        _device = CreateFile(devicePath, GenericRead | GenericWrite, FileShareRead | FileShareWrite, IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
-        if (_device.IsInvalid)
+        var handle = CreateFile(devicePath, GenericRead | GenericWrite, FileShareRead | FileShareWrite, IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
+        if (handle == new IntPtr(-1))
         {
-            throw new InvalidOperationException($"打开 USB 打印机失败（{devicePath}）：设备不存在、被占用或无访问权限。");
+            var error = Marshal.GetLastWin32Error();
+            throw new InvalidOperationException($"打开 USB 打印机失败（{devicePath}）：Win32 错误 {error}，{DescribeOpenError(error)}。");
         }
+
+        _device = new SafeFileHandle(handle, ownsHandle: true);
     }
+
+    /// <summary>常见 CreateFile 失败码的中文病因（真机实证形态：2 陈旧接口 / 5、32 驱动或后台占用）。</summary>
+    internal static string DescribeOpenError(int error) => error switch
+    {
+        2 => "设备不存在（接口不在位或路径已失效）",
+        5 => "无访问权限",
+        32 => "被其他程序占用（如厂商驱动 / 后台状态监视器）",
+        _ => "未知错误",
+    };
 
     /// <summary>发送指令流（超时毫秒）；失败 / 超时抛 InvalidOperationException。Win32 错误号在执行线程上捕获。</summary>
     public void Write(byte[] buffer, int timeoutMs)
@@ -69,7 +81,7 @@ internal sealed class UsbRawDevice : IDisposable
     public void Dispose() => _device.Dispose();
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    private static extern SafeFileHandle CreateFile([MarshalAs(UnmanagedType.LPWStr)] string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+    private static extern IntPtr CreateFile([MarshalAs(UnmanagedType.LPWStr)] string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool WriteFile(SafeFileHandle hFile, byte[] lpBuffer, uint nNumberOfBytesToWrite, out uint lpNumberOfBytesWritten, IntPtr lpOverlapped);

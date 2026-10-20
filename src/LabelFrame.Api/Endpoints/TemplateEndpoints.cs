@@ -12,7 +12,7 @@ namespace LabelFrame.Api.Endpoints;
 public sealed record TemplateApiOptions(
     TemplateStore Store,
     ILabelBitmapRenderer Renderer,
-    int Dpi,
+    Func<int> Dpi,
     string InvalidRequestCode,
     string TemplateNotFoundCode,
     string? ImageInvalidCode = null)
@@ -150,7 +150,7 @@ public static class TemplateEndpoints
             byte[] png;
             try
             {
-                png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi, package.Images);
+                png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi(), package.Images);
             }
             catch (MissingImageResourceException ex)
             {

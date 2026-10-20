@@ -46,7 +46,7 @@ public sealed class SingleLabelPipelineTests : IDisposable
         var settings = new PrintSettings();
         var worker = new JobPrintWorker(queue, new ConstTransportManager(transport), NullLogger<JobPrintWorker>.Instance, settings);
         var submission = new JobSubmissionService(
-            queue, new ZplImageEncoder(), 203, new SkiaLabelRenderer(), templates, new ConstTransportManager(transport),
+            queue, new ZplImageEncoder(), () => 203, new SkiaLabelRenderer(), templates, new ConstTransportManager(transport),
             new LabelFrame.Core.Transport.Plugins.TransportPluginRegistry(),
             new LabelFrame.Core.Transport.Plugins.TransportPluginContext(TextWriter.Null, _directory),
             TextWriter.Null);

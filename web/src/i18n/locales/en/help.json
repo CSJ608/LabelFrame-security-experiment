@@ -82,7 +82,7 @@
     "designer": {
       "canvas": {
         "title": "Canvas & Widget Bar",
-        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. \nShortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. \n“Preview Print” shows the label at true print scale for the selected “Print DPI” (dots per inch, set in the top toolbar); the canvas locks while previewing — exit to keep editing."
+        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. \nShortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. \n“Preview Print” shows the label at true print scale for the client-wide “Print DPI” (dots per inch, set in Settings → Print Batching); the canvas locks while previewing — exit to keep editing."
       },
       "fieldsSide": {
         "title": "Print Fields & Layers",
@@ -184,7 +184,7 @@
       },
       "batch": {
         "title": "Print Batching",
-        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing. Changes take effect immediately after saving."
+        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing.\n“Print DPI” selects the printer’s actual resolution (203 / 300) — a mismatch makes the whole layout print smaller. Changes take effect immediately after saving, no restart needed."
       },
       "printer": {
         "title": "Printer",

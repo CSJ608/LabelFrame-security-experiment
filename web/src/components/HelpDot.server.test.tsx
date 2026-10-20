@@ -106,7 +106,7 @@ beforeEach(() => {
   mocks.local.getTransport.mockResolvedValue({ mode: 'Log', params: {} })
   mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: false, isPaused: false, message: '' })
   mocks.local.listInstalledPlugins.mockResolvedValue([])
-  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500 })
+  mocks.local.getPrintSettings.mockResolvedValue({ batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 })
 })
 
 afterEach(() => {

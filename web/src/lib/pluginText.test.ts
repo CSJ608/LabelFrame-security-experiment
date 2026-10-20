@@ -51,7 +51,7 @@ const OFFICIAL_SPEC_ZH: Record<string, string> = {
   'plugin.labelframe-transport-tspl.params.host.hint': '如 192.168.1.50',
   'plugin.labelframe-transport-tspl.params.port.label': '端口',
   'plugin.labelframe-transport-tspl.params.usbName.label': 'USB 打印机名',
-  'plugin.labelframe-transport-tspl.params.usbName.hint': '留空 = 自动发现第一台；可填 VID（如 VID_1203）或设备名',
+  'plugin.labelframe-transport-tspl.params.usbName.hint': '留空 = 自动发现（逐台探测取第一台可通讯打印机）；可填 VID（如 VID_1203）或设备名',
   'plugin.labelframe-transport-tspl.params.printMode.label': '打印方式',
   'plugin.labelframe-transport-tspl.params.printMode.opt.image': '图片（默认）',
   'plugin.labelframe-transport-tspl.params.printMode.opt.native': '原生指令',

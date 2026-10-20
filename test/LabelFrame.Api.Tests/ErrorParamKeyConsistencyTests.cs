@@ -65,10 +65,10 @@ public sealed class ErrorParamKeyConsistencyTests
         foreach (var file in SourceFiles())
         {
             foreach (Match match in Regex.Matches(File.ReadAllText(file),
-                @"new (?<type>TemplateApiOptions|ImportApiOptions)\((?<args>[^)]*)\)"))
+                @"new (?<type>TemplateApiOptions|ImportApiOptions)\((?<args>(?:[^()]|\([^()]*\))*)\)"))
             {
                 var args = match.Groups["args"].Value.Split(',');
-                // 位置参数接线：TemplateApiOptions(Store, Renderer, Dpi, InvalidRequestCode, TemplateNotFoundCode)；
+                // 位置参数接线：TemplateApiOptions(Store, Renderer, Dpi(Func), InvalidRequestCode, TemplateNotFoundCode)；
                 // ImportApiOptions(InvalidRequestCode)。params 站点只用到 TemplateNotFound / InvalidRequest 两个码位
                 var isTemplate = match.Groups["type"].Value == "TemplateApiOptions";
                 var argIndex = isTemplate ? 4 : 0;

@@ -27,13 +27,13 @@ public sealed class JobSubmissionService
     private readonly TextWriter _hostLogWriter;
     private readonly string _printOutputPath;
     private readonly PrintImageRetentionCleaner? _printRetentionCleaner;
-    private readonly int _dpi;
+    private readonly Func<int> _dpiProvider;
 
     /// <summary>创建提交服务。</summary>
     public JobSubmissionService(
         LabelJobQueue queue,
         ZplImageEncoder encoder,
-        int dpi,
+        Func<int> dpiProvider,
         ILabelBitmapRenderer renderer,
         TemplateStore templateStore,
         ITransportManager transportManager,
@@ -56,7 +56,7 @@ public sealed class JobSubmissionService
             "LabelFrame",
             "print");
         _printRetentionCleaner = printRetentionCleaner;
-        _dpi = dpi;
+        _dpiProvider = dpiProvider;
     }
 
     /// <summary>提交作业；失败返回问题码（不建作业）。</summary>
@@ -70,6 +70,7 @@ public sealed class JobSubmissionService
         var config = _transportManager.CurrentConfig;
         var rawPrintMode = config.Params.TryGetValue(TransportPrintMode.ParameterKey, out var raw) ? raw : null;
         var printMode = TransportPrintMode.Resolve(rawPrintMode);
+        var dpi = _dpiProvider(); // 打印 DPI 运行时可调（设置页保存即生效），逐作业取当前值
 
         IReadOnlyList<LabelJobPayload> payloads;
         IReadOnlyList<RenderItem>? renderedItems = null;
@@ -118,8 +119,8 @@ public sealed class JobSubmissionService
                         && bool.TryParse(invertRaw, out var invertValue)
                         && invertValue);
                 payloads = imageEncoder is null
-                    ? renderedItems.Select(i => LabelJobPayload.OfText(_encoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, _dpi))).ToList()
-                    : renderedItems.Select(i => LabelJobPayload.OfBytes(imageEncoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, _dpi, encodeOptions))).ToList();
+                    ? renderedItems.Select(i => LabelJobPayload.OfText(_encoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, dpi))).ToList()
+                    : renderedItems.Select(i => LabelJobPayload.OfBytes(imageEncoder.EncodeImage(i.Bitmap, i.WidthMm, i.HeightMm, dpi, encodeOptions))).ToList();
             }
             catch (NotSupportedException ex)
             {
@@ -191,7 +192,7 @@ public sealed class JobSubmissionService
                     Layout = request.Template.Layout,
                     Data = data,
                 };
-                var bitmap = _renderer.RenderLabelBitmap(document, _dpi, images);
+                var bitmap = _renderer.RenderLabelBitmap(document, _dpiProvider(), images);
                 items.Add(new RenderItem(i, bitmap, document.Layout.WidthMm, document.Layout.HeightMm));
             }
             catch (NotSupportedException ex)
@@ -233,7 +234,7 @@ public sealed class JobSubmissionService
         }
 
         var commands = new List<string>(request.Labels.Count);
-        var options = new LabelCommandCompileOptions(_dpi, _pluginContext);
+        var options = new LabelCommandCompileOptions(_dpiProvider(), _pluginContext);
         for (var i = 0; i < request.Labels.Count; i++)
         {
             var label = request.Labels[i];

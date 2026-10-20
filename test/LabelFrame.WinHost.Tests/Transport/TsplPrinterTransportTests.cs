@@ -37,6 +37,12 @@ public class TsplPrinterTransportTests
         string? usbName = null)
         => new(TsplTransportKind.Usb, null, 9100, usbName, openTcpLink: null, openUsbLink: _ => link, listUsbDevices: () => devices);
 
+    private static TsplPrinterTransport CreateUsbLinks(
+        IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> devices,
+        Func<string, ITsplLink> openUsbLink,
+        string? usbName = null)
+        => new(TsplTransportKind.Usb, null, 9100, usbName, openTcpLink: null, openUsbLink, listUsbDevices: () => devices);
+
     private static UsbPrinterDeviceDiscovery.UsbPrinterDevice Device(string displayName, string path)
         => new(displayName, path);
 
@@ -163,19 +169,72 @@ public class TsplPrinterTransportTests
     // ──USB 设备发现──
 
     [Fact]
-    public async Task Usb_send_without_name_should_pick_first_discovered_device()
+    public async Task Usb_send_without_name_should_pick_first_responding_device()
     {
-        var link = new FakeLink();
-        var devices = new[]
-        {
-            Device("USB\\VID_0A5F&PID_0168\\DMJ1", "\\\\?\\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}"),
-            Device("USB\\VID_1203&PID_0273\\000001", "\\\\?\\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}"),
-        };
-        var transport = CreateUsb(link, devices);
+        // 多 usbprint 设备并存（真机形态：挂驱动的 Zebra 排在 TSC 前）：首台开得了但不应答，
+        // 自动发现逐台探测命中 TSC，载荷发往 TSC；Zebra 只收到一次探测查询
+        const string zebraPath = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var zebra = new FakeLink();
+        var tspl = new FakeLink(new byte[] { 0x00 });
+        var transport = CreateUsbLinks(
+            new[] { Device("USB\\VID_0A5F&PID_0168\\DMJ1", zebraPath), Device("USB\\VID_1203&PID_0273\\000001", tsplPath) },
+            path => path == tsplPath ? tspl : zebra);
 
         await transport.SendAsync("PRINT 1\r\n");
 
-        Assert.Single(link.Writes); // 首台设备开链发送成功（无异常即命中 devices[0]）
+        Assert.Equal(2, tspl.Writes.Count); // 探测 ESC ! ? + 载荷
+        Assert.Equal(TsplPrinterTransport.StatusQueryCommand, tspl.Writes[0]);
+        Assert.Equal(Encoding.UTF8.GetBytes("PRINT 1\r\n"), tspl.Writes[1]);
+        Assert.Equal(new[] { TsplPrinterTransport.StatusQueryCommand }, zebra.Writes);
+    }
+
+    [Fact]
+    public async Task Usb_send_without_name_should_skip_unopenable_device()
+    {
+        // 首台被驱动占用（开链即抛错，真机 Win32 32/5 形态）：跳过继续探测下一台
+        const string zebraPath = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var tspl = new FakeLink(new byte[] { 0x00 });
+        var transport = CreateUsbLinks(
+            new[] { Device("USB\\VID_0A5F&PID_0168\\DMJ1", zebraPath), Device("USB\\VID_1203&PID_0273\\000001", tsplPath) },
+            path => path == zebraPath
+                ? throw new InvalidOperationException("打开 USB 打印机失败：Win32 错误 32，被其他程序占用。")
+                : tspl);
+
+        await transport.SendAsync("PRINT 1\r\n");
+
+        Assert.Equal(2, tspl.Writes.Count);
+    }
+
+    [Fact]
+    public async Task Usb_send_without_name_when_all_devices_fail_should_throw_actionable_error()
+    {
+        var link = new FakeLink(); // 开得了但全部无应答
+        const string zebraPath = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var transport = CreateUsbLinks(
+            new[] { Device("USB\\VID_0A5F&PID_0168\\DMJ1", zebraPath), Device("USB\\VID_1203&PID_0273\\000001", tsplPath) },
+            _ => link);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendAsync("PRINT 1\r\n"));
+
+        Assert.Contains("自动发现失败", ex.Message);
+        Assert.Contains("VID_0A5F", ex.Message); // 探测清单列出各台结果
+        Assert.Contains("VID_1203", ex.Message);
+        Assert.Contains("显式指定", ex.Message);
+    }
+
+    [Fact]
+    public async Task Usb_test_without_name_should_pass_when_device_responds()
+    {
+        // 探测应答 + 状态查询应答各一次（探测消耗一次读回，QueryStatusByte 再查一次）
+        var link = new FakeLink(new byte[] { 0x00 }, new byte[] { 0x00 });
+        var transport = CreateUsb(
+            link,
+            new[] { Device("USB\\VID_1203&PID_0273\\000001", @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}") });
+
+        Assert.Null(await transport.TestAsync());
     }
 
     [Fact]

@@ -71,7 +71,7 @@ const PDA_PKG: PdaPackageInfo = { fileName: 'LabelFramePda-1.2.0.apk', sizeBytes
 const PLUGIN_PKG: PluginPackageInfo = { fileName: 'demo.lfpkg', pluginId: 'demo', name: 'Demo', version: '1.0', sizeBytes: 1024, modifiedAt: '2026-09-01T12:00:00Z', valid: true }
 const INSTALLED: InstalledPluginInfo[] = []
 const PRINTER: PrinterStatus = { isOnline: true, isPaperOut: false, isPaused: false, message: '' }
-const PRINT_SETTINGS: PrintSettings = { batchEnabled: false, batchSize: 10, batchIntervalMs: 500 }
+const PRINT_SETTINGS: PrintSettings = { batchEnabled: false, batchSize: 10, batchIntervalMs: 500, dpi: 203 }
 
 const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/
 

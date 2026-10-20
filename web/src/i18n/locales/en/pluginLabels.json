@@ -59,7 +59,7 @@
         },
         "host": { "label": "Printer address / IP", "hint": "e.g. 192.168.1.50" },
         "port": { "label": "Port" },
-        "usbName": { "label": "USB printer name", "hint": "Leave empty = auto-discover the first one; fill in a VID (e.g. VID_1203) or device name" },
+        "usbName": { "label": "USB printer name", "hint": "Leave empty = auto-discover (probe each and take the first responding printer); fill in a VID (e.g. VID_1203) or device name" },
         "printMode": {
           "label": "Print mode",
           "hint": "Native command mode has no preview; actual output depends on the printer. In this mode text does not support Chinese (the printer's built-in fonts have no CJK glyphs); use image mode for Chinese.",

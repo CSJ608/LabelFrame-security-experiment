@@ -56,8 +56,8 @@ public abstract class SharedEndpointsTestBase : IDisposable
         });
 
         var app = builder.Build();
-        app.MapTemplateApi(new TemplateApiOptions(templates, renderer, dpi, JobErrorCodesStub.InvalidRequest, JobErrorCodesStub.TemplateNotFound));
-        app.MapRenderApi(new RenderApiOptions(templates, renderer, dpi, JobErrorCodesStub.InvalidRequest));
+        app.MapTemplateApi(new TemplateApiOptions(templates, renderer, () => dpi, JobErrorCodesStub.InvalidRequest, JobErrorCodesStub.TemplateNotFound));
+        app.MapRenderApi(new RenderApiOptions(templates, renderer, () => dpi, JobErrorCodesStub.InvalidRequest));
         app.MapImportApi(new ImportApiOptions(JobErrorCodesStub.InvalidRequest));
         app.MapLogApi(new LogApiOptions(logs, JobErrorCodesStub.InvalidRequest));
         await app.StartAsync();

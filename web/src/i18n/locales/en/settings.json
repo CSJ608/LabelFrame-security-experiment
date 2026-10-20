@@ -41,6 +41,8 @@
     "saving": "Saving…",
     "saveOk": "Saved and applied immediately.",
     "saveFailed": "Failed to save batch settings.",
+    "dpi": "Print DPI",
+    "dpiHint": "Match your printer's actual resolution (e.g. choose 300 for a 300dpi printer); a mismatch shrinks the whole layout. Takes effect immediately after saving.",
     "hint": "When enabled, large jobs are sent to the printer in batches of {{size}} labels with an interval of {{interval}} ms between batches."
   },
   "printer": {

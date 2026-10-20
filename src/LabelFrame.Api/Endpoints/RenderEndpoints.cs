@@ -12,7 +12,7 @@ namespace LabelFrame.Api.Endpoints;
 public sealed record RenderApiOptions(
     TemplateStore? Store,
     ILabelBitmapRenderer Renderer,
-    int Dpi,
+    Func<int> Dpi,
     string InvalidRequestCode);
 
 /// <summary>调试出图端点（Server 与 WinHost 共用）：后端渲染 PNG / zip 下载，不建作业、不发驱动。</summary>
@@ -50,7 +50,7 @@ public static class RenderEndpoints
             byte[] png;
             try
             {
-                png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi, images);
+                png = options.Renderer.RenderLabelBitmapPng(document, options.Dpi(), images);
             }
             catch (MissingImageResourceException ex)
             {
@@ -98,7 +98,7 @@ public static class RenderEndpoints
                     try
                     {
                         // 缺资源＝批量出图同样显式报错（与 render-image / preview 同口径）
-                        var bitmap = options.Renderer.RenderLabelBitmap(document, options.Dpi, images);
+                        var bitmap = options.Renderer.RenderLabelBitmap(document, options.Dpi(), images);
                         bitmapBytes = LabelBitmapPng.ToPng(bitmap);
                     }
                     catch (MissingImageResourceException ex)

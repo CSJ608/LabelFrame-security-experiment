@@ -53,7 +53,7 @@ public sealed class TsplTransportPlugin : ITransportPlugin, ILabelCommandCompile
             LabelKey = "plugin.labelframe-transport-tspl.params.port.label",
             Row = 2,
         },
-        new TransportParameterSpec("usbName", "USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现第一台；可填 VID（如 VID_1203）或设备名", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"])
+        new TransportParameterSpec("usbName", "USB 打印机名", TransportParameterType.String, Required: false, Hint: "留空 = 自动发现（逐台探测取第一台可通讯打印机）；可填 VID（如 VID_1203）或设备名", VisibleWhenKey: "kind", VisibleWhenValues: ["Usb"])
         {
             LabelKey = "plugin.labelframe-transport-tspl.params.usbName.label",
             HintKey = "plugin.labelframe-transport-tspl.params.usbName.hint",

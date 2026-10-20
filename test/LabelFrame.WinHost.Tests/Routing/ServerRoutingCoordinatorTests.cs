@@ -78,7 +78,7 @@ public class ServerRoutingCoordinatorTests
             var submission = new JobSubmissionService(
                 queue,
                 new LabelFrame.Core.Encoding.ZplImageEncoder(),
-                dpi: 203,
+                dpiProvider: () => 203,
                 new SkiaLabelRenderer(),
                 templates,
                 manager,
