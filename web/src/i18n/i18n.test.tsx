@@ -178,11 +178,11 @@ describe('Intl 格式化跟随 locale（决策 #164 ④）', () => {
 })
 
 describe('AC-01 设置页切换语言（App 级：即时生效 + 持久化 + lang 同步 + 日期格式跟随）', () => {
-  /** 切到设置页、进入「语言」分节并选择目标语言（默认分节为连接方式——先切分节再取 select；导航 / 菜单名随语言变，用双语正则）。 */
+  /** 切到设置页、进入「常规设置」分节并选择目标语言（默认分节为打印设置——先切分节再取 select；导航 / 菜单名随语言变，用双语正则）。 */
   async function switchLanguage(target: AppLocale) {
     fireEvent.click(await screen.findByRole('button', { name: /^(设置|Settings)$/ }))
-    fireEvent.click(await screen.findByRole('button', { name: /^(语言|Language)$/ }))
-    const select = (await screen.findByTestId('language-panel')).querySelector('select') as HTMLSelectElement
+    fireEvent.click(await screen.findByRole('button', { name: /^(常规设置|General)$/ }))
+    const select = (await screen.findByTestId('general-panel')).querySelector('select') as HTMLSelectElement
     fireEvent.change(select, { target: { value: target } })
     await waitFor(() => expect(document.documentElement.lang).toBe(target))
   }
@@ -219,7 +219,7 @@ describe('AC-01 设置页切换语言（App 级：即时生效 + 持久化 + lan
   it('语言选项自身不随语言翻译：「中文」/「English」固定原文', async () => {
     render(<App />)
     await switchLanguage('en')
-    const select = (screen.getByTestId('language-panel') as HTMLElement).querySelector('select') as HTMLSelectElement
+    const select = (screen.getByTestId('general-panel') as HTMLElement).querySelector('select') as HTMLSelectElement
     const options = Array.from(select.options).map((o) => o.textContent)
     expect(options).toEqual(['中文', 'English'])
     expect(select.value).toBe('en')

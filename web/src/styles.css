@@ -578,6 +578,9 @@ label.field > .input, label.field > select.input { width: 100%; }
 .settings-section-head { display: flex; align-items: center; gap: 8px; }
 .settings-section-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
 .settings-section-body { display: flex; flex-direction: column; gap: 10px; }
+.settings-subsection { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line-soft); padding-top: 12px; }
+.settings-subtitle { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
+.settings-status-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 @media (max-width: 960px) {
   .settings-layout { flex-direction: column; }
   .settings-nav {

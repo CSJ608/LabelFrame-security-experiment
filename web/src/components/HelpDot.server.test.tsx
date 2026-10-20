@@ -149,7 +149,7 @@ describe('server 构建：帮助体系守门（迭代 129 · #320 口径反转�
         <Settings />
       </AppProvider>,
     )
-    await screen.findByText('语言')
+    await screen.findByText('常规设置')
     expect(document.querySelector('[data-help]')).toBeNull()
     expect(screen.queryByRole('button', { name: '查看说明' })).toBeNull()
   })

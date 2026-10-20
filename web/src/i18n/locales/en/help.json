@@ -23,7 +23,7 @@
     },
     "settings": {
       "title": "Settings",
-      "desc": "Language, server address, printer and plugin settings on this machine"
+      "desc": "Machine settings in four sections: General (language, server address), Printing (status overview, connection, jobs incl. DPI, test print), updates and plugins"
     },
     "devices": {
       "title": "Online Devices",
@@ -52,7 +52,7 @@
       "intro": "Job History is where you review print results; list refresh, per-label details and copying job IDs are covered in the sections below. Server-side records are kept for 30 days by default and cleaned up on expiry; records stored on this machine are kept."
     },
     "settings": {
-      "intro": "Settings gathers this machine's configuration: interface language, server address, connection, print batching, printer, updates & packages, and plugin management; the “?” beside each card title explains that item."
+      "intro": "Settings gathers this machine's configuration in four sections: General (interface language, server address), Printing (status overview at the top — current connection and live printer status; connection; jobs — batching and print DPI; test print), updates & packages, and plugin management; the “?” beside each heading explains that item."
     },
     "devices": {
       "intro": "Online Devices shows the devices joined to the server: a device appears here after LabelFrame Client is installed and joined to the server. Click an online device to set it as the default target for Data & Print; the list fields and how online status is determined are covered below."

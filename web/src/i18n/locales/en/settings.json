@@ -4,6 +4,13 @@
     "subtitle": "Server address / local connection and printers"
   },
   "navRegion": "Settings menu",
+  "general": { "title": "General" },
+  "printing": {
+    "title": "Printing",
+    "connectionTitle": "Connection",
+    "jobsTitle": "Jobs",
+    "testPrintTitle": "Test print"
+  },
   "language": {
     "title": "Language",
     "label": "Interface language",

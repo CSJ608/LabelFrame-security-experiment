@@ -1,9 +1,16 @@
 {
   "page": {
     "title": "设置",
-    "subtitle": "服务端地址 / 本机连接与打印机"
+    "subtitle": "常规 / 打印 / 更新与插件"
   },
   "navRegion": "设置菜单",
+  "general": { "title": "常规设置" },
+  "printing": {
+    "title": "打印设置",
+    "connectionTitle": "连接配置",
+    "jobsTitle": "作业配置",
+    "testPrintTitle": "测试打印"
+  },
   "language": {
     "title": "语言",
     "label": "界面语言",

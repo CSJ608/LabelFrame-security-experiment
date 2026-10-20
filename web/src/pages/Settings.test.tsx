@@ -75,16 +75,9 @@ function settingsMain(): HTMLElement {
   return document.querySelector('.settings-main') as HTMLElement
 }
 
-/** 按分组限定查询：先切到目标分节，再在右区内定位其 section（分节标题为 heading，与同名输入 label 天然区分）。 */
-function withinSection(title: string): HTMLElement {
-  openSection(title)
-  const el = within(settingsMain()).getByRole('heading', { name: title })
-  return el.closest('section') as HTMLElement
-}
-
 /** 连接方式分节：内容常显（分节菜单已隔离上下文，无折叠交互），切节即见编辑区。 */
 function openTransportPanel() {
-  openSection('连接方式')
+  openSection('打印设置')
 }
 
 const HOST_CONFIG = { serverUrl: 'http://127.0.0.1:53961', deviceId: 'PC-1', deviceName: 'PC-1' }
@@ -121,34 +114,36 @@ afterEach(() => {
 })
 
 describe('设置页结构（分节左菜单）与启动', () => {
-  it('左菜单列七个分节，右区仅呈现选中分节内容（切换即换、选中态唯一）', async () => {
+  it('左菜单列四个分节，右区仅呈现选中分节内容（切换即换、选中态唯一）', async () => {
     renderSettings()
-    for (const title of ['语言', '服务端地址', '连接方式', '打印批次', '打印机', '更新与安装包', '插件管理']) {
+    for (const title of ['常规设置', '打印设置', '更新与安装包', '插件管理']) {
       expect(screen.getByRole('button', { name: title })).toBeTruthy()
     }
-    // 默认分节（连接方式）在右区，其余分节内容不在场
-    expect(within(settingsMain()).getByText('连接方式')).toBeTruthy()
-    expect(within(settingsMain()).queryByText('打印机')).toBeNull()
+    // 默认分节（打印设置）在右区：三个子标题与测试打印按钮在场；常规设置内容不在场
+    expect(within(settingsMain()).getByRole('heading', { name: /连接配置/ })).toBeTruthy()
+    expect(within(settingsMain()).getByRole('heading', { name: /作业配置/ })).toBeTruthy()
+    expect(within(settingsMain()).getByRole('heading', { name: /测试打印/ })).toBeTruthy()
+    expect(within(settingsMain()).getByRole('button', { name: '测试打印' })).toBeTruthy()
+    expect(within(settingsMain()).queryByText('服务端地址')).toBeNull()
     // 切换分节：右区换为对应内容，选中态随菜单转移
-    openSection('打印机')
-    expect(within(settingsMain()).getByText('打印机')).toBeTruthy()
-    expect(within(settingsMain()).queryByText('连接方式')).toBeNull()
-    expect(screen.getByRole('button', { name: '打印机' }).className).toContain('active')
-    expect(screen.getByRole('button', { name: '连接方式' }).className).not.toContain('active')
-    expect(screen.getByRole('button', { name: /测试打印/ })).toBeTruthy()
+    openSection('常规设置')
+    expect(within(settingsMain()).getByRole('heading', { name: '服务端地址' })).toBeTruthy()
+    expect(within(settingsMain()).queryByRole('heading', { name: /连接配置/ })).toBeNull()
+    expect(screen.getByRole('button', { name: '常规设置' }).className).toContain('active')
+    expect(screen.getByRole('button', { name: '打印设置' }).className).not.toContain('active')
   })
 
-  it('连接方式分节内容常显：切到分节即见当前连接摘要与模式单选、操作按钮（无折叠交互）', async () => {
+  it('连接配置子节内容常显：切到分节即见状态卡当前连接与模式单选、操作按钮（无折叠交互）', async () => {
     renderSettings()
-    // 默认分节：标题行显示当前摘要（getTransport 异步加载后 Log → 模拟打印），编辑区直接渲染
-    expect(await screen.findByText('模拟打印')).toBeTruthy()
+    // 默认分节：状态总览卡显示当前摘要（getTransport 异步加载后 Log → 模拟打印），编辑区直接渲染
+    await waitFor(() => expect(screen.getByTestId('print-status-card').textContent).toContain('模拟打印'))
     expect(await screen.findByRole('radio', { name: /模拟打印/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /网络打印机/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /Windows 驱动/ })).toBeTruthy()
     expect(screen.getByRole('radio', { name: /Zebra/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /保存并应用/ })).toBeTruthy()
     // 切走再切回：内容依旧常显
-    openSection('打印机')
+    openSection('更新与安装包')
     expect(screen.queryByRole('radio', { name: /模拟打印/ })).toBeNull()
     openTransportPanel()
     expect(await screen.findByRole('radio', { name: /模拟打印/ })).toBeTruthy()
@@ -156,7 +151,7 @@ describe('设置页结构（分节左菜单）与启动', () => {
 
   it('启动加载机器级配置：服务端地址显示 hostConfig.serverUrl', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     await screen.findByDisplayValue('http://127.0.0.1:53961')
     expect(mocks.local.getHostConfig).toHaveBeenCalled()
   })
@@ -165,9 +160,9 @@ describe('设置页结构（分节左菜单）与启动', () => {
 describe('服务端地址（F2）', () => {
   it('测试连接：探测输入框地址（probeHealthz），不保存（setHostConfig 不调用）', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
-    fireEvent.click(within(withinSection('服务端地址')).getByRole('button', { name: /^测试连接/ }))
+    fireEvent.click(within(settingsMain()).getByRole('button', { name: /^测试连接/ }))
     expect(await screen.findByText(/连接成功：该地址可访问服务端/)).toBeTruthy()
     expect(mocks.probeHealthz).toHaveBeenCalledWith('http://192.168.1.10:53961')
     expect(mocks.local.setHostConfig).not.toHaveBeenCalled()
@@ -176,13 +171,14 @@ describe('服务端地址（F2）', () => {
   it('测试连接失败：提示失败原因', async () => {
     mocks.probeHealthz.mockResolvedValue(false)
     renderSettings()
-    fireEvent.click(within(withinSection('服务端地址')).getByRole('button', { name: /^测试连接/ }))
+    openSection('常规设置')
+    fireEvent.click(within(settingsMain()).getByRole('button', { name: /^测试连接/ }))
     expect(await screen.findByText(/连接失败：请确认服务端已启动/)).toBeTruthy()
   })
 
   it('保存并生效：setHostConfig({ serverUrl }) + localStorage 兜底 + 提示立即生效', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
     expect(await screen.findByText('已保存到本机配置并立即生效。')).toBeTruthy()
@@ -193,7 +189,7 @@ describe('服务端地址（F2）', () => {
   it('旧客户端（setHostConfig 失败）：回退浏览器本地保存并提示', async () => {
     mocks.local.setHostConfig.mockRejectedValue(new Error('no api'))
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.1.10:53961' } })
     fireEvent.click(screen.getByRole('button', { name: /保存并生效/ }))
     expect(await screen.findByText(/当前客户端版本较旧：地址已保存在本浏览器中/)).toBeTruthy()
@@ -205,7 +201,7 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
   it('AC-01 空地址：徽标「服务端未连接（单机模式可用）」且全程不做网络探测；更新与安装包 / 插件管理区提示单机模式（各分节口径一致）', async () => {
     mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, serverUrl: '' })
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
     // 各分节一致：「更新与安装包」徽标与提示、「插件管理」服务端可用插件区均为单机模式口径
     openSection('更新与安装包')
@@ -222,7 +218,7 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
 
   it('AC-02 可达地址：探测成功徽标「服务端已连接」，安装包区按服务端拉取列表', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
     openSection('更新与安装包')
     await waitFor(() => expect(mocks.server.listClientPackages).toHaveBeenCalled())
@@ -231,14 +227,14 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
   it('AC-02 不可达地址：探测失败徽标「服务端未连接（单机模式可用）」', async () => {
     mocks.server.healthz.mockRejectedValue(new Error('down'))
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     expect(await within(settingsMain()).findByText('服务端未连接（单机模式可用）')).toBeTruthy()
     await waitFor(() => expect(mocks.server.healthz).toHaveBeenCalled())
   })
 
   it('AC-02 切换刷新：保存不可达地址转「未连接」，再保存可达地址转回「已连接」（保存即重探测，无竞态双态）', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
     // 切到不可达地址并保存 → 徽标转未连接
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: 'http://192.168.0.99:53961' } })
@@ -255,7 +251,7 @@ describe('服务端连接徽标三态与切换（迭代 86，#142 a 案）', () 
 
   it('保存空地址：徽标即转「服务端未连接（单机模式可用）」且不再探测（a 案；空终态不被旧探测结果覆盖）', async () => {
     renderSettings()
-    openSection('服务端地址')
+    openSection('常规设置')
     expect(await within(settingsMain()).findByText('服务端已连接')).toBeTruthy()
     mocks.server.healthz.mockClear()
     fireEvent.change(screen.getByLabelText('服务端地址'), { target: { value: '' } })
@@ -293,7 +289,7 @@ describe('连接方式（F3：连接选择与先测试后生效）', () => {
     fireEvent.click(await screen.findByRole('radio', { name: /^网络打印机/ }))
     await screen.findByLabelText('打印机 IP / 主机名')
     fireEvent.change(screen.getByLabelText('打印机 IP / 主机名'), { target: { value: '192.168.1.50' } })
-    fireEvent.click(within(withinSection('连接方式')).getByRole('button', { name: /^测试连接/ }))
+    fireEvent.click(within(settingsMain()).getByRole('button', { name: /^测试连接/ }))
     expect(await screen.findByText('测试通过。')).toBeTruthy()
     expect(mocks.local.testTransport).toHaveBeenCalledWith(expect.objectContaining({ mode: 'Tcp', tcpHost: '192.168.1.50', tcpPort: 9100 }))
     expect(mocks.local.setTransport).not.toHaveBeenCalled()
@@ -310,7 +306,7 @@ describe('连接方式（F3：连接选择与先测试后生效）', () => {
     expect(mocks.local.setTransport).toHaveBeenCalledWith(expect.objectContaining({ mode: 'Tcp', tcpHost: '192.168.1.50', tcpPort: 9100 }))
     expect(mocks.local.setTransport.mock.calls[0][0].testOnly).toBeUndefined()
     // 全局状态立即更新（分节标题行与面板内徽标均显示新连接，不依赖轮询）
-    expect((await within(withinSection('连接方式')).findAllByText(/网络打印机 192\.168\.1\.50:9100/)).length).toBeGreaterThan(0)
+    expect((await within(settingsMain()).findAllByText(/网络打印机 192\.168\.1\.50:9100/)).length).toBeGreaterThan(0)
   })
 
   it('保存失败（后端返回 ok:false）：展示 message，当前生效连接保持', async () => {
@@ -359,10 +355,10 @@ describe('连接文案用户化（迭代 82，#130：评审 #114 B-1 / A-1 / B-5
   it('AC-01：连接方式摘要与测试打印说明均显示「模拟打印」，无「LOG」直出', async () => {
     mockLogPluginTransport()
     renderSettings()
-    // 连接方式分节标题行摘要（displayText 优先 = 插件 Describe 用户语）
-    expect(await screen.findByText('模拟打印')).toBeTruthy()
+    // 状态总览卡摘要（displayText 优先 = 插件 Describe 用户语）与模式单选同屏
+    await waitFor(() => expect(screen.getByTestId('print-status-card').textContent).toContain('模拟打印'))
     // 测试打印说明（打印机分组）：当前连接方式：模拟打印
-    const printerSection = withinSection('打印机')
+    const printerSection = settingsMain()
     await waitFor(() => expect(printerSection.textContent).toContain('当前连接方式：模拟打印'))
     // 全页无「LOG」直出（起选项名亦为「模拟打印」，页面无任何「Log」字样）
     expect(screen.queryByText(/LOG/)).toBeNull()
@@ -469,7 +465,7 @@ describe('原生指令模式提示（迭代 78，DESIGN §5.4.2 / #120 AC-04）'
 describe('打印机（F4）', () => {
   it('状态展示：在线 + 附加信息', async () => {
     renderSettings()
-    openSection('打印机')
+    openSection('打印设置')
     expect(await screen.findByText('在线')).toBeTruthy()
     expect(screen.getByText('就绪')).toBeTruthy()
   })
@@ -477,14 +473,14 @@ describe('打印机（F4）', () => {
   it('缺纸 / 暂停徽标', async () => {
     mocks.local.getPrinterStatus.mockResolvedValue({ isOnline: true, isPaperOut: true, isPaused: true, message: '' })
     renderSettings()
-    openSection('打印机')
+    openSection('打印设置')
     expect(await screen.findByText('缺纸')).toBeTruthy()
     expect(screen.getByText('已暂停')).toBeTruthy()
   })
 
   it('测试打印：调用 testPrinter 并提示确认出纸（迭代 73 文案用户化，不再展示字节数）', async () => {
     renderSettings()
-    openSection('打印机')
+    openSection('打印设置')
     fireEvent.click(screen.getByRole('button', { name: /测试打印/ }))
     expect(await screen.findByText('测试页已发送，请确认打印机是否出纸。')).toBeTruthy()
     expect(mocks.local.testPrinter).toHaveBeenCalled()
@@ -735,17 +731,17 @@ describe('插件管理（迭代 23 §5.6）', () => {
 })
 
 describe('打印批次（迭代 24 §4.4）', () => {
-  /** 批次分节内限定查询（「保存」按钮在服务端地址与打印批次两组各有一个）。 */
+  /** 作业配置子节内限定查询（「保存」按钮在常规设置与打印设置两组各有一个，需限定）。 */
   function withinBatch(): HTMLElement {
-    openSection('打印批次')
-    return within(settingsMain()).getByText('打印批次').closest('section') as HTMLElement
+    openSection('打印设置')
+    return within(settingsMain()).getByText('作业配置').closest('.settings-subsection') as HTMLElement
   }
 
   it('卡片渲染：挂载即拉取设置，显示开关（默认关）与数量 / 间隔默认值 + 提示文案', async () => {
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     // 面板与默认值（GET 返回默认：关 / 10 张 / 500ms）
-    expect(within(settingsMain()).getByText('打印批次')).toBeTruthy()
+    expect(within(settingsMain()).getByText('作业配置')).toBeTruthy()
     expect(await screen.findByLabelText('开启批次作业')).toBeTruthy()
     const enabled = screen.getByLabelText('开启批次作业') as HTMLInputElement
     const size = screen.getByLabelText('每批次打印数量') as HTMLInputElement
@@ -760,7 +756,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
 
   it('开关联动：关闭时数量 / 间隔输入禁用置灰，开启后可用，再关闭恢复禁用', async () => {
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     const size = screen.getByLabelText('每批次打印数量') as HTMLInputElement
     const interval = screen.getByLabelText('批次打印间隔（毫秒）') as HTMLInputElement
@@ -781,7 +777,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
 
   it('保存成功：setPrintSettings 携带表单值，提示「已保存并立即生效」', async () => {
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.change(screen.getByLabelText('每批次打印数量'), { target: { value: '20' } })
@@ -794,7 +790,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('保存失败（后端 400 ErrorView）：展示后端中文 message，不提示成功', async () => {
     mocks.local.setPrintSettings.mockRejectedValue(new ApiError('LF_BATCH_INVALID', '每批次打印数量必须 ≥ 1。'))
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.change(screen.getByLabelText('每批次打印数量'), { target: { value: '0' } })
@@ -806,7 +802,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('保存失败（网络错误）：回退通用文案', async () => {
     mocks.local.setPrintSettings.mockRejectedValue(new Error('network down'))
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     const enabled = (await screen.findByLabelText('开启批次作业')) as HTMLInputElement
     fireEvent.click(enabled)
     fireEvent.click(within(withinBatch()).getByRole('button', { name: /^保存$/ }))
@@ -815,7 +811,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
 
   it('打印 DPI：默认 203，切换 300 后随保存提交', async () => {
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     const dpi = (await screen.findByLabelText('打印 DPI')) as HTMLSelectElement
     expect(dpi.value).toBe('203')
     fireEvent.change(dpi, { target: { value: '300' } })
@@ -827,7 +823,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('旧 WinHost（GET 404）：显示版本提示「当前客户端版本不支持批次作业」，不渲染表单', async () => {
     mocks.local.getPrintSettings.mockRejectedValue(new ApiError('HTTP_404', '请求失败（HTTP 404）。'))
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     expect(await screen.findByText('当前客户端版本不支持批次作业。')).toBeTruthy()
     expect(screen.queryByLabelText('开启批次作业')).toBeNull()
     expect(screen.queryByLabelText('每批次打印数量')).toBeNull()
@@ -839,7 +835,7 @@ describe('打印批次（迭代 24 §4.4）', () => {
   it('获取设置失败（非 404）：展示错误信息，不渲染表单', async () => {
     mocks.local.getPrintSettings.mockRejectedValue(new Error('network down'))
     renderSettings()
-    openSection('打印批次')
+    openSection('打印设置')
     expect(await screen.findByText(/获取批次设置失败/)).toBeTruthy()
     expect(screen.queryByLabelText('开启批次作业')).toBeNull()
   })
@@ -848,18 +844,18 @@ describe('打印批次（迭代 24 §4.4）', () => {
 describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
   /** 锚点 → 分节标题：锚点元素仅当选中分节渲染，逐锚点先切分节再断言。 */
   const ANCHOR_SECTIONS: Record<string, string> = {
-    'settings.language': '语言',
-    'settings.serverAddress': '服务端地址',
-    'settings.transport': '连接方式',
-    'settings.batch': '打印批次',
-    'settings.printer': '打印机',
+    'settings.language': '常规设置',
+    'settings.serverAddress': '常规设置',
+    'settings.transport': '打印设置',
+    'settings.batch': '打印设置',
+    'settings.printer': '打印设置',
     'settings.updates': '更新与安装包',
     'settings.plugins': '插件管理',
   }
 
-  it('7 个分节标题挂「?」（data-help 语义锚点，逐分节在场）', async () => {
+  it('7 个文档点锚点在场（data-help 语义锚点，四分节内逐锚点渲染）', async () => {
     renderSettings()
-    await screen.findByRole('button', { name: '连接方式' })
+    await screen.findByRole('button', { name: '更新与安装包' })
     for (const [anchor, title] of Object.entries(ANCHOR_SECTIONS)) {
       openSection(title)
       expect(document.querySelector('[data-help="' + anchor + '"]')).toBeTruthy()
@@ -868,7 +864,7 @@ describe('组件级「?」文档点（迭代 126 · #308 AC-03）', () => {
 
   it('点「?」弹出对应分节文档气泡，Esc 关闭', async () => {
     renderSettings()
-    openSection('连接方式')
+    openSection('打印设置')
     const transportDot = document.querySelector('[data-help="settings.transport"]') as HTMLButtonElement
     expect(transportDot).toBeTruthy()
     fireEvent.click(transportDot)
@@ -902,7 +898,7 @@ describe('帮助深链（#316 决策 #178）', () => {
 
   it('深链轮询超时通用降级：锚点运行时不可见（未登记串无 [data-help]）→ 状态栏通用提示，不弹气泡', async () => {
     renderSettingsWithLink('settings.nonexistent')
-    await screen.findByRole('button', { name: '连接方式' })
+    await screen.findByRole('button', { name: '更新与安装包' })
     await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('已切换页面'), { timeout: 6000 })
     expect(screen.queryByRole('dialog')).toBeNull()
   })

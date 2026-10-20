@@ -121,7 +121,7 @@ const PAGE_MARKER = {
   designer: '尚未打开模板',
   data: '填写数据并打印 / Excel 批量打印',
   jobs: '最近 100 条打印记录；有作业进行中时自动刷新',
-  settings: '服务端地址 / 本机连接与打印机',
+  settings: '常规 / 打印 / 更新与插件',
   help: '五个页面的使用文章；界面内「?」就近说明',
 } as const
 

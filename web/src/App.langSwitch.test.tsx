@@ -167,11 +167,11 @@ describe('AC-02 壳层点击切换（client 构建）', () => {
 })
 
 describe('AC-03 双入口一致（设置页语言卡 ↔ 壳层切换器，同一 changeLocale 单点）', () => {
-  /** 进入设置页「语言」分节并返回语言卡 select（client 构建专属入口；默认分节为连接方式——先切分节，菜单名随语言用双语正则）。 */
+  /** 进入设置页「常规设置」分节并返回语言卡 select（client 构建专属入口；默认分节为打印设置——先切分节，菜单名随语言用双语正则）。 */
   async function openSettingsSelect() {
     fireEvent.click(await screen.findByRole('button', { name: /^(设置|Settings)$/ }))
-    fireEvent.click(await screen.findByRole('button', { name: /^(语言|Language)$/ }))
-    const select = (await screen.findByTestId('language-panel')).querySelector('select') as HTMLSelectElement
+    fireEvent.click(await screen.findByRole('button', { name: /^(常规设置|General)$/ }))
+    const select = (await screen.findByTestId('general-panel')).querySelector('select') as HTMLSelectElement
     return select
   }
 

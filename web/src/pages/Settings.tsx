@@ -1,6 +1,6 @@
-// 设置页：分节左菜单＋右内容（帮助页文档站版式同构）——左列七个分节导航、右区仅渲染选中分节；
-// 分节内容不套卡片（标题行＋内容直接铺在版面）。分节内容：服务端地址（机器级配置，保存即生效）/
-// 连接方式（本机 Client，内容常显无折叠）/ 打印机状态 / 测试打印 / 更新与安装包 / 插件管理。
+// 设置页：分节左菜单＋右内容（帮助页文档站版式同构）——左列四个分节导航（常规设置 / 打印设置 /
+// 更新与安装包 / 插件管理），右区仅渲染选中分节；分节内 h3 子标题分层不折叠（打印设置：状态总览卡
+// 置顶 → 连接配置 → 作业配置 → 测试打印）。常规设置＝界面语言＋服务端地址（机器级配置，保存即生效）。
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,11 +24,8 @@ import { isServerUi } from '../lib/uiMode'
 
 /** 分节清单：顺序即左菜单顺序；titleKey 复用各面板头词条（菜单与面板标题单源）。 */
 const SETTINGS_SECTIONS = [
-  { id: 'language', titleKey: 'language.title' },
-  { id: 'serverAddress', titleKey: 'serverAddress.title' },
-  { id: 'transport', titleKey: 'transport.title' },
-  { id: 'batch', titleKey: 'batch.title' },
-  { id: 'printer', titleKey: 'printer.title' },
+  { id: 'general', titleKey: 'general.title' },
+  { id: 'printing', titleKey: 'printing.title' },
   { id: 'updates', titleKey: 'updates.title' },
   { id: 'plugins', titleKey: 'plugins.title' },
 ] as const
@@ -38,11 +35,11 @@ type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]['id']
 /* * 深链锚点 → 分节映射：锚点元素（「?」文档点）仅当选中分节渲染——深链到达须先切到对应分节，
  * 轮询才能命中（未登记锚点不受影响，走通用超时降级）。 */
 const ANCHOR_TO_SECTION: Record<string, SettingsSectionId> = {
-  'settings.language': 'language',
-  'settings.serverAddress': 'serverAddress',
-  'settings.transport': 'transport',
-  'settings.batch': 'batch',
-  'settings.printer': 'printer',
+  'settings.language': 'general',
+  'settings.serverAddress': 'general',
+  'settings.transport': 'printing',
+  'settings.batch': 'printing',
+  'settings.printer': 'printing',
   'settings.updates': 'updates',
   'settings.plugins': 'plugins',
 }
@@ -73,8 +70,8 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       />
     )
   const [url, setUrl] = useState(app.baseUrl)
-  // 分节导航：右区仅渲染选中分节（默认连接方式——最高频调整项）；帮助深链锚点映射分节，到达即自动选中
-  const [section, setSection] = useState<SettingsSectionId>(() => (helpAnchor && ANCHOR_TO_SECTION[helpAnchor]) || 'transport')
+  // 分节导航：右区仅渲染选中分节（默认打印设置——最高频调整项）；帮助深链锚点映射分节，到达即自动选中
+  const [section, setSection] = useState<SettingsSectionId>(() => (helpAnchor && ANCHOR_TO_SECTION[helpAnchor]) || 'printing')
   useEffect(() => {
     if (!helpAnchor) return
     const target = ANCHOR_TO_SECTION[helpAnchor]
@@ -351,101 +348,124 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
           ))}
         </nav>
         <div className="settings-main">
-        {/* 界面语言——切换即时生效 + localStorage 持久化；
-            首启默认跟随浏览器语言（zh* → zh-CN，其他 → en） */}
-        {section === 'language' && (
-        <section className="settings-section" data-testid="language-panel">
-          <h2 className="settings-section-title">
-            {t('language.title')}
-            {dot('settings.language')}
-          </h2>
-          <div className="settings-section-body">
-            <label className="field" style={{ maxWidth: 260 }}>
-              {t('language.label')}
-              <select
-                className="input"
-                value={toAppLocale(i18n.language)}
-                onChange={(ev) => changeLocale(ev.target.value as AppLocale)}
-              >
-                {APP_LOCALES.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {t(loc === 'zh-CN' ? 'language.zhOption' : 'language.enOption')}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </section>
-        )}
-
-        {section === 'serverAddress' && (
-        <section className="settings-section">
-          <h2 className="settings-section-title">
-            {t('serverAddress.title')}
-            {dot('settings.serverAddress')}
-          </h2>
-          <div className="settings-section-body">
-            <label className="field">
-              {t('serverAddress.label')}
-              <input className="input mono" value={url} onChange={(ev) => setUrl(ev.target.value)} placeholder="http://127.0.0.1:53961" spellCheck={false} />
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn" onClick={() => void testConnection()} disabled={testing}>
-                <Icon name="link" size={13} />
-                {testing ? t('serverAddress.testing') : t('serverAddress.test')}
-              </button>
-              <button className="btn primary" onClick={() => void saveAddress()} disabled={saving}>
-                <Icon name="save" size={13} />
-                {saving ? t('serverAddress.saving') : t('serverAddress.save')}
-              </button>
-              <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span className={'status-dot' + (app.connected ? ' on' : '')} />
-                {app.connected ? t('serverAddress.connected') : t('serverAddress.disconnected')}
-              </span>
+        {/* 常规设置：界面语言（切换即时生效 + localStorage 持久化，首启跟随浏览器语言）＋
+            服务端地址（机器级配置，保存即生效）——两子节分层呈现 */}
+        {section === 'general' && (
+        <section className="settings-section" data-testid="general-panel">
+          <h2 className="settings-section-title">{t('general.title')}</h2>
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">
+              {t('language.title')}
+              {dot('settings.language')}
+            </h3>
+            <div className="settings-section-body">
+              <label className="field" style={{ maxWidth: 260 }}>
+                {t('language.label')}
+                <select
+                  className="input"
+                  value={toAppLocale(i18n.language)}
+                  onChange={(ev) => changeLocale(ev.target.value as AppLocale)}
+                >
+                  {APP_LOCALES.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {t(loc === 'zh-CN' ? 'language.zhOption' : 'language.enOption')}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-            {testResult && (
-              <div className={testResult.ok ? 'badge ok' : 'badge err'} style={{ alignSelf: 'flex-start' }}>
-                {testResult.msg}
+          </div>
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">
+              {t('serverAddress.title')}
+              {dot('settings.serverAddress')}
+            </h3>
+            <div className="settings-section-body">
+              <label className="field">
+                {t('serverAddress.label')}
+                <input className="input mono" value={url} onChange={(ev) => setUrl(ev.target.value)} placeholder="http://127.0.0.1:53961" spellCheck={false} />
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn" onClick={() => void testConnection()} disabled={testing}>
+                  <Icon name="link" size={13} />
+                  {testing ? t('serverAddress.testing') : t('serverAddress.test')}
+                </button>
+                <button className="btn primary" onClick={() => void saveAddress()} disabled={saving}>
+                  <Icon name="save" size={13} />
+                  {saving ? t('serverAddress.saving') : t('serverAddress.save')}
+                </button>
+                <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span className={'status-dot' + (app.connected ? ' on' : '')} />
+                  {app.connected ? t('serverAddress.connected') : t('serverAddress.disconnected')}
+                </span>
               </div>
-            )}
-            {saveResult && (
-              <div className={saveResult.ok ? 'badge ok' : 'badge err'} style={{ alignSelf: 'flex-start' }}>
-                {saveResult.msg}
-              </div>
-            )}
+              {testResult && (
+                <div className={testResult.ok ? 'badge ok' : 'badge err'} style={{ alignSelf: 'flex-start' }}>
+                  {testResult.msg}
+                </div>
+              )}
+              {saveResult && (
+                <div className={saveResult.ok ? 'badge ok' : 'badge err'} style={{ alignSelf: 'flex-start' }}>
+                  {saveResult.msg}
+                </div>
+              )}
+            </div>
           </div>
         </section>
         )}
 
-        {section === 'transport' && (
-        <section className="settings-section">
-          {/* 标题行带当前连接徽标；内容常显——分节菜单已隔离上下文，不再需要折叠收纳 */}
-          <div className="settings-section-head">
-            <h2 className="settings-section-title">
-              {t('transport.title')}
-              {dot('settings.transport')}
-            </h2>
-            <span className="hint">{t('transport.current')}</span>
-            <span
-              className={'badge ' + (app.connected ? 'ok' : '')}
-              style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            >
-              {formatTransport(app.transportConfig) || app.transport || t('value.unknown')}
-            </span>
+        {section === 'printing' && (
+        <section className="settings-section" data-testid="printing-panel">
+          <h2 className="settings-section-title">{t('printing.title')}</h2>
+
+          {/* 状态总览卡置顶：当前连接（本页唯一连接徽标，随本机打印服务运行状态着色——本机事实，
+              不随服务端地址连通性）＋打印机实时状态合一，先看状态再调配置 */}
+          <div className="settings-status-card" data-testid="print-status-card">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="hint">{t('transportForm.currentConnection')}</span>
+              <span
+                className={'badge ' + (app.localServiceUp ? 'ok' : '')}
+                style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {formatTransport(app.transportConfig) || app.transport || t('value.unknown')}
+              </span>
+              {printer ? (
+                <>
+                  <span className={'badge ' + (printer.isOnline ? 'ok' : 'err')}>
+                    <span className="status-dot" style={{ background: printer.isOnline ? 'var(--ok)' : 'var(--danger)' }} />
+                    {printer.isOnline ? t('device.online') : t('device.offline')}
+                  </span>
+                  {printer.isPaperOut && <span className="badge warn">{t('printer.paperOut')}</span>}
+                  {printer.isPaused && <span className="badge warn">{t('printer.paused')}</span>}
+                </>
+              ) : (
+                <span className="hint">{printerLoading ? t('printer.reading') : t('printer.none')}</span>
+              )}
+              <span className="spacer" style={{ flex: 1 }} />
+              <button className="btn sm" onClick={() => void refreshPrinter()} disabled={printerLoading}>
+                <Icon name="refresh" size={12} />
+                {t('action.refresh')}
+              </button>
+            </div>
+            {printer && <div className="hint">{printer.message || t('printer.noExtraInfo')}</div>}
           </div>
-          <div className="settings-section-body">
+
+          {/* 连接配置：内容常显——子节已隔离上下文，不再需要折叠收纳 */}
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">
+              {t('printing.connectionTitle')}
+              {dot('settings.transport')}
+            </h3>
             <TransportPanel />
           </div>
-        </section>
-        )}
 
-        {section === 'batch' && (
-        <section className="settings-section">
-          <h2 className="settings-section-title">
-            {t('batch.title')}
-            {dot('settings.batch')}
-          </h2>
-          <div className="settings-section-body">
+          {/* 作业配置：批次作业＋打印 DPI 同区，一个保存按钮（保存即生效、持久化） */}
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">
+              {t('printing.jobsTitle')}
+              {dot('settings.batch')}
+            </h3>
+            <div className="settings-section-body">
             {printSettingsOldWinHost ? (
               <div className="hint">{t('batch.oldClient')}</div>
             ) : printSettings === null ? (
@@ -511,47 +531,25 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
               </>
             )}
           </div>
-        </section>
-        )}
-
-        {section === 'printer' && (
-        <section className="settings-section">
-          <div className="settings-section-head">
-            <h2 className="settings-section-title">
-              {t('printer.title')}
-              {dot('settings.printer')}
-            </h2>
-            <span className="spacer" style={{ flex: 1 }} />
-            <button className="btn sm" onClick={() => void refreshPrinter()} disabled={printerLoading}>
-              <Icon name="refresh" size={12} />
-              {t('action.refresh')}
-            </button>
           </div>
-          <div className="settings-section-body">
-            {printer ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span className={'badge ' + (printer.isOnline ? 'ok' : 'err')}>
-                    <span className="status-dot" style={{ background: printer.isOnline ? 'var(--ok)' : 'var(--danger)' }} />
-                    {printer.isOnline ? t('device.online') : t('device.offline')}
-                  </span>
-                  {printer.isPaperOut && <span className="badge warn">{t('printer.paperOut')}</span>}
-                  {printer.isPaused && <span className="badge warn">{t('printer.paused')}</span>}
-                </div>
-                <div className="hint">{printer.message || t('printer.noExtraInfo')}</div>
+
+          {/* 测试打印：整页收尾动作——状态与配置都就绪后真实出纸验证整链 */}
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">
+              {t('printing.testPrintTitle')}
+              {dot('settings.printer')}
+            </h3>
+            <div className="settings-section-body">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button className="btn" onClick={() => void doTestPrint()} disabled={testPrinting}>
+                  <Icon name="test" size={13} />
+                  {testPrinting ? t('printer.sending') : t('printer.test')}
+                </button>
+                {printResult && <span className={printResult.ok ? 'badge ok' : 'badge err'}>{printResult.msg}</span>}
               </div>
-            ) : (
-              <div className="hint">{printerLoading ? t('printer.reading') : t('printer.none')}</div>
-            )}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button className="btn" onClick={() => void doTestPrint()} disabled={testPrinting}>
-                <Icon name="test" size={13} />
-                {testPrinting ? t('printer.sending') : t('printer.test')}
-              </button>
-              {printResult && <span className={printResult.ok ? 'badge ok' : 'badge err'}>{printResult.msg}</span>}
-            </div>
-            <div className="hint">
-              {t('printer.hint', { transport: formatTransport(app.transportConfig) || app.transport || t('value.unknown') })}
+              <div className="hint">
+                {t('printer.hint', { transport: formatTransport(app.transportConfig) || app.transport || t('value.unknown') })}
+              </div>
             </div>
           </div>
         </section>
