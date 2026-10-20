@@ -25,7 +25,7 @@
 | P0 | 设备离线作业暂存、恢复后继续 | Routing 单元 / Server 持久层 | Server 路由集成 | Compose 停 Client 后提交，启动后完成 | 自动门禁完整 |
 | P0 | Pending 暂存 TTL 过期（Expired 终态 / 领取过滤兜底 / requestId 重放不重新投递） | PendingJobTtlTests（FakeTimeProvider） | 完整宿主集成（含 TTL=0 回归锚点、notify 积压立即返回） | 不依赖真机（纯服务端时钟语义） | 自动门禁完整 |
 | P0 | Client 重启后本地历史保留并继续领取 | 队列持久层 / Worker | WinHost HTTP 作业列表 | Compose 重启前后作业与新作业双断言 | 自动门禁完整 |
-| P0 | 批次节流 | BatchPrintPolicy + FakeTimeProvider Worker | print-settings HTTP | 100 张 / 10 张一批既有联调记录 | 自动 + 既有联调证据 |
+| P0 | 批次节流＋打印 DPI 设置（203/300/600 白名单、GET 回生效值、保存即生效） | BatchPrintPolicy + FakeTimeProvider Worker；`PrintSettingsApiTests` / `PrintSettingsStoreTests`（DPI 白名单与持久化） | print-settings HTTP；100 张 / 10 张一批既有联调记录；DPI 切换真机实证 | 自动 + 既有联调证据 |
 | P0 | 错误响应与未捕获异常不泄露 | Api / 两宿主异常测试 | 统一 ErrorView / 500 集成 | 浏览器展示人话错误按主链抽查 | 自动门禁完整 |
 
 ## 3. 模板、Excel 与前端
@@ -51,7 +51,7 @@
 | P0 | Windows 驱动传输 | RawPrinterTransport tests | Windows 真机既有验收 | Linux 明确不包含 |
 | P0 | Zebra SDK 发送与状态读取 | Zebra transport tests + PrinterStatusTests | 真机三场景（正常 / 人工缺纸 / 人工暂停）× 双路径（SDK `GetCurrentStatus` / TCP `~HS`）实证 | 已真机确认（字段语义与映射口径见 DESIGN 决策表） |
 | P0 | TSPL 插件：原生指令编译（TEXT / BARCODE / QRCODE / BAR / BOX）＋图片 BITMAP 编码（反色选项）＋参数声明 | `TsplLabelCompilerTests` / `TsplImageEncoderTests` / `TsplImageDispatchTests`（分派字节不变 + 二进制载荷）/ `TsplTransportPluginParameterTests` | TSC TT065-60 真机验收（编译出纸效果 / 位极性取反 / USB 设备路径 / `ESC ! ?` 状态语义 / 反色两态） | 自动 + 真机证据 |
-| P1 | TSPL USB 免驱动设备发现（注册表键名解析） | `UsbPrinterDeviceDiscoveryTests`（GUID 尾巴保留回归） | TT065-60 真机（路径缺陷实证后回归锚定） | 自动 + 真机证据 |
+| P1 | TSPL USB 免驱动设备发现（CM 在位枚举＋自动发现逐台「打开＋应答探测」取第一台可通讯打印机） | `UsbPrinterDeviceDiscoveryTests`（路径解析与 GUID 尾巴保留回归）/ `TsplPrinterTransportTests`（探测跳过、失败清单与显式指定提示语义） | 多 USB 打印机真机（挂驱动非目标机在场时选中目标 TSC、已拔出设备不入列） | 自动 + 真机证据 |
 | P1 | 官方插件存量懒激活迁移（zebra / tspl 旧配置自动安装附带包） | `OfficialPluginMigrationTests` | 升级走查既有记录 | 自动门禁完整 |
 | P1 | 连接参数校验、先测试后生效、旧配置迁移 | TransportManager / config / plugin registry / OfficialPluginMigrationTests | WinHost HTTP + 设置页组件 | 自动门禁完整 |
 | P1 | 插件发现、隔离加载、包校验、安装 / 卸载 | Core package / loader + PluginInstaller | WinHost HTTP；既有 16 步联调 | 自动门禁完整；无签名边界已记录 |

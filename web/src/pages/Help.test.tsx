@@ -80,7 +80,7 @@ describe('帮助页功能索引与文章（AC-02 维持面）', () => {
 
   it('设置文章：7 个卡片主题全部可深链（hash 形态）；返回索引回到功能索引视图', () => {
     renderHelp()
-    fireEvent.click(screen.getByText('语言、服务端地址、打印机与插件等本机配置'))
+    fireEvent.click(screen.getByText('本机配置四分节：常规（语言、服务端地址）、打印（状态总览、连接、作业含打印 DPI、测试打印）、更新与插件'))
     const openButtons = screen.getAllByRole('button', { name: /去界面查看/ })
     expect(openButtons.length).toBe(7)
     fireEvent.click(openButtons[6])

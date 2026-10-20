@@ -33,12 +33,7 @@
     "statusSaved": "Server address saved and applied: {{url}}.",
     "statusFallback": "The local configuration endpoint is unavailable; saved in this browser instead."
   },
-  "transport": {
-    "title": "Connection",
-    "current": "current"
-  },
   "batch": {
-    "title": "Print Batching",
     "oldClient": "The installed client does not support batch jobs.",
     "loadFailed": "Failed to load batch settings.",
     "loading": "Loading batch settings…",
@@ -53,7 +48,6 @@
     "hint": "When enabled, large jobs are sent to the printer in batches of {{size}} labels with an interval of {{interval}} ms between batches."
   },
   "printer": {
-    "title": "Printer",
     "paperOut": "Paper out",
     "paused": "Paused",
     "noExtraInfo": "(no additional information)",
@@ -71,7 +65,7 @@
     "updateAvailable": "New version {{latest}} available (local {{local}})",
     "updateHint": "Download the new installer from the list below and run it (the client does not upgrade itself), or ask your administrator for help.",
     "upToDate": "Up to date (local {{version}})",
-    "offlineHint": "Not connected to a server (standalone mode). Packages are distributed by the server; connect to a server under \"Server Address\" above to see available packages.",
+    "offlineHint": "Not connected to a server (standalone mode). Packages are distributed by the server; connect to a server under General → Server Address to see available packages.",
     "loading": "Loading package list…",
     "loadFailed": "Failed to load the package list.",
     "loadFailedWith": "Failed to load the package list: {{reason}}",

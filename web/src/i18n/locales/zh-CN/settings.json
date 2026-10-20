@@ -33,12 +33,7 @@
     "statusSaved": "服务端地址已保存并生效：{{url}}。",
     "statusFallback": "本机配置接口不可用，已使用浏览器本地保存。"
   },
-  "transport": {
-    "title": "连接方式",
-    "current": "当前"
-  },
   "batch": {
-    "title": "打印批次",
     "oldClient": "当前客户端版本不支持批次作业。",
     "loadFailed": "获取批次设置失败。",
     "loading": "加载批次设置…",
@@ -53,7 +48,6 @@
     "hint": "开启后，大批量作业将每 {{size}} 张一批发送到打印机，批与批之间间隔 {{interval}} 毫秒。"
   },
   "printer": {
-    "title": "打印机",
     "paperOut": "缺纸",
     "paused": "已暂停",
     "noExtraInfo": "（无附加信息）",
@@ -71,7 +65,7 @@
     "updateAvailable": "发现新版本 {{latest}}（本机 {{local}}）",
     "updateHint": "请在下方列表下载新版安装包并运行安装（客户端不会自动升级），或请管理人员协助升级。",
     "upToDate": "已是最新（本机 {{version}}）",
-    "offlineHint": "当前未连接服务端（单机模式）。安装包由服务端统一分发，请先在上方「服务端地址」中连接服务端后查看可用安装包。",
+    "offlineHint": "当前未连接服务端（单机模式）。安装包由服务端统一分发，请先在「常规设置 → 服务端地址」连接服务端后查看可用安装包。",
     "loading": "加载安装包列表…",
     "loadFailed": "获取安装包列表失败。",
     "loadFailedWith": "获取安装包列表失败：{{reason}}",

@@ -82,7 +82,7 @@
     "designer": {
       "canvas": {
         "title": "Canvas & Widget Bar",
-        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. \nShortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. \n“Preview Print” shows the label at true print scale for the client-wide “Print DPI” (dots per inch, set in Settings → Print Batching); the canvas locks while previewing — exit to keep editing."
+        "body": "Place text, barcodes, QR codes and rectangles from the widget bar; drag to arrange, helped by smart guides and the millimeter grid. \nShortcuts: Ctrl+Z undo, Ctrl+C/V copy & paste, Delete remove, middle-drag pan, Ctrl+wheel zoom. \n“Preview Print” shows the label at true print scale for the client-wide “Print DPI” (dots per inch, set in Settings → Printing → Jobs → Print DPI); the canvas locks while previewing — exit to keep editing."
       },
       "fieldsSide": {
         "title": "Print Fields & Layers",
@@ -183,16 +183,16 @@
         "body": "After choosing a connection type, only the information that type needs is shown (for example, IP and port for a network printer, or the printer name for a Windows driver). Switching happens only after “Test Connection” passes; on failure the reason is shown and the current connection is kept. The saved connection is used after restart. \n“Simulated printing” needs no printer: labels are generated as images saved on this machine, handy for checking the result first. Switching to another settings section discards unsaved connection edits — finish “Test Connection” and “Save and Apply” in one go."
       },
       "batch": {
-        "title": "Print Batching",
-        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing.\n“Print DPI” selects the printer’s actual resolution (203 / 300 / 600) — a mismatch makes the whole layout print smaller. Changes take effect immediately after saving, no restart needed."
+        "title": "Jobs (Batching & Print DPI)",
+        "body": "When enabled, large jobs are sent to the printer in batches of the configured “Labels per batch”, with the configured “Batch interval” between batches to ease the strain of continuous printing.\n“Print DPI” selects the printer’s actual resolution (203 / 300 / 600) — a mismatch makes the whole layout print smaller. Both are saved with the single Save button and take effect immediately, no restart needed."
       },
       "printer": {
-        "title": "Printer",
-        "body": "The card shows the printer's current status (paper out, paused, and so on). “Test Print” sends one test page (a test barcode) to the connected printer; check for paper afterwards."
+        "title": "Status Overview & Test Print",
+        "body": "The status overview card at the top of Printing shows the current connection and the printer’s live status (paper out, paused, and so on); use Refresh to re-read it.\n“Test Print” sends one test page (a test barcode) to the connected printer; check for paper afterwards."
       },
       "updates": {
         "title": "Updates & Packages",
-        "body": "Packages are distributed by the server: the card compares the local version with the latest; download a package from the list and run it to upgrade (the client does not upgrade itself), or ask your administrator for help. \nIn standalone mode no packages are listed; connect to a server under “Server Address” above first."
+        "body": "Packages are distributed by the server: the card compares the local version with the latest; download a package from the list and run it to upgrade (the client does not upgrade itself), or ask your administrator for help. \nIn standalone mode no packages are listed; connect to a server under General → Server Address first."
       },
       "plugins": {
         "title": "Plugin Management",

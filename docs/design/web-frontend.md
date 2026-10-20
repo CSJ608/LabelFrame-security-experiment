@@ -1,6 +1,6 @@
 # web 前端模块设计
 
-> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 69 代码文件 + 59 测试）· 基线：`master` `041942d`（2026-10-20）
+> 覆盖：`web/src/`（根 / pages / lib / components / i18n / state，约 69 代码文件 + 59 测试）· 基线：`master` `8dd3421`（2026-10-20）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
 ## 1. 职责与边界

@@ -79,7 +79,7 @@
     "height": "高",
     "exitPreview": "退出预览",
     "preview": "预览打印效果",
-    "previewTitle": "按所选 DPI 以真实打印比例显示",
+    "previewTitle": "按打印设置中的打印 DPI 以真实打印比例显示",
     "grid": "网格",
     "gridTitle": "显示毫米网格",
     "zoomTitle": "内容缩放（Ctrl+滚轮）",

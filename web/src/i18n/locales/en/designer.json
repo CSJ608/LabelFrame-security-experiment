@@ -79,7 +79,7 @@
     "height": "H",
     "exitPreview": "Exit Preview",
     "preview": "Preview Print",
-    "previewTitle": "Show at real print scale for the selected DPI",
+    "previewTitle": "Show at real print scale for the print DPI set in Settings",
     "grid": "Grid",
     "gridTitle": "Show millimeter grid",
     "zoomTitle": "Content zoom (Ctrl+wheel)",
