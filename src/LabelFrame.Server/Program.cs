@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net;
+using System.Text.Json;
 using LabelFrame.Api;
 using LabelFrame.Api.Endpoints;
 using LabelFrame.Core.Logs;
@@ -7,8 +8,11 @@ using LabelFrame.Core.Transport.Plugins.Package;
 using LabelFrame.Rendering;
 using LabelFrame.Server;
 using LabelFrame.Server.Api;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+// 与已弃用的 HttpOverrides.IPNetwork 区分，网段统一用 net10 的 System.Net.IPNetwork
+using IPNetwork = System.Net.IPNetwork;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -19,6 +23,8 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 var serverOptions = new ServerOptions();
 builder.Configuration.GetSection("Server").Bind(serverOptions);
 serverOptions.ApplyEnvironmentOverrides();
+// 受信代理集合只解析一次（非法条目告警跳过；无任何合法条目 = 关闭），转发中间件与 info 回显共用
+var trustedProxies = TrustedProxiesParser.Parse(serverOptions.TrustedProxies);
 if (!string.IsNullOrWhiteSpace(serverOptions.LogFilePath))
 {
     var maxFileSizeBytes = serverOptions.LogFileMaxSizeMB > 0
@@ -102,6 +108,41 @@ builder.Services.AddLabelFrameExceptionHandler();
 
 var app = builder.Build();
 
+// ---- 受信代理转发头信任（仅 XForwardedFor，不改写 scheme/host）：启用时改写 Connection.RemoteIpAddress 为转发头解析结果 ----
+// 不变量：信任来源只有本配置——框架默认的 loopback 信任必须清空后再注入；未启用时不注册任何中间件（来源保持 TCP 对端）
+if (trustedProxies is not null)
+{
+    var forwardedOptions = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+        // 不限跳数：从右往左跳过受信代理、遇首个非受信地址即止
+        ForwardLimit = null,
+    };
+    forwardedOptions.KnownProxies.Clear();
+    forwardedOptions.KnownIPNetworks.Clear();
+    if (trustedProxies.AllowAll)
+    {
+        // 「*」以 IPv4 / IPv6 全零网段表达，覆盖双栈对端
+        forwardedOptions.KnownIPNetworks.Add(new IPNetwork(IPAddress.Any, 0));
+        forwardedOptions.KnownIPNetworks.Add(new IPNetwork(IPAddress.IPv6Any, 0));
+    }
+    else
+    {
+        foreach (var proxy in trustedProxies.Proxies)
+        {
+            forwardedOptions.KnownProxies.Add(proxy);
+        }
+
+        foreach (var network in trustedProxies.Networks)
+        {
+            forwardedOptions.KnownIPNetworks.Add(network);
+        }
+    }
+
+    app.UseMiddleware<TrustedProxyDiagnosticsMiddleware>(trustedProxies);
+    app.UseForwardedHeaders(forwardedOptions);
+}
+
 app.UseExceptionHandler();
 app.UseCors();
 
@@ -131,6 +172,7 @@ app.MapGet("/api/server/info", (ServerOptions options) =>
     {
         listenUrl = options.ListenUrl,
         publicBaseUrl = options.PublicBaseUrl,
+        trustedProxies = trustedProxies?.Raw,
         uiEnabled = ServerPluginUi.IsEnabled(options.WebUiPath),
         version = ServerOptions.ProductVersion,
     }));

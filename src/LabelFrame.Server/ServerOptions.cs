@@ -20,6 +20,9 @@ public sealed class ServerOptions
     /// <summary>对外通告基地址（http/https 绝对 URI，尾部斜杠已归一去除；null = 未配置，不通告）。</summary>
     public string? PublicBaseUrl { get; set; }
 
+    /// <summary>受信代理列表（逗号分隔 IP / CIDR；「*」＝信任全部；null / 空白 = 不启用，来源 IP 保持 TCP 对端）。LABELFRAME_SERVER_TRUSTED_PROXIES 可覆盖。</summary>
+    public string? TrustedProxies { get; set; }
+
     /// <summary>SQLite 数据库路径。</summary>
     public string DatabasePath { get; set; } = DefaultDatabasePath;
 
@@ -117,6 +120,12 @@ public sealed class ServerOptions
                 Console.WriteLine(
                     $"[LabelFrame] 对外通告基地址无效（LABELFRAME_SERVER_PUBLIC_BASE_URL={publicBaseUrl}）：需为 http/https 绝对地址，已按未配置处理。");
             }
+        }
+
+        if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_TRUSTED_PROXIES") is { } trustedProxies)
+        {
+            // 空白 = 显式关闭；条目级校验在受信集合解析处逐条告警跳过
+            TrustedProxies = string.IsNullOrWhiteSpace(trustedProxies) ? null : trustedProxies.Trim();
         }
 
         if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_DB") is { } db)

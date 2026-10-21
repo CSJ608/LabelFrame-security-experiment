@@ -20,7 +20,7 @@
 | 分组 | 文件 | 角色 |
 |---|---|---|
 | 入口与装配 | Program.cs | top-level 组装：配置绑定、日志通道、DI 单例、4 个后台服务、端点映射、SPA fallback |
-| | ServerOptions.cs | 配置面：全部默认值 + `LABELFRAME_SERVER_*` 环境变量覆盖（约 20 项） |
+| | ServerOptions.cs | 配置面：全部默认值 + `LABELFRAME_SERVER_*` 环境变量覆盖（约 21 项） |
 | 领域服务 | ServerService.cs | 设备 / 作业业务编排：提交（幂等门）、领取、回报、进度、视图组装、IP 规范化 |
 | | ServerException.cs / ServerErrorCodes.cs | 携问题码领域异常与 `LF_SRV_001~013` 码表（新增码须同步 web 端码表） |
 | 存储 | ServerDb.cs + ServerDbStore.cs / ServerDeviceStore.cs / ServerJobStore.cs / JobCallbackStore.cs | SQLite 三表访问按聚合拆分：ServerDb＝建库与旧库迁移入口、ServerDbStore＝共享基类（每操作一连接）、设备 / 作业 / 回调三存储类 |
@@ -91,12 +91,14 @@
 | `GET /api/devices/{id}/jobs/notify` / `jobs/pending` | 长轮询通知（心跳保活）/ 领取（含载荷） |
 | `POST /api/devices/{id}/jobs/{jobId}/result` / `progress` | 终态回报 / 进度增量（错误语义一致：404 / 403 / 409 / 400） |
 | `GET/POST/GET/DELETE /api/client-packages`、`/api/pda-packages`、`/api/plugin-packages` | 三类包列表 / 上传 / 下载 / 删除（文件名路径穿越防护；APK 下载 MIME 专用；插件包上传先校验后落盘） |
-| `GET /healthz`、`/api/server/info`、`/api/server/ipv4-candidates` | 健康检查 / 版本与 UI 探测（含 `publicBaseUrl` 对外基地址通告，null＝未配置）/ 本机 IPv4 候选（下载中心连接信息卡） |
+| `GET /healthz`、`/api/server/info`、`/api/server/ipv4-candidates` | 健康检查 / 版本与 UI 探测（含 `publicBaseUrl` 对外基地址通告，null＝未配置；`trustedProxies` 受信代理配置回显）/ 本机 IPv4 候选（下载中心连接信息卡） |
 | 共享端点（LabelFrame.Api 装配） | `/api/templates*`、`/api/print/render*`、`/api/import/*`、`/api/logs*` |
 
 错误体系：`LF_SRV_001~013`（新增码须同步 `web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译）；错误消息模板化，`params` 随异常透传 `ErrorView` 供展示端按码表插值（决策 #166）。
 
 **对外基地址通告**（`LABELFRAME_SERVER_PUBLIC_BASE_URL`，决策 #202）：部署侧向 Server 声明「设备实际可达」的对外基地址，经 `/api/server/info` 的 `publicBaseUrl` 字段下发（null＝未配置；兼容新增字段，旧前端无感）。值须为 http(s) 绝对 URL：尾斜杠归一去除；非法值（相对地址 / 非 http(s) scheme）启动时告警并忽略、按未配置处理。典型场景两类：反向代理子路径部署（如 nginx `location /labelframe/` → 容器 53961、对外 80 端口——前端按页面地址推导会丢对外端口与子路径）；容器 / 端口映射部署（`ipv4-candidates` 只能枚举容器内网 IP，对外不可达）。前端消费口径（存在即优先展示并隐藏候选切换；未配置时按 `location.pathname` 推导部署前缀兜底）见 [web-frontend.md](web-frontend.md) §3.6。
+
+**受信代理与设备真实 IP**（`LABELFRAME_SERVER_TRUSTED_PROXIES`，决策 #203）：部署侧向 Server 声明「哪些对端是可信反向代理」，供请求管道从转发头还原设备真实 IP。背景：设备登记的来源 IP 此前直取 TCP 对端（决策 #61）——经反代连入的客户端全部被登记为代理 IP，上游按 IP 定位设备（`GET /api/devices/by-ip`、`POST /api/jobs` 的 `targetIp`）反代下 404 或多设备挤占同一地址，by-ip / targetIp 集成依赖此开关恢复可用。机制：启用后经 ASP.NET Core `ForwardedHeadersMiddleware` 单点改写，从 `X-Forwarded-For` 右起取首个非受信跳作为设备真实 IP——注册 / 心跳 / 领取自动生效，`lastIp` 随心跳自愈（已登记的代理 IP 在设备下一次心跳即被真实 IP 覆盖，客户端零改动、无需重连）。取值：逗号分隔 IP / CIDR 列表；`*`＝信任全部对端；未设置＝关闭（行为与现状一致）——配置是转发头信任的唯一来源。运维口径：docker 部署标准配方 `172.16.0.0/12`（覆盖默认 docker 地址池、子网漂移免疫）；`*` 仅当服务端口只经代理可达（直连端口封闭、代理必经）时安全，直连端口开放时用网段白名单（决策 #79 局域网信任模型下，伪造头的冒充面由白名单与端口可达面共同收敛）；不受信对端携带转发头时不采信并输出告警日志（自诊断「疑似漏配受信代理」的最直接线索）。当前配置经 `/api/server/info` 的 `trustedProxies` 字段回显。
 
 **依赖**：`LabelFrame.Core`（`SqliteSupport` / `TemplateStore` / `SqliteLogStore` / `SafeFileName` / `PluginPackageReader` / `TransportPluginIdPolicy` / `ErrorMessageTemplates` / `LabelElementJsonConverter`）＋ `LabelFrame.Api`（共享 DTO 与端点）＋ `LabelFrame.Rendering`（`SkiaLabelRenderer` 单例，模板预览 / 调试出图共用）＋ NuGet：`Microsoft.Data.Sqlite.Core 8.0.4` + `SQLitePCLRaw.provider/lib.e_sqlite3 2.1.13`、`Microsoft.Extensions.Hosting.WindowsServices 10.0.0`（仅 windows TFM）。目标框架 `net10.0;net10.0-windows` 双目标（决策 #59）。
 
@@ -129,6 +131,7 @@
 | 错误消息多语言链路（ErrorView.params + 码表） | #166 |
 | 下载中心连接信息卡（ipv4-candidates） | #169 |
 | 对外可达基地址通告（LABELFRAME_SERVER_PUBLIC_BASE_URL） | #202 |
+| 受信代理与设备真实 IP（LABELFRAME_SERVER_TRUSTED_PROXIES） | #203 |
 | 测试体系（同装配集成测试、TimeProvider、Perf/Soak Trait、SQLite provider 竞态与测试串行） | #82 / #83 / #66 / #85 |
 
 ## 6. 平台坑与不变量

@@ -22,6 +22,7 @@
 | P0 | 作业持久化、批内顺序、挂起 / 恢复 / 取消 / 失败项重打 | Core `LabelJobQueueTests`、WinHost Jobs | WinHost 作业全生命周期 | Windows UI 主链既有验收；Linux E2E 验证持久化 | 自动门禁完整 |
 | P0 | requestId 幂等、不重打 | ServerService / Server endpoints | Server 完整宿主幂等重放 | Compose 对同一请求重放并断言同一 jobId | 自动门禁完整 |
 | P0 | 设备注册、心跳、定向投递、领取、终态回报 | ServerService / Routing Worker | Server 注册→提交→领取→回报 | Compose 真实双进程闭环 | 自动门禁完整 |
+| P1 | 反代下设备来源 IP 的转发头信任三态（关闭＝TCP 对端直取、行为不变 / 受信网段＝按 X-Forwarded-For 改写真实 IP / 不受信对端＝头不采信＋告警） | ServerOptions 受信代理解析（IP / CIDR / *） | 完整宿主集成（注册→by-ip→targetIp 链路，X-Forwarded-For 三态断言） | 不依赖真机（纯 HTTP 头语义，反代形态以配置等效覆盖） | 自动门禁完整 |
 | P0 | 设备离线作业暂存、恢复后继续 | Routing 单元 / Server 持久层 | Server 路由集成 | Compose 停 Client 后提交，启动后完成 | 自动门禁完整 |
 | P0 | Pending 暂存 TTL 过期（Expired 终态 / 领取过滤兜底 / requestId 重放不重新投递） | PendingJobTtlTests（FakeTimeProvider） | 完整宿主集成（含 TTL=0 回归锚点、notify 积压立即返回） | 不依赖真机（纯服务端时钟语义） | 自动门禁完整 |
 | P0 | Client 重启后本地历史保留并继续领取 | 队列持久层 / Worker | WinHost HTTP 作业列表 | Compose 重启前后作业与新作业双断言 | 自动门禁完整 |
