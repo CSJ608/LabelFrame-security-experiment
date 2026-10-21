@@ -33,3 +33,6 @@ BenchmarkDotNet.Artifacts/
 
 # 本地 E2E / 文档工具生成物
 outputs/
+
+# Python 工具脚本字节码（scripts/ 下按模块导入运行时生成）
+__pycache__/
