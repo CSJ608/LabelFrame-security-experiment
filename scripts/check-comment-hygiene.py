@@ -75,7 +75,12 @@ def scan_doc_sync(base: str):
         ]
         if not added_or_deleted:
             continue
-        if not any("/docs/design/" in f or f.startswith("docs/design/") for f in files):
+        # name-status 行为「状态\t路径」（重命名为「状态\t旧\t新」）——按 TAB 剥离状态段后判全部路径
+        if not any(
+            part.strip().startswith("docs/design/")
+            for f in files
+            for part in f.split("\t")[1:]
+        ):
             subject = run_git("log", "-1", "--format=%h %s", c).strip()
             warnings.append(f"{subject}：增删源文件 {len(added_or_deleted)} 个（如 {added_or_deleted[0][2:].strip()}）但未动 docs/design/ —— 需人工确认是否属实质变化")
     return warnings
