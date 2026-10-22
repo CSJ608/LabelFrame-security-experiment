@@ -26,7 +26,7 @@ public class LabelLayoutResolverTests
         LabelRegionAlign? h = null,
         LabelRegionAlign? v = null,
         double widthMm = 0,
-        double paddingHMm = 0,
+        double? paddingHMm = null,
         double paddingMm = 0,
         double fontHeightMm = 4,
         double heightMm = 0)

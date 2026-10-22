@@ -20,6 +20,7 @@ export function shortcutGroups(): ShortcutGroup[] {
       title: i18next.t('designer:shortcuts.groupEdit'),
       items: [
         { keys: ['Ctrl+Z', 'Ctrl+Y'], desc: i18next.t('designer:shortcuts.undoRedo') },
+        { keys: ['Ctrl+S'], desc: i18next.t('designer:shortcuts.save') },
         { keys: ['Delete', 'Backspace'], desc: i18next.t('designer:shortcuts.deleteSelected') },
         { keys: ['Esc'], desc: i18next.t('designer:shortcuts.cancelPlacement') },
       ],

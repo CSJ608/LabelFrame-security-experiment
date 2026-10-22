@@ -20,11 +20,15 @@ export interface TemplateSummary {
   name: string
   group: string
   updatedAt: string
+  /** 模板稳定标识（后端分配，改名不变；旧后端可能缺失——缺失时按名字口径兜底）。 */
+  uid?: string
 }
 
 export interface TemplatePackage {
   name: string
   group: string
+  /** 模板稳定标识：编辑保存时原样回传（后端按 uid 命中同一条记录）；新建首次保存不携带（成功后即认领并回传）。 */
+  uid?: string
   contract: BackendContract
   layout: BackendLayout
   testData?: Record<string, string>

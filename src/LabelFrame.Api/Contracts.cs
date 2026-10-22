@@ -27,13 +27,15 @@ public sealed record LabelDto(IReadOnlyDictionary<string, string>? Data);
 
 /// <summary>模板提交 DTO（保存到模板库；图片资源可随请求携带，testData 可选）。</summary>
 /// <param name="Images">图片资源（键 → base64）。三态：null＝保留存量（缺省与显式 null 反序列化同为 null、不可区分，契约合并为一态）、空字典＝清空、非空字典＝全量覆盖；服务端解码校验（PNG / JPG / BMP、单图 ≤2MB、≤10 张、总量 ≤10MB，按解码后原始字节）。</param>
+/// <param name="Uid">存储内模板 uid（null 或空白＝新建由存储分配；携带时按行 upsert——行不存在则按该 uid 新建，允许改名不换 uid）。</param>
 public sealed record TemplatePackageDto(
     string? Name,
     string? Group,
     LabelContract? Contract,
     LabelLayout? Layout,
     IReadOnlyDictionary<string, string>? TestData = null,
-    IReadOnlyDictionary<string, string>? Images = null);
+    IReadOnlyDictionary<string, string>? Images = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Uid = null);
 
 /// <summary>预览请求。</summary>
 public sealed record PreviewRequest(IReadOnlyDictionary<string, string>? Data);

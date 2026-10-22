@@ -35,7 +35,7 @@
 | Validation | `Validation/` | `LabelValidator`（仅必填缺失校验——底线「缺数据不打半张」）；`LabelProblemCodes`（`LF_VAL_001`） |
 | Encoding | `Encoding/` | `ZplImageEncoder`（`^XA`/`^PW`/`^LL`/`^GFA` 整版位图输出；`DefaultDpi = 203`；毫米→点四舍五入远离零） |
 | Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`；双载荷重载 `SubmitAsync(requestId, IReadOnlyList<LabelJobPayload>)`——文本 / 二进制指令二选一，决策 #195）；`LabelJobPayload`（`OfText` / `OfBytes`）；`SqliteLabelJobStore`（表 `jobs` / `job_items`——含 `command_bytes BLOB` 加列迁移，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
-| Templates | `Templates/` | `TemplateStore`（SQLite 表 `templates` / `template_images`，upsert + 分组列表 + 旧库补列迁移）；`TemplatePackage`（契约 + 版式 + 图片 + testData）；`TemplatePackageSerializer`（zip：`manifest.json` + `images/`） |
+| Templates | `Templates/` | `TemplateStore`（SQLite 表 `templates` / `template_images`：`id`=不透明 uid、`name` 列承载模板名（唯一索引），保存带 uid＝同模板改名更新、无 uid＝新建，分组列表 + 旧库补列迁移）；`TemplatePackage`（契约 + 版式 + 图片 + testData + 可选 uid）；`TemplatePackageSerializer`（zip：`manifest.json` + `images/`，不携带身份字段） |
 | Transport | `Transport/` | `IPrintTransport`（文本 `SendAsync(string)` + 二进制 `SendAsync(byte[])` DIM 缺省抛 `NotSupportedException`，决策 #195）+ `IPrinterStatusProvider` + `ITestableTransport`；内置实现 `Tcp9100PrintTransport`（发送 + `~HS` 状态解析 `ParseHostStatus`）与 `LogPrintTransport`（模拟打印，只记摘要） |
 | Transport / Plugins | `Transport/Plugins/` | 插件 ABI：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` 展示端翻译键 DIM，决策 #192）/ `ITransportPluginRegistry`（实现 `TransportPluginRegistry`，**强持有插件 ALC 根**）/ `ILabelCommandCompiler`（可选文档编译能力，决策 #137）、`ILabelImageEncoder`（可选图片编码能力＋`LabelImageEncodeOptions` 连接级选项，决策 #195 / #196）；`PluginDirectoryLoader`（两条加载路径，见 §3.2）；`PluginProbe`（安装预检探针）；`PluginInstaller`（安装 / 卸载 / 已装列表）；`BuiltinTransportPlugins`（log + tcp9100）；`TransportPluginIdPolicy`（官方前缀 / 保留 id / 旧 id 别名）；`TransportPrintMode`（image / native，决策 #137）；`TransportParameterSpec`（含 `VisibleWhen*` 条件可见性 + `LabelKey`/`HintKey` 展示端翻译键（init-only 属性、构造器签名零变化）+ 历史 7 参构造器兼容，决策 #186 / #192） |
 | Transport / Plugins / Package | `Transport/Plugins/Package/` | `.lfplugin` 包读取：`PluginPackageReader`（zip-slip 防护 + 魔数判别）、`PluginPackageManifest`（含可选 `platforms` 平台门，决策 #157）、`PluginPackageLimits`（64MB）、`PluginVersionComparer`（官方覆盖安装版本比较，决策 #123）、`PluginPackageException` |
@@ -86,7 +86,7 @@
 
 ### 3.5 模板保存与 testData 合成（`TemplateStore.SaveAsync`）
 
-单事务内读-改-写：以库中现有 `test_data_json` 为基底 → 并入显式传入的 `TestData` → 被元素 `PreviewValue`（text / barcode / qrcode 字段填充模式）派生覆盖——**预览值优先**（单一事实来源，决策 #45）；图片全量替换（先删后插）；不传 testData 且布局无预览值时旧显式值保留。旧库自动补 `test_data_json` 列（ALTER 容错「已存在」）。模板包 zip（`TemplatePackageSerializer`）：`manifest.json`（name / group / contract / layout / testData）+ `images/`（键名 sanitize，仅字母数字 `.` `-` `_`）；导入缺 group 归「默认」、缺 testData 归空（决策 #23 / #41）。
+单事务内：先删撞名行（`name` = 新名且 `id` ≠ 目标 uid，连带图片）——无 uid 保存因此等价于旧的按名覆盖（旧前端兼容）；目标行按 `id` upsert（带 uid＝同模板改名更新，无 uid＝生成新 uid 新建，决策 #205）。testData 读-改-写：以库中现有 `test_data_json` 为基底（基底定位＝带 uid 按 id 取本行——改名随行携带、撞名覆盖不并入被撞行；无 uid 按 name 取被替换行，决策 #205）→ 并入显式传入的 `TestData` → 被元素 `PreviewValue`（text / barcode / qrcode 字段填充模式）派生覆盖——**预览值优先**（单一事实来源，决策 #45）；图片全量替换（先删后插）；不传 testData 且布局无预览值时旧显式值保留。旧库自动补 `test_data_json` 列与 `name` 列（回填 `name = id`，存量行 id=旧名即 uid；ALTER 容错「已存在」，决策 #205）。模板包 zip（`TemplatePackageSerializer`）：`manifest.json`（name / group / contract / layout / testData）+ `images/`（键名 sanitize，仅字母数字 `.` `-` `_`）；导入缺 group 归「默认」、缺 testData 归空，身份字段不进出包（决策 #23 / #41）。
 
 ## 4. 对外契约与依赖
 
@@ -125,6 +125,7 @@
 | 传输分层（TCP 9100 在 Core，winspool 归 WinHost） | #18 |
 | 在线状态 / 测试页（`~HS` 基础解析）；Zebra 状态映射修正（官方字段表 + 无响应一等异常态） | #26 / #109 |
 | 模板包格式（zip：manifest + images）；模板测试数据 testData；模板预览值派生 testData | #23 / #41 / #45 |
+| 模板身份化（uid 主键 + name 列，改名保存＝同模板更新）；元素内边距显式 0 契约（在场即显值，缺省才兜底 paddingMm） | #205 |
 | 元素样式与区域（格子）布局；元素内容来源（`Literal ?? data[SourceKey]`）；文本垂直对齐契约；元素契约第二批字段（wrap / lineHeight / fitMode / fontFamily / 双边内边距）；字体加粗契约 | #33 / #35 / #46 / #47 / #49 |
 | 区域水平锚定按实测宽度（方案 A + 度量接口注入）；锚定文本垂直坐标语义统一 | #110 / #146 |
 | 传输插件统一接口与参数模型；加载 / 卸载 / 使用；外部插件字节加载；ALC 生命周期（注册表强持根） | #67 / #68 / #73 / #127 |
@@ -152,7 +153,7 @@
 6. **`~HS` 无响应 / 超时 / 响应不完整 = 异常态**：官方声明缺纸 / 耗材用尽 / 打印头打开等状态下打印机可能完全不响应——绝不映射为正常；缺纸 / 暂停位在**首行第 2 / 3 字段**（决策 #109）。
 7. **printMode 两个分支不可合并**：「缺省 / 非法回退 image」与「显式 native 但插件无编译能力」不同——后者保存校验拒绝 + 提交兜底 `LF_ENC_003` 显式失败，**不静默按图片打印**（决策 #137）。
 8. **错误消息模板单遍替换**：参数值内嵌 `{x}` 不级联替换；参数缺失占位符原样保留不抛——展示端按码表翻译依赖此口径（决策 #166）。
-9. **元素 JSON 写方向「非默认才写」**：省略风格与前端 `convert.ts` 一致（默认值清单见 §3.4）；`fitMode` 写出为小写 `shrink` / `overflow`（前端枚举形态，非 `ToString()`）；`paddingMm` 单值为兼容保留，缺失双边时回退——旧模板读取行为不变（决策 #47）。
+9. **元素 JSON 写方向「非默认才写」**：省略风格与前端 `convert.ts` 一致（默认值清单见 §3.4）；`fitMode` 写出为小写 `shrink` / `overflow`（前端枚举形态，非 `ToString()`）。**例外——双边内边距「在场即显值」**：`paddingH` / `paddingV` 有值即写（含 0，`PaddingHMm` / `PaddingVMm` 为 `double?`——null＝未设、0＝显式零），缺省才走 `paddingMm → 0` 兜底；`paddingMm` 单值为兼容保留且仅双侧有效值（`EffectivePadding*`，`PaddingMm` 兜底后）相等且 >0 时写出该有效值（写 max 会把显式 0 经兜底链复活，决策 #205）。旧模板读取行为不变（决策 #47 / #205）。
 10. **`Zpl` 字段与 DB 列名不改名**：`LabelJobItem.Zpl` 与 `job_items.zpl` 沿用历史命名（文本形态指令：图片模式 = `^GF` 位图 ZPL，原生指令模式 = 品牌原生指令）；二进制指令（如 TSPL BITMAP）走 `CommandBytes` / `command_bytes BLOB`（决策 #195）——**与 `Zpl` 互斥，非空者即回放载荷**；指令一经持久化不可变，重启后可续打且不重打——存量库兼容（旧行 NULL 走文本路径）。
 11. **插件 id 兼容义务**：`log` / `tcp9100` / `winspool` 为内置保留 id（外部包禁止占用）；旧内置时代 id `zebra` 仅作**读取别名**归一到 `labelframe-transport-zebra`，不落盘迁移；Log 插件显示名用户化但 Id 保持 `log`（存量连接配置兼容）（决策 #123 / #143）。
 12. **`platforms` 缺省按 Windows 解释**：无该字段的既有包在 Windows 宿主照常安装、PDA 拒绝；显式空数组非法（决策 #157）。

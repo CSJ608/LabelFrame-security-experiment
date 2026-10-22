@@ -35,7 +35,9 @@ describe('convert 设计器模型 ↔ 后端模板契约', () => {
       expect(j.fontHeightMm).toBe(4)
       expect(j.widthMm).toBe(40)
       expect(j.textAlign).toBe('Center')
-      expect(j.paddingMm).toBe(1) // max(paddingH, paddingV)
+      expect(j.paddingH).toBe(1)
+      expect(j.paddingV).toBe(0.5)
+      expect(j.paddingMm).toBeUndefined() // 不对称 → 不写单值兼容字段
       expect(j.borderMm).toBe(0.2)
     })
 
@@ -99,12 +101,14 @@ describe('convert 设计器模型 ↔ 后端模板契约', () => {
       expect(j.widthMm).toBe(60)
     })
 
-    it('padding/border 为 0 时省略（与后端省略规则一致）', () => {
+    it('padding 显式 0 恒写出且不写 paddingMm；border 为 0 省略（与后端省略规则一致）', () => {
       const t = defaultElement('Text')
       t.paddingH = 0
       t.paddingV = 0
       t.border = 0
       const j = toBackendElement(t)
+      expect(j.paddingH).toBe(0)
+      expect(j.paddingV).toBe(0)
       expect(j.paddingMm).toBeUndefined()
       expect(j.borderMm).toBeUndefined()
     })
@@ -431,14 +435,51 @@ describe('convert 设计器模型 ↔ 后端模板契约', () => {
       expect(toBackendElement(b).displayValue).toBe(false)
     })
 
-    it('写方向：双边内边距双值写出 + paddingMm 兼容保留', () => {
+    it('写方向：不对称内边距双值写出，paddingMm 不写', () => {
       const t = defaultElement('Text')
       t.paddingH = 2
       t.paddingV = 1
       const j = toBackendElement(t)
       expect(j.paddingH).toBe(2)
       expect(j.paddingV).toBe(1)
-      expect(j.paddingMm).toBe(2) // max 兼容
+      expect(j.paddingMm).toBeUndefined()
+    })
+
+    it('写方向：单侧 0 → 双值含 0 写出，paddingMm 不写', () => {
+      const h0 = defaultElement('Text')
+      h0.paddingH = 1
+      h0.paddingV = 0
+      const hj = toBackendElement(h0)
+      expect(hj.paddingH).toBe(1)
+      expect(hj.paddingV).toBe(0)
+      expect(hj.paddingMm).toBeUndefined()
+
+      const v0 = defaultElement('Text')
+      v0.paddingH = 0
+      v0.paddingV = 2
+      const vj = toBackendElement(v0)
+      expect(vj.paddingH).toBe(0)
+      expect(vj.paddingV).toBe(2)
+      expect(vj.paddingMm).toBeUndefined()
+    })
+
+    it('写方向：双侧对称正值 → 另写 paddingMm 兼容旧读端', () => {
+      const t = defaultElement('Text')
+      t.paddingH = 1.5
+      t.paddingV = 1.5
+      const j = toBackendElement(t)
+      expect(j.paddingH).toBe(1.5)
+      expect(j.paddingV).toBe(1.5)
+      expect(j.paddingMm).toBe(1.5)
+    })
+
+    it('往返：单侧 0（H=1/V=0）保存 → 读回 V 保持 0', () => {
+      const t = defaultElement('Text')
+      t.paddingH = 1
+      t.paddingV = 0
+      const back = first<TextElement>(fromBackendElements([toBackendElement(t)]))
+      expect(back.paddingH).toBe(1)
+      expect(back.paddingV).toBe(0)
     })
 
     it('读回：新字段还原（text/qrcode/barcode）', () => {

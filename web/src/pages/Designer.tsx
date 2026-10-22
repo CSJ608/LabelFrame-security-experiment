@@ -1,6 +1,7 @@
 // 设计器（核心页面壳）：顶栏（模板名 / 分组 / 纸张 / 预览 / 保存）+ 左栏（控件 / 字段 / 图层）
 // + 画布 + 右栏（属性 / 测试数据 Tab）。stateRef 为同步真相（事件回调内先更新再 setState），
-// 历史为快照式；dirty（历史栈有已提交更改）时离开走三选 Modal，无编辑直接离开不弹窗。
+// 历史为快照式；dirty（undoCount 与最近成功保存点不一致）时离开走三选 Modal，一致直接离开不弹窗；
+// Ctrl+S 就地保存（成功留在设计器并推进保存点）。
 // 编排拆分：元素操作 / 深链演示 / 图片资源 / 保存 / 离开保护下沉 pages/designer/* hooks，机制层 lib/design/ 不动。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -74,8 +75,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const contractNameRef = useRef('')
   const contractVersionRef = useRef('1')
   const selectedRef = useRef<string[]>([])
+  // 编辑目标的模板稳定标识：详情响应优先，回退工作台 request 透传（旧后端缺失保持 undefined）
+  const uidRef = useRef<string | undefined>(undefined)
+  // 最近一次成功保存时的 undoCount（0＝尚未保存过）：离开守卫 dirty 判定基准
+  const savedMarkRef = useRef(0)
   // 离开保护挂起的离开动作：「放弃更改」与「保存并离开」成功后执行；
-  // 各终止路径（继续编辑 / 保存失败 / 覆盖取消 / 名称缺失）就地作废，防陈旧离开动作误触发后续普通保存。
+  // 各终止路径（继续编辑 / 保存失败）就地作废；取消 / 空名类拦截仅离开发起时作废（Ctrl+S 就地发起不动挂起导航，失败仍作废）。
   const pendingLeaveRef = useRef<(() => void) | null>(null)
   // 加载单次闩锁 + 挂载标记（见下方加载 effect 注释）
   const initedRef = useRef(false)
@@ -119,6 +124,11 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     setSelected,
   })
 
+  // Ctrl+S 就地保存入口：latest-ref 注入 useDesignerActions——保存 hook 依赖图片 hook 的 ref、
+  // 图片 hook 又依赖动作 hook 的回调（声明顺序环，直接传函数则每次渲染换键监听重挂）。
+  const saveRef = useRef<((opts?: { stay?: boolean }) => void) | null>(null)
+  const saveInPlace = useCallback(() => saveRef.current?.({ stay: true }), [])
+
   const {
     handleSelect,
     addElementAt,
@@ -130,7 +140,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     layerToBottom,
     doExportDesign,
     doImportDesign,
-  } = useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive })
+  } = useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive, saveInPlace })
 
   const { imageAssets, setImageAssets, imageAssetsRef, fileInputRef, replaceImage, onImageInputChange, imageToast } = useImageAssets({
     stateRef,
@@ -161,6 +171,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         setName(pkg.name)
         setGroup(pkg.group || i18next.t('designer:defaultGroup'))
         initialNameRef.current = pkg.name
+        uidRef.current = pkg.uid ?? request.uid
         contractNameRef.current = pkg.contract?.name ?? pkg.name
         contractVersionRef.current = pkg.contract?.version ?? '1'
         // 图片资源回填：base64 即时回填画布；像素尺寸异步解码补齐（失败保持 0，仅影响展示）。
@@ -256,7 +267,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   }, [app, printDpi, viewMode, t])
 
   // ---------- 保存 + 离开保护 ----------
-  const { doSave, save, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
+  /** 保存成功统一回调（就地与离开两路）：推进保存点标记至当前 undoCount。 */
+  const markSaved = useCallback(() => {
+    savedMarkRef.current = historyRef.current?.undoCount ?? 0
+  }, [])
+
+  const { save, overwriteSave, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
     request,
     biz,
     stateRef,
@@ -264,13 +280,20 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     contractNameRef,
     contractVersionRef,
     imageAssetsRef,
+    uidRef,
     group,
     name,
     onClose,
     pendingLeaveRef,
     setSaving,
     setConfirmOverwrite,
+    onSaved: markSaved,
   })
+
+  // Ctrl+S 分发用 latest 保存入口（见 saveInPlace 声明处注释）
+  useEffect(() => {
+    saveRef.current = save
+  }, [save])
 
   // 空名保存拦截：名称框红边 + 内联提示 + 聚焦，补名即消
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -280,6 +303,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
 
   const { leaveGuardOpen, stayInEditor, discardAndLeave, saveAndLeave, requestClose } = useLeaveGuard({
     historyRef,
+    savedMarkRef,
     pendingLeaveRef,
     onClose,
     save,
@@ -407,7 +431,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           <Icon name="upload" size={13} />
           {t('toolbar.importDesign')}
         </button>
-        <button className="btn primary" onClick={save} disabled={saving || !state}>
+        <button className="btn primary" onClick={() => save()} disabled={saving || !state}>
           <Icon name="save" size={13} />
           {saving ? t('toolbar.saving') : t('toolbar.save')}
         </button>
@@ -559,7 +583,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
               <button className="btn" onClick={cancelOverwrite}>
                 {t('action.cancel')}
               </button>
-              <button className="btn primary" onClick={() => { setConfirmOverwrite(false); void doSave(name.trim()) }}>
+              <button className="btn primary" onClick={overwriteSave}>
                 {t('overwrite.confirm')}
               </button>
             </>

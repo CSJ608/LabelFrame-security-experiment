@@ -63,11 +63,11 @@
 
 ### 3.3 设计器编辑与保存链
 
-1. 画布交互（`CanvasViewport`）：拖动 / 缩放过程中的高频节点操作直走 Konva 实例（不触发 React 渲染），`dragend` / `transformend` 才提交；
+1. 画布交互（`CanvasViewport`）：拖动 / 缩放过程中的高频节点操作直走 Konva 实例（不触发 React 渲染），`dragend` / `transformend` 才提交；空白处左键拖拽＝**框选**（`lib/design/marquee.ts` 纯函数按模型盒「有面积重叠」相交命中、边缘相切不算；拖拽低于阈值视为普通点击，沿用空白点击清空选择的既有语义；与 pendingType 放置 / 中键平移 / 修饰键多选互斥互不干扰，决策 #205）；
 2. 吸附全程走**模型盒域**（决策 #180）：`elementModelRect` 按模型 mm 纯函数计算（脱离 Konva 渲染包围盒——`getClientRect` 会把居中描边半线宽计入盒外）；多选拖动为**整体刚性**（决策 #182）：dragStart 快照各选中元素初始坐标，`computeSnap` 以联合盒为被拖盒、组内元素零参与，Δ = 主导终态 − 主导初始，各元素补丁 = `commitDragPosition(初始 + Δ)` 同 Δ 落库（松手瞬移防御见 §6）；
 3. 提交经 `Designer.commit` → `historyRef.commit`（快照入撤销栈）→ `setState`；`stateRef` 为同步真相（事件回调内先更新再 setState）；
-4. 保存：`deriveFieldInfos` 推导契约字段（决策 #37）→ `toContract` / `toLayout`（`toBackendElement` 严格镜像后端省略规则）→ 图片资源仅提交被元素引用的 key（孤儿 GC）、剥 dataURL 前缀、恒发显式字典（决策 #184）→ `biz.saveTemplate`（业务 API 跟随 serverMode：unknown 不发请求待探测，server = `serverApi`、standalone = `localApi`）；
-5. dirty 判定 = 撤销栈 `undoCount > 0`（任何已提交更改）；未保存离开经三选守卫（§3.2）；图片资源表不进 `DesignState` / 历史快照（防 base64 撑爆撤销栈）。
+4. 保存：`deriveFieldInfos` 推导契约字段（决策 #37）→ `toContract` / `toLayout`（`toBackendElement` 严格镜像后端省略规则——例外：双边内边距显式 0 恒写出、`paddingMm` 仅 H===V 且 >0 时写，决策 #205）→ 图片资源仅提交被元素引用的 key（孤儿 GC）、剥 dataURL 前缀、恒发显式字典（决策 #184）→ `biz.saveTemplate`（业务 API 跟随 serverMode：unknown 不发请求待探测，server = `serverApi`、standalone = `localApi`）；编辑态保存携带模板 uid（列表项 → request → Designer → 保存载荷）＝同模板改名更新，无 uid＝新建（决策 #205）；
+5. dirty 判定 = 撤销栈位置 ≠ **最近保存点**（`undoCount !== savedMark`；保存（含 Ctrl+S 就地保存，工具栏按钮「保存并退出」承担保存并回工作台路径）成功时把当前 `undoCount` 记为保存点——初始 0＝未编辑不 dirty、撤销回保存点＝不 dirty，决策 #205）；未保存离开经三选守卫（§3.2）；图片资源表不进 `DesignState` / 历史快照（防 base64 撑爆撤销栈）。
 
 ### 3.4 数据与打印提交链
 
@@ -111,6 +111,7 @@
 | 主题 | 决策 |
 |---|---|
 | 前端工程化（Vite + React + TS + Konva、原型冻结） | #40 |
+| 设计器保存与选择体验（模板 uid 改名语义 / 内边距显式 0 / Ctrl+S 就地保存＋保存点 dirty / 画布框选） | #205 |
 | 设计器 2.0 交互（多选 / 手柄缩放 / 吸附 / 快捷键） | #38 |
 | 容器控件（拖入自动锚定，Region 后台化） | #36 |
 | 契约字段自动推导（字段集合 = 字段填充元素去重） | #37 |

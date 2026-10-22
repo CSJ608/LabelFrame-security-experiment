@@ -154,7 +154,7 @@ describe('「看实时效果」演示（AC-05）', () => {
     await waitFor(() => expect(canvasProbe.current?.state.elements[0]?.['text']).toBe('A-01-02'))
     // doSave 读 stateRef（原始数据）——演示注入值不进保存链路（结构性保证）
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '演示模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     const layoutJson = JSON.stringify(pkg.layout)

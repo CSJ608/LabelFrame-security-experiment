@@ -206,8 +206,8 @@ public class LabelElementJsonConverterTests
         const string oldJson = """{"type":"text","xMm":0,"yMm":0,"sourceKey":"k","fontHeightMm":5,"fontWidthMm":5,"paddingMm":1}""";
         var old = Assert.IsType<LabelTextElement>(JsonSerializer.Deserialize<LabelElement>(oldJson, Options));
 
-        Assert.Equal(0, old.PaddingHMm);
-        Assert.Equal(0, old.PaddingVMm);
+        Assert.Null(old.PaddingHMm);
+        Assert.Null(old.PaddingVMm);
         Assert.Equal(1, old.EffectivePaddingHMm);
         Assert.Equal(1, old.EffectivePaddingVMm);
 
@@ -218,7 +218,7 @@ public class LabelElementJsonConverterTests
     }
 
     [Fact]
-    public void Asymmetric_padding_should_round_trip_with_padding_mm_compat()
+    public void Asymmetric_padding_should_round_trip_without_padding_mm()
     {
         var element = new LabelTextElement { SourceKey = "k", XMm = 0, YMm = 0, FontHeightMm = 5, FontWidthMm = 5, PaddingHMm = 2, PaddingVMm = 1, PaddingMm = 2 };
 
@@ -227,10 +227,58 @@ public class LabelElementJsonConverterTests
 
         Assert.Equal(2, roundTrip.PaddingHMm);
         Assert.Equal(1, roundTrip.PaddingVMm);
-        Assert.Equal(2, roundTrip.PaddingMm);
-        Assert.Contains("\"paddingMm\":2", json);
         Assert.Contains("\"paddingH\":2", json);
         Assert.Contains("\"paddingV\":1", json);
+        // 双侧不等时兼容单值必须省略——旧读端按单值兜底会伪造其中一侧
+        Assert.DoesNotContain("paddingMm", json);
+        Assert.Equal(0, roundTrip.PaddingMm);
+    }
+
+    [Fact]
+    public void Symmetric_padding_should_write_padding_mm_as_effective_value()
+    {
+        var element = new LabelTextElement { SourceKey = "k", XMm = 0, YMm = 0, FontHeightMm = 5, FontWidthMm = 5, PaddingHMm = 1.5, PaddingVMm = 1.5 };
+
+        var json = JsonSerializer.Serialize<LabelElement>(element, Options);
+        Assert.Contains("\"paddingMm\":1.5", json);
+
+        var roundTrip = Assert.IsType<LabelTextElement>(JsonSerializer.Deserialize<LabelElement>(json, Options));
+        Assert.Equal(1.5, roundTrip.PaddingMm);
+        Assert.Equal(1.5, roundTrip.EffectivePaddingHMm);
+    }
+
+    [Fact]
+    public void Explicit_zero_padding_should_round_trip_without_fallback()
+    {
+        var element = new LabelTextElement { SourceKey = "k", XMm = 0, YMm = 0, FontHeightMm = 5, FontWidthMm = 5, PaddingMm = 1.5, PaddingHMm = 1, PaddingVMm = 0 };
+
+        var json = JsonSerializer.Serialize<LabelElement>(element, Options);
+        var roundTrip = Assert.IsType<LabelTextElement>(JsonSerializer.Deserialize<LabelElement>(json, Options));
+
+        // 显式 0 在场即写出并读回，不得回退单值 paddingMm
+        Assert.Contains("\"paddingH\":1", json);
+        Assert.Contains("\"paddingV\":0", json);
+        Assert.DoesNotContain("paddingMm", json);
+        Assert.Equal(1, roundTrip.PaddingHMm);
+        Assert.Equal(0, roundTrip.PaddingVMm);
+        Assert.Equal(1, roundTrip.EffectivePaddingHMm);
+        Assert.Equal(0, roundTrip.EffectivePaddingVMm);
+    }
+
+    [Fact]
+    public void Legacy_padding_mm_only_falls_back_and_missing_defaults_to_zero()
+    {
+        const string legacyJson = """{"type":"text","xMm":0,"yMm":0,"sourceKey":"k","fontHeightMm":5,"fontWidthMm":5,"paddingMm":1.5}""";
+        var legacy = Assert.IsType<LabelTextElement>(JsonSerializer.Deserialize<LabelElement>(legacyJson, Options));
+        Assert.Null(legacy.PaddingHMm);
+        Assert.Null(legacy.PaddingVMm);
+        Assert.Equal(1.5, legacy.EffectivePaddingHMm);
+        Assert.Equal(1.5, legacy.EffectivePaddingVMm);
+
+        const string bareJson = """{"type":"text","xMm":0,"yMm":0,"sourceKey":"k","fontHeightMm":5,"fontWidthMm":5}""";
+        var bare = Assert.IsType<LabelTextElement>(JsonSerializer.Deserialize<LabelElement>(bareJson, Options));
+        Assert.Equal(0, bare.EffectivePaddingHMm);
+        Assert.Equal(0, bare.EffectivePaddingVMm);
     }
 
     [Fact]

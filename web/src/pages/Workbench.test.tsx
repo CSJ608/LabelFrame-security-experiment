@@ -39,11 +39,11 @@ vi.mock('../lib/api/client', () => ({ serverApi: mocks.server, localApi: mocks.l
 // 本文件为 client 构建语义用例，显式注入 client 分支（VITE_UI_MODE=server 整仓测试时保持稳定）
 vi.mock('../lib/uiMode', () => ({ UI_MODE: 'client', isServerUi: false }))
 
-// 大小写混合命名 + 两组分组，覆盖搜索与分组叠加
+// 大小写混合命名 + 两组分组，覆盖搜索与分组叠加；Shelf-Tag 携带 uid（打开设计器 request 透传断言用）
 const TEMPLATES: TemplateSummary[] = [
   { name: 'Carton-Label-A', group: '华东仓', updatedAt: '2026-09-01T10:00:00Z' },
   { name: 'carton-label-b', group: '华东仓', updatedAt: '2026-09-02T10:00:00Z' },
-  { name: 'Shelf-Tag', group: '华南仓', updatedAt: '2026-09-03T10:00:00Z' },
+  { name: 'Shelf-Tag', group: '华南仓', updatedAt: '2026-09-03T10:00:00Z', uid: 'uid-shelf' },
 ]
 
 function renderWorkbench(handlers?: { onOpenPrint?: (name: string) => void }) {
@@ -161,7 +161,7 @@ describe('模板卡片打印直达（迭代 85 · #133 C-4）', () => {
 
     fireEvent.doubleClick(cardOf('Shelf-Tag'))
     expect(onOpenDesigner).toHaveBeenCalledTimes(1)
-    expect(onOpenDesigner).toHaveBeenCalledWith({ kind: 'edit', name: 'Shelf-Tag' })
+    expect(onOpenDesigner).toHaveBeenCalledWith({ kind: 'edit', name: 'Shelf-Tag', uid: 'uid-shelf' })
 
     // 单击「打印」只走打印直达，不打开设计器
     fireEvent.click(within(cardOf('Shelf-Tag')).getByRole('button', { name: '打印' }))
@@ -204,7 +204,7 @@ describe('卡片脚操作收纳（迭代 104 · #225）', () => {
     expect(await screen.findByText('Shelf-Tag')).toBeTruthy()
     fireEvent.click(within(cardOf('Shelf-Tag')).getByRole('button', { name: '编辑' }))
     expect(onOpenDesigner).toHaveBeenCalledTimes(1)
-    expect(onOpenDesigner).toHaveBeenCalledWith({ kind: 'edit', name: 'Shelf-Tag' })
+    expect(onOpenDesigner).toHaveBeenCalledWith({ kind: 'edit', name: 'Shelf-Tag', uid: 'uid-shelf' })
   })
 })
 

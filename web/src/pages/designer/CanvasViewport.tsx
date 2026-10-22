@@ -1,4 +1,4 @@
-// 设计器画布（react-konva）：毫米标尺 + 网格、智能参考线吸附、多选整体刚性拖动、
+// 设计器画布（react-konva）：毫米标尺 + 网格、智能参考线吸附、空白框选多选、多选整体刚性拖动、
 // 8 手柄缩放、中键平移、Ctrl+滚轮缩放、DPI 打印预览。
 // 拖动过程中的高频节点操作直接走 Konva 实例（不触发 React 渲染），
 // dragend / transformend 才提交状态（与原型一致）。
@@ -11,7 +11,8 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import { ElementNode } from './ElementNode'
 import type { DesignElement, ImageAsset } from '../../lib/design/types'
 import { containerRegionIdFor, elementById } from '../../lib/design/model'
-import { commitDragPosition, designCanvasSize, fitScale, logicToContentMm, multiDragRigidPatches, pointerToLogic, previewCanvasSize, previewScale, PX, pxv, RULER, viewportToLogic } from '../../lib/design/geometry'
+import { commitDragPosition, contentOffset, designCanvasSize, fitScale, logicToContentMm, multiDragRigidPatches, pointerToLogic, previewCanvasSize, previewScale, PX, pxv, RULER, viewportToLogic } from '../../lib/design/geometry'
+import { elementsIntersecting } from '../../lib/design/marquee'
 import { computeSnap, elementModelRect, othersModelRects, unionModelRect } from '../../lib/design/snapping'
 import type { SnapRect } from '../../lib/design/snapping'
 import { coreShortcuts } from './shortcuts'
@@ -62,6 +63,15 @@ interface MultiDragSnapshot {
   lastApplied: { x: number; y: number } | null
 }
 
+/** 框选位移阈值（stage px）：松手位移低于此值不提交框选，回落为普通空白点击（清空选择）。 */
+const MARQUEE_CLICK_PX = 3
+
+/* * 框选进行态：起点同时记 stage 系（阈值判定）与逻辑系（选区矩形）双坐标。 */
+interface MarqueeState {
+  startStage: { x: number; y: number }
+  startLogic: { x: number; y: number }
+}
+
 export function CanvasViewport(props: CanvasViewportProps) {
   const { t } = useTranslation('designer')
   const { state, selected, viewMode, dpi, zoom, gridOn, locked, imageAssets } = props
@@ -76,6 +86,11 @@ export function CanvasViewport(props: CanvasViewportProps) {
   const guidesRef = useRef<Konva.Line[]>([])
   const panRef = useRef({ panning: false, startX: 0, startY: 0, stageX: 0, stageY: 0 })
   const multiDragRef = useRef<MultiDragSnapshot | null>(null)
+  const marqueeRef = useRef<MarqueeState | null>(null)
+  const marqueeNodeRef = useRef<Konva.Rect | null>(null)
+  /* * 框选一次性标记：框选提交 onSelect 后置位，handleClick 空白分支消费并复位——
+   *  防紧随 mouseup 的 Konva click 把刚框选的组清空；每次 Stage mousedown 先复位清残留。 */
+  const marqueeSelectedRef = useRef(false)
   /* * Transformer._proxyDrag 触发的「假拖动」节点 id 集——其 dragstart / dragmove / dragend 一律忽略：
    *  位置由主导侧每步刚性设置，dragend 吞掉防走单选提交（否则多选拖动产生第二步历史，破坏撤销单步）。 */
   const fakeDragRef = useRef<Set<string>>(new Set())
@@ -239,6 +254,10 @@ export function CanvasViewport(props: CanvasViewportProps) {
         }
         return
       }
+      if (marqueeSelectedRef.current) {
+        marqueeSelectedRef.current = false
+        return
+      }
       p.onSelect([], false)
       return
     }
@@ -251,6 +270,127 @@ export function CanvasViewport(props: CanvasViewportProps) {
       if (target?.type === 'Image' && !target.key) p.onRequestImageUpload(el.id())
     }
   }
+
+  // ---------- 空白框选多选 ----------
+
+  /** client 坐标 → stage 坐标（canvas CSS 像素）：含页面缩放修正，与 Konva 指针 / viewportToLogic 同口径。 */
+  const clientToStagePoint = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
+    const dom = stageRef.current?.container()
+    if (!dom) return null
+    const rect = dom.getBoundingClientRect()
+    const zx = dom.clientWidth > 0 ? rect.width / dom.clientWidth : 1
+    const zy = dom.clientHeight > 0 ? rect.height / dom.clientHeight : 1
+    return { x: (clientX - rect.left) / zx, y: (clientY - rect.top) / zy }
+  }, [])
+
+  /** 框选虚线矩形节点（仿参考线：直接建 Konva 实例，listening:false 不参与命中）。 */
+  const ensureMarqueeNode = useCallback(() => {
+    const layer = layerRef.current
+    if (!layer) return null
+    if (marqueeNodeRef.current) return marqueeNodeRef.current
+    const n = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      stroke: '#1a5fd0',
+      strokeWidth: 1,
+      dash: [4, 3],
+      listening: false,
+      strokeScaleEnabled: false,
+    })
+    marqueeNodeRef.current = n
+    layer.add(n)
+    return n
+  }, [])
+
+  const destroyMarqueeNode = useCallback(() => {
+    const n = marqueeNodeRef.current
+    marqueeNodeRef.current = null
+    n?.destroy()
+  }, [])
+
+  /** 框选拖拽（document mousemove）：位移过阈值才建节点，之后每步直改 Konva 实例（不触发 React 渲染）。 */
+  const onMarqueeMove = useCallback(
+    (ev: MouseEvent) => {
+      const m = marqueeRef.current
+      const layer = layerRef.current
+      const stage = stageRef.current
+      if (!m || !layer || !stage) return
+      const sp = clientToStagePoint(ev.clientX, ev.clientY)
+      if (!sp) return
+      if (!marqueeNodeRef.current && Math.hypot(sp.x - m.startStage.x, sp.y - m.startStage.y) < MARQUEE_CLICK_PX) return
+      const n = ensureMarqueeNode()
+      if (!n) return
+      const logic = pointerToLogic(sp, stage.x(), stage.y(), stage.scaleX(), stage.scaleY())
+      n.x(Math.min(m.startLogic.x, logic.x))
+      n.y(Math.min(m.startLogic.y, logic.y))
+      n.width(Math.abs(logic.x - m.startLogic.x))
+      n.height(Math.abs(logic.y - m.startLogic.y))
+      layer.batchDraw()
+    },
+    [clientToStagePoint, ensureMarqueeNode],
+  )
+
+  /* * 框选收尾（document mouseup，capture 阶段）：必须先于 Konva 容器 mouseup→click 触发，
+   *  一次性标记才能赶在 handleClick 前置位（bubble 阶段监听晚于 click，刚框选的组会先被清空）。 */
+  const onMarqueeUp = useCallback(
+    (ev: MouseEvent) => {
+      const m = marqueeRef.current
+      marqueeRef.current = null
+      document.removeEventListener('mousemove', onMarqueeMove)
+      document.removeEventListener('mouseup', onMarqueeUp, true)
+      destroyMarqueeNode()
+      layerRef.current?.batchDraw()
+      const stage = stageRef.current
+      const sp = clientToStagePoint(ev.clientX, ev.clientY)
+      if (!m || !stage || !sp) return
+      if (Math.hypot(sp.x - m.startStage.x, sp.y - m.startStage.y) < MARQUEE_CLICK_PX) return
+      const p = stateRef.current
+      const logic = pointerToLogic(sp, stage.x(), stage.y(), stage.scaleX(), stage.scaleY())
+      const rect = {
+        x: Math.min(m.startLogic.x, logic.x),
+        y: Math.min(m.startLogic.y, logic.y),
+        w: Math.abs(logic.x - m.startLogic.x),
+        h: Math.abs(logic.y - m.startLogic.y),
+      }
+      const off = contentOffset(p.viewMode === 'preview')
+      marqueeSelectedRef.current = true
+      p.onSelect(elementsIntersecting(rect, p.state.elements, off.x, off.y), false)
+    },
+    [clientToStagePoint, destroyMarqueeNode, onMarqueeMove],
+  )
+
+  /* * Stage 左键空白按下启动框选；Transformer 内部（手柄 / 背板）不属空白——命中即缩放或整组拖动，不得混入框选。 */
+  const handleStageMouseDown = (ev: KonvaEventObject<MouseEvent>) => {
+    marqueeSelectedRef.current = false
+    const p = stateRef.current
+    if (ev.evt.button !== 0 || p.viewMode === 'preview' || p.locked || p.pendingType) return
+    if (elementFromTarget(ev.target)) return
+    let n: Konva.Node | null = ev.target
+    while (n) {
+      if (n === trRef.current) return
+      n = n.getParent()
+    }
+    const stage = ev.target.getStage()
+    const ptr = stage?.getPointerPosition()
+    if (!stage || !ptr) return
+    marqueeRef.current = {
+      startStage: { x: ptr.x, y: ptr.y },
+      startLogic: pointerToLogic(ptr, stage.x(), stage.y(), stage.scaleX(), stage.scaleY()),
+    }
+    document.addEventListener('mousemove', onMarqueeMove)
+    document.addEventListener('mouseup', onMarqueeUp, true)
+  }
+
+  // 框选手势兜底清理：组件卸载时移除 document 监听与选区节点
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', onMarqueeMove)
+      document.removeEventListener('mouseup', onMarqueeUp, true)
+      destroyMarqueeNode()
+    }
+  }, [onMarqueeMove, onMarqueeUp, destroyMarqueeNode])
 
   const handleWheel = (ev: KonvaEventObject<WheelEvent>) => {
     ev.evt.preventDefault()
@@ -578,7 +718,7 @@ export function CanvasViewport(props: CanvasViewportProps) {
       onDrop={handleDrop}
     >
       <div ref={boxRef} style={{ position: 'absolute', background: preview ? '#fff' : '#fff', border: '1px solid #9aa6b4', boxShadow: '0 2px 8px rgba(0,0,0,.08)', left: 0, top: 0 }}>
-        <Stage ref={stageRef} width={canvasSize.w * total || 1} height={canvasSize.h * total || 1} scaleX={total} scaleY={total} onClick={handleClick} onWheel={handleWheel}>
+        <Stage ref={stageRef} width={canvasSize.w * total || 1} height={canvasSize.h * total || 1} scaleX={total} scaleY={total} onMouseDown={handleStageMouseDown} onClick={handleClick} onWheel={handleWheel}>
           <Layer ref={layerRef}>
             {!preview && <KRect x={0} y={0} width={RULER} height={RULER} fill="#f7f8fa" stroke="#d8dee6" strokeWidth={1} listening={false} strokeScaleEnabled={false} />}
             {gridNodes}

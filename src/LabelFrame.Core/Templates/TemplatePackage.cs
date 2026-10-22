@@ -9,8 +9,11 @@ namespace LabelFrame.Core.Templates;
 /// </summary>
 public sealed class TemplatePackage
 {
-    /// <summary>模板名（唯一标识）。</summary>
+    /// <summary>模板名（库内唯一）。</summary>
     public required string Name { get; init; }
+
+    /// <summary>存储内不透明 uid（null 或空白 = 新建由存储分配；带 uid 保存即按行 upsert——行不存在则按该 uid 新建，改名不换 uid）。</summary>
+    public string? Uid { get; init; }
 
     /// <summary>分组（项目 / 客户）。</summary>
     public required string Group { get; init; }

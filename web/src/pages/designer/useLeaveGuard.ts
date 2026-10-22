@@ -1,5 +1,6 @@
-// 离开保护编排 hook：dirty（历史栈有任一已提交更改）时离开走三选 Modal（保存并离开 / 放弃更改 / 继续编辑），
-// 无编辑直接放行；Shell 导航 tab 切换拦截的挂载注册 / 卸载注销。回调体自 Designer.tsx 逐字搬移。
+// 离开保护编排 hook：dirty（undoCount 与最近成功保存点的标记不一致）时离开走三选 Modal
+//（保存并离开 / 放弃更改 / 继续编辑），一致（未编辑或已撤销回保存点）直接放行；
+// Shell 导航 tab 切换拦截的挂载注册 / 卸载注销。
 
 import { useCallback, useEffect, useState } from 'react'
 import type { RefObject } from 'react'
@@ -7,7 +8,9 @@ import type { DesignerHistory } from './designState'
 
 export interface UseLeaveGuardOptions {
   historyRef: RefObject<DesignerHistory | null>
-  /** 离开保护挂起的离开动作（与保存链共用：doSave 成功后执行、各终止路径就地作废）。 */
+  /* * 最近一次成功保存时的 undoCount（0＝尚未保存过）——dirty 判定基准。 */
+  savedMarkRef: RefObject<number>
+  /** 离开保护挂起的离开动作（与保存链共用：离开保存成功后执行；终止路径就地作废——就地保存变体成功与取消不动，失败仍作废）。 */
   pendingLeaveRef: RefObject<(() => void) | null>
   onClose: () => void
   save: () => void
@@ -16,15 +19,16 @@ export interface UseLeaveGuardOptions {
   registerLeaveGuard?: (fn: ((leave: () => void) => boolean) | null) => void
 }
 
-export function useLeaveGuard({ historyRef, pendingLeaveRef, onClose, save, registerLeaveGuard }: UseLeaveGuardOptions) {
+export function useLeaveGuard({ historyRef, savedMarkRef, pendingLeaveRef, onClose, save, registerLeaveGuard }: UseLeaveGuardOptions) {
   // 未保存离开保护——三选 Modal（保存并离开 / 放弃更改 / 继续编辑）
   const [leaveGuardOpen, setLeaveGuardOpen] = useState(false)
 
-  // ---------- 离开保护（dirty = 历史栈有任一已提交更改） ----------
-  /* * 请求离开：无已提交更改（undoCount=0）直接离开不弹窗；有则弹三选 Modal 挂起离开动作。
-   * 返回 false=已挂起、true=已放行——Shell 以此决定路由是否 pre-revert（非 dirty 放行不得回退，否则浏览器后退失效）。 */
+  // ---------- 离开保护（dirty = undoCount 与保存点标记不一致） ----------
+  /* * 请求离开：与最近保存点一致（未编辑 / 已就地保存 / 撤销回保存点）直接离开不弹窗；
+   * 不一致则弹三选 Modal 挂起离开动作。返回 false=已挂起、true=已放行——Shell 以此决定路由是否
+   * pre-revert（非 dirty 放行不得回退，否则浏览器后退失效）。 */
   const requestLeave = useCallback((leave: () => void): boolean => {
-    if ((historyRef.current?.undoCount ?? 0) > 0) {
+    if ((historyRef.current?.undoCount ?? 0) !== savedMarkRef.current) {
       pendingLeaveRef.current = leave
       setLeaveGuardOpen(true)
       return false

@@ -2,8 +2,8 @@
 // Designer 加载 effect 与 Workbench 的 serverMode 守卫对齐——
 // unknown 阶段（模式探测未完成）不以 localApi 误发模板详情请求；模式解析后按正确 base 正常加载。
 // 画布为 react-konva 重组件（jsdom 无 2d context），以桩替换——本文件只验证加载链路守卫，不测画布交互。
-// 页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）与
-// 未保存离开保护三选路径（dirty = 历史栈有已提交更改）。
+// 页级保存链路（新建保存 / 同名覆盖确认 / 保存失败）、Ctrl+S 就地保存与 uid 通路、
+// 未保存离开保护三选路径（dirty = undoCount 与最近成功保存点不一致）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -81,14 +81,14 @@ const PKG: TemplatePackage = {
 
 function renderDesigner(
   name?: string,
-  opts: { onClose?: () => void; registerLeaveGuard?: (fn: ((leave: () => void) => void) | null) => void; helpAnchor?: string | null } = {},
+  opts: { onClose?: () => void; registerLeaveGuard?: (fn: ((leave: () => void) => void) | null) => void; helpAnchor?: string | null; uid?: string } = {},
 ) {
   return render(
     <AppProvider>
       {/* 状态栏消息探针：保存 / 守卫错误经 app.setStatus 呈现（真实界面在 Shell 状态栏，测试树内以探针捕获） */}
       <StatusProbe />
       <Designer
-        request={name ? { kind: 'edit', name } : { kind: 'new' }}
+        request={name ? { kind: 'edit', name, uid: opts.uid } : { kind: 'new' }}
         onClose={opts.onClose ?? (() => {})}
         registerLeaveGuard={opts.registerLeaveGuard}
         helpAnchor={opts.helpAnchor}
@@ -194,7 +194,7 @@ async function waitForEditLoaded() {
   await screen.findByDisplayValue('70', undefined, { timeout: 3000 })
 }
 
-/** 提交一步历史更改（改纸张宽）——undoCount > 0 即 dirty。 */
+/** 提交一步历史更改（改纸张宽）——undoCount 偏离保存点即 dirty。 */
 function makeDirty() {
   fireEvent.change(screen.getByDisplayValue('70'), { target: { value: '80' } })
   expect(screen.getByDisplayValue('80')).toBeTruthy()
@@ -208,12 +208,14 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     renderDesigner(undefined, { onClose })
     await waitForNewReady()
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '新模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     expect(pkg.name).toBe('新模板')
     expect(pkg.group).toBe('默认')
+    // 新建路径不带 uid（模板标识由后端分配）
+    expect(pkg.uid).toBeUndefined()
     // 新建路径：契约名 / 版本由最终名派生（toContract / toLayout 组装）
     expect(pkg.contract?.name).toBe('新模板')
     expect(pkg.contract?.version).toBe('1')
@@ -228,7 +230,7 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     renderDesigner(undefined, { onClose })
     await waitForNewReady()
     // 名称留空直接保存：不提交，名称框立即可见反馈
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     const input = screen.getByPlaceholderText('模板名称') as HTMLInputElement
     expect(await screen.findByTestId('designer-name-error')).toBeTruthy()
@@ -240,7 +242,7 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     // 补名：红错即消，再次保存走正常链路
     fireEvent.change(input, { target: { value: '补名模板' } })
     expect(screen.queryByTestId('designer-name-error')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     expect(mocks.local.saveTemplate.mock.calls[0][0].name).toBe('补名模板')
@@ -252,7 +254,7 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     renderDesigner(undefined, { onClose })
     await waitForNewReady()
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '库位标签' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     expect(await screen.findByText('模板已存在', undefined, { timeout: 3000 })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '取消' }))
@@ -267,7 +269,7 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     renderDesigner(undefined, { onClose })
     await waitForNewReady()
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '库位标签' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     expect(await screen.findByText('模板已存在', undefined, { timeout: 3000 })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '覆盖保存' }))
@@ -283,12 +285,12 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     renderDesigner(undefined, { onClose })
     await waitForNewReady()
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '新模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
 
     await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('模板保存失败：名称重复'), { timeout: 3000 })
     expect(onClose).not.toHaveBeenCalled()
     // 按钮复位（非「保存中…」），可重试
-    expect(screen.getByRole('button', { name: '保存模板' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '保存并退出' })).toBeTruthy()
   })
 })
 
@@ -395,8 +397,168 @@ describe('未保存离开保护三选（迭代 92 F-02，决议 a：dirty = 历�
     expect(screen.queryByText('未保存的更改')).toBeNull()
     // 不丢编辑：宽仍为 80，重试普通保存成功后按既有行为回工作台
     expect(screen.getByDisplayValue('80')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+})
+
+// ---------- Ctrl+S 就地保存＋保存点 dirty 判定＋uid 通路 ----------
+
+describe('Ctrl+S 就地保存与保存点', () => {
+  useStandaloneStubs()
+
+  it('Ctrl+S 就地保存成功：留在设计器（不 onClose）、状态栏已保存提示、保存请求带回详情 uid', async () => {
+    // 详情响应携带 uid 时优先于 request 透传的列表 uid
+    mocks.local.getTemplate.mockResolvedValue({ ...PKG, uid: 'uid-detail' })
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose, uid: 'uid-list' })
+    await waitForEditLoaded()
+    makeDirty()
+
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
+    expect(pkg.name).toBe('库位标签')
+    expect(pkg.uid).toBe('uid-detail')
+    // 就地保存：不回工作台，状态栏复用既有已保存词条
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByTestId('status-msg').textContent).toContain('模板「库位标签」已保存')
+  })
+
+  it('uid 回退：详情响应无 uid（旧后端）时保存请求带回 request 透传的列表 uid', async () => {
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose, uid: 'uid-list' })
+    await waitForEditLoaded()
+    // 离开保存路径（保存并退出按钮）同样回传 uid
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect((mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage).uid).toBe('uid-list')
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+
+  it('保存点更新后离开守卫放行；再编辑后恢复拦截', async () => {
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose })
+    await waitForEditLoaded()
+    makeDirty()
+
+    // 就地保存推进保存点（undoCount = savedMark）
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect(onClose).not.toHaveBeenCalled()
+
+    // 保存点已推进：返回直接放行（不弹三选）
+    fireEvent.click(screen.getByTitle('返回工作台'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('未保存的更改')).toBeNull()
+
+    // 再编辑恢复拦截：返回弹三选，「继续编辑」停留且编辑不丢
+    fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '90' } })
+    fireEvent.click(screen.getByTitle('返回工作台'))
+    expect(await screen.findByText('未保存的更改', undefined, { timeout: 3000 })).toBeTruthy()
+    expect(onClose).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: '继续编辑' }))
+    await waitFor(() => expect(screen.queryByText('未保存的更改')).toBeNull())
+    expect(screen.getByDisplayValue('90')).toBeTruthy()
+  })
+
+  it('撤销回保存点＝不 dirty：返回直接放行不弹三选', async () => {
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose })
+    await waitForEditLoaded()
+    makeDirty()
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    // 再编辑一步后撤销——undoCount 回到保存点
+    fireEvent.change(screen.getByDisplayValue('80'), { target: { value: '90' } })
+    fireEvent.keyDown(document, { key: 'z', ctrlKey: true })
+    await waitFor(() => expect(screen.getByDisplayValue('80')).toBeTruthy())
+
+    fireEvent.click(screen.getByTitle('返回工作台'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('未保存的更改')).toBeNull()
+  })
+
+  it('Ctrl+S 在名称输入框聚焦时仍触发保存（INPUT 早退守卫之前处理）', async () => {
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose })
+    await waitForEditLoaded()
+    makeDirty()
+    const nameInput = screen.getByPlaceholderText('模板名称')
+    nameInput.focus()
+    expect(document.activeElement).toBe(nameInput)
+
+    fireEvent.keyDown(nameInput, { key: 's', ctrlKey: true })
+
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('Ctrl+S 预览模式忽略：不发起保存', async () => {
+    renderDesigner('库位标签')
+    await waitForEditLoaded()
+    fireEvent.click(screen.getByRole('button', { name: '预览打印效果' }))
+    // 预览确实进入（否则本用例空转）
+    expect(screen.getByRole('button', { name: '退出预览' })).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(mocks.local.saveTemplate).not.toHaveBeenCalled()
+  })
+
+  it('改名就地保存后二次保存：不查重不弹「覆盖保存」，携带同一 uid 直接保存', async () => {
+    mocks.local.getTemplate.mockResolvedValue({ ...PKG, uid: 'uid-detail' })
+    const onClose = vi.fn()
+    renderDesigner('库位标签', { onClose })
+    await waitForEditLoaded()
+    makeDirty()
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '改名标签' } })
+
+    // 第一次：改名 → 查重（空列表）→ 直接保存
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect((mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage).name).toBe('改名标签')
+    expect(mocks.local.listTemplates).toHaveBeenCalledTimes(1)
+
+    // 第二次：模板名已认领 → 非改名，不再查重 / 不与自身撞名弹覆盖确认
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(2))
+    const pkg2 = mocks.local.saveTemplate.mock.calls[1][0] as TemplatePackage
+    expect(pkg2.name).toBe('改名标签')
+    expect(pkg2.uid).toBe('uid-detail')
+    expect(mocks.local.listTemplates).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: '覆盖保存' })).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('新建模板就地保存后改名再保存：携带认领的 uid 按同模板改名更新', async () => {
+    mocks.local.getTemplate.mockResolvedValue({ ...PKG, name: '模板A', uid: 'uid-adopted' })
+    const onClose = vi.fn()
+    renderDesigner(undefined, { onClose })
+    await waitForNewReady()
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '模板A' } })
+
+    // 首次就地保存：无 uid（由后端分配），成功后按名取回认领
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
+    expect((mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage).uid).toBeUndefined()
+    await waitFor(() => expect(mocks.local.getTemplate).toHaveBeenCalledWith('模板A'))
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    // 改名再保存：不再是「全新模板」，携带认领 uid 走改名更新（列表查重只对撞别的模板）
+    fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '模板B' } })
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(2))
+    const pkg2 = mocks.local.saveTemplate.mock.calls[1][0] as TemplatePackage
+    expect(pkg2.name).toBe('模板B')
+    expect(pkg2.uid).toBe('uid-adopted')
+    expect(screen.queryByRole('button', { name: '覆盖保存' })).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
   })
 })
 
@@ -524,7 +686,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     expect(screen.getByTestId('status-msg').textContent).toContain('已添加「图片」')
 
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
 
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
@@ -551,7 +713,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     expect(screen.getByTestId('status-msg').textContent).toContain('已更新图片')
 
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
 
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
@@ -590,7 +752,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     fireEvent.click(screen.getByText('图片（未指定）'))
     expect(await screen.findByText('尚未指定图片；点占位元素或「上传图片」均可。', undefined, { timeout: 3000 })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     expect(pkg.layout?.elements[0]?.type).toBe('image')
@@ -608,7 +770,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '移除图片' }))
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
 
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
@@ -629,7 +791,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     await waitForEditLoaded()
 
     // 未选中不展开属性面板——资源表回填直接以「保存请求体带回被引用 key」验证（回填失败则 GC 后为空字典）
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     expect(pkg.images).toEqual({ 'old.png': btoa('old-image-bytes') })
@@ -668,7 +830,7 @@ describe('图片控件两步式上传链路（#329 方案 v2）', () => {
     expect(toast.textContent).toContain('已自动压缩 1.5MB → 0.29MB')
 
     fireEvent.change(screen.getByPlaceholderText('模板名称'), { target: { value: '图片模板' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并退出' }))
     await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1))
     const pkg = mocks.local.saveTemplate.mock.calls[0][0] as TemplatePackage
     const base64 = pkg.images?.['photo.jpg'] ?? ''

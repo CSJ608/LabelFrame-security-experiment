@@ -21,10 +21,11 @@ describe('设计器快捷键清单', () => {
     expect(new Set(all).size).toBe(all.length)
   })
 
-  it('核心键位（Ctrl+Z / Ctrl+C / Delete）都在完整清单中', () => {
+  it('核心键位（Ctrl+Z / Ctrl+C / Ctrl+S / Delete）都在完整清单中', () => {
     const all = shortcutGroups().flatMap((g) => g.items.flatMap((i) => i.keys))
     expect(all).toContain('Ctrl+Z')
     expect(all).toContain('Ctrl+C')
+    expect(all).toContain('Ctrl+S')
     expect(all).toContain('Delete')
   })
 

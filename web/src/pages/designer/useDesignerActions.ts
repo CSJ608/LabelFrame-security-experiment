@@ -26,6 +26,8 @@ export interface UseDesignerActionsOptions {
   pendingType: string | null
   /** 演示期间快捷键全停（演示锚点由 useHelpLinkDraft 持有，页面壳传入）。 */
   demoActive: boolean
+  /** 就地保存入口（Ctrl+S）：保存成功留在设计器，由页面壳接保存编排 hook。 */
+  saveInPlace: () => void
 }
 
 /** 控件类型显示名（状态栏「已添加」消息用；随界面语言）。 */
@@ -39,7 +41,7 @@ function elementTypeName(type: string): string {
   }
 }
 
-export function useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive }: UseDesignerActionsOptions) {
+export function useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive, saveInPlace }: UseDesignerActionsOptions) {
   const app = useApp()
   const { t } = useTranslation('designer')
 
@@ -281,6 +283,14 @@ export function useDesignerActions({ stateRef, historyRef, selectedRef, setState
       if (!s) return
       // 演示期间快捷键全停：撤销 / 删除 / 粘贴等都会写 stateRef，绕过锁输入
       if (demoActive) return
+      // Ctrl+S 就地保存：置于 INPUT / SELECT / TEXTAREA 早退守卫之前（名称输入框聚焦时仍可保存）；
+      // 预览模式忽略（不拦截浏览器默认行为，与其余快捷键同口径）
+      if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && ev.key.toLowerCase() === 's') {
+        if (viewMode === 'preview') return
+        ev.preventDefault()
+        saveInPlace()
+        return
+      }
       const tag = ev.target instanceof HTMLElement ? ev.target.tagName : ''
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
       const ctrl = ev.ctrlKey || ev.metaKey
@@ -330,7 +340,7 @@ export function useDesignerActions({ stateRef, historyRef, selectedRef, setState
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [viewMode, pendingType, demoActive, app, doExportDesign, doImportDesign, undo, redo, copySelected, pasteClipboard, deleteElements, t])
+  }, [viewMode, pendingType, demoActive, saveInPlace, app, doExportDesign, doImportDesign, undo, redo, copySelected, pasteClipboard, deleteElements, t])
 
   return {
     handleSelect,

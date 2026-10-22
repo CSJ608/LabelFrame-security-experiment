@@ -5,4 +5,6 @@ export type TabId = 'workbench' | 'designer' | 'data' | 'devices' | 'jobs' | 'se
 export interface DesignerRequest {
   kind: 'new' | 'edit'
   name?: string
+  /** 编辑目标的模板稳定标识（工作台列表项透传；旧后端缺失时为 undefined）。 */
+  uid?: string
 }

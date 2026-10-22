@@ -254,7 +254,7 @@ export function Workbench({
         ) : (
           <div className="wb-grid">
             {filtered.map((tpl) => (
-              <div key={tpl.name} className="wb-card" onDoubleClick={() => onOpenDesigner({ kind: 'edit', name: tpl.name })} title={t('card.openDesignerTitle')}>
+              <div key={tpl.name} className="wb-card" onDoubleClick={() => onOpenDesigner({ kind: 'edit', name: tpl.name, uid: tpl.uid })} title={t('card.openDesignerTitle')}>
                 <div className="wb-card-thumb">
                   <PreviewThumb name={tpl.name} entry={preview.get(tpl.name)} onEnlarge={setEnlarged} />
                 </div>
@@ -270,7 +270,7 @@ export function Workbench({
                 <div className="wb-card-foot">
                   {/* 主操作「编辑」＋「打印」常驻；
                       低频「导出 / 删除」在 ⋯ 溢出菜单（防最窄卡片脚被裁） */}
-                  <button className="btn sm primary" onClick={() => onOpenDesigner({ kind: 'edit', name: tpl.name })}>
+                  <button className="btn sm primary" onClick={() => onOpenDesigner({ kind: 'edit', name: tpl.name, uid: tpl.uid })}>
                     <Icon name="edit" size={12} />
                     {t('card.edit')}
                   </button>

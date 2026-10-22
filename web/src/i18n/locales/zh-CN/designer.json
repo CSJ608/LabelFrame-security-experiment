@@ -88,7 +88,7 @@
     "exportDesign": "导出设计",
     "importDesign": "导入设计",
     "saving": "保存中…",
-    "save": "保存模板"
+    "save": "保存并退出"
   },
   "loadError": {
     "back": "返回工作台"
@@ -221,6 +221,7 @@
     "groupClipboard": "剪贴板",
     "groupCanvas": "画布",
     "undoRedo": "撤销 / 重做",
+    "save": "保存（留在设计器）",
     "deleteSelected": "删除选中元素",
     "cancelPlacement": "取消放置",
     "copyPaste": "复制 / 粘贴元素",

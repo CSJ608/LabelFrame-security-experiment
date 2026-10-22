@@ -59,6 +59,7 @@ public static class TemplateEndpoints
             await options.Store.SaveAsync(new TemplatePackage
             {
                 Name = dto.Name,
+                Uid = dto.Uid,
                 Group = string.IsNullOrWhiteSpace(dto.Group) ? "默认" : dto.Group,
                 Contract = dto.Contract,
                 Layout = dto.Layout,

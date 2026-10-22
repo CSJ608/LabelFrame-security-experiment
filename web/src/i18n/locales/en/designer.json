@@ -88,7 +88,7 @@
     "exportDesign": "Export Design",
     "importDesign": "Import Design",
     "saving": "Saving…",
-    "save": "Save Template"
+    "save": "Save & Exit"
   },
   "loadError": {
     "back": "Back to workbench"
@@ -221,6 +221,7 @@
     "groupClipboard": "Clipboard",
     "groupCanvas": "Canvas",
     "undoRedo": "Undo / redo",
+    "save": "Save (stay in designer)",
     "deleteSelected": "Delete selected element(s)",
     "cancelPlacement": "Cancel placement",
     "copyPaste": "Copy / paste elements",

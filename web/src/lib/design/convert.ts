@@ -1,6 +1,6 @@
 // 设计器内部模型 ↔ 后端模板契约（layout.elements）双向转换。
 // 后端元素 JSON 由 LabelElementJsonConverter 判别 type（text/barcode/qrcode/image/line/region），
-// 字段 camelCase；写方向严格镜像 converter 的省略规则（padding/border 仅 >0 时写等）。
+// 字段 camelCase；写方向严格镜像 converter 的省略规则（border 仅 >0 时写；内边距双值含 0 恒写）。
 
 import type { DesignElement, ElementType } from './types'
 import { uid } from './types'
@@ -89,11 +89,10 @@ export function toBackendElement(e: DesignElement): BackendElement {
   const base: BackendElement = { type: backType(e.type), xMm: r2(e.x), yMm: r2(e.y) }
   const padH = 'paddingH' in e ? (e.paddingH ?? 0) : 0
   const padV = 'paddingV' in e ? (e.paddingV ?? 0) : 0
-  const pad = Math.max(padH, padV)
-  // 双边内边距双值写出；paddingMm 保留兼容（旧模板/后端读回兜底）
-  if (padH > 0) base.paddingH = r2(padH)
-  if (padV > 0) base.paddingV = r2(padV)
-  if (pad > 0) base.paddingMm = r2(pad)
+  // 双边内边距含 0 恒写出（显式 0 是有效值，读回不得漂移）；paddingMm 仅双侧对称正值写（旧读端单值兜底）
+  if ('paddingH' in e) base.paddingH = r2(padH)
+  if ('paddingV' in e) base.paddingV = r2(padV)
+  if (padH > 0 && padH === padV) base.paddingMm = r2(padH)
   if ((e.border ?? 0) > 0) base.borderMm = r2(e.border ?? 0)
   if (e.regionId) base.regionId = e.regionId
   if (e.regionHAlign) base.regionHAlign = e.regionHAlign

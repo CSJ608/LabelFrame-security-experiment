@@ -54,19 +54,21 @@ public sealed class LabelElementJsonConverter : JsonConverter<LabelElement>
 
         writer.WriteNumber("xMm", value.XMm);
         writer.WriteNumber("yMm", value.YMm);
-        if (value.PaddingMm > 0)
+        // 兼容单值仅双侧有效值相等且 >0 时写出（取有效值）——单侧显式 0 不得经旧读端单值兜底复活
+        var effectivePaddingH = value.EffectivePaddingHMm;
+        if (effectivePaddingH > 0 && effectivePaddingH == value.EffectivePaddingVMm)
         {
-            writer.WriteNumber("paddingMm", value.PaddingMm);
+            writer.WriteNumber("paddingMm", effectivePaddingH);
         }
 
-        if (value.PaddingHMm > 0)
+        if (value.PaddingHMm.HasValue)
         {
-            writer.WriteNumber("paddingH", value.PaddingHMm);
+            writer.WriteNumber("paddingH", value.PaddingHMm.Value);
         }
 
-        if (value.PaddingVMm > 0)
+        if (value.PaddingVMm.HasValue)
         {
-            writer.WriteNumber("paddingV", value.PaddingVMm);
+            writer.WriteNumber("paddingV", value.PaddingVMm.Value);
         }
 
         if (value.BorderMm > 0)

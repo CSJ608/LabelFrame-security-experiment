@@ -111,7 +111,7 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     )
     // zh 态：工具栏与左栏（画布已桩掉）
     expect(await screen.findByDisplayValue('默认')).toBeTruthy() // 数据性默认值随语言
-    expect(screen.getByRole('button', { name: /保存模板/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /保存并退出/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /导出设计/ })).toBeTruthy()
     expect(screen.getByText('控件栏')).toBeTruthy()
     expect(screen.getByText('打印字段')).toBeTruthy()
@@ -120,7 +120,7 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     expect(screen.getByRole('button', { name: '测试默认值' })).toBeTruthy()
 
     changeLocale('en')
-    await waitFor(() => expect(screen.getByRole('button', { name: /Save Template/ })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: /Save & Exit/ })).toBeTruthy())
     expect(screen.getByRole('button', { name: /Export Design/ })).toBeTruthy()
     expect(screen.getByText('Widgets')).toBeTruthy()
     expect(screen.getByText('Print Fields')).toBeTruthy()
@@ -130,7 +130,7 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     expect(CJK.test(container.textContent ?? '')).toBe(false)
 
     changeLocale('zh-CN')
-    await waitFor(() => expect(screen.getByRole('button', { name: /保存模板/ })).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('button', { name: /保存并退出/ })).toBeTruthy())
   })
 
   it('属性面板（文本元素）：中文态分组属性与字体显示名 → 切 en 全英文且无 CJK；字体内部值不变', async () => {
