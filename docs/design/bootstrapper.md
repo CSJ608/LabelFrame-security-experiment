@@ -102,6 +102,7 @@
 | `test/LabelFrame.Bootstrapper.Tests`（xunit，`net10.0-windows`） | 24 个测试文件 + 3 份清单 fixture——覆盖全部共享库子系统（仅 `WizardSession` 层的契约测试含只读断言与反射 API 面检查） |
 | `scripts/build-bundle.ps1` / `.github/workflows/release.yml` | 构建 / 发版 Bundle（BA + PayloadTool + 共享库） |
 | `scripts/make-offline-layout.ps1` | IT 布局脚本，与 `OfflineLayoutBuilder` / `OfflineLayoutNaming` 语义一致、命名约定共用 |
+| `scripts/make-offline-bundle-win.ps1` | Windows 离线部署包（全量 / 升级）组包脚本——离线布局契约的消费侧：当版产物＋运行时缓存组装为两个 Release 附件 zip（升级包不含运行时安装器） |
 | `scripts/test-bundle-*.ps1`（download-matrix / offline-layout / uninstall-walkthrough / upgrade-acquire / upgrade-walkthrough / wizard-foreground）+ `test-webview2-authverify.ps1` | 真机 / 沙箱走查脚本，驱动真实 BA 与 PayloadTool（`-verify` 诊断模式） |
 
 **跨模块同源事实**（双维护，变更须两侧同步）：

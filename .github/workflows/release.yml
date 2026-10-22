@@ -544,6 +544,17 @@ jobs:
           path: artifacts/LabelFrame-Bootstrapper-*.exe
           if-no-files-found: error
 
+      # Windows 离线包消费侧原料：本 job 清单生成期下载实测的三个运行时安装器与清单 / 指针原样上传——
+      # 组包 job 直接消费不再二次下载（厂商直链轮转窗口内二次下载可能导致清单哈希与文件错位）。
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-offline-inputs
+          path: |
+            release/install-manifest.json
+            release/latest.json
+            artifacts/runtimes/
+          if-no-files-found: error
+
   # Linux 离线部署包（迭代 101，#213，决策 #160——修订 #64「Release 不含 docker 离线包」）：
   # 消费 docker job 已验收镜像 tar + package / android job 分发产物 + 管理界面 zip，组装单附件
   # labelframe-offline-<版本>-linux-x64.tar.gz（镜像 tar + 同源 compose.yml + 钉定 .env + README / install.sh +
@@ -628,9 +639,103 @@ jobs:
           path: bundle/labelframe-offline-*.tar.gz
           if-no-files-found: error
 
+  # Windows 离线部署包（全量 / 升级）：消费当版 Release 产物 + bundle job 清单生成期的运行时缓存，组装双附件
+  # labelframe-offline-<版本>-win-x64.zip（全量，含三运行时安装器，新机首装）与
+  # labelframe-upgrade-<版本>-win-x64.zip（升级，全量减三运行时——升级机运行时已装被引导链跳过不重复携带）；
+  # 组包契约见 scripts/make-offline-bundle-win.ps1 头注。自验口径 = 结构断言 + 校验（脚本内逐组件
+  # sha256 / WebView2 微软验签 fail-closed，本 job 对最终 zip 再验布局与 SHA256SUMS），不做 runner 真机
+  # 安装自验（MSI / 服务 / 运行时安装对 runner 侵入大——安装全链走真机人工验收）。
+  # 整包不进 install-manifest（与 Linux 离线包同口径：自足分发单元而非可安装产物）。
+  windows-offline-bundle:
+    name: 组装 Windows 离线部署包（全量 / 升级，结构断言）
+    needs: [version, package, android, bundle]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载发布产物（MSI / 插件包 / 管理界面 zip / Linux 归档）
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release
+
+      - name: 下载 Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: release
+
+      - name: 下载引导 EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-exe
+          path: release
+
+      # 清单 / latest / 运行时缓存来自 bundle job 生成期（同源逐字节消费，不二次下载）
+      - name: 下载清单与运行时缓存（bundle 消费侧同源）
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-offline-inputs
+          path: inputs
+
+      - name: 组装双包（全量 / 升级）
+        shell: pwsh
+        run: |
+          & .\scripts\make-offline-bundle-win.ps1 `
+            -Version $env:VERSION `
+            -AssetsDir release `
+            -ManifestPath inputs/release/install-manifest.json `
+            -LatestPath inputs/release/latest.json `
+            -RuntimesDir inputs/artifacts/runtimes `
+            -BootstrapperPath "release/LabelFrame-Bootstrapper-$env:VERSION.exe" `
+            -OutputDir bundle
+          if ($LASTEXITCODE -ne 0) { throw 'Windows 离线部署包组包失败' }
+
+      # fail-closed 结构断言（对最终 zip 再验一次，防「组包成功但归档错位」；脚本内已有布局断言）：
+      # 解压双包核对关键件、SHA256SUMS 逐条重算、全量包含 3 个运行时而升级包必须一个都没有
+      - name: 断言双包结构（fail-closed）
+        shell: pwsh
+        run: |
+          $v = $env:VERSION
+          $runtimePatterns = @('windowsdesktop-runtime-*.exe', 'aspnetcore-runtime-*.exe', 'MicrosoftEdgeWebView2RuntimeInstallerSimpleX64.exe')
+          foreach ($kind in 'offline', 'upgrade') {
+            $zip = "bundle/labelframe-$kind-$v-win-x64.zip"
+            if (-not (Test-Path $zip)) { throw "缺产物：$zip" }
+            $verify = "verify/$kind"
+            Expand-Archive -Path $zip -DestinationPath $verify
+            $dir = Join-Path $verify "labelframe-$kind-$v-win-x64"
+            foreach ($must in @("LabelFrame-Bootstrapper-$v.exe", "LabelFrame-Server-$v.msi", "LabelFrame-Client-$v.msi",
+                                "labelframe-server-webui-$v.zip", "labelframe-transport-zebra-$v.lfplugin",
+                                "labelframe-transport-tspl-$v.lfplugin", "LabelFrame-AndroidHost-$v.apk",
+                                'install-manifest.json', 'latest.json', 'README.md', 'SHA256SUMS')) {
+              if (-not (Test-Path (Join-Path $dir $must))) { throw "结构断言失败：$kind 包缺 $must" }
+            }
+            $runtimeHits = @(Get-ChildItem $dir -File | Where-Object {
+              $n = $_.Name
+              @($runtimePatterns | Where-Object { $n -like $_ }).Count -gt 0
+            })
+            if ($kind -eq 'upgrade' -and $runtimeHits.Count -gt 0) { throw "升级包含运行时文件：$(($runtimeHits | ForEach-Object Name) -join ', ')" }
+            if ($kind -eq 'offline' -and $runtimeHits.Count -ne 3) { throw "全量包应含 3 个运行时安装器，实际 $($runtimeHits.Count)" }
+            Get-Content (Join-Path $dir 'SHA256SUMS') | ForEach-Object {
+              $hash, $name = $_ -split '  ', 2
+              if (-not $name) { throw "SHA256SUMS 行格式异常：$_" }
+              $actual = (Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLower()
+              if ($actual -ne $hash) { throw "SHA256SUMS 校验失败：$name（$hash ≠ $actual）" }
+            }
+            Write-Host "结构断言通过：$zip（$([Math]::Round((Get-Item $zip).Length / 1MB, 1)) MB）"
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-offline-bundle
+          path: bundle/labelframe-*.zip
+          if-no-files-found: error
+
   release:
     name: 创建 GitHub Release
-    needs: [version, package, docker, android, bundle, offline-bundle]
+    needs: [version, package, docker, android, bundle, offline-bundle, windows-offline-bundle]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -657,6 +762,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: offline-bundle
+          path: release
+
+      - name: 下载 Windows 离线部署包（全量 / 升级）
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-offline-bundle
           path: release
 
       # 安装清单（迭代 58，#51）：从当版全部产物生成 install-manifest.json + latest.json（决策 #115 / #120）。
@@ -769,6 +880,8 @@ jobs:
             release/labelframe-server-webui-*.zip
             release/labelframe-server-*-linux-x64.tar.gz
             release/labelframe-offline-*-linux-x64.tar.gz
+            release/labelframe-offline-*-win-x64.zip
+            release/labelframe-upgrade-*-win-x64.zip
             release/labelframe-transport-zebra-*.lfplugin
             release/labelframe-transport-tspl-*.lfplugin
             release/compose.yml

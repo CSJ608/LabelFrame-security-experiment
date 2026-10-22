@@ -112,7 +112,7 @@ cd web && pnpm install && pnpm dev  # 前端开发（连本机 WinHost）
 - 无打印机验证打印闭环：`powershell -ExecutionPolicy Bypass -File .\scripts\demo-winhost.ps1`。
 - Docker 验证 Server / Linux Client 路由闭环：源码候选运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1`；正式同版本镜像运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1 -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild`，详见 [docs/LINUX-CLIENT-E2E.md](docs/LINUX-CLIENT-E2E.md)。
 - 提交即跑 CI（`.github/workflows/ci.yml`：dotnet 构建 / 测试 + 前端 lint / 双模式测试 / 构建 + MSI 结构断言 + Android 构建）；`master` 受门禁保护——变更走短分支 + PR，三项必需检查全绿后 squash 合并（流程见 [docs/WORKFLOW.md](docs/WORKFLOW.md)）。
-- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（双 MSI / 官方插件包 / Linux 归档 / Android APK / ghcr 镜像，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
+- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（双 MSI / 官方插件包 / Linux 归档与离线包 / Windows 离线部署包（全量 / 升级） / Android APK / ghcr 镜像，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
 
 ## 文档
 
