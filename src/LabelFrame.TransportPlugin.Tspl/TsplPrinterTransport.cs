@@ -7,8 +7,8 @@ namespace LabelFrame.TransportPlugin.Tspl;
 
 /// <summary>
 /// TSPL 传输实例：TCP 9100 / USB 免驱动直连双通道发送 + ESC ! ? 实时状态查询（带重试）。
-/// 逐次建连（发送 / 测试 / 状态各自建连→操作→关闭）；USB 自动发现按「打开＋应答探测」取第一台
-/// 可通讯设备；异常统一转中文 InvalidOperationException。
+/// 逐次建连（发送 / 测试 / 状态各自建连→操作→关闭）；USB 自动发现按「打开＋应答探测（带重试）」
+/// 取第一台可通讯设备并实例内缓存路径（打开失败即失效重发现）；异常统一转中文 InvalidOperationException。
 /// </summary>
 public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvider, ITestableTransport
 {
@@ -31,6 +31,9 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
     private readonly Func<ITsplLink> _openTcpLink;
     private readonly Func<string, ITsplLink> _openUsbLink;
     private readonly Func<IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice>> _listUsbDevices;
+
+    /// <summary>自动发现结果缓存：最近一次探测成功的设备路径；打开失败即失效并全量重发现（无 TTL，拔插切换由失效路径覆盖）。</summary>
+    private string? _cachedUsbDevicePath;
 
     /// <summary>创建 TSPL 传输（生产构造：链路与设备发现走真实实现）。</summary>
     public TsplPrinterTransport(TsplTransportKind kind, string? host = null, int port = 9100, string? usbName = null)
@@ -192,9 +195,9 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
     };
 
     /// <summary>
-    /// 打开 USB 链路：指定名直连匹配设备；留空自动发现——逐台「打开＋ESC ! ? 应答探测」，返回第一台
-    /// 有 TSPL 应答的<b>已打开</b>链路（打不开 / 无应答跳过继续；全部失败抛可行动错误并列探测清单——
-    /// 多 usbprint 设备并存时不能按枚举序取第一台，非 TSPL 设备须靠应答识别）。
+    /// 打开 USB 链路：指定名直连匹配设备；留空自动发现——命中缓存直接打开发送（不重探测），否则逐台
+    /// 「打开＋ESC ! ? 应答探测（带重试）」取第一台有 TSPL 应答的<b>已打开</b>链路并记入缓存
+    /// （多 usbprint 设备并存时不能按枚举序取第一台，非 TSPL 设备须靠应答识别）。
     /// </summary>
     private ITsplLink OpenUsbLink()
     {
@@ -203,13 +206,38 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
             return _openUsbLink(ResolveUsbDevicePath());
         }
 
+        var cached = Volatile.Read(ref _cachedUsbDevicePath);
+        if (cached is not null)
+        {
+            try
+            {
+                // 缓存命中不重探测——探测只是设备识别手段，不是发送前置条件；打印机处理上一张时
+                // 可短暂无应答，逐张重探测会把「忙」误判成「不可通讯」（防回归：勿在缓存路径上恢复探测）
+                return _openUsbLink(cached);
+            }
+            catch (InvalidOperationException)
+            {
+                if (ReferenceEquals(Volatile.Read(ref _cachedUsbDevicePath), cached))
+                {
+                    Volatile.Write(ref _cachedUsbDevicePath, null);
+                }
+            }
+        }
+
+        return DiscoverUsbLink();
+    }
+
+    /// <summary>全量自动发现：逐台打开并探测，返回第一台有应答的已打开链路并记入缓存；全部失败时按「打不开 / 无应答」分层抛可行动错误。</summary>
+    private ITsplLink DiscoverUsbLink()
+    {
         var devices = ListUsbDevices();
         if (devices.Count == 0)
         {
             throw new InvalidOperationException("未发现 USB 打印机，请检查连接或指定设备名。");
         }
 
-        var failures = new List<string>();
+        var unopenable = new List<string>();
+        var unresponsive = new List<string>();
         foreach (var device in devices)
         {
             ITsplLink link;
@@ -219,8 +247,31 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
             }
             catch (InvalidOperationException ex)
             {
-                failures.Add($"{device.DisplayName} 打不开（{ex.Message}）");
+                unopenable.Add($"{device.DisplayName}（{ex.Message}）");
                 continue;
+            }
+
+            if (ProbeWithRetry(link))
+            {
+                Volatile.Write(ref _cachedUsbDevicePath, device.DevicePath);
+                return link;
+            }
+
+            unresponsive.Add(device.DisplayName);
+            link.Dispose();
+        }
+
+        throw new InvalidOperationException(BuildDiscoveryFailureMessage(devices, unopenable, unresponsive));
+    }
+
+    /// <summary>ESC ! ? 应答探测（自动发现用）：写入后读 1 字节，无应答按状态查询同款节奏重试（任务刚结束时可能短暂无应答）。</summary>
+    private static bool ProbeWithRetry(ITsplLink link)
+    {
+        for (var attempt = 0; attempt < StatusRetryCount; attempt++)
+        {
+            if (attempt > 0)
+            {
+                Thread.Sleep(StatusRetryDelayMs);
             }
 
             try
@@ -228,21 +279,51 @@ public sealed class TsplPrinterTransport : IPrintTransport, IPrinterStatusProvid
                 link.Write(StatusQueryCommand, StatusReadTimeoutMs);
                 if (link.Read(1, StatusReadTimeoutMs) is { Length: > 0 })
                 {
-                    return link;
+                    return true;
                 }
-
-                failures.Add($"{device.DisplayName} 无应答");
             }
             catch (InvalidOperationException)
             {
-                failures.Add($"{device.DisplayName} 探测失败");
+                // 单次探测读写失败与无应答同义，耗尽重试再判不可通讯
             }
-
-            link.Dispose();
         }
 
-        throw new InvalidOperationException(
-            $"自动发现失败：{devices.Count} 台 USB 打印机均不可通讯（{string.Join("；", failures)}）。请在连接设置「USB 打印机名」显式指定（如 VID_1203）。");
+        return false;
+    }
+
+    /// <summary>自动发现全部失败的错误文案：打不开（不在位 / 被占用）与无应答分层列出，提示语用首个在位设备的 VID 作显式指定示例。</summary>
+    private static string BuildDiscoveryFailureMessage(
+        IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> devices,
+        List<string> unopenable,
+        List<string> unresponsive)
+    {
+        var layers = new List<string>();
+        if (unopenable.Count > 0)
+        {
+            layers.Add($"打不开（不在位或被占用）：{string.Join("；", unopenable)}");
+        }
+
+        if (unresponsive.Count > 0)
+        {
+            layers.Add($"无应答（重试内未回应状态查询）：{string.Join("、", unresponsive)}");
+        }
+
+        var hint = devices.Count > 0 ? ExtractVidHint(devices[0].DisplayName) : "VID_xxxx";
+        return $"自动发现失败：{devices.Count} 台 USB 打印机均不可通讯——{string.Join("；", layers)}。"
+            + $"请检查打印机电源与连接；若多台 USB 打印机并存，请在连接设置「USB 打印机名」显式指定（如 {hint}）。";
+    }
+
+    /// <summary>展示名中提取 VID 段（如 USB#VID_1203&amp;PID_0273#serial → VID_1203）；无 VID 段回退占位。</summary>
+    private static string ExtractVidHint(string displayName)
+    {
+        var index = displayName.IndexOf("VID_", StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+        {
+            return "VID_xxxx";
+        }
+
+        var vid = displayName.Substring(index, Math.Min(8, displayName.Length - index));
+        return vid.ToUpperInvariant();
     }
 
     private IReadOnlyList<UsbPrinterDeviceDiscovery.UsbPrinterDevice> ListUsbDevices()

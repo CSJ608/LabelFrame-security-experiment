@@ -171,8 +171,8 @@ public class TsplPrinterTransportTests
     [Fact]
     public async Task Usb_send_without_name_should_pick_first_responding_device()
     {
-        // 多 usbprint 设备并存（真机形态：挂驱动的 Zebra 排在 TSC 前）：首台开得了但不应答，
-        // 自动发现逐台探测命中 TSC，载荷发往 TSC；Zebra 只收到一次探测查询
+        // 多 usbprint 设备并存（真机形态：挂驱动的 Zebra 排在 TSC 前）：首台开得了但不应答
+        // （重试 3 次均无应答），自动发现逐台探测命中 TSC，载荷发往 TSC
         const string zebraPath = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
         const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
         var zebra = new FakeLink();
@@ -186,7 +186,98 @@ public class TsplPrinterTransportTests
         Assert.Equal(2, tspl.Writes.Count); // 探测 ESC ! ? + 载荷
         Assert.Equal(TsplPrinterTransport.StatusQueryCommand, tspl.Writes[0]);
         Assert.Equal(Encoding.UTF8.GetBytes("PRINT 1\r\n"), tspl.Writes[1]);
-        Assert.Equal(new[] { TsplPrinterTransport.StatusQueryCommand }, zebra.Writes);
+        Assert.Equal(3 /* StatusRetryCount（探测无应答按同款节奏重试） */, zebra.Writes.Count);
+        Assert.All(zebra.Writes, write => Assert.Equal(TsplPrinterTransport.StatusQueryCommand, write));
+    }
+
+    [Fact]
+    public async Task Usb_discovery_should_retry_probe_when_busy_printer_answers_late()
+    {
+        // 打印机处理上一张时短暂不应答：前两次探测无应答、第三次应答 → 发现成功、载荷照发
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var link = new FakeLink(null, null, new byte[] { 0x00 });
+        var transport = CreateUsbLinks(
+            new[] { Device("USB\\VID_1203&PID_0273\\000001", tsplPath) },
+            _ => link);
+
+        await transport.SendAsync("PRINT 1\r\n");
+
+        Assert.Equal(4 /* 3 次探测 + 1 次载荷 */, link.Writes.Count);
+        Assert.Equal(Encoding.UTF8.GetBytes("PRINT 1\r\n"), link.Writes[^1]);
+    }
+
+    [Fact]
+    public async Task Usb_discovery_cache_should_skip_reenumeration_and_reprobe_on_second_send()
+    {
+        // 第二次发送直接复用缓存路径：不重新枚举、不再探测，载荷直写
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var link = new FakeLink(new byte[] { 0x00 });
+        var listCalls = 0;
+        var transport = new TsplPrinterTransport(
+            TsplTransportKind.Usb, null, 9100, usbName: null,
+            openTcpLink: null,
+            openUsbLink: _ => link,
+            listUsbDevices: () => { listCalls++; return new[] { Device("USB\\VID_1203&PID_0273\\000001", tsplPath) }; });
+
+        await transport.SendAsync("PRINT 1\r\n");
+        await transport.SendAsync("PRINT 2\r\n");
+
+        Assert.Equal(1, listCalls);
+        Assert.Equal(3 /* 探测 + 载荷 1 + 载荷 2（第二次无探测） */, link.Writes.Count);
+        Assert.Equal(Encoding.UTF8.GetBytes("PRINT 2\r\n"), link.Writes[^1]);
+    }
+
+    [Fact]
+    public async Task Usb_discovery_cache_should_invalidate_and_rediscover_when_open_fails()
+    {
+        // 缓存路径打开失败（拔出 / 幽灵接口）：失效并全量重新发现，切换到下一台应答设备
+        const string pathA = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        const string pathB = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var linkA = new FakeLink(new byte[] { 0x00 });
+        var linkB = new FakeLink(new byte[] { 0x00 });
+        var openCountA = 0;
+        var listCalls = 0;
+        var transport = new TsplPrinterTransport(
+            TsplTransportKind.Usb, null, 9100, usbName: null,
+            openTcpLink: null,
+            openUsbLink: path => path == pathA
+                ? openCountA++ == 0
+                    ? linkA
+                    : throw new InvalidOperationException("打开 USB 打印机失败（Win32 错误 2，设备不存在）。")
+                : linkB,
+            listUsbDevices: () => { listCalls++; return new[] { Device("USB\\VID_0A5F&PID_0168\\DMJ1", pathA), Device("USB\\VID_1203&PID_0273\\000001", pathB) }; });
+
+        await transport.SendAsync("PRINT 1\r\n");
+        await transport.SendAsync("PRINT 2\r\n");
+
+        Assert.Equal(2, listCalls); // 第二次发送触发了全量重发现
+        Assert.Equal(2 /* 探测 + 载荷 1 */, linkA.Writes.Count);
+        Assert.Equal(2 /* 探测 + 载荷 2 */, linkB.Writes.Count);
+        Assert.Equal(Encoding.UTF8.GetBytes("PRINT 2\r\n"), linkB.Writes[^1]);
+    }
+
+    [Fact]
+    public async Task Usb_discovery_failure_should_layer_unopenable_and_unresponsive_reasons()
+    {
+        // 一台打不开（幽灵 / 被占用）、一台无应答 → 失败信息按「打不开 / 无应答」分层列出
+        const string zebraPath = @"\\?\usb#vid_0a5f&pid_0168#dmj1#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        const string tsplPath = @"\\?\usb#vid_1203&pid_0273#000001#{28d78fad-5a12-11d1-ae5b-0000f803a8c2}";
+        var tspl = new FakeLink();
+        var transport = CreateUsbLinks(
+            new[] { Device("USB\\VID_0A5F&PID_0168\\DMJ1", zebraPath), Device("USB\\VID_1203&PID_0273\\000001", tsplPath) },
+            path => path == zebraPath
+                ? throw new InvalidOperationException("打开 USB 打印机失败（Win32 错误 2，设备不存在）。")
+                : tspl);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.SendAsync("PRINT 1\r\n"));
+
+        Assert.Contains("自动发现失败", ex.Message);
+        Assert.Contains("打不开（不在位或被占用）", ex.Message);
+        Assert.Contains("VID_0A5F", ex.Message);
+        Assert.Contains("无应答", ex.Message);
+        Assert.Contains("VID_1203", ex.Message);
+        Assert.Contains("显式指定", ex.Message);
+        Assert.Equal(3 /* 无应答设备按重试节奏探测 */, tspl.Writes.Count);
     }
 
     [Fact]
