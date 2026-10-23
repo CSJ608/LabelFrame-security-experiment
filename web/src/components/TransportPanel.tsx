@@ -27,6 +27,7 @@ import {
 import { pluginText } from '../lib/pluginText'
 import { useApp } from '../state/AppContext'
 import { Icon } from './Icon'
+import { setHostDirty } from '../lib/hostLifecycle'
 
 /* * 原生指令模式提示：原生指令无指令级预览，界面以文案说明效果口径。
  * 随数据与打印页迁移 key 化（common.transport.*——该徽标同时用于本面板表单）。 */
@@ -69,6 +70,8 @@ function useTransportForm() {
     return pluginParamsFromConfig(p, transportConfig)
   })
   const [touched, setTouched] = useState(false)
+  useEffect(() => { setHostDirty('transport', touched) }, [touched])
+  useEffect(() => () => setHostDirty('transport', false), [])
 
   // 后端探测 / 连接测试刷新全局配置后，表单与当前生效连接同步（未手动编辑过时）；用户编辑后不再覆盖
   useEffect(() => {
@@ -141,7 +144,7 @@ function useTransportForm() {
     return req
   }, [pluginMode, pluginId, pluginParams, mode, params])
 
-  return { pluginMode, plugins, pluginId, pluginParams, mode, params, switchMode, setParam, switchPlugin, setPluginParam, buildRequest }
+  return { pluginMode, plugins, pluginId, pluginParams, mode, params, switchMode, setParam, switchPlugin, setPluginParam, buildRequest, markSaved: () => setTouched(false) }
 }
 
 /** 旧模式参数输入区（Log 无参数）。 */
@@ -383,6 +386,7 @@ export function TransportPanel() {
       if (r.ok) {
         // 切换成功后立即用响应 config 更新全局状态（不依赖 healthz 10s 轮询）
         app.applyTransportConfig(r.config)
+        if (!testOnly) form.markSaved()
         // 异步闭包文案读 i18next 单例（111 惯例：错误构造期即当时界面语言）
         if (!testOnly) app.setStatus(i18next.t('settings:transportForm.switched', { message: r.message }))
         setResult({ ok: true, msg: r.message })

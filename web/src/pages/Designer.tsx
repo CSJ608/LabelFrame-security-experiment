@@ -5,6 +5,7 @@
 // 编排拆分：元素操作 / 深链演示 / 图片资源 / 保存 / 离开保护下沉 pages/designer/* hooks，机制层 lib/design/ 不动。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { setHostDirty } from '../lib/hostLifecycle'
 import { useTranslation } from 'react-i18next'
 import { localApi, serverApi } from '../lib/api/client'
 import { isServerUi } from '../lib/uiMode'
@@ -79,6 +80,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const uidRef = useRef<string | undefined>(undefined)
   // 最近一次成功保存时的 undoCount（0＝尚未保存过）：离开守卫 dirty 判定基准
   const savedMarkRef = useRef(0)
+  const savedMetadataRef = useRef({ name: '', group: i18next.t('designer:defaultGroup') })
+  useEffect(() => {
+    setHostDirty('designer', (historyRef.current?.undoCount ?? 0) !== savedMarkRef.current
+      || name !== savedMetadataRef.current.name || group !== savedMetadataRef.current.group)
+  })
+  useEffect(() => () => setHostDirty('designer', false), [])
   // 离开保护挂起的离开动作：「放弃更改」与「保存并离开」成功后执行；
   // 各终止路径（继续编辑 / 保存失败）就地作废；取消 / 空名类拦截仅离开发起时作废（Ctrl+S 就地发起不动挂起导航，失败仍作废）。
   const pendingLeaveRef = useRef<(() => void) | null>(null)
@@ -170,6 +177,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       if (pkg) {
         setName(pkg.name)
         setGroup(pkg.group || i18next.t('designer:defaultGroup'))
+        savedMetadataRef.current = { name: pkg.name, group: pkg.group || i18next.t('designer:defaultGroup') }
         initialNameRef.current = pkg.name
         uidRef.current = pkg.uid ?? request.uid
         contractNameRef.current = pkg.contract?.name ?? pkg.name
@@ -270,7 +278,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   /** 保存成功统一回调（就地与离开两路）：推进保存点标记至当前 undoCount。 */
   const markSaved = useCallback(() => {
     savedMarkRef.current = historyRef.current?.undoCount ?? 0
-  }, [])
+    savedMetadataRef.current = { name, group }
+  }, [name, group])
 
   const { save, overwriteSave, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
     request,

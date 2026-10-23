@@ -89,6 +89,7 @@ public class ServerRoutingCoordinatorTests
             var services = new ServiceCollection();
             services.AddSingleton(submission);
             services.AddSingleton(queue);
+            services.AddSingleton<HostActivityState>();
             services.AddSingleton<ILogger<ServerRoutingWorker>>(NullLogger<ServerRoutingWorker>.Instance);
             Services = services.BuildServiceProvider();
         }

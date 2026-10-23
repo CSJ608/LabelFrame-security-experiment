@@ -91,6 +91,16 @@
 
 托盘菜单「退出」与 `/api/host/shutdown`（仅回环可写；HTTP 路径先经队列锁 `TryPrepareForShutdownAsync` 原子拒绝打印中的退出并留 200ms 响应缓冲，决策 #163）→ `RequestShutdownAsync`（幂等，首个请求执行序列）→ `StopApplication` → 三选一等待：主流程自然退出（`MarkNaturalExitCompleted` 置位→看门狗收手）／宿主已停止而主流程未返回（500ms 稳定窗观察→届满判定卡死→清理＋强退）／宽限超时（2.5s，宿主停止本身挂死的兜底）→ `RunCleanup`（幂等单入口：托盘 `Dispose`＝投递 WM_QUIT＋限时 Join，消息循环退出后在**托盘线程内** NIM_DELETE 消除幽灵图标；界面壳释放）。全链各阶段写 host.log 记账（「点了退出没反应」可定位阶段）。
 
+### 客户端安全重启
+
+`HostActivityState` 统一维护界面会话、在途写操作、路由领取和未确认结果；`HostRestartCoordinator` 串行化请求，先设维护门闩，再由队列锁检查整个 Pending/Printing/Suspended 批次。所有已登记界面须在 8 秒内暂停输入、携带本次 preparationId 确认最终 dirty/busy 状态；超时或存在未保存内容均恢复运行。准备后新业务写请求返回 503，领取与发送受队列门闩保护；安装器原 shutdown 语义保留。
+
+路由成功打印及本地提交失败的结果均须确认回报，失败提交的结果也交由独立回报循环重试。断网期间保留维护保护，确认后释放；不把失联或编译失败误判为全部收尾。
+
+`GET /api/host/lifecycle` 暴露进程标识与插件待重启标记。仅回环同源的 `POST /api/host/ui-activity`、`POST /api/host/restart` 支持界面协作和重启。活动报告有单调序号，关闭报告保留序号墓碑，迟到请求不能复活旧 dirty 状态；失联不自动过期为安全。
+
+`RestartProcess` 先启动同用户等待器并通过命名事件确认就绪；等待旧 PID 与启动时间匹配的进程退出（最多 30 秒），再启动同一可执行文件。保持配置、环境和原参数，页面请求仅追加固定插件设置位置；托盘请求保持窗口可见性。等待器准备失败保留旧进程；启动失败写 `%LocalAppData%/LabelFrame/restart.log` 并提示手工恢复。普通客户端不提权，不重启操作系统。
+
 ## 4. 对外契约与依赖
 
 **HTTP 端点面**（默认监听 `http://127.0.0.1:53960`；Linux 容器形态 `0.0.0.0`）：

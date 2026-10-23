@@ -9,6 +9,8 @@ namespace LabelFrame.WinHost.Ui;
 /// </summary>
 internal sealed class WindowUiShell : IUiShell
 {
+    private volatile bool _isVisible;
+    public bool IsVisible => _isVisible;
     private readonly UiShellForm _form;
     private readonly Thread _thread;
     private readonly ManualResetEventSlim _threadDone = new(false);
@@ -114,6 +116,7 @@ internal sealed class WindowUiShell : IUiShell
         };
 
         shell = new WindowUiShell(form, thread);
+        form.VisibleChanged += (_, _) => shell._isVisible = form.Visible;
         // WebView2 / WinForms 控件要求 STA；.NET 线程默认 MTA，必须在 Start 前设置
         // （缺失时 CoreWebView2Environment 初始化报 RPC_E_CHANGED_MODE 0x80010106）
         thread.SetApartmentState(ApartmentState.STA);

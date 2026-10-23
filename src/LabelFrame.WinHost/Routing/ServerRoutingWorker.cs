@@ -22,6 +22,9 @@ public sealed class ServerRoutingWorker : BackgroundService
     private readonly ILogger<ServerRoutingWorker> _logger;
     private readonly ConcurrentDictionary<string, string> _localToServer = new();
     private readonly ConcurrentDictionary<string, ProgressThrottle> _progress = new();
+    private readonly ConcurrentDictionary<string, ServerJobResult> _rejectedResults = new();
+    private readonly HostActivityState _activity;
+    private readonly string _routeId = Guid.NewGuid().ToString("N");
 
     /// <summary>长轮询通知超时（服务端挂起等待作业，作业到达立即唤醒）。</summary>
     public static readonly TimeSpan NotifyTimeout = TimeSpan.FromSeconds(20);
@@ -52,7 +55,8 @@ public sealed class ServerRoutingWorker : BackgroundService
         ILogger<ServerRoutingWorker> logger,
         TimeProvider timeProvider,
         TimeSpan? progressInterval = null,
-        TimeSpan? reportInterval = null)
+        TimeSpan? reportInterval = null,
+        HostActivityState? activity = null)
     {
         _poller = poller;
         _submission = submission;
@@ -62,6 +66,7 @@ public sealed class ServerRoutingWorker : BackgroundService
         _time = timeProvider;
         _progressInterval = progressInterval ?? DefaultProgressInterval;
         _reportInterval = reportInterval ?? ReportInterval;
+        _activity = activity ?? new HostActivityState();
     }
 
     /// <inheritdoc />
@@ -82,7 +87,14 @@ public sealed class ServerRoutingWorker : BackgroundService
                     while (!stoppingToken.IsCancellationRequested)
                     {
                         var signaled = await _poller.WaitForJobAsync(NotifyTimeout, stoppingToken);
+                        using var operation = _activity.TryBeginOperation();
+                        if (operation is null)
+                        {
+                            await Task.Delay(100, stoppingToken);
+                            continue;
+                        }
                         var jobs = await _poller.FetchPendingAsync(stoppingToken);
+                        foreach (var job in jobs) _activity.AddPendingResult(_routeId + job.JobId);
                         foreach (var job in jobs)
                         {
                             await HandleClaimedJobAsync(job, stoppingToken);
@@ -167,10 +179,7 @@ public sealed class ServerRoutingWorker : BackgroundService
         if (result.Job is null)
         {
             _logger.LogWarning("Server 作业 {JobId} 本地提交失败：{Code} {Message}", job.JobId, result.ErrorCode, result.ErrorMessage);
-            await _poller.ReportResultAsync(
-                job.JobId,
-                new ServerJobResult("Failed", 0, job.TotalItems, result.ErrorMessage, result.ErrorCode),
-                cancellationToken);
+            _rejectedResults[job.JobId] = new ServerJobResult("Failed", 0, job.TotalItems, result.ErrorMessage, result.ErrorCode);
             return;
         }
 
@@ -183,6 +192,12 @@ public sealed class ServerRoutingWorker : BackgroundService
     /// <summary>终态回报 + 进行中进度上报；进度失败按作业吞掉（静默降级），不影响同批其他作业与终态回报。</summary>
     private async Task ReportAsync(CancellationToken cancellationToken)
     {
+        foreach (var (jobId, result) in _rejectedResults.ToArray())
+        {
+            await _poller.ReportResultAsync(jobId, result, cancellationToken);
+            _rejectedResults.TryRemove(jobId, out _);
+            _activity.ConfirmResult(_routeId + jobId);
+        }
         foreach (var (localJobId, serverJobId) in _localToServer.ToArray())
         {
             var local = await _queue.GetAsync(localJobId, cancellationToken);
@@ -204,6 +219,7 @@ public sealed class ServerRoutingWorker : BackgroundService
                     new ServerJobResult(status, completed, failed, failedItem?.ErrorMessage, failedItem?.ErrorCode),
                     cancellationToken);
                 _localToServer.TryRemove(localJobId, out _);
+                _activity.ConfirmResult(_routeId + serverJobId);
                 _progress.TryRemove(localJobId, out _);
                 _logger.LogInformation("Server 作业 {ServerJobId} 已回报：{Status}", serverJobId, status);
                 continue;

@@ -3,6 +3,8 @@
 // 置顶 → 连接配置 → 作业配置 → 测试打印）。常规设置＝界面语言＋服务端地址（机器级配置，保存即生效）。
 
 import { useCallback, useEffect, useState } from 'react'
+import { ClientRestart } from '../components/ClientRestart'
+import { beginHostOperation, setHostDirty } from '../lib/hostLifecycle'
 import { useTranslation } from 'react-i18next'
 import { clientPackageDownloadUrl, localApi, serverApi } from '../lib/api/client'
 import { ApiError } from '../lib/api/types'
@@ -112,6 +114,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
 
   // 打印批次——WinHost /api/host/print-settings（用户级持久化，保存即生效）；旧 WinHost 404 → 版本提示
   const [printSettings, setPrintSettings] = useState<PrintSettings | null>(null)
+  const [savedPrintSettings, setSavedPrintSettings] = useState('')
   const [printSettingsError, setPrintSettingsError] = useState<string | null>(null)
   const [printSettingsOldWinHost, setPrintSettingsOldWinHost] = useState(false)
   const [batchSaving, setBatchSaving] = useState(false)
@@ -201,6 +204,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       .then((s) => {
         if (on) {
           setPrintSettings(s)
+          setSavedPrintSettings(JSON.stringify(s))
           setPrintSettingsError(null)
           setPrintSettingsOldWinHost(false)
         }
@@ -236,6 +240,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       const file = new File([blob], filename)
       const res = await localApi.installPlugin(file)
       setPluginNotice(res.message) // 后端 message 已含「重启客户端后生效」
+      window.dispatchEvent(new Event('labelframe-plugins-changed'))
       void refreshInstalledPlugins()
     } catch (err) {
       setPluginError(err instanceof ApiError ? err.message : t('plugins.installFailed'))
@@ -252,6 +257,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
     try {
       const res = await localApi.uninstallPlugin(plugin.pluginId)
       setPluginNotice(res.message) // 后端 message 已含「重启客户端后生效」
+      window.dispatchEvent(new Event('labelframe-plugins-changed'))
       void refreshInstalledPlugins()
     } catch (err) {
       setPluginError(err instanceof ApiError ? err.message : t('plugins.uninstallFailed'))
@@ -302,6 +308,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
     setBatchSaveResult(null)
     try {
       await localApi.setPrintSettings(printSettings)
+      setSavedPrintSettings(JSON.stringify(printSettings))
       setBatchSaveResult({ ok: true, msg: t('batch.saveOk') })
     } catch (err) {
       setBatchSaveResult({ ok: false, msg: err instanceof ApiError ? err.message : t('batch.saveFailed') })
@@ -309,6 +316,15 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
       setBatchSaving(false)
     }
   }
+
+  const busy = Boolean(installing || uninstalling || saving || testing || testPrinting || batchSaving)
+  useEffect(() => {
+    setHostDirty('settings', url !== app.baseUrl || (savedPrintSettings !== '' && JSON.stringify(printSettings) !== savedPrintSettings))
+  }, [url, app.baseUrl, printSettings, savedPrintSettings])
+  useEffect(() => () => setHostDirty('settings', false), [])
+  useEffect(() => {
+    if (busy) return beginHostOperation()
+  }, [busy])
 
   const doTestPrint = async () => {
     setTestPrinting(true)
@@ -411,6 +427,10 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                 </div>
               )}
             </div>
+          </div>
+          <div className="settings-subsection">
+            <h3 className="settings-subtitle">{t('restart.title')}</h3>
+            <ClientRestart />
           </div>
         </section>
         )}
@@ -668,6 +688,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                 {pluginError}
               </div>
             )}
+            <ClientRestart contextual />
             {pluginNotice && (
               <div className="badge ok" style={{ alignSelf: 'flex-start' }}>
                 {pluginNotice}

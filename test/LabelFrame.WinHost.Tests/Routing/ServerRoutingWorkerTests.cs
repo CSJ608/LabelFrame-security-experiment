@@ -29,6 +29,8 @@ public class ServerRoutingWorkerTests
 
         /// <summary>模拟 Server 不可达：进度上报抛异常（静默降级用）。</summary>
         public bool FailProgress { get; set; }
+        public bool FailResults { get; set; }
+        public int ResultAttempts;
 
         public void Enqueue(ServerJobPayload payload) => _pending.Enqueue(payload);
 
@@ -62,6 +64,8 @@ public class ServerRoutingWorkerTests
 
         public Task ReportResultAsync(string jobId, ServerJobResult result, CancellationToken cancellationToken = default)
         {
+            Interlocked.Increment(ref ResultAttempts);
+            if (FailResults) throw new HttpRequestException("结果回报暂时不可达");
             Reported.Add((jobId, result));
             return Task.CompletedTask;
         }
@@ -392,8 +396,10 @@ public class ServerRoutingWorkerTests
     /// 原生指令模式下编译失败 → 路由回报 Failed：任一标签编译失败本地不建作业
     /// 宿主按既有失败回报路径回报 Server Failed，错误消息含问题码与中文原因。
     /// </summary>
-    [Fact]
-    public async Task Compile_failure_in_native_mode_should_report_server_job_failed()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Compile_failure_in_native_mode_should_report_server_job_failed(bool disconnected)
     {
         var dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"lfroute-{Guid.NewGuid():N}.db");
         try
@@ -416,7 +422,7 @@ public class ServerRoutingWorkerTests
                 plugin,
                 """{ "pluginId": "fakecompile", "params": { "printMode": "native" } }""");
 
-            var poller = new FakePoller();
+            var poller = new FakePoller { FailResults = disconnected };
             poller.Enqueue(new ServerJobPayload(
                 "server-job-native-fail",
                 "req-route-native-fail",
@@ -424,15 +430,29 @@ public class ServerRoutingWorkerTests
                 new TemplateDto(SampleContract, SampleLayout),
                 [new LabelDto(new Dictionary<string, string> { ["zone"] = "A", ["locationCode"] = "BAD" })]));
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var worker = new ServerRoutingWorker(poller, submission, queue, TimeSpan.FromMilliseconds(100), NullLogger<ServerRoutingWorker>.Instance);
-            await worker.StartAsync(cts.Token);
-
-            // 等待失败回报（独立回报循环，1s 周期）
-            for (var i = 0; i < 100 && poller.Reported.Count == 0; i++)
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var activity = new HostActivityState();
+            var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+            var worker = new ServerRoutingWorker(poller, submission, queue, TimeSpan.FromMilliseconds(100),
+                NullLogger<ServerRoutingWorker>.Instance, time, activity: activity);
+            async Task AdvanceUntilAsync(Func<bool> condition)
             {
-                await Task.Delay(50, cts.Token);
+                while (!condition())
+                {
+                    time.Advance(TimeSpan.FromSeconds(1));
+                    await Task.Delay(10, cts.Token);
+                }
             }
+            await worker.StartAsync(cts.Token);
+            if (disconnected)
+            {
+                await AdvanceUntilAsync(() => Volatile.Read(ref poller.ResultAttempts) > 0);
+                Assert.True(Volatile.Read(ref poller.ResultAttempts) > 0);
+                Assert.False(activity.TryPrepare(out _));
+                poller.FailResults = false;
+            }
+
+            await AdvanceUntilAsync(() => poller.Reported.Count > 0);
 
             var report = Assert.Single(poller.Reported);
             Assert.Equal("server-job-native-fail", report.JobId);
@@ -445,6 +465,7 @@ public class ServerRoutingWorkerTests
             Assert.Null(await store.GetJobByRequestIdAsync("req-route-native-fail", cts.Token));
 
             await worker.StopAsync(cts.Token);
+            Assert.True(activity.TryPrepare(out _));
         }
         finally
         {

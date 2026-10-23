@@ -8,9 +8,17 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
+#if WINDOWS
+        if (RestartProcess.IsWaiter(args))
+        {
+            await RestartProcess.RunWaiterAsync(args);
+            return;
+        }
+#endif
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
-            Args = args,
+            Args = args.Where(a => !a.Equals("--autostart", StringComparison.OrdinalIgnoreCase)
+                && !a.Equals("--restart-plugins", StringComparison.OrdinalIgnoreCase)).ToArray(),
             ContentRootPath = AppContext.BaseDirectory,
         });
         var options = new HostOptions();
@@ -20,6 +28,7 @@ public static class Program
         {
             options.OpenBrowser = false;
         }
+        if (args.Contains("--restart-plugins", StringComparer.OrdinalIgnoreCase)) options.OpenBrowser = true;
 
 #if !WINDOWS
         // Linux 首版是容器化无头测试客户端，传输能力固定为 Log。
@@ -81,6 +90,7 @@ public static class Program
 #if WINDOWS
         // 界面壳：窗口形态（WebView2）优先，运行时不可用回退浏览器
         var localUiUrl = new Uri(UiUrl.ToLocalUiUrl(options.ListenUrl));
+        if (args.Contains("--restart-plugins")) localUiUrl = new Uri(localUiUrl, "#/settings/settings.plugins");
         IUiShell? uiShell = null;
         if (options.OpenBrowser || options.EnableTray)
         {
@@ -109,11 +119,22 @@ public static class Program
 
 #if WINDOWS
         using var tray = new TrayIconService(HostInfo);
+        var restart = app.Services.GetRequiredService<HostRestartCoordinator>();
+        restart.Bind(showPlugins => RestartProcess.PrepareAsync(args, uiShell?.IsVisible ?? options.OpenBrowser, showPlugins));
         if (options.EnableTray)
         {
             tray.Start(
                 () => uiShell?.OpenUi(),
-                () => exit.RequestShutdownAsync("托盘菜单「退出」"));
+                () => exit.RequestShutdownAsync("托盘菜单「退出」"),
+                async () =>
+                {
+                    var reason = await restart.RequestAsync(showPlugins: false);
+                    if (reason is not null)
+                    {
+                        HostInfo($"重启未执行：{reason}");
+                        MessageBox.Show(reason, "LabelFrame", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                });
             HostInfo("系统托盘已启用（双击或右键托盘图标可打开界面，退出请用托盘菜单）。");
         }
 

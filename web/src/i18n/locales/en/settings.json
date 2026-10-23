@@ -4,7 +4,9 @@
     "subtitle": "General / printing / updates & plugins"
   },
   "navRegion": "Settings menu",
-  "general": { "title": "General" },
+  "general": {
+    "title": "General"
+  },
   "printing": {
     "title": "Printing",
     "connectionTitle": "Connection",
@@ -142,5 +144,15 @@
     "save": "Save and Apply",
     "switched": "Connection switched: {{message}}",
     "saveFailed": "Failed to save the connection."
+  },
+  "restart": {
+    "title": "Client",
+    "hint": "Restart the client to reload plugins and reconnect.",
+    "pending": "Restart the client to apply plugin changes.",
+    "action": "Restart client",
+    "now": "Restart now",
+    "running": "Restarting client…",
+    "failed": "Restart failed. Please try again.",
+    "unsupported": "This client does not support restarting from the app."
   }
 }

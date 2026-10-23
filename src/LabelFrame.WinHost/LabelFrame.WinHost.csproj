@@ -37,6 +37,7 @@
     <Compile Remove="TrayIconService.cs" />
     <Compile Remove="Ui\UiShell.cs" />
     <Compile Remove="Ui\WindowShell.cs" />
+    <Compile Remove="Ui\RestartProcess.cs" />
     <Compile Remove="Transport\RawPrinterTransport.cs" />
     <Compile Remove="Transport\WinspoolTransportPlugin.cs" />
     <Compile Remove="Transport\OfficialPluginMigration.cs" />

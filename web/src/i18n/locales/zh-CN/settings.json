@@ -4,7 +4,9 @@
     "subtitle": "常规 / 打印 / 更新与插件"
   },
   "navRegion": "设置菜单",
-  "general": { "title": "常规设置" },
+  "general": {
+    "title": "常规设置"
+  },
   "printing": {
     "title": "打印设置",
     "connectionTitle": "连接配置",
@@ -142,5 +144,15 @@
     "save": "保存并应用",
     "switched": "连接已切换：{{message}}",
     "saveFailed": "保存连接失败。"
+  },
+  "restart": {
+    "title": "客户端",
+    "hint": "重启客户端以重新加载插件和恢复连接。",
+    "pending": "插件变更将在重启客户端后生效。",
+    "action": "重启客户端",
+    "now": "立即重启",
+    "running": "正在重启客户端…",
+    "failed": "重启失败，请稍后重试。",
+    "unsupported": "当前客户端不支持一键重启。"
   }
 }

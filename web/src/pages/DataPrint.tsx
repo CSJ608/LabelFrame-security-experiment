@@ -5,6 +5,7 @@
 // HTTP + 局域网 IP 访问时为 undefined 直接抛 TypeError；uuid v4 回退 crypto.getRandomValues（不受安全上下文限制）。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { setHostDirty } from '../lib/hostLifecycle'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
@@ -243,6 +244,8 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
 
   // Excel 导入数据与列映射：页面局部状态（切页 / 刷新即丢弃，重新上传）
   const [mappingOpen, setMappingOpen] = useState(false)
+  useEffect(() => { setHostDirty('excel-mapping', mappingOpen) }, [mappingOpen])
+  useEffect(() => () => setHostDirty('excel-mapping', false), [])
   const [excel, setExcel] = useState<{ headers: string[]; rows: string[][]; file: string } | null>(null)
   const [mapping, setMapping] = useState<string[]>([])
   const [importing, setImporting] = useState(false)

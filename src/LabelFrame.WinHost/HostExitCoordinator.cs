@@ -26,6 +26,8 @@ public sealed class HostExitCoordinator
     private bool _cleanupDone;
     private int _shutdownRequested;
 
+    public bool IsShutdownRequested => Volatile.Read(ref _shutdownRequested) != 0;
+
     /// <param name="log">host.log 记账回调。</param>
     /// <param name="gracefulTimeout">优雅等待上限（默认 <see cref="DefaultGracefulTimeout"/>）。</param>
     /// <param name="forceExit">强退动作（默认 Environment.Exit；测试注入替身以便进程内观测）。</param>

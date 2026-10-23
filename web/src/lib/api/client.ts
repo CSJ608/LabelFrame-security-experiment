@@ -33,6 +33,7 @@ import { getBaseUrl } from '../settings'
 import { UI_MODE } from '../uiMode'
 import { resolveApiErrorMessage } from '../../i18n/errorMessages'
 import i18next from '../../i18n'
+import { beginHostOperation } from '../hostLifecycle'
 
 // ── base 解析 ──
 
@@ -100,6 +101,7 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
   return async function request<T>(path: string, init?: RequestInit, timeoutMs = requestTimeouts.normal): Promise<T> {
     // 默认 30s 超时（后端挂起不再无限「处理中…」）；出图 / 上传类大负载端点在调用处传 heavy 档（120s）
     const timeout = createRequestTimeout(timeoutMs)
+    const endOperation = init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) ? beginHostOperation() : undefined
     try {
       let res: Response
       try {
@@ -133,6 +135,7 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
         }
       }
     } finally {
+      endOperation?.()
       timeout.dispose()
     }
   }
@@ -169,6 +172,7 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
     timeoutMs = requestTimeouts.normal,
   ): Promise<{ blob: Blob; filename: string }> {
     const timeout = createRequestTimeout(timeoutMs)
+    const endOperation = beginHostOperation()
     try {
       let res: Response
       try {
@@ -201,6 +205,7 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
       return { blob, filename }
     } finally {
       timeout.dispose()
+      endOperation()
     }
   }
 }

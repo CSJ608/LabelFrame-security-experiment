@@ -114,6 +114,8 @@ public static class WinHostApp
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<ILabelJobStore>(store);
         builder.Services.AddSingleton(queue);
+        builder.Services.AddSingleton<HostActivityState>();
+        builder.Services.AddSingleton<HostRestartCoordinator>();
         builder.Services.AddSingleton<ITransportManager>(transportManager);
         builder.Services.AddSingleton<ITransportPluginRegistry>(transportRegistry);
 #if WINDOWS
@@ -175,6 +177,26 @@ public static class WinHostApp
         app.UseExceptionHandler();
         app.UseCors();
 
+        app.Use(async (context, next) =>
+        {
+            var path = context.Request.Path.Value ?? string.Empty;
+            if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)
+                || HttpMethods.IsOptions(context.Request.Method) || !path.StartsWith("/api/", StringComparison.Ordinal)
+                || path is "/api/host/restart" or "/api/host/ui-activity" or "/api/host/shutdown")
+            {
+                await next(context);
+                return;
+            }
+            using var operation = context.RequestServices.GetRequiredService<HostActivityState>().TryBeginOperation();
+            if (operation is null)
+            {
+                context.Response.StatusCode = 503;
+                await context.Response.WriteAsJsonAsync(new ErrorView(JobErrorCodes.InvalidTransition, "客户端正在安全重启，请稍后重试。"));
+                return;
+            }
+            await next(context);
+        });
+
         app.MapGet("/healthz", (ITransportManager transportManager, ITransportPluginRegistry registry) =>
             Results.Ok(new
             {
@@ -206,6 +228,7 @@ public static class WinHostApp
         app.MapTransportApi();
 #if WINDOWS
         app.MapPluginApi();
+        app.MapLifecycleApi();
 #endif
         app.MapJobsApi();
         app.MapPrinterApi(() => printSettings.EffectiveDpi(options.Dpi));

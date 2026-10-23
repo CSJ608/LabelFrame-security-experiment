@@ -138,22 +138,22 @@ public sealed class TrayIconService : IDisposable
     /// <summary>启动托盘（独立消息循环线程）。</summary>
     /// <param name="openUi">打开界面回调（界面壳：显示并前置窗口；浏览器兜底：打开默认浏览器）。</param>
     /// <param name="shutdown">退出回调（停止宿主）。</param>
-    public void Start(Action openUi, Func<Task> shutdown)
+    public void Start(Action openUi, Func<Task> shutdown, Func<Task>? restart = null)
     {
         // 线程引用由 TrayQuitSignaler 登记（RunTrayLoop 内），Dispose 时投递 WM_QUIT 并限时 Join
-        var thread = new Thread(() => RunTrayLoop(openUi, shutdown))
+        var thread = new Thread(() => RunTrayLoop(openUi, shutdown, restart))
         {
             IsBackground = true,
         };
         thread.Start();
     }
 
-    private void RunTrayLoop(Action openUi, Func<Task> shutdown)
+    private void RunTrayLoop(Action openUi, Func<Task> shutdown, Func<Task>? restart)
     {
         try
         {
             var instance = GetModuleHandle(null);
-            _wndProc = (hWnd, msg, wParam, lParam) => WndProc(hWnd, msg, wParam, lParam, openUi, shutdown);
+            _wndProc = (hWnd, msg, wParam, lParam) => WndProc(hWnd, msg, wParam, lParam, openUi, shutdown, restart);
 
             var wc = new WNDCLASS
             {
@@ -243,14 +243,14 @@ public sealed class TrayIconService : IDisposable
         }
     }
 
-    private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, Action openUi, Func<Task> shutdown)
+    private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, Action openUi, Func<Task> shutdown, Func<Task>? restart)
     {
         if (msg == WM_USER + 1)
         {
             var mouseMsg = (uint)lParam.ToInt64();
             if (mouseMsg == WM_RBUTTONUP)
             {
-                ShowMenu(openUi, shutdown);
+                ShowMenu(openUi, shutdown, restart);
             }
             else if (mouseMsg == WM_LBUTTONDBLCLK)
             {
@@ -284,7 +284,7 @@ public sealed class TrayIconService : IDisposable
         return DefWindowProc(hWnd, msg, wParam, lParam);
     }
 
-    private void ShowMenu(Action openUi, Func<Task> shutdown)
+    private void ShowMenu(Action openUi, Func<Task> shutdown, Func<Task>? restart)
     {
         var cmd = _menuPresenter.ShowMenu(_hwnd);
 
@@ -292,13 +292,13 @@ public sealed class TrayIconService : IDisposable
         {
             openUi();
         }
-        else if (cmd == TrayMenuPresenter.CmdExit)
+        else if (cmd == TrayMenuPresenter.CmdExit || (cmd == TrayMenuPresenter.CmdRestart && restart is not null))
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await shutdown();
+                    await (cmd == TrayMenuPresenter.CmdRestart ? restart!() : shutdown());
                 }
                 catch
                 {

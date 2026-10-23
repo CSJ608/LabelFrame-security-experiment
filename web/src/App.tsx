@@ -24,6 +24,7 @@ import { Settings } from './pages/Settings'
 import { Help } from './pages/Help'
 import { DownloadCenter } from './pages/DownloadCenter'
 import { PluginPackages } from './pages/PluginPackages'
+import { startHostActivity } from './lib/hostLifecycle'
 
 // 路由 page 段白名单 = 本构建 tab 集（受限页集不可经 hash 越权进入）
 const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
@@ -50,6 +51,7 @@ function Shell() {
     designerLeaveRef.current = fn
   }, [])
   const app = useApp()
+  useEffect(() => startHostActivity(), [])
   // 解构出三个成员再入依赖（exhaustive-deps 按 app 聚合对象报缺依赖；三者均为 useCallback 稳定引用）
   const { checkConnection, checkLocalService, baseUrl } = app
 

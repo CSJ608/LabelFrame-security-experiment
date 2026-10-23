@@ -88,6 +88,10 @@
 
 单事务内：先删撞名行（`name` = 新名且 `id` ≠ 目标 uid，连带图片）——无 uid 保存因此等价于旧的按名覆盖（旧前端兼容）；目标行按 `id` upsert（带 uid＝同模板改名更新，无 uid＝生成新 uid 新建，决策 #205）。testData 读-改-写：以库中现有 `test_data_json` 为基底（基底定位＝带 uid 按 id 取本行——改名随行携带、撞名覆盖不并入被撞行；无 uid 按 name 取被替换行，决策 #205）→ 并入显式传入的 `TestData` → 被元素 `PreviewValue`（text / barcode / qrcode 字段填充模式）派生覆盖——**预览值优先**（单一事实来源，决策 #45）；图片全量替换（先删后插）；不传 testData 且布局无预览值时旧显式值保留。旧库自动补 `test_data_json` 列与 `name` 列（回填 `name = id`，存量行 id=旧名即 uid；ALTER 容错「已存在」，决策 #205）。模板包 zip（`TemplatePackageSerializer`）：`manifest.json`（name / group / contract / layout / testData）+ `images/`（键名 sanitize，仅字母数字 `.` `-` `_`）；导入缺 group 归「默认」、缺 testData 归空，身份字段不进出包（决策 #23 / #41）。
 
+### 重启队列边界
+
+`TryPrepareForRestartAsync` 在队列锁内拒绝所有 Pending/Printing/Suspended 作业及在途发送，然后冻结提交、领取和发送。该入口比安装器既有 shutdown 更严格：必须完成或取消整个批次，挂起任务不能被视作空闲。准备失败由 `CancelShutdownPreparationAsync` 撤销门闩，继续接单；正常重启不修改已有作业和幂等键。
+
 ## 4. 对外契约与依赖
 
 **接口面**（全公开于 `LabelFrame.Core.*`，被全仓消费的稳定面）：

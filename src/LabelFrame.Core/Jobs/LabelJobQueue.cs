@@ -201,6 +201,32 @@ public sealed class LabelJobQueue : IDisposable
         }
     }
 
+    /// <summary>确认所有未完成作业已收尾，并冻结新打印。</summary>
+    public async Task<bool> TryPrepareForRestartAsync(CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (_shutdownPrepared) return false;
+            if (Volatile.Read(ref _activeSends) > 0) return false;
+            foreach (var status in new[] { LabelJobStatus.Pending, LabelJobStatus.Printing, LabelJobStatus.Suspended })
+            {
+                if ((await _store.ListJobsByStatusAsync(status, cancellationToken)).Count > 0) return false;
+            }
+            _shutdownPrepared = true;
+            return true;
+        }
+        finally { _gate.Release(); }
+    }
+
+    /// <summary>撤销未执行的维护准备，恢复接收与领取。</summary>
+    public async Task CancelShutdownPreparationAsync(CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try { _shutdownPrepared = false; }
+        finally { _gate.Release(); }
+    }
+
     /// <summary>登记一次真实传输区间；返回 null 表示退出已准备好，不得再开始发送。</summary>
     public async Task<IDisposable?> TryBeginPrintSendAsync(CancellationToken cancellationToken = default)
     {

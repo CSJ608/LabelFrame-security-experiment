@@ -13,6 +13,7 @@ public sealed class TrayMenuPresenter
 
     /// <summary>菜单命令 Id：退出。</summary>
     public const int CmdExit = 2;
+    public const int CmdRestart = 3;
 
     private const uint WM_NULL = 0x0000;
     private const uint MF_STRING = 0x0000;
@@ -100,6 +101,7 @@ public sealed class TrayMenuPresenter
             try
             {
                 AppendMenu(menu, MF_STRING, new IntPtr(CmdOpen), "打开界面");
+                AppendMenu(menu, MF_STRING, new IntPtr(CmdRestart), "重启客户端");
                 AppendMenu(menu, MF_SEPARATOR, IntPtr.Zero, string.Empty);
                 AppendMenu(menu, MF_STRING, new IntPtr(CmdExit), "退出");
 

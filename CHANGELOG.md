@@ -13,6 +13,8 @@
 
 ### 新增
 
+- **Windows 客户端一键重启**：插件管理在插件变更后持续提供「立即重启」，常规设置与托盘也可重启客户端；自动退出并重新打开，页面入口返回插件管理。未完成打印批次、挂起任务、待回报结果、未保存编辑或进行中的操作会阻止重启并说明原因；准备失败保留当前客户端继续运行。
+
 - **离线部署改为按需生成，目标机一条命令安装**：Release 新增小型 `labelframe-offline-builder-<版本>.zip`。管理员先在有网准备机运行 Windows `build-windows-offline.ps1` 或 Docker `build-docker-offline.sh`，生成离线包后再拷到目标机；Windows Server 解压后运行 `install-server.cmd`，Docker 解压后继续运行既有 `install.sh`。Windows 仍提供 Full / Upgrade 双包：Full 带完整离线运行时（WebView2 改为 x64 Standalone），Installer 按需补齐 Server 所需的 Desktop 基础 host/runtime 与 ASP.NET Core；Upgrade 不含任何 runtime，缺任一前置时会明确提示改用 Full。Windows 安装脚本会更新 Server 与管理界面、分发 Client / PDA / 官方插件，健康检查通过后只清理由官方账本确认的旧资源，第三方和自定义文件保留。
 
 ### 发布说明

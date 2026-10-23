@@ -138,7 +138,8 @@ public sealed class ServerRoutingCoordinator : IAsyncDisposable
             TimeSpan.FromSeconds(Math.Max(1, _options.PollIntervalSeconds)),
             _services.GetRequiredService<ILogger<ServerRoutingWorker>>(),
             TimeProvider.System,
-            TimeSpan.FromMilliseconds(Math.Max(100, _options.ProgressIntervalMs)));
+            TimeSpan.FromMilliseconds(Math.Max(100, _options.ProgressIntervalMs)),
+            activity: _services.GetRequiredService<HostActivityState>());
         return new RoutingLease(serverUrl, http, poller, worker);
     }
 

@@ -23,7 +23,7 @@ internal static class PluginApi
     // 插件安装 / 卸载（安装 / 卸载 = 写文件 + 重启生效）
     app.MapGet("/api/plugins/installed", (PluginInstaller installer) => Results.Ok(installer.ListInstalled()));
 
-    app.MapPost("/api/plugins/install", async (IFormFile file, PluginInstaller installer, CancellationToken ct) =>
+    app.MapPost("/api/plugins/install", async (IFormFile file, PluginInstaller installer, HostActivityState state, CancellationToken ct) =>
     {
         if (file is null || file.Length == 0)
         {
@@ -33,6 +33,7 @@ internal static class PluginApi
         try
         {
             var view = await installer.InstallAsync(file.OpenReadStream(), file.FileName, ct);
+            state.MarkPluginsChanged();
             return Results.Ok(new { ok = true, message = $"插件「{view.Name} {view.Version}」已安装，重启客户端后生效。", plugin = view });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -54,7 +55,7 @@ internal static class PluginApi
         // 其余意外异常交给全局异常处理器 → 500，不误报 400 或透出内部信息
     }).DisableAntiforgery();
 
-    app.MapPost("/api/plugins/uninstall", (Api.UninstallPluginRequest? request, PluginInstaller installer) =>
+    app.MapPost("/api/plugins/uninstall", (Api.UninstallPluginRequest? request, PluginInstaller installer, HostActivityState state) =>
     {
         if (request is null || string.IsNullOrWhiteSpace(request.PluginId))
         {
@@ -64,6 +65,7 @@ internal static class PluginApi
         try
         {
             installer.Uninstall(request.PluginId);
+            state.MarkPluginsChanged();
             return Results.Ok(new { ok = true, message = $"插件「{request.PluginId}」已卸载，重启客户端后生效。" });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
