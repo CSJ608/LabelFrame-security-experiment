@@ -182,3 +182,9 @@
 14. **图片上传链不变量**：限制按入库（压缩后）字节判定（单图 2MB / 10 张 / 总量 10MB）；>1MB 先走压缩管道，产物仍超限才拒收；PNG 含透明通道不可转 JPEG（`pngAlphaKept` 给针对性指引）；资源 key 净化 `\p{L}\p{N}._-` 与后端 zip `SanitizeKey` Unicode 感知口径对齐（中文文件名保留）；保存恒发显式 images 字典（有图非空 / 无图空字典）。
 15. **esc / 关闭语义并存边界**：Modal / Popover / HelpDot / Guide 的 Esc 均为 document 级监听、同键并存时同帧双响应——既有先例边界，不做监听互斥（Guide 激活期遮罩已拦截常规路径）；Popover 页面滚动即关闭（fixed 定位不随锚点滚动）。
 16. **文件 BOM（utf-8-sig）**：本模块源文件以 utf-8-sig 读写——编辑工具不得剥 BOM。
+
+### 开发链版本与回归边界
+
+Node.js 精确版本声明在仓库根目录 .node-version，pnpm 由 web/package.json 的 packageManager 固定；CI、Release 与 E2E Docker 构建同步。pnpm install --frozen-lockfile 消费已审查的锁文件，不能以放宽版本范围代替升级锁文件。
+
+TypeScript 7 仅执行类型检查，JavaScript 产物仍由 Vite 构建；Vitest 5 默认在每项测试前清理 mock 调用记录，保留实现。双模式测试须验证 storage/navigator 环境垫片和保存/选择行为，自定义中文 JSX lint 规则须以违规样例验证实际生效。React 19.2、react-konva 与 Konva 保持当前生产版本；画布交互仍需真实浏览器回归。

@@ -22,8 +22,8 @@ permissions:
 
 env:
   DOTNET_VERSION: '10.0.x'
-  NODE_VERSION: '24'
-  PNPM_VERSION: '11.10.0'
+  NODE_VERSION: '26.12.1'
+  PNPM_VERSION: '12.15.0'
   WIX_VERSION: '7.0.0'
 
 jobs:

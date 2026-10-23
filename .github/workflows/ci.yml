@@ -19,8 +19,8 @@ concurrency:
 
 env:
   DOTNET_VERSION: '10.0.x'
-  NODE_VERSION: '24'
-  PNPM_VERSION: '11.10.0'
+  NODE_VERSION: '26.12.1'
+  PNPM_VERSION: '12.15.0'
   WIX_VERSION: '7.0.0'
 
 jobs:
@@ -78,6 +78,14 @@ jobs:
         env:
           VITE_UI_MODE: server
         run: pnpm build:server
+
+  web-linux:
+    name: Linux 前端构建（E2E 镜像阶段）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 验证冻结安装与 Linux 原生构建工具
+        run: docker build --target web-build -f packaging/e2e/Dockerfile.server -t labelframe-web-check .
 
   msi-verify:
     name: MSI 结构断言（安装包 UI 契约）
