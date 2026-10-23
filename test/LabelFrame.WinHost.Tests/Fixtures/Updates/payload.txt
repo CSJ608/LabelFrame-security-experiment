@@ -1,0 +1,1 @@
+LabelFrame update inspector fixture

@@ -13,18 +13,26 @@ public sealed class HostRestartCoordinator(HostActivityState activity, LabelJobQ
     public void Dispose() => _gate.Dispose();
 
     public async Task<string?> RequestAsync(bool showPlugins, CancellationToken cancellationToken = default)
+        => await PrepareAsync(_prepareLauncher is null ? null : () => _prepareLauncher(showPlugins), cancellationToken, allowRecoveryRestart: true);
+
+    internal Task<string?> RequestUpdateAsync(Func<Task> prepareInstaller, CancellationToken cancellationToken)
+        => PrepareAsync(prepareInstaller, cancellationToken);
+
+    private async Task<string?> PrepareAsync(Func<Task>? prepareLauncher, CancellationToken cancellationToken, bool allowRecoveryRestart = false)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
             if (_requested) return null;
-            if (activity.IsPrepared || exit.IsShutdownRequested) return "客户端正在停止或维护，请稍后重试。";
-            if (_prepareLauncher is null) return "当前运行方式不支持重启，请退出后手动启动客户端。";
-            if (!activity.TryPrepare(out var reason)) return reason;
+            var recoveryRestart = allowRecoveryRestart && activity.CanRestartRecovery;
+            if ((activity.IsPrepared && !recoveryRestart) || exit.IsShutdownRequested) return "客户端正在停止或维护，请稍后重试。";
+            if (prepareLauncher is null) return "当前运行方式不支持重启，请退出后手动启动客户端。";
+            if (!activity.TryPrepare(out var reason, allowRecoveryRestart)) return reason;
             var queuePrepared = false;
             try
             {
-                queuePrepared = await queue.TryPrepareForRestartAsync(cancellationToken);
+                queuePrepared = recoveryRestart ? await queue.TryPrepareForShutdownAsync(cancellationToken)
+                    : await queue.TryPrepareForRestartAsync(cancellationToken);
                 if (!queuePrepared) return "打印任务尚未完成，请完成或取消剩余任务后再重启。";
                 var deadline = DateTime.UtcNow.AddSeconds(8);
                 while (!activity.IsUiFrozen(out reason))
@@ -34,7 +42,7 @@ public sealed class HostRestartCoordinator(HostActivityState activity, LabelJobQ
                     await Task.Delay(50, cancellationToken);
                 }
                 if (reason is not null) return reason;
-                await _prepareLauncher(showPlugins);
+                await prepareLauncher();
                 _requested = true;
                 _ = exit.RequestShutdownAsync("重启客户端", TimeSpan.FromMilliseconds(300));
                 return null;
@@ -47,7 +55,7 @@ public sealed class HostRestartCoordinator(HostActivityState activity, LabelJobQ
             {
                 if (!queuePrepared || !exit.IsShutdownRequested)
                 {
-                    if (queuePrepared) await queue.CancelShutdownPreparationAsync(CancellationToken.None);
+                    if (queuePrepared && !recoveryRestart) await queue.CancelShutdownPreparationAsync(CancellationToken.None);
                     activity.CancelPreparation();
                 }
             }

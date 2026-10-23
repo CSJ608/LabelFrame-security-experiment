@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LabelFrame.Updates\LabelFrame.Updates.csproj" />
     <ProjectReference Include="..\LabelFrame.Core\LabelFrame.Core.csproj" />
     <ProjectReference Include="..\LabelFrame.Api\LabelFrame.Api.csproj" />
     <ProjectReference Include="..\LabelFrame.Rendering\LabelFrame.Rendering.csproj" />

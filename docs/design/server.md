@@ -134,6 +134,10 @@
 | 受信代理与设备真实 IP（LABELFRAME_SERVER_TRUSTED_PROXIES） | #203 |
 | 测试体系（同装配集成测试、TimeProvider、Perf/Soak Trait、SQLite provider 竞态与测试串行） | #82 / #83 / #66 / #85 |
 
+## 客户端更新发布
+
+`ClientUpdatesService` 保存草稿之外的独立快照与原子发布记录；`ClientUpdatesApi` 的管理操作使用独立口令、TLS/本机限制及同源核对，设备候选与下载每次重新检查暂停、版本、范围和兼容性。Windows 验证 MSI SIP，Linux 依赖 `msitools`、`osslsigncode` 与随包公开证书。完整权限、元数据和端点契约见 [client-updates.md](client-updates.md)。
+
 ## 6. 平台坑与不变量
 
 修改本模块前必读（源码中对应位置保留白名单注释）：

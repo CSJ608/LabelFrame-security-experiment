@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 # SkiaSharp Linux 依赖、中文预览字体与容器健康检查工具。
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl fontconfig fonts-wqy-microhei libfontconfig1 libfreetype6 libharfbuzz0b \
+    && apt-get install -y --no-install-recommends curl fontconfig fonts-wqy-microhei libfontconfig1 libfreetype6 libharfbuzz0b msitools osslsigncode ca-certificates \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

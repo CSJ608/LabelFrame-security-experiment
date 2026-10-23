@@ -30,6 +30,7 @@ internal sealed record JobPayloadDto(TemplateDto? Template, IReadOnlyList<LabelD
 /// <summary>Server 路由客户端：注册 / 心跳、领取定向作业、回报结果。</summary>
 public sealed class ServerJobPoller : IServerJobPoller
 {
+    public bool HasRegistered { get; private set; }
     private readonly HttpClient _http;
     private readonly string _serverUrl;
     private readonly string _deviceId;
@@ -62,6 +63,7 @@ public sealed class ServerJobPoller : IServerJobPoller
             _json,
             cancellationToken);
         response.EnsureSuccessStatusCode();
+        HasRegistered = true;
     }
 
     /// <summary>领取本设备的定向作业（Server 会把 Pending 置为 Claimed）。</summary>

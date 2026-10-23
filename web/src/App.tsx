@@ -25,6 +25,7 @@ import { Help } from './pages/Help'
 import { DownloadCenter } from './pages/DownloadCenter'
 import { PluginPackages } from './pages/PluginPackages'
 import { startHostActivity } from './lib/hostLifecycle'
+import { ClientUpdateNotice } from './components/ClientUpdates'
 
 // 路由 page 段白名单 = 本构建 tab 集（受限页集不可经 hash 越权进入）
 const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
@@ -207,6 +208,7 @@ function Shell() {
         </main>
       </div>
 
+      {!isServerUi && <ClientUpdateNotice />}
       <footer className="statusbar">
         {/* 状态栏呈现本机打印服务运行状态——
             client 构建 = 页面来源的本机 WinHost；server 构建此段不渲染（下方 meta 显示服务端地址） */}

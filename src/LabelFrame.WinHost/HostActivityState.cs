@@ -11,10 +11,18 @@ public sealed class HostActivityState
     private bool _pluginsChanged;
     private string? _preparationId;
     private bool _untrackedUi;
+    private bool _recoveryBlocked;
+    private bool _recoveryRestartAllowed;
+    private DateTimeOffset _lastInteraction = DateTimeOffset.UtcNow;
 
     public string InstanceId { get; } = Guid.NewGuid().ToString("N");
     public bool PluginsChanged { get { lock (_gate) return _pluginsChanged; } }
-    public bool IsPrepared { get { lock (_gate) return _prepared; } }
+    public bool IsPrepared { get { lock (_gate) return _prepared || _recoveryBlocked; } }
+    public bool IsRecoveryBlocked { get { lock (_gate) return _recoveryBlocked; } }
+    public bool CanRestartRecovery { get { lock (_gate) return _recoveryBlocked && _recoveryRestartAllowed; } }
+    public DateTimeOffset LastInteraction { get { lock (_gate) return _lastInteraction; } }
+    public void BlockForRecovery(bool blocked) { lock (_gate) { _recoveryBlocked = blocked; _recoveryRestartAllowed = false; } }
+    public void AllowRecoveryRestart() { lock (_gate) _recoveryRestartAllowed = true; }
     public string? PreparationId { get { lock (_gate) return _preparationId; } }
 
     public void MarkPluginsChanged() { lock (_gate) _pluginsChanged = true; }
@@ -25,6 +33,7 @@ public sealed class HostActivityState
         {
             if (_prepared && !report.Closed && report.PreparationId != _preparationId) return false;
             if (_sessions.TryGetValue(report.SessionId, out var existing) && report.Sequence < existing.Sequence) return true;
+            if (report.InteractionUnixMs > (existing?.InteractionUnixMs ?? 0)) _lastInteraction = DateTimeOffset.UtcNow;
             if (_sessions.Count < 128 || _sessions.ContainsKey(report.SessionId))
                 _sessions[report.SessionId] = report;
             else { _untrackedUi = true; return false; }
@@ -36,7 +45,7 @@ public sealed class HostActivityState
     {
         lock (_gate)
         {
-            if (_prepared) return null;
+            if (_prepared || _recoveryBlocked) return null;
             _operations++;
             return new OperationLease(this);
         }
@@ -45,11 +54,12 @@ public sealed class HostActivityState
     public void AddPendingResult(string id) { lock (_gate) _pendingResults.Add(id); }
     public void ConfirmResult(string id) { lock (_gate) _pendingResults.Remove(id); }
 
-    public bool TryPrepare(out string? reason)
+    public bool TryPrepare(out string? reason, bool allowRecoveryRestart = false)
     {
         lock (_gate)
         {
-            reason = _untrackedUi ? "界面会话过多，无法确认所有编辑状态，请手动保存并退出客户端。"
+            reason = _recoveryBlocked && !allowRecoveryRestart ? "更新恢复检查未通过，请管理员修复后重新启动。"
+                : _untrackedUi ? "界面会话过多，无法确认所有编辑状态，请手动保存并退出客户端。"
                 : _sessions.Values.Any(s => !s.Closed && s.Dirty)
                 ? "界面有未保存的更改，请先保存或放弃更改后再重启。"
                 : _sessions.Values.Any(s => !s.Closed && s.Busy) || _operations > 0
@@ -88,4 +98,4 @@ public sealed class HostActivityState
 }
 
 /// <summary>单个界面会话的编辑与在途操作状态。</summary>
-public sealed record UiActivityReport(string SessionId, bool Dirty, bool Busy, bool Closed = false, long Sequence = 0, string? PreparationId = null);
+public sealed record UiActivityReport(string SessionId, bool Dirty, bool Busy, bool Closed = false, long Sequence = 0, string? PreparationId = null, long InteractionUnixMs = 0);

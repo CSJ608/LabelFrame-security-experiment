@@ -20,6 +20,7 @@ import { ApiError } from '../lib/api/types'
 import type { ClientPackageInfo, PdaPackageInfo } from '../lib/api/types'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
+import { ClientUpdatePublishing } from '../components/ClientUpdatePublishing'
 import { formatSize } from '../lib/download'
 import { copyText } from '../lib/clipboard'
 import { deriveBasePath, joinAddress, pickDisplayAddress } from '../lib/connection'
@@ -607,6 +608,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
             ) : (
               <PackageTable rows={clientRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'client', row })} />
             )}
+            <ClientUpdatePublishing fileNames={(clientRows ?? []).map(row => row.fileName)} />
           </>
         )}
 

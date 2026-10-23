@@ -158,6 +158,10 @@
 | 终态回调 webhook（直连接受 callbackUrl 但忽略） | #154 |
 | 连接参数 spec 条件可见性（VisibleWhen＋二进制兼容义务） | #186 |
 
+## Windows 自动升级
+
+`Updates/ClientUpdateAgent` 是宿主后台服务，复用 `HostRestartCoordinator` 的整批打印、结果回报与界面冻结门。恢复检查前先冻结队列和路由领取，实际版本、插件、连接及注册通过后恢复业务；恢复失败的页面可读，业务写操作仍被保护。`--update-service` 在普通宿主装配前进入 `ClientUpdaterService`，不启动打印与 Web UI；安装和原用户恢复分别使用独立监督进程，避免自身 MSI 停服务与程序集占用。安装权限、两阶段提交、持久化失败和缓存契约见 [client-updates.md](client-updates.md)。
+
 ## 6. 平台坑与不变量
 
 修改本模块前必读（源码中对应位置保留白名单注释）：

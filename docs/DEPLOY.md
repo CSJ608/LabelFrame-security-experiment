@@ -303,8 +303,20 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 ### 客户端安装包分发（服务端集中下载）
 
 - 目录 `client-packages`（Windows `%ProgramData%\LabelFrame\server\client-packages`；Linux `/var/lib/labelframe/server/client-packages`；环境变量 `LABELFRAME_SERVER_CLIENT_PACKAGES` 可覆盖）。
-- 目录直放文件或经管理界面「下载中心」页上传；客户端设置页「更新与安装包」列出并可下载（不自动升级，下载后自行运行安装）。
+- 目录直放文件或经管理界面「下载中心」页上传；客户端设置页「更新与安装包」列出手工下载包。上传草稿不会自动触发安装；自动升级另需下方的明确发布步骤。
 - API：`GET/POST /api/client-packages`、`GET/DELETE /api/client-packages/{file}`（路径穿越防护）。
+
+### Windows 客户端受控自动升级
+
+1. **先部署更新服务端**。配置 `Server.UpdateAdminToken` 或环境变量 `LABELFRAME_SERVER_UPDATE_ADMIN_TOKEN`，使用至少 32 字符的随机高熵口令。管理发布仅接受 HTTPS 或服务端本机回环请求，并核对浏览器同源；未配置口令时不能发布。TLS 在 Kestrel 终止，或管理员在服务端本机打开管理界面；现有转发头只处理来源 IP，不把任意 `X-Forwarded-Proto` 当作 HTTPS。口令仅在本页内存使用，不写浏览器存储。
+2. **客户端首次由管理员手工安装一次新版 MSI**。该 MSI 部署 `LabelFrameClientUpdater` Windows 服务；客户端继续用原普通用户运行。安装于受管理员保护的 Program Files 目录才支持自动安装；自定义用户可写目录保留手工升级方式。可用 `Get-Service LabelFrameClientUpdater` 检查服务存在和运行状态。
+3. **上传后明确发布**。服务端下载中心 → Windows 包管理 → 输入升级管理口令 → 选择草稿 → 指定设备 ID（留空为全量）→「校验并发布升级」。发布校验真实 Client 产品/版本/x64 架构、内容摘要、固定发布者和兼容范围；发布后内容和范围不能覆盖，可暂停/恢复。建议先指定少量终端验证，再将后续版本分批发布。
+4. **客户端选择方式**。「设置 → 更新与安装包」默认「自动下载，确认安装」，下载好后全局提示可一键「安装并重启客户端」。专用常驻终端可显式保存「维护时间自动安装」，默认本机 02:00–04:00；跨午夜窗口支持，相同起止无效。只有界面已关闭到托盘且 10 分钟未操作、整批任务与结果回报完成、没有未保存编辑和在途操作时才安装；错过窗口等待下次，不中断作业，不自动重启操作系统。
+5. **失败与恢复**。更新后先检查真实安装/运行版本、插件加载、连接未回退到模拟打印、本机 API 和路由注册。失败保留打印保护并显示状态；安装失败但旧版完整恢复则恢复旧版业务并禁止该版本自动反复重试。管理员修复后可用设置/托盘一键重启重新检查。日志位于安装目录同级 `ClientUpdateState/<事务 ID>/install.log`，服务拒绝原因在 Windows 应用程序事件日志；用户更新设置和恢复记录在作业数据库目录下 `updates/`（默认 `%LOCALAPPDATA%\LabelFrame\updates`）。原用户等待器 20 分钟未等到安装结果会显示错误并留 `update-relaunch-error.txt`，不强杀安装器。
+
+发布者公开证书随程序放置为 `update-publisher.cer`，来自当前可信 Release；应用自行验签，不导入系统根证书。旧版 1.4.0 安装包没有自动升级兼容元数据，只能手工分发。未来包必须用同一可信发布者签名并包含 `LABELFRAME_MIN_SERVER_VERSION` / `LABELFRAME_MAX_SERVER_VERSION` / `LABELFRAME_RUNTIME_MAJOR`；证书过期/换签或运行时主版本变化须管理员部署，不能跳过验证。Linux 原生服务端需安装 `msitools`、`osslsigncode`、`ca-certificates`；Docker 镜像已包含。不可变发布目录为 `Server.ClientUpdatesPath`（环境变量 `LABELFRAME_SERVER_CLIENT_UPDATES`，默认服务器数据目录下 `client-updates`），应纳入服务端数据持久化和备份。
+
+此功能不负责 Server、PDA 或 Linux 客户端自动升级。Windows Installer 自身失败回滚与自动降级是两件事；现有 MSI 禁止降级，不提供自动安装旧版本的承诺。完整协议与安装事务见 [设计](design/client-updates.md)。
 
 ### PDA（Android 宿主）安装包分发与扫码下载
 

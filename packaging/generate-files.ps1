@@ -82,7 +82,11 @@ foreach ($f in $allFiles) {
         continue
     }
     if ($rel -eq 'LabelFrame.WinHost.exe') {
-        Add-FileLine $sb $index $guid $rel ' Id="WinHostExe"' 'f'
+        $updaterXml = @'
+        <ServiceInstall Id="ClientUpdaterInstall" Name="LabelFrameClientUpdater" DisplayName="LabelFrame Client Updater" Type="ownProcess" Start="auto" Account="LocalSystem" ErrorControl="normal" Arguments="--update-service" />
+        <ServiceControl Id="ClientUpdaterControl" Name="LabelFrameClientUpdater" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+'@
+        Add-FileLine $sb $index $guid $rel ' Id="WinHostExe"' 'f' $updaterXml
         $index++
     } elseif ($rel -eq 'LabelFrame.Server.exe') {
         $serviceXml = ''

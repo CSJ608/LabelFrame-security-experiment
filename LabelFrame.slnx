@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/LabelFrame.Updates/LabelFrame.Updates.csproj" />
     <Project Path="src/LabelFrame.Core/LabelFrame.Core.csproj" />
     <Project Path="src/LabelFrame.Api/LabelFrame.Api.csproj" />
     <Project Path="src/LabelFrame.Server/LabelFrame.Server.csproj" />

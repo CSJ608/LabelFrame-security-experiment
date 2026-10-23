@@ -8,6 +8,7 @@ let sessionId = ''
 let sequence = 0
 let preparationId: string | null = null
 let inFlight = false
+let interactionUnixMs = Date.now()
 
 function freezeUi(frozen: boolean): void {
   if (frozen && document.activeElement instanceof HTMLElement) document.activeElement.blur()
@@ -34,7 +35,7 @@ export async function reportHostActivity(closed = false): Promise<void> {
   try {
     const response = await fetch('/api/host/ui-activity', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: closed,
-      body: JSON.stringify({ sessionId: getSessionId(), dirty: dirtySources.size > 0, busy: operations > 0, closed, sequence, preparationId }),
+      body: JSON.stringify({ sessionId: getSessionId(), dirty: dirtySources.size > 0, busy: operations > 0, closed, sequence, preparationId, interactionUnixMs }),
     })
     if (response.status === 200 || response.status === 409) {
       const state = await response.json() as { preparationId?: string | null }
@@ -71,12 +72,17 @@ export function startHostActivity(): () => void {
   void reportHostActivity()
   const timer = setInterval(() => void reportHostActivity(), 1000)
   const close = () => void reportHostActivity(true)
+  const interact = () => { interactionUnixMs = Date.now() }
+  window.addEventListener('pointerdown', interact, true)
+  window.addEventListener('keydown', interact, true)
   window.addEventListener('pagehide', close)
   return () => {
     close()
     reporting = false
     clearInterval(timer)
     window.removeEventListener('pagehide', close)
+    window.removeEventListener('pointerdown', interact, true)
+    window.removeEventListener('keydown', interact, true)
   }
 }
 

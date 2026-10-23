@@ -3,12 +3,7 @@ using LabelFrame.Core.Transport.Plugins;
 
 namespace LabelFrame.WinHost.Transport;
 
-/// <summary>
-/// 存量升级兼容：启动时检测「已用官方插件配置」（connection.json 引用官方插件 id / 旧别名 / 旧内置模式）
-/// 且外置插件未安装时，自动安装随客户端 MSI 附带的官方插件包（plugin-packages\*.lfplugin），本次启动即完成装配。
-/// 官方 id 清单：zebra（含旧 id 别名与旧 Mode=Zebra）＋ tspl。
-/// 无附带包（开发目录裸跑 / 自定义部署）时 host.log 中文提示引导安装，不阻断启动。
-/// </summary>
+/// <summary>启动时安装已使用的官方插件，并按真实版本升级 MSI 附带的官方插件。</summary>
 public static class OfficialPluginMigration
 {
     /// <summary>MSI 附带官方插件包的目录名（相对客户端安装根目录）。</summary>
@@ -21,10 +16,7 @@ public static class OfficialPluginMigration
         (TransportPluginIdPolicy.TsplPluginId, static options => ConfigReferencesPluginId(options, TransportPluginIdPolicy.TsplPluginId)),
     ];
 
-    /// <summary>
-    /// 执行升级迁移（幂等：插件已装 / 无官方插件配置 / 无附带包均安全跳过）。
-    /// 任何异常只记日志不外抛——迁移失败不阻断宿主启动。
-    /// </summary>
+    /// <summary>执行官方插件安装与升级并记录失败提示。</summary>
     /// <param name="options">宿主配置（ConnectionPath / PluginsPath / Transport）。</param>
     /// <param name="hostLogWriter">宿主日志写入器。</param>
     /// <param name="hostInfo">宿主关键事件回调（host.log + 启动信息）。</param>
@@ -59,30 +51,29 @@ public static class OfficialPluginMigration
         Action<string> hostInfo,
         string appBaseDirectory)
     {
-        if (!configReferences(options))
-        {
-            return;
-        }
-
-        // 幂等：插件已装（含 manifest 的包目录）即跳过
         var safeId = SafeFileName.Normalize(pluginId);
         var installedDir = safeId is null
             ? null
             : Path.Combine(options.PluginsPath, safeId);
-        if (installedDir is not null
-            && Directory.Exists(installedDir)
-            && File.Exists(Path.Combine(installedDir, Core.Transport.Plugins.Package.PluginPackageReader.ManifestFileName)))
-        {
-            return;
-        }
+        var manifestPath = installedDir is null ? null : Path.Combine(installedDir, Core.Transport.Plugins.Package.PluginPackageReader.ManifestFileName);
+        var installed = manifestPath is not null && File.Exists(manifestPath);
+        if (!installed && !configReferences(options)) return;
 
         var packagePath = FindBundledPackage(appBaseDirectory, pluginId);
         if (packagePath is null)
         {
+            if (installed) return;
             hostInfo(
                 $"检测到已使用官方插件 {pluginId} 的打印配置，但本机未安装该插件，"
                 + "且安装目录未找到附带的插件包（plugin-packages\\）——请从服务端「插件分发」页或 GitHub Release 安装对应插件包后重启客户端。");
             return;
+        }
+
+        if (installed)
+        {
+            var current = Core.Transport.Plugins.Package.PluginPackageManifest.Parse(File.ReadAllText(manifestPath!));
+            var bundled = Core.Transport.Plugins.Package.PluginPackageReader.Read(File.ReadAllBytes(packagePath)).Manifest;
+            if (Core.Transport.Plugins.Package.PluginVersionComparer.Compare(bundled.Version, current.Version) <= 0) return;
         }
 
         // 复用 PluginInstaller 三层校验（zip + manifest / 内置 id 拒绝 / 临时 ALC 预检核对插件 id）
@@ -119,7 +110,7 @@ public static class OfficialPluginMigration
         return false;
     }
 
-    /// <summary>查找随客户端附带的官方插件包（plugin-packages\&lt;pluginId&gt;-*.lfplugin；多版本取文件名序最大者）。</summary>
+    /// <summary>按清单真实版本查找最新的随附官方插件包。</summary>
     public static string? FindBundledPackage(string appBaseDirectory, string pluginId)
     {
         var dir = Path.Combine(appBaseDirectory, BundledPackagesDirName);
@@ -129,7 +120,8 @@ public static class OfficialPluginMigration
         }
 
         return Directory.GetFiles(dir, $"{pluginId}-*.lfplugin")
-            .OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(path => Core.Transport.Plugins.Package.PluginPackageReader.Read(File.ReadAllBytes(path)).Manifest.Version,
+                Comparer<string>.Create(Core.Transport.Plugins.Package.PluginVersionComparer.Compare))
             .FirstOrDefault();
     }
 }

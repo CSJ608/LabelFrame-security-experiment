@@ -87,6 +87,7 @@ builder.Services.AddSingleton(timeProvider);
 builder.Services.AddSingleton(templateStore);
 builder.Services.AddSingleton(logStore);
 builder.Services.AddSingleton(clientPackages);
+builder.Services.AddSingleton(new ClientUpdatesService(serverOptions.ClientUpdatesPath, LabelFrame.Updates.ClientPackageInspector.Create()));
 builder.Services.AddSingleton(pdaPackages);
 builder.Services.AddSingleton(pluginPackages);
 builder.Services.AddHostedService(sp => new DataCleanupService(db, logStore, serverOptions, sp.GetRequiredService<ILogger<DataCleanupService>>()));
@@ -107,6 +108,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 builder.Services.AddLabelFrameExceptionHandler();
 
 var app = builder.Build();
+app.MapClientUpdatesApi();
 
 // ---- 受信代理转发头信任（仅 XForwardedFor，不改写 scheme/host）：启用时改写 Connection.RemoteIpAddress 为转发头解析结果 ----
 // 不变量：信任来源只有本配置——框架默认的 loopback 信任必须清空后再注入；未启用时不注册任何中间件（来源保持 TCP 对端）

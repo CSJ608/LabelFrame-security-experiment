@@ -192,7 +192,7 @@
       },
       "updates": {
         "title": "Updates & Packages",
-        "body": "Packages are distributed by the server: the card compares the local version with the latest; download a package from the list and run it to upgrade (the client does not upgrade itself), or ask your administrator for help. \nIn standalone mode no packages are listed; connect to a server under General → Server Address first."
+        "body": "Updates are checked and downloaded in the background by default. Install and restart with one click when ready. Dedicated terminals may opt into installation during a maintenance window, only when the interface is hidden, idle, all printing is finished and no edits are unsaved. The server must validate and explicitly publish a release; uploading a package only creates a manual distribution draft. An administrator must first install a client that includes the update service. Manual package downloads remain available with older servers."
       },
       "plugins": {
         "title": "Plugin Management",

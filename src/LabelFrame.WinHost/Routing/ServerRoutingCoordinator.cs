@@ -43,6 +43,7 @@ public sealed class ServerRoutingCoordinator : IAsyncDisposable
 
     /// <summary>当前生效的服务端地址（未启用路由为 null；测试与日志观察用）。</summary>
     public string? CurrentServerUrl => _current?.ServerUrl;
+    public bool HasRegistered => _current?.Poller is ServerJobPoller { HasRegistered: true };
 
     /// <summary>绑定宿主生命周期：应用停机时停止路由并清理连接（WinHostApp 装配时调用）。</summary>
     public void Bind(IHostApplicationLifetime lifetime)

@@ -9,6 +9,11 @@ public static class Program
     public static async Task Main(string[] args)
     {
 #if WINDOWS
+        if (args.Contains("--update-service", StringComparer.OrdinalIgnoreCase))
+        {
+            await Updates.ClientUpdaterService.RunAsync();
+            return;
+        }
         if (RestartProcess.IsWaiter(args))
         {
             await RestartProcess.RunWaiterAsync(args);
@@ -121,6 +126,7 @@ public static class Program
         using var tray = new TrayIconService(HostInfo);
         var restart = app.Services.GetRequiredService<HostRestartCoordinator>();
         restart.Bind(showPlugins => RestartProcess.PrepareAsync(args, uiShell?.IsVisible ?? options.OpenBrowser, showPlugins));
+        app.Services.GetRequiredService<Updates.ClientUpdateAgent>().Bind(args, () => uiShell?.IsVisible ?? options.OpenBrowser);
         if (options.EnableTray)
         {
             tray.Start(

@@ -6,6 +6,9 @@
            UpgradeCode="EE3F2357-56CE-4C0F-AEC1-4C04B6E6BCDA" Codepage="65001">
     <SummaryInformation Description="LabelFrame 打印客户端：托管完整界面（模板设计 / 数据与打印 / 连接配置 / 日志 / 作业历史）并连接本机打印机打印（安装于 Program Files\LabelFrame\Client）" />
     <MajorUpgrade DowngradeErrorMessage="已安装的 LabelFrame 版本更新，无法降级。" />
+    <Property Id="LABELFRAME_MIN_SERVER_VERSION" Value="1.0.0" />
+    <Property Id="LABELFRAME_MAX_SERVER_VERSION" Value="2.0.0" />
+    <Property Id="LABELFRAME_RUNTIME_MAJOR" Value="10" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- 安装向导 UI（欢迎 / 许可 / 目录 / 进度 / 完成）+ 品牌资产（assets/ 静态文件，源出 assets/brand/ 母版库）+ 控制面板元数据 -->

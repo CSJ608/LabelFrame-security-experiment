@@ -1,0 +1,25 @@
+{
+  "checks": [
+    "default download with explicit install",
+    "maintenance opt in and local window",
+    "dirty activity report",
+    "installation rejection visible",
+    "explicit publishing and targeted device scope",
+    "pause and resume control",
+    "token in authorization header only"
+  ],
+  "dirtyReported": true,
+  "requests": [
+    {
+      "path": "/api/client-updates/publish",
+      "body": {
+        "fileName": "LabelFrame-Client-1.5.0.msi",
+        "devices": [
+          "Terminal-A"
+        ]
+      },
+      "authorized": true
+    }
+  ],
+  "errors": []
+}

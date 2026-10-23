@@ -192,9 +192,8 @@ public class OfficialPluginMigrationTests
     }
 
     [Fact]
-    public void Run_with_plugin_already_installed_should_skip()
+    public void Run_with_older_official_plugin_should_update_from_bundled_package()
     {
-        // 幂等：插件已装（含 manifest 的包目录）即跳过——附带包不再消费
         var (options, root, messages) = Create(connectionJson: """{"PluginId":"zebra","Params":{"kind":"Tcp","host":"10.0.0.9"}}""");
         try
         {
@@ -206,8 +205,8 @@ public class OfficialPluginMigrationTests
             OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
 
             var manifest = PluginPackageManifest.Parse(File.ReadAllText(Path.Combine(installedDir, PluginPackageReader.ManifestFileName)));
-            Assert.Equal("0.26.0", manifest.Version); // 未被附带包（0.27.0）覆盖——升级安装走插件管理 / 引导
-            Assert.DoesNotContain(messages, m => m.Contains("存量升级迁移"));
+            Assert.Equal("0.27.0", manifest.Version);
+            Assert.Contains(messages, m => m.Contains("存量升级迁移"));
         }
         finally
         {
@@ -264,13 +263,13 @@ public class OfficialPluginMigrationTests
         {
             var dir = Path.Combine(root, OfficialPluginMigration.BundledPackagesDirName);
             Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, "labelframe-transport-zebra-0.26.0.lfplugin"), "old");
-            File.WriteAllText(Path.Combine(dir, "labelframe-transport-zebra-0.27.0.lfplugin"), "new");
+            File.WriteAllBytes(Path.Combine(dir, "labelframe-transport-zebra-0.9.0.lfplugin"), OfficialPackageFactory.Build("0.9.0"));
+            File.WriteAllBytes(Path.Combine(dir, "labelframe-transport-zebra-0.10.0.lfplugin"), OfficialPackageFactory.Build("0.10.0"));
             File.WriteAllText(Path.Combine(dir, "other-plugin-1.0.0.lfplugin"), "other");
 
             var found = OfficialPluginMigration.FindBundledPackage(root, "labelframe-transport-zebra");
 
-            Assert.EndsWith("labelframe-transport-zebra-0.27.0.lfplugin", found);
+            Assert.EndsWith("labelframe-transport-zebra-0.10.0.lfplugin", found);
         }
         finally
         {

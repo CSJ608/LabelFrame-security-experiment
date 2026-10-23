@@ -533,7 +533,8 @@ describe('检查更新（迭代 64，决策 #126）', () => {
     const notice = await screen.findByTestId('update-available')
     expect(notice.textContent).toContain('0.27.0')
     expect(notice.textContent).toContain('0.26.0')
-    expect(notice.textContent).toContain('下载新版安装包并运行安装')
+    expect(notice.textContent).toContain('自动升级只采用上方显示的已发布版本')
+    expect(notice.textContent).toContain('管理员手工安装')
     expect(screen.queryByTestId('update-uptodate')).toBeNull()
   })
 

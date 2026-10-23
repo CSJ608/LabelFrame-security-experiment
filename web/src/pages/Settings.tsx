@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { ClientRestart } from '../components/ClientRestart'
+import { ClientUpdates } from '../components/ClientUpdates'
 import { beginHostOperation, setHostDirty } from '../lib/hostLifecycle'
 import { useTranslation } from 'react-i18next'
 import { clientPackageDownloadUrl, localApi, serverApi } from '../lib/api/client'
@@ -589,6 +590,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
           </div>
           <div className="settings-section-body">
             {/* 「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；unknown 不显示（无误导） */}
+            <ClientUpdates />
             {(() => {
               const update = checkForUpdate(app.hostVersion, (packages ?? []).map((p) => p.fileName))
               if (update.kind === 'unknown') {

@@ -119,6 +119,8 @@ public static class WinHostApp
         builder.Services.AddSingleton<ITransportManager>(transportManager);
         builder.Services.AddSingleton<ITransportPluginRegistry>(transportRegistry);
 #if WINDOWS
+        builder.Services.AddSingleton<Updates.ClientUpdateAgent>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<Updates.ClientUpdateAgent>());
         builder.Services.AddSingleton(sp => new Core.Transport.Plugins.PluginInstaller(
             options.PluginsPath,
             sp.GetRequiredService<ITransportPluginRegistry>(),
@@ -169,6 +171,9 @@ public static class WinHostApp
 
         var app = builder.Build();
         exitCoordinator.Bind(app.Lifetime);
+#if WINDOWS
+        await app.Services.GetRequiredService<Updates.ClientUpdateAgent>().InitializeAsync();
+#endif
 
         var routingCoordinator = app.Services.GetRequiredService<Routing.ServerRoutingCoordinator>();
         routingCoordinator.Bind(app.Lifetime);
@@ -182,7 +187,7 @@ public static class WinHostApp
             var path = context.Request.Path.Value ?? string.Empty;
             if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)
                 || HttpMethods.IsOptions(context.Request.Method) || !path.StartsWith("/api/", StringComparison.Ordinal)
-                || path is "/api/host/restart" or "/api/host/ui-activity" or "/api/host/shutdown")
+                || path is "/api/host/restart" or "/api/host/ui-activity" or "/api/host/shutdown" or "/api/host/update/install")
             {
                 await next(context);
                 return;
@@ -229,6 +234,7 @@ public static class WinHostApp
 #if WINDOWS
         app.MapPluginApi();
         app.MapLifecycleApi();
+        Updates.ClientUpdateApi.MapClientUpdateApi(app);
 #endif
         app.MapJobsApi();
         app.MapPrinterApi(() => printSettings.EffectiveDpi(options.Dpi));

@@ -132,6 +132,68 @@ public sealed class HostRestartCoordinatorTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Update_preparation_uses_same_business_gates_and_restores_queue_when_launcher_fails()
+    {
+        var (_, queue) = await CreateQueueAsync();
+        using (queue)
+        {
+            var activity = new HostActivityState();
+            var exit = new HostExitCoordinator(_ => {}, forceExit: _ => {});
+            using var coordinator = new HostRestartCoordinator(activity, queue, exit);
+            var launches = 0;
+            Task Launch() { launches++; throw new IOException("监督进程未就绪"); }
+            activity.AddPendingResult("route-result");
+            Assert.Contains("回报", await coordinator.RequestUpdateAsync(Launch, CancellationToken.None));
+            Assert.Equal(0, launches);
+            activity.ConfirmResult("route-result");
+            Assert.Contains("未就绪", await coordinator.RequestUpdateAsync(Launch, CancellationToken.None));
+            Assert.Equal(1, launches);
+            Assert.False(activity.IsPrepared);
+            Assert.False(exit.IsShutdownRequested);
+            Assert.True((await queue.SubmitAsync("after-update-failure", ["label"])).Created);
+        }
+    }
+
+    [Fact]
+    public void Recovery_gate_blocks_business_without_freezing_readable_ui_and_survives_preparation_cancel()
+    {
+        var activity = new HostActivityState();
+        activity.BlockForRecovery(true);
+        activity.CancelPreparation();
+        Assert.True(activity.IsPrepared);
+        Assert.Null(activity.PreparationId);
+        Assert.Null(activity.TryBeginOperation());
+        Assert.False(activity.TryPrepare(out _));
+        activity.BlockForRecovery(false);
+        using var operation = activity.TryBeginOperation();
+        Assert.NotNull(operation);
+    }
+
+    [Fact]
+    public async Task Recovery_restart_can_retry_health_but_launcher_failure_does_not_release_printing()
+    {
+        var (_, queue) = await CreateQueueAsync();
+        using (queue)
+        {
+            Assert.True(await queue.TryPrepareForShutdownAsync());
+            var activity = new HostActivityState();
+            activity.BlockForRecovery(true);
+            var exit = new HostExitCoordinator(_ => {}, forceExit: _ => {});
+            using var coordinator = new HostRestartCoordinator(activity, queue, exit);
+            coordinator.Bind(_ => throw new IOException("等待器未就绪"));
+            Assert.Contains("正在停止或维护", await coordinator.RequestAsync(false));
+            activity.AllowRecoveryRestart();
+            Assert.Contains("未就绪", await coordinator.RequestAsync(false));
+            Assert.True(activity.IsRecoveryBlocked);
+            Assert.Null(activity.PreparationId);
+            await Assert.ThrowsAsync<LabelJobException>(() => queue.SubmitAsync("blocked-after-retry", ["label"]));
+            coordinator.Bind(_ => Task.CompletedTask);
+            Assert.Null(await coordinator.RequestAsync(false));
+            Assert.True(exit.IsShutdownRequested);
+        }
+    }
+
     private async Task<(SqliteLabelJobStore Store, LabelJobQueue Queue)> CreateQueueAsync()
     {
         Directory.CreateDirectory(_directory);

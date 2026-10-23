@@ -189,6 +189,10 @@
 15. **esc / 关闭语义并存边界**：Modal / Popover / HelpDot / Guide 的 Esc 均为 document 级监听、同键并存时同帧双响应——既有先例边界，不做监听互斥（Guide 激活期遮罩已拦截常规路径）；Popover 页面滚动即关闭（fixed 定位不随锚点滚动）。
 16. **文件 BOM（utf-8-sig）**：本模块源文件以 utf-8-sig 读写——编辑工具不得剥 BOM。
 
+### 客户端更新与发布
+
+客户端更新由 `ClientUpdates` 展示本机后台状态、策略与明确安装入口，`ClientUpdateNotice` 在其他页面持续提示可安装版本和失败；设置草稿接入 `hostLifecycle` 的 dirty 保护，交互时间随活动报告发送。服务端下载中心 Windows 包管理中的 `ClientUpdatePublishing` 区分上传草稿与发布，支持设备范围和暂停；管理口令只驻留组件内存，不写本地存储。诊断通过 `clientUpdateReason` 给出本地化处理提示，完整安装诊断与事务标识保留在宿主/安装日志。协议与静默条件见 [client-updates.md](client-updates.md)。
+
 ### 开发链版本与回归边界
 
 Node.js 精确版本声明在仓库根目录 .node-version，pnpm 由 web/package.json 的 packageManager 固定；CI、Release 与 E2E Docker 构建同步。pnpm install --frozen-lockfile 消费已审查的锁文件，不能以放宽版本范围代替升级锁文件。

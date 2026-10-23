@@ -1,7 +1,7 @@
 // 客户端「检查更新」辅助：
 // 从服务端 client-packages 文件名解析客户端 MSI 版本（发版命名事实 LabelFrame-Client-<版本>.msi），
 // 与本机版本（/api/host/config.version）比较——有新版提示获取入口、无新版明确「已是最新」；
-// 不做应用内自动下载安装。
+// 此模块用于手动分发包检查；受控自动升级由客户端升级模块处理。
 
 /** 客户端 MSI 命名（release.yml 产物 / 发版事实）：LabelFrame-Client-<版本>.msi（大小写不敏感）。 */
 const CLIENT_PACKAGE_PATTERN = /^LabelFrame-Client-(\d+(?:\.\d+)*)\.msi$/i

@@ -109,6 +109,26 @@ foreach ($path in $MsiPaths) {
 
     # Client MSI 运行中升级协调（迭代 106 / #229）：安全退出必须早于 InstallValidate，且卸载跳过。
     if ($null -ne $optRec) {
+        $updater = @(Invoke-MsiQuery $db 'SELECT Name, ServiceType, StartType, StartName, Arguments, Component_ FROM ServiceInstall' | Where-Object { $_[0] -eq 'LabelFrameClientUpdater' })
+        if ($updater.Count -ne 1 -or $updater[0][1] -ne '16' -or $updater[0][2] -ne '2' -or $updater[0][3] -ne 'LocalSystem' -or $updater[0][4] -ne '--update-service') {
+            throw 'Client MSI 必须安装唯一的 LocalSystem 自动启动升级服务，独立进程参数为 --update-service'
+        }
+        $serviceControl = @(Invoke-MsiQuery $db 'SELECT Name, Event, Wait FROM ServiceControl' | Where-Object { $_[0] -eq 'LabelFrameClientUpdater' })
+        if ($serviceControl.Count -ne 1 -or $serviceControl[0][1] -ne '163' -or $serviceControl[0][2] -ne '1') {
+            throw '升级服务必须安装时启动、升级与卸载时停止、卸载时移除并等待完成'
+        }
+        $properties = @(Invoke-MsiQuery $db 'SELECT Property, Value FROM Property')
+        foreach ($entry in @(@('LABELFRAME_MIN_SERVER_VERSION', '1.0.0'), @('LABELFRAME_MAX_SERVER_VERSION', '2.0.0'), @('LABELFRAME_RUNTIME_MAJOR', '10'))) {
+            $property = @($properties | Where-Object { $_[0] -eq $entry[0] })
+            if ($property.Count -ne 1 -or $property[0][1] -ne $entry[1]) { throw "升级兼容属性缺失或错误：$($entry[0])" }
+        }
+        $files = @(Invoke-MsiQuery $db 'SELECT File, FileName, Component_ FROM File')
+        $hostFile = @($files | Where-Object { $_[0] -eq 'WinHostExe' })
+        if ($hostFile.Count -ne 1 -or $hostFile[0][2] -ne $updater[0][5]) { throw '升级服务必须使用已安装的 WinHost 可执行文件组件' }
+        foreach ($requiredFile in @('update-publisher.cer', 'LabelFrame.Updates.dll')) {
+            if (@($files | Where-Object { ($_[1] -split '\|')[-1] -eq $requiredFile }).Count -ne 1) { throw "升级文件必须唯一打包：$requiredFile" }
+        }
+        Write-Host '受控升级：服务身份、启动与卸载行为、兼容属性、发布者证书与组件打包 OK'
         $executeRows = Invoke-MsiQuery $db 'SELECT Action, Condition, Sequence FROM InstallExecuteSequence'
         $shutdownRow = @($executeRows | Where-Object { $_[0] -eq 'ShutdownWinHost' })
         $validateRow = @($executeRows | Where-Object { $_[0] -eq 'InstallValidate' })
