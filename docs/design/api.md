@@ -72,7 +72,7 @@
 ### 3.4 Excel 与设备日志
 
 - `POST /api/import/excel-template`：columns 过滤空 key、`displayName` 缺省回退 key → `ExcelTemplateWriter.CreateTemplate` → xlsx 下载（生成逻辑在 Core，决策 #70）；
-- `POST /api/import/excel`：`IFormFile` → `ExcelTableReader.ReadTextTable` → `{ headers, rows }`（列映射由前端做）；解析失败 400 + 模板化消息 `Excel 解析失败：{detail}`（params `detail` 为异常原因）；
+- `POST /api/import/excel`：`IFormFile` → `ExcelTableReader.ReadTextTable` → `{ headers, rows }`（列映射由前端做）；解析失败 400 + 模板化消息 `Excel 解析失败：{detail}`（params `detail` 为异常原因）；TemplateFrame 3.0 资源超限同样走此失败出口，不返回部分 rows，具体预算见 [Core 设计](core.md#excel-资源边界)；
 - `POST /api/logs` 回传（`SqliteLogStore.AppendAsync`，一次多行按物理行拆独立记录）；`GET /api/logs?deviceId=&since=` 查询（新记录在前）。
 
 ## 4. 对外契约与依赖

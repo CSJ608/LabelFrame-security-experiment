@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -145,6 +145,62 @@ public class RenderEndpointTests : SharedEndpointsTestBase
 /// <summary>Excel 端点 HTTP 集成：模板生成 → 上传解析回环（真实 xlsx 读写）。</summary>
 public class ImportEndpointTests : SharedEndpointsTestBase
 {
+    [Theory]
+    [InlineData(100_000, HttpStatusCode.OK)]
+    [InlineData(100_001, HttpStatusCode.BadRequest)]
+    public async Task Excel_row_budget_should_enforce_boundary_and_allow_next_valid_import(int dataRows, HttpStatusCode expectedStatus)
+    {
+        var client = await CreateClientAsync();
+        using var oversized = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(oversized, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            WriteEntry(zip, "[Content_Types].xml", """<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>""");
+            WriteEntry(zip, "_rels/.rels", """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>""");
+            WriteEntry(zip, "xl/workbook.xml", """<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="数据" sheetId="1" r:id="rId1"/></sheets></workbook>""");
+            WriteEntry(zip, "xl/_rels/workbook.xml.rels", """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>""");
+            using var writer = new StreamWriter(zip.CreateEntry("xl/worksheets/sheet1.xml").Open());
+            writer.Write("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>编码</t></is></c></row>""");
+            for (var row = 2; row <= dataRows + 1; row++)
+                writer.Write($"<row r=\"{row}\"><c r=\"A{row}\"><v>7</v></c></row>");
+            writer.Write("</sheetData></worksheet>");
+        }
+
+        using var invalidForm = new MultipartFormDataContent();
+        invalidForm.Add(new ByteArrayContent(oversized.ToArray()), "file", "oversized.xlsx");
+        using var rejected = await client.PostAsync("/api/import/excel", invalidForm);
+        Assert.Equal(expectedStatus, rejected.StatusCode);
+        var result = await ReadErrorAsync(rejected);
+        if (expectedStatus == HttpStatusCode.BadRequest)
+        {
+            Assert.Equal("LF_API_001", result.GetProperty("code").GetString());
+            Assert.Contains("MaxTableRows", result.GetProperty("params").GetProperty("detail").GetString());
+            Assert.False(result.TryGetProperty("rows", out _));
+        }
+        else
+        {
+            var rows = result.GetProperty("rows");
+            Assert.Equal(dataRows, rows.GetArrayLength());
+            Assert.Equal("7", rows[0][0].GetString());
+            Assert.Equal("7", rows[dataRows - 1][0].GetString());
+        }
+
+        var valid = LabelFrame.Core.Excel.ExcelTemplateWriter.CreateTemplate(
+            [new("code", "编码")], new Dictionary<string, string> { ["code"] = "007" });
+        using var validForm = new MultipartFormDataContent();
+        validForm.Add(new ByteArrayContent(valid), "file", "valid.xlsx");
+        using var accepted = await client.PostAsync("/api/import/excel", validForm);
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        var table = await accepted.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("007", table.GetProperty("rows")[0][0].GetString());
+        Assert.Equal(1, table.GetProperty("rows").GetArrayLength());
+    }
+
+    private static void WriteEntry(System.IO.Compression.ZipArchive zip, string name, string content)
+    {
+        using var writer = new StreamWriter(zip.CreateEntry(name).Open());
+        writer.Write(content);
+    }
+
     [Fact]
     public async Task Excel_template_without_columns_should_return_400()
     {

@@ -13,8 +13,8 @@
     <!-- 原生库（lib.e_sqlite3）不下沉到 Core：经 RID 回退图（android-arm64 → linux-arm64）会把
          桌面 glibc so 打进 Android APK、压过 AndroidHost 的 NDK so。由各可执行项目自行引用。 -->
     <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.13" />
-    <!-- Excel 模板生成（写能力；Server / WinHost / AndroidHost 共享 Core）。2.2.0 修复「表头不在 A 列起始的第三方表格错读」、2.4.0 读性能优化；全系列钉 DocumentFormat.OpenXml 3.3.0（测试项目同钉，防版本漂移）。 -->
-    <PackageReference Include="TemplateFrame.Excel.Simple" Version="2.4.1" />
+    <!-- Excel 模板读写依赖；OpenXml 测试引用须与其传递依赖保持一致。 -->
+    <PackageReference Include="TemplateFrame.Excel.Simple" Version="3.0.0" />
   </ItemGroup>
 
 </Project>

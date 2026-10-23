@@ -14,6 +14,40 @@ namespace LabelFrame.Core.Tests.Excel;
 public class ExcelTableReaderRegressionTests
 {
     [Fact]
+    public void ReadTextTable_should_preserve_values_from_legacy_template()
+    {
+        using var stream = typeof(ExcelTableReaderRegressionTests).Assembly.GetManifestResourceStream(
+            "LabelFrame.Core.Tests.Excel.Fixtures.templateframe-2.4.1.xlsx")!;
+
+        var table = ExcelTableReader.ReadTextTable(stream);
+
+        Assert.Equal(new[] { "编码", "数量", "日期", "备注" }, table.Headers);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(new[] { "007", "3.5", "2024-02-29 12:34:56", "中文 & <标签>" }, table.Rows[0]);
+        Assert.Equal(new[] { "A-02", "-42", "2026-10-24 00:00:00", "" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void ReadTextTable_should_read_sparse_last_row_without_materializing_gaps()
+    {
+        var bytes = ExcelTemplateWriter.CreateTemplate(
+            [new ExcelTemplateColumn("code", "编码")], null);
+        using var stream = new MemoryStream();
+        stream.Write(bytes);
+        using (var doc = SpreadsheetDocument.Open(stream, true))
+        {
+            var sheetData = doc.WorkbookPart!.WorksheetParts.First().Worksheet!.GetFirstChild<SheetData>()!;
+            AppendRow(sheetData, 1_048_576, "最后一行");
+        }
+        stream.Position = 0;
+
+        var table = ExcelTableReader.ReadTextTable(stream);
+
+        Assert.Equal(new[] { "编码" }, table.Headers);
+        Assert.Equal(new[] { "最后一行" }, Assert.Single(table.Rows));
+    }
+
+    [Fact]
     public void ReadTextTable_should_recognize_user_continuation_rows_below_named_region()
     {
         var columns = new[]
@@ -30,11 +64,11 @@ public class ExcelTableReaderRegressionTests
         using (var doc = SpreadsheetDocument.Open(stream, true))
         {
             // 场景前提：模板生成方写入的命名区域只覆盖表头 + 示例行（$A$1:$B$2）
-            var definedNames = doc.WorkbookPart!.Workbook.GetFirstChild<DefinedNames>();
+            var definedNames = doc.WorkbookPart!.Workbook!.GetFirstChild<DefinedNames>();
             Assert.Contains(definedNames!.Elements<DefinedName>(), d => d.InnerText == "'打印数据'!$A$1:$B$2");
 
             // 模拟用户在命名区域下方续填 2 行（inline string，Excel 手工输入形态）——不更新命名区域
-            var sheetData = doc.WorkbookPart.WorksheetParts.First().Worksheet.GetFirstChild<SheetData>()!;
+            var sheetData = doc.WorkbookPart.WorksheetParts.First().Worksheet!.GetFirstChild<SheetData>()!;
             AppendRow(sheetData, 3, "A-02-01-01", "A-02");
             AppendRow(sheetData, 4, "A-03-01-01", "A-03");
         }

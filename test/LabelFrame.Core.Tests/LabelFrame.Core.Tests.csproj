@@ -12,11 +12,15 @@
   <ItemGroup>
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <!-- Excel 回归测试用 OpenXml 直接构造 / 续填 xlsx（第三方表格形态）；与 Core 侧 TemplateFrame.Excel.Simple 传递依赖同钉 3.3.0，防版本漂移。 -->
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <!-- Excel 回归测试构造第三方 xlsx；OpenXml 版本与 Core 传递依赖一致，防止降级。 -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Excel/Fixtures/templateframe-2.4.1.xlsx" />
   </ItemGroup>
 
   <ItemGroup>

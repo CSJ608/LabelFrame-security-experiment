@@ -45,7 +45,7 @@
 | IO | `IO/` | `SafeFileName`（只收普通文件名：拒路径分隔符 / `..` / 非法字符） |
 | Errors | `Errors/` | `ErrorMessageTemplates`：`{key}` 占位符单遍替换，缺参保留原文不抛（决策 #166） |
 
-**测试**（`test/LabelFrame.Core.Tests/`）：xunit，29 文件。按子系统分目录（Jobs / Json / Layout / Templates / Transport / Excel / IO / Encoding / Validation）；夹具：`TempJobDb`（临时 SQLite 作业库）、`LocationLabelSamples`（库位码契约 + 版式 + 文档样例）、`SqlitePclModuleInit`（`[ModuleInitializer]` 初始化 provider，防并行竞态）；外部插件装配矩阵用 `LabelFrame.TransportPlugin.Sample` / `Fake` 两个测试插件工程。Excel 回归测试直接用 OpenXml 构造第三方形态（与 Core 侧 `DocumentFormat.OpenXml` 同钉 3.3.0）。
+**测试**（`test/LabelFrame.Core.Tests/`）：xunit，29 文件。按子系统分目录（Jobs / Json / Layout / Templates / Transport / Excel / IO / Encoding / Validation）；夹具：`TempJobDb`（临时 SQLite 作业库）、`LocationLabelSamples`（库位码契约 + 版式 + 文档样例）、`SqlitePclModuleInit`（`[ModuleInitializer]` 初始化 provider，防并行竞态）；外部插件装配矩阵用 `LabelFrame.TransportPlugin.Sample` / `Fake` 两个测试插件工程。Excel 回归测试直接用 OpenXml 构造第三方形态（与 Core 侧 `DocumentFormat.OpenXml` 同钉 3.5.1）。
 
 ## 3. 关键流程
 
@@ -100,7 +100,7 @@
 - 插件 ABI（第三方 DLL 实现面）：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` DIM 展示端翻译键，决策 #192）/ `ITransportPluginContext`（+ `TransportPluginContext` 默认实现）/ `ITransportPluginRegistry`（+ `TransportPluginRegistry`）/ `TransportPluginDescriptor` / `TransportParameterSpec` / `TransportParameterOption` / `TransportParameterType` / `TransportPluginParameters` / `ILabelCommandCompiler` + `LabelCommandCompileOptions/Result` / `ILabelImageEncoder` + `LabelImageEncodeOptions`（连接级图片编码选项，含 `InvertBitsParameterKey` 键约定，决策 #195 / #196） / `TransportPrintMode` / `TransportPluginIdPolicy` / `BuiltinTransportPlugins`；包格式：`PluginPackageReader` / `PluginPackageManifest` / `PluginPackageLimits` / `PluginVersionComparer` / `PluginPackageException`；
 - 服务：`PluginInstaller` / `PluginDirectoryLoader` / `PluginProbe`、`SqliteLogStore`、`ZplImageEncoder`（`EncodeImage`）、`LabelValidator` / `LabelProblemCodes`、`ExcelTableReader` / `ExcelTemplateWriter`、`SafeFileName`、`SqliteSupport`、`ErrorMessageTemplates.Format`、`MissingImageResourceException`。
 
-**依赖**（仅 NuGet，零项目引用；`net10.0` 单目标）：`Microsoft.Data.Sqlite.Core 8.0.4`、`SQLitePCLRaw.provider.e_sqlite3 2.1.13`（**原生库 `lib.e_sqlite3` 刻意不下沉 Core**，见 §6）、`TemplateFrame.Excel.Simple 2.4.1`（决策 #158）。
+**依赖**（仅 NuGet，零项目引用；`net10.0` 单目标）：`Microsoft.Data.Sqlite.Core 8.0.4`、`SQLitePCLRaw.provider.e_sqlite3 2.1.13`（**原生库 `lib.e_sqlite3` 刻意不下沉 Core**，见 §6）、`TemplateFrame.Excel.Simple 3.0.0`（决策 #209）。
 
 **被依赖**（直接 `ProjectReference`，grep 全仓查证）：
 
@@ -137,7 +137,7 @@
 | 数据层并发模型（EXISTS 轻量探测）；SQLite WAL + 数据层基建；provider 初始化与测试隔离；SQLitePCLRaw 原生库 Android 打包 | #77 / #80 / #85 / #94 |
 | Worker 信号量唤醒（`WaitForPendingWakeAsync`，写入后发信号） | #92 |
 | 日志保留量闸（logs.db 按量闸 + VACUUM 空间回收） | #173 |
-| 依赖升级 TemplateFrame.Excel.Simple 2.4.1（Excel 容错与读性能，OpenXml 3.3.0 同钉） | #158 |
+| 依赖升级 TemplateFrame.Excel.Simple 3.0.0（Excel 资源预算，OpenXml 3.5.1 同钉） | #209 |
 | 图片控件（缺资源显式报错 `MissingImageResourceException`） | #184 |
 | 打印机连接文案用户化（Log 插件「模拟打印」显示名，Id 保持 `log`） | #143 |
 
@@ -159,7 +159,15 @@
 12. **`platforms` 缺省按 Windows 解释**：无该字段的既有包在 Windows 宿主照常安装、PDA 拒绝；显式空数组非法（决策 #157）。
 13. **WAL 不可用静默回退不阻断**：只读卷等场景 `PRAGMA journal_mode=WAL` 失败吞掉、回退默认日志模式（决策 #80）。
 14. **量闸收敛判据只取 VACUUM + checkpoint 之后的合计大小**（主文件 + `-wal`）：DELETE 之后主文件不缩小，以删除间歇的大小判收敛会在首次超阈即删空全表；VACUUM 失败后度量不可信，本轮立即终止等下个周期（决策 #173）。
-15. **Excel 依赖钉版**：`TemplateFrame.Excel.Simple` 全系列钉 `DocumentFormat.OpenXml 3.3.0`，Core 与测试项目同钉防版本漂移（决策 #158）。
+15. **Excel 依赖钉版**：`TemplateFrame.Excel.Simple 3.0.0` 传递依赖 `DocumentFormat.OpenXml 3.5.1`，测试项目直接引用同版本防降级（决策 #209）。
 16. **zip-slip 防护是安装链安全底线**：`PluginPackageReader.IsSafeEntryName` 拒绝绝对路径 / 盘符 / `..` 段，解压侧再叠加 `Path.GetFullPath` 前缀校验双层。
 17. **缺图语义两条路径不同**：`sourceKey` 为空 = 未指定图片（渲染层跳过整元素）；key 非空缺资源 = 抛 `MissingImageResourceException` 显式失败——Core 定义异常，Skia / Android / 端点共用（决策 #184）。
 18. **模板图片是全量替换、testData 是读-改-写**：`SaveAsync` 单事务内以库中现有 testData 为基底合并（预览值优先，不传不覆盖，决策 #45）；「缺省 = 保留存量图片」的三态语义在 Api 端点层实现（先读存量再并入，两步非同事务，单设计器场景可接受），Core 的 `SaveAsync` 收到什么图片就全量替换什么。
+
+### Excel 资源边界
+
+Excel 生成与读取采用 TemplateFrame 3.0 默认预算，不为外部输入放宽限制。默认压缩输入最多 64 MiB、包条目 4096 个、单条目展开 64 MiB、总展开 256 MiB、单 XML part 16 Mi 字符；表数据累计 100000 行、1000000 单元格（Simple 含表头，读取到的全空物理行也可能消耗预算）。任一限额均可提前拒绝输入，不能将行数上限理解成所有列宽和文本长度下的容量承诺；宿主 HTTP 请求体限制仍独立生效。
+
+本仓模板写出仅表头及可选示例行；读取继续跳过空白行，稀疏行按实际物理行处理，不为坐标间隙分配业务数据。旧版 xlsx 格式、文本前导零、数值和日期格式保持兼容。超限抛出 InvalidOperationException，由共享导入端点转换成既有 400 错误，不返回截断的成功结果。正常请求使用独立预算，失败不会耗尽后续请求额度。
+
+上述预算不是峰值内存或执行时间的硬保证，也不进行宏、OLE 和外部关系净化。本轮只消费已有静态接口，无配置序列化或引擎接口适配。上游其他预算及完整说明见 [3.0 安全说明](https://github.com/CSJ608/TemplateFrame/blob/v3.0.0/docs/SECURITY.md)。
