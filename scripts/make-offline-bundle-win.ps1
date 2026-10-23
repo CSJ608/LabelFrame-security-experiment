@@ -1,25 +1,16 @@
-﻿# 组装 LabelFrame Windows 离线部署包（全量 / 升级）并打 zip。
-# 契约：docs/DESIGN.md §6.2（安装清单与离线布局）；用法文档见 docs/DEPLOY.md「Windows 离线部署包」。
+﻿# 组装 LabelFrame Windows Full / Upgrade 离线部署包。
+# 契约：docs/DESIGN.md §6.13；用户入口由 Offline Builder 调用，本脚本只负责已校验原料的确定性落位与归档。
 #
-# 用途：发版流水线（release.yml windows-offline-bundle job）把当版 Release 产物与运行时安装器组装成两个
-#       离线分发单元，随 Release 附件发布；本地构建调试亦可直接调用。
-#   - labelframe-offline-<版本>-win-x64.zip   全量包：新机首装——含三个运行时安装器，目标机免预装
-#     .NET 10 / WebView2，解压后双击包内引导 EXE 全程零外网；
-#   - labelframe-upgrade-<版本>-win-x64.zip   升级包：已装机离线升级——内容 = 全量减三运行时安装器
-#     （升级机运行时已装，引导链 DetectCondition 跳过、不再重复携带百 MB 级安装器；运行时中途缺失或
-#     大版本要求抬升时升级包会离线失败，属预期，兜底改用全量包——见包内 README）。
-# 包内布局 = 离线布局契约：组件平铺于包根、文件名按 urls[0] 末段推导（查询型直链固定名兜底）、
-#   install-manifest.json / latest.json 原样字节落盘、引导 EXE 同目录——目标机双击引导 EXE 即以本地
-#   清单与组件完成安装 / 升级（远程源仅在本地文件缺席时使用）。
-# 校验语义与布局生成脚本一致：常规组件 sha256 与清单逐字节一致；evergreen 组件（WebView2 恒变直链无
-#   摘要可钉）按微软 Authenticode 发布者验签——任一组件不符即整包失败，不产出残包。
-# 整包不进 install-manifest（自足分发单元而非可安装产物，与 Linux 离线包同口径）。
+# Full 含 Desktop Runtime、ASP.NET Core Runtime 与 WebView2 x64 Standalone；Upgrade 不含运行时。
+# 双包入口均为 install-server.cmd / install-server.ps1，另含受管资源清单、Builder 审计记录与覆盖全包的 SHA256SUMS。
+# 常规组件按 install-manifest SHA256 校验；WebView2 Standalone 已由上层 Builder 完成文件名、体积与 Authenticode 校验。
+# BootstrapperPath 仅保留旧布局调用兼容；新 Builder 不传该参数，也不把 Burn EXE 作为目标机入口。
 #
 # 用法（Windows PowerShell 5.1+ / PowerShell 7）：
-#   powershell -ExecutionPolicy Bypass -File scripts\make-offline-bundle-win.ps1 -Version 1.3.0 `
+#   powershell -ExecutionPolicy Bypass -File scripts\make-offline-bundle-win.ps1 -Version 1.4.0 `
 #     -AssetsDir release -ManifestPath inputs\install-manifest.json -LatestPath inputs\latest.json `
-#     -RuntimesDir inputs\runtimes -BootstrapperPath release\LabelFrame-Bootstrapper-1.3.0.exe `
-#     -OutputDir bundle            # -Kind full / upgrade / both（默认 both）
+#     -RuntimesDir cache -WebView2StandalonePath cache\MicrosoftEdgeWebView2RuntimeInstallerX64.exe `
+#     -BuildInfoPath inputs\offline-build-info.json -TemplateRoot packaging\offline-win -OutputDir bundle
 param(
     [Parameter(Mandatory = $true)][string]$Version,
     [Parameter(Mandatory = $true)][string]$AssetsDir,
@@ -27,11 +18,17 @@ param(
     # 当版本地产物目录：双 MSI / 管理界面 zip / .lfplugin / PDA APK / Linux 归档（按清单文件名匹配）
     [string]$LatestPath = '',
     # latest.json 指针（缺省取清单同目录，仍不存在则不收录）
-    [Parameter(Mandatory = $true)][string]$BootstrapperPath,
+    [string]$BootstrapperPath = '',
     [string]$RuntimesDir = '',
     # 三个运行时安装器目录（清单生成期下载缓存；组全量包必填）
     [string]$OutputDir = '',
-    [ValidateSet('full', 'upgrade', 'both')][string]$Kind = 'both'
+    [ValidateSet('full', 'upgrade', 'both')][string]$Kind = 'both',
+    # Builder 可传入解包后的模板根；缺省保持仓库 packaging/offline-win。
+    [string]$TemplateRoot = '',
+    # 新 Builder 的 Full 独占 WebView2 x64 Standalone；为空时保持旧发版组包语义。
+    [string]$WebView2StandalonePath = '',
+    # Builder 生成的审计记录；提供时原样收录进双包。
+    [string]$BuildInfoPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -108,12 +105,17 @@ if (-not $LatestPath) {
     if (Test-Path -LiteralPath $candidate) { $LatestPath = $candidate }
 }
 
-# ---- 2) 引导 EXE（离线包必须内含；文件名即包内落位名）----
+# ---- 2) 旧布局可继续收录引导 EXE；Builder Installer 模式不再要求该入口 ----
 $bootstrapperFileName = "LabelFrame-Bootstrapper-$Version.exe"
-if (-not $BootstrapperPath) { $BootstrapperPath = Join-Path $AssetsDir $bootstrapperFileName }
-if (-not (Test-Path -LiteralPath $BootstrapperPath)) { Write-Failure "引导 EXE 不存在：$BootstrapperPath" }
-if ((Split-Path -Leaf $BootstrapperPath) -ne $bootstrapperFileName) {
-    Write-Failure "引导 EXE 文件名应为 $bootstrapperFileName，实际：$(Split-Path -Leaf $BootstrapperPath)"
+if (-not $BootstrapperPath) {
+    $candidateBootstrapper = Join-Path $AssetsDir $bootstrapperFileName
+    if (Test-Path -LiteralPath $candidateBootstrapper) { $BootstrapperPath = $candidateBootstrapper }
+}
+if ($BootstrapperPath) {
+    if (-not (Test-Path -LiteralPath $BootstrapperPath)) { Write-Failure "引导 EXE 不存在：$BootstrapperPath" }
+    if ((Split-Path -Leaf $BootstrapperPath) -ne $bootstrapperFileName) {
+        Write-Failure "引导 EXE 文件名应为 $bootstrapperFileName，实际：$(Split-Path -Leaf $BootstrapperPath)"
+    }
 }
 
 # ---- 3) 组件源解析与校验（fail-closed：任一不符即中止）----
@@ -121,7 +123,9 @@ if ((Split-Path -Leaf $BootstrapperPath) -ne $bootstrapperFileName) {
 # 运行时安装器仅进全量包（升级机已装运行时被引导链跳过，升级不重复携带）。
 $excludedIds = @('linux-server')
 $needFull = ($Kind -eq 'full') -or ($Kind -eq 'both')
-if ($needFull -and -not $RuntimesDir) { Write-Failure '组全量包必须提供 -RuntimesDir（三个运行时安装器目录）' }
+if ($needFull -and -not $RuntimesDir) { Write-Failure '组全量包必须提供 -RuntimesDir（.NET 运行时安装器目录）' }
+if ($BuildInfoPath -and -not (Test-Path -LiteralPath $BuildInfoPath)) { Write-Failure "offline-build-info 不存在：$BuildInfoPath" }
+if ($WebView2StandalonePath -and -not (Test-Path -LiteralPath $WebView2StandalonePath)) { Write-Failure "WebView2 Standalone 不存在：$WebView2StandalonePath" }
 
 $payload = @{} # id → @{ Source=源路径; Name=布局文件名; FullOnly=仅全量包收录 }
 foreach ($component in @($manifest.components)) {
@@ -130,6 +134,10 @@ foreach ($component in @($manifest.components)) {
         continue
     }
     $isRuntime = ($component.type -eq 'runtime')
+    if ($component.id -eq 'runtime-webview2' -and $WebView2StandalonePath) {
+        Write-Info '排除在线 WebView2 Bootstrapper：Builder Full 使用 x64 Standalone'
+        continue
+    }
     if ($isRuntime -and -not $needFull) {
         Write-Info "跳过运行时组件：[$($component.id)]（升级包不携带）"
         continue
@@ -149,6 +157,13 @@ foreach ($component in @($manifest.components)) {
     $payload[$component.id] = @{ Source = $sourcePath; Name = $fileName; FullOnly = $isRuntime }
     Write-Info "组件就绪（校验通过）：[$($component.id)] $fileName"
 }
+if ($WebView2StandalonePath) {
+    $payload['runtime-webview2-standalone'] = @{
+        Source = $WebView2StandalonePath
+        Name = Split-Path -Leaf $WebView2StandalonePath
+        FullOnly = $true
+    }
+}
 
 # ---- 4) 逐包组装（目录 + SHA256SUMS + README + 结构断言 + zip）----
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -163,7 +178,7 @@ function New-BundleDir([string]$KindSlug, [bool]$WithRuntimes, [string]$ReadmeTe
     if (Test-Path -LiteralPath $bundleDir) { Remove-Item -LiteralPath $bundleDir -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
 
-    # 组件平铺落位；SHA256SUMS 覆盖全部载荷文件（组件 + 引导 EXE；manifest / latest / README 不入册）
+    # 组件平铺落位；SHA256SUMS 覆盖除清单自身外的包内全部文件。
     $sumPairs = New-Object System.Collections.Generic.List[object]
     foreach ($entry in $payload.GetEnumerator()) {
         if ($entry.Value.FullOnly -and -not $WithRuntimes) { continue }
@@ -171,18 +186,58 @@ function New-BundleDir([string]$KindSlug, [bool]$WithRuntimes, [string]$ReadmeTe
         Copy-Item -LiteralPath $entry.Value.Source -Destination $target -Force
         $sumPairs.Add([pscustomobject]@{ Name = $entry.Value.Name; Hash = (Get-Sha256 $target) })
     }
-    $exeTarget = Join-Path $bundleDir $bootstrapperFileName
-    Copy-Item -LiteralPath $BootstrapperPath -Destination $exeTarget -Force
-    $sumPairs.Add([pscustomobject]@{ Name = $bootstrapperFileName; Hash = (Get-Sha256 $exeTarget) })
+    if ($BootstrapperPath) {
+        $exeTarget = Join-Path $bundleDir $bootstrapperFileName
+        Copy-Item -LiteralPath $BootstrapperPath -Destination $exeTarget -Force
+        $sumPairs.Add([pscustomobject]@{ Name = $bootstrapperFileName; Hash = (Get-Sha256 $exeTarget) })
+    }
 
-    [IO.File]::WriteAllText((Join-Path $bundleDir 'install-manifest.json'), $manifestJson, $utf8NoBom)
+    $manifestTarget = Join-Path $bundleDir 'install-manifest.json'
+    [IO.File]::WriteAllText($manifestTarget, $manifestJson, $utf8NoBom)
+    $sumPairs.Add([pscustomobject]@{ Name = 'install-manifest.json'; Hash = (Get-Sha256 $manifestTarget) })
     if ($LatestPath) {
-        [IO.File]::WriteAllText((Join-Path $bundleDir 'latest.json'), ([IO.File]::ReadAllText($LatestPath)), $utf8NoBom)
+        $latestTarget = Join-Path $bundleDir 'latest.json'
+        [IO.File]::WriteAllText($latestTarget, ([IO.File]::ReadAllText($LatestPath)), $utf8NoBom)
+        $sumPairs.Add([pscustomobject]@{ Name = 'latest.json'; Hash = (Get-Sha256 $latestTarget) })
     }
 
     $readme = [IO.File]::ReadAllText($ReadmeTemplate).Replace('__LABELFRAME_VERSION__', $Version)
     if ($readme -match '__LABELFRAME_VERSION__') { Write-Failure "README 模板占位替换不完全：$ReadmeTemplate" }
-    [IO.File]::WriteAllText((Join-Path $bundleDir 'README.md'), $readme, $utf8NoBom)
+    $readmeTarget = Join-Path $bundleDir 'README.md'
+    [IO.File]::WriteAllText($readmeTarget, $readme, $utf8NoBom)
+    $sumPairs.Add([pscustomobject]@{ Name = 'README.md'; Hash = (Get-Sha256 $readmeTarget) })
+
+    foreach ($installerName in @('install-server.ps1', 'install-server.cmd')) {
+        $installerTemplate = Join-Path $TemplateRoot $installerName
+        if (Test-Path -LiteralPath $installerTemplate) {
+            Copy-Item -LiteralPath $installerTemplate -Destination (Join-Path $bundleDir $installerName) -Force
+            $sumPairs.Add([pscustomobject]@{ Name = $installerName; Hash = (Get-Sha256 (Join-Path $bundleDir $installerName)) })
+        }
+    }
+    if ($BuildInfoPath) {
+        $buildInfo = Get-Content -LiteralPath $BuildInfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $buildInfo | Add-Member -NotePropertyName packageKind -NotePropertyValue $(if ($WithRuntimes) { 'full' } else { 'upgrade' }) -Force
+        $buildInfoTarget = Join-Path $bundleDir 'offline-build-info.json'
+        [IO.File]::WriteAllText($buildInfoTarget, (($buildInfo | ConvertTo-Json -Depth 10) + "`n"), $utf8NoBom)
+        $sumPairs.Add([pscustomobject]@{ Name = 'offline-build-info.json'; Hash = (Get-Sha256 $buildInfoTarget) })
+    }
+
+    $managedKinds = @{ 'client-msi' = 'client'; 'pda-apk' = 'pda'; 'plugin-zebra' = 'plugin'; 'plugin-tspl' = 'plugin' }
+    $managedFiles = @()
+    foreach ($managedId in @('client-msi', 'pda-apk', 'plugin-zebra', 'plugin-tspl')) {
+        if (-not $payload.ContainsKey($managedId)) { Write-Failure "允许清单缺官方资源：$managedId" }
+        $entry = $payload[$managedId]
+        $managedFiles += [ordered]@{
+            kind = $managedKinds[$managedId]
+            id = $managedId
+            fileName = $entry.Name
+            version = $Version
+            sha256 = Get-Sha256 (Join-Path $bundleDir $entry.Name)
+        }
+    }
+    $managedJson = ([ordered]@{ schemaVersion = 1; labelframeVersion = $Version; files = $managedFiles } | ConvertTo-Json -Depth 5) + "`n"
+    [IO.File]::WriteAllText((Join-Path $bundleDir 'managed-files.json'), $managedJson, $utf8NoBom)
+    $sumPairs.Add([pscustomobject]@{ Name = 'managed-files.json'; Hash = (Get-Sha256 (Join-Path $bundleDir 'managed-files.json')) })
 
     # sha256sum 兼容格式（小写哈希 + 双空格 + 相对路径，LF 行尾）；按文件名排序保证逐字节可复现
     $sums = ($sumPairs | Sort-Object Name | ForEach-Object { "$($_.Hash)  $($_.Name)" }) -join "`n"
@@ -200,7 +255,13 @@ function New-BundleDir([string]$KindSlug, [bool]$WithRuntimes, [string]$ReadmeTe
             Write-Failure "结构断言失败：缺组件文件 $($entry.Value.Name)"
         }
     }
-    foreach ($must in @($bootstrapperFileName, 'install-manifest.json', 'README.md', 'SHA256SUMS')) {
+    $mustFiles = @('install-manifest.json', 'README.md', 'SHA256SUMS', 'managed-files.json')
+    if ($BootstrapperPath) { $mustFiles += $bootstrapperFileName }
+    if ($BuildInfoPath) { $mustFiles += 'offline-build-info.json' }
+    foreach ($installerName in @('install-server.ps1', 'install-server.cmd')) {
+        if (Test-Path -LiteralPath (Join-Path $TemplateRoot $installerName)) { $mustFiles += $installerName }
+    }
+    foreach ($must in $mustFiles) {
         if (-not (Test-Path -LiteralPath (Join-Path $bundleDir $must))) { Write-Failure "结构断言失败：缺 $must" }
     }
     if ($LatestPath -and -not (Test-Path -LiteralPath (Join-Path $bundleDir 'latest.json'))) {
@@ -230,8 +291,9 @@ function New-BundleDir([string]$KindSlug, [bool]$WithRuntimes, [string]$ReadmeTe
     return $zipPath
 }
 
-$readmeFull = Join-Path $root 'packaging\offline-win\README.md'
-$readmeUpgrade = Join-Path $root 'packaging\offline-win\README-upgrade.md'
+if (-not $TemplateRoot) { $TemplateRoot = Join-Path $root 'packaging\offline-win' }
+$readmeFull = Join-Path $TemplateRoot 'README.md'
+$readmeUpgrade = Join-Path $TemplateRoot 'README-upgrade.md'
 foreach ($template in @($readmeFull, $readmeUpgrade)) {
     if (-not (Test-Path -LiteralPath $template)) { Write-Failure "缺 README 模板：$template" }
 }
@@ -244,7 +306,7 @@ if (($Kind -eq 'upgrade') -or ($Kind -eq 'both')) { $results += New-BundleDir 'u
 Write-Host ''
 Write-Host "Windows 离线部署包组包完成：$($results.Count) 个" -ForegroundColor Green
 foreach ($zip in $results) { Write-Host "  $zip" }
-Write-Host '部署：拷到目标机解压，双击包内引导 EXE——全程零外网（详见包内 README.md）。'
+Write-Host '部署：拷到目标机解压，以管理员身份运行 install-server.cmd（详见包内 README.md）。'
 
 # 显式成功退出码：本脚本全 cmdlet 实现、成功路径不触碰 $LASTEXITCODE（保持调用方上次值 / null），
 # 调用方（release.yml 与本地壳）以 $LASTEXITCODE 判定成败——末尾定值 0 才可判

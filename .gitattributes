@@ -1,4 +1,5 @@
 *.dwf.ts text eol=lf
+*.sh text eol=lf
 # 品牌 v02 落库资产（#288）：交付包 manifest SHA256 为完整性权威——逐字节存取，禁 eol 归一（含未来检出）
 assets/brand/** -text
 web/public/favicon.svg -text

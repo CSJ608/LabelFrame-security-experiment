@@ -1,58 +1,66 @@
-# LabelFrame Windows 离线部署包·升级（__LABELFRAME_VERSION__，win-x64）
+# LabelFrame Windows Server 离线部署包·Upgrade（__LABELFRAME_VERSION__，win-x64）
 
-本包用于**离线 / 内网环境**已装 LabelFrame 的 Windows 机器**版本升级**：解压后双击包内引导程序即可，
-全程零外网。本包**不含运行时安装器**（体积约为全量包一半）——升级机在首次安装时已装 .NET 10 / WebView2
-运行时，引导程序检测到已装即跳过，不重复安装。
+本包由有网准备机上的 LabelFrame Offline Builder 生成，用于无外网且已安装 LabelFrame Server 的 Windows 服务器升级。目标机解压后运行 `install-server.cmd`，由离线 Installer 完成 Server 升级、Web UI 更新、分发资源落位与健康检查。
 
-- 新机**首次安装**请用全量包 `labelframe-offline-__LABELFRAME_VERSION__-win-x64.zip`（含运行时安装器）；
-- 在线环境不必用本包：客户端「设置 → 检查更新」或直接运行新版引导 EXE 联网升级即可。
+Upgrade 是**零 runtime 包**：不含 .NET Desktop、ASP.NET Core 或 WebView2 安装器，也不会重装任何 runtime。目标机缺少 ASP.NET Core 10+ 时会在修改系统前拒绝执行，并提示改用同版本 Full 包 `labelframe-offline-__LABELFRAME_VERSION__-win-x64.zip`。
 
-## 使用（三步）
+## 使用
 
-1. 把本包 zip 拷到目标机（U 盘 / 内网共享），解压到任意目录；
-2. 双击解压目录中的 `LabelFrame-Bootstrapper-__LABELFRAME_VERSION__.exe`；
-3. 引导程序自动进入**升级模式**（列出「现版本 → 新版本」）→ 确认安装计划 → 完成。
+1. 把 zip 拷到目标服务器并解压到任意本地目录；
+2. 双击 `install-server.cmd`，按 UAC 提示授权管理员权限；
+3. 等待脚本完成校验、Server MSI 升级、Web UI 原子替换、分发资源更新与健康检查。
 
-用户配置（服务端地址、打印机设置、模板与作业数据）全部保留；服务端升级完成后自动恢复运行。
-
-## 完整性校验（拷贝后建议）
-
-在解压目录用 PowerShell 校验载荷（引导 EXE + 全部组件）：
+也可在管理员 PowerShell 中运行：
 
 ```powershell
-Get-Content SHA256SUMS | ForEach-Object {
-  $hash, $name = $_ -split '  ', 2
-  $ok = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower() -eq $hash
-  "{0}  {1}" -f ($(if ($ok) { 'OK  ' } else { 'FAIL' }), $name)
-}
+.\install-server.ps1
 ```
+
+用户配置、模板、作业与日志保留；脚本只部署 Server 和服务端分发资源，不自动安装打印客户端。
+
+## 升级行为
+
+- 安装前强制校验 `SHA256SUMS`、包版本、**零 runtime** 集合与 `managed-files.json`；
+- ASP.NET Core 10+ 在场时直接升级 Server，不安装任何 runtime；
+- Server MSI 以静默 MajorUpgrade 执行，详细日志路径会显示在控制台；
+- Web UI 先解压到同卷临时目录，再整体替换；若服务启动或健康检查失败，恢复旧 Web UI；
+- Client MSI、PDA APK、Zebra / TSPL 官方插件更新到服务端实际配置的下载目录；
+- 服务恢复后验证 `/healthz`、服务版本、管理界面模式与下载中心文件哈希；
+- 全链成功后仅清理由上次受管账本确认且内容未被用户改写的旧官方资源；第三方插件和自定义文件不动；
+- 同版本重跑幂等。
+
+## 何时改用 Full
+
+- 目标机未安装 ASP.NET Core 10+；
+- runtime 被卸载或损坏；
+- 新版本抬升了 Server 所需 .NET 大版本；
+- 需要额外携带 Desktop Runtime 或 WebView2 x64 Standalone 作为客户端人工安装介质。
+
+改用 Full 后仍运行同一个 `install-server.cmd`，其余升级步骤和数据保留语义相同。
 
 ## 升级后验证
 
-- 服务端：`http://127.0.0.1:53961/healthz` 返回 `{"service":"LabelFrame.Server","status":"ok"}`，且版本号为 __LABELFRAME_VERSION__；
-- 客户端：界面「设置 → 更新与安装包」可见新版本；打印链路照常。
+- `sc query LabelFrameServer` 显示服务 Running；
+- `http://127.0.0.1:53961/healthz` 返回健康状态；
+- 管理界面启用时可打开，旧散列文件不残留；
+- 下载中心只新增 / 保留本次与用户自定义资源，第三方插件不被删除。
 
-## 何时该改用全量包
-
-升级过程中若提示**缺运行时 / 运行时安装失败**（本机运行时中途被卸载、损坏，或新版本抬升了 .NET 大版本要求），
-离线场景下本包无法补装运行时——改用同版本**全量包**重跑引导 EXE 即可（其余步骤相同）。
-
-## 常见问题
-
-- **想顺便装没装过的组件**（如首次开启管理界面 / 新增插件）：引导向导改选组件即可，本包内组件齐全（运行时除外）；
-- **升级中断 / 失败**：向导失败页给出中文失败分类，可整包重试；Burn 日志在 `%TEMP%\LabelFrame*.log`；
-- **SmartScreen「未知发布者」**：点「更多信息 → 仍要运行」（同全量包口径）。
+成功或失败都会显示 Installer 日志与 MSI 日志路径；正式日志位于 `%ProgramData%\LabelFrame\installer\logs`。
 
 ## 包内容一览
 
 | 文件 | 说明 |
 |---|---|
-| `LabelFrame-Bootstrapper-__LABELFRAME_VERSION__.exe` | 安装引导程序（离线入口，自动进入升级模式） |
-| `LabelFrame-Server-__LABELFRAME_VERSION__.msi` | 服务端（Windows 服务 `LabelFrameServer`） |
-| `LabelFrame-Client-__LABELFRAME_VERSION__.msi` | 打印客户端（界面壳 + 托盘） |
-| `labelframe-server-webui-__LABELFRAME_VERSION__.zip` | 服务端管理界面插件（向导「管理界面」开关组件） |
-| `labelframe-transport-zebra-__LABELFRAME_VERSION__.lfplugin` | Zebra 品牌传输官方插件 |
-| `labelframe-transport-tspl-__LABELFRAME_VERSION__.lfplugin` | TSPL 指令集传输官方插件 |
-| `LabelFrame-AndroidHost-__LABELFRAME_VERSION__.apk` | PDA 宿主安装包（拷入服务端下载中心分发） |
-| `install-manifest.json` / `latest.json` | 安装清单与版本指针（引导程序离线消费） |
-| `SHA256SUMS` / `README.md` | 载荷哈希（不含 manifest / README）与本文件 |
+| `install-server.cmd` / `install-server.ps1` | 目标服务器离线 Installer 入口 |
+| `LabelFrame-Server-__LABELFRAME_VERSION__.msi` | 服务端升级安装包 |
+| `LabelFrame-Client-__LABELFRAME_VERSION__.msi` | 供下载中心分发、后续人工安装的打印客户端 |
+| `labelframe-server-webui-__LABELFRAME_VERSION__.zip` | 服务端管理界面，由 Installer 整体替换 |
+| `labelframe-transport-zebra-__LABELFRAME_VERSION__.lfplugin` | Zebra 官方插件 |
+| `labelframe-transport-tspl-__LABELFRAME_VERSION__.lfplugin` | TSPL 官方插件 |
+| `LabelFrame-AndroidHost-__LABELFRAME_VERSION__.apk` | PDA 宿主安装包 |
+| `managed-files.json` | 本包允许分发的官方资源清单 |
+| `offline-build-info.json` | Builder 实际来源、哈希、大小与生成时间 |
+| `SHA256SUMS` | 包内载荷完整性账本 |
+| `install-manifest.json` / `latest.json` | 原子资源版本与来源记录 |
+
+本包不应出现任何 `windowsdesktop-runtime-*`、`aspnetcore-runtime-*` 或 WebView2 Runtime 安装器；出现即视为包结构错误并拒绝安装。

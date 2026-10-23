@@ -21,7 +21,7 @@
 - **七页向导流程**：欢迎（新装 / 升级检测，含离线安装指引）→ 拓扑预设（单机一体 / 服务端 / 打印客户端等，选错可重跑改选）→ 品牌多选（按已装打印机驱动名预选：检测到 ZDesigner 预选 Zebra、检测到 TSC 预选「TSC 及 TSPL 兼容机」；选项来自清单插件条目）→ 管理界面开关（服务端网页管理界面，可选）→ 确认安装计划（组件清单 + 本机已装版本对照）→ 安装进度（逐组件下载 + 校验 + 安装，失败自动回滚并给出中文失败分类）→ 完成。
 - **前置说明**：引导程序自带 .NET 10 Desktop Runtime / ASP.NET Core Runtime / WebView2 运行时**前置链**——本机缺失时自动按官方直链下载补装（已装则跳过），无需手工预装运行时；这正是它优于 MSI 直装的主要场景（MSI 直装缺失运行时会拦截并给下载链接，需手动补装）。
 - **升级**：本机已装 LabelFrame 时重跑引导程序即进入升级模式（列出可升级组件「现版本 → 新版本」，复用同一安装链完成覆盖升级，用户配置保留）；客户端设置页「检查更新」发现新版本时也会指向此入口。
-- **离线 / 内网**：Release 每版随发 **Windows 离线部署包双附件**（全量 / 升级，见「3.1 Windows 离线 / 内网部署（offline 包）」一节）——拷贝、解压、双击包内引导 EXE 即零外网完成首装 / 升级；`scripts\make-offline-layout.ps1`（或引导程序 `--layout`）预生成组件布局目录仍是等价的高级路径（需自定义组件集时用）。
+- **离线 / 内网**：统一采用**两层模型：有网 Builder / 离线 Installer**。在有网准备机从 Release 下载 `labelframe-offline-builder-<版本>.zip` 并生成 Windows Full / Upgrade；目标服务器解压后运行 `install-server.cmd`，由包内 Installer 零外网安装 / 升级 Server、更新管理界面并分发 Client / PDA / 官方插件。在线 Burn 引导程序与 `--layout` 能力保持不变，但不再是新离线 Server 包的目标机入口。
 - **SmartScreen「未知发布者」提示**：引导 EXE 当前使用自签证书签名（与 MSI 同通道，见「自动化发布与签名」一节）——公网下载首次运行 Windows 可能提示「未知发布者」，点「更多信息 → 仍要运行」即可；下载完整性由 install manifest 的 sha256 强制校验保障。内网可把自签根证书加入受信任根消除提示。
 - **安装日志（排障）**：Burn 引擎日志在 `%TEMP%\LabelFrame*.log`（失败报告页可直接打开本次日志；按通配查找）。
 - 本地手工构建（发版链之外）：`scripts\build-bundle.ps1 -Version x.y.z`（需 WiX v7；Secrets 在场时 `-Sign` 复用 MSI 证书签名）。
@@ -43,26 +43,61 @@
 - **修改服务端地址后需重启 Client**（打印 Worker 使用启动时的地址）。
 - 清理历史安装残留：管理员运行 `scripts\cleanup-residue.ps1`。
 
-### 3.1 Windows 离线 / 内网部署（offline 包：全量 / 升级）
+### 3.1 Windows 离线 / 内网部署（两层模型：Builder / Installer）
 
-面向无外网目标机：[GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 每版随发两个单文件包，拷贝（U 盘 / 内网共享）→ 解压 → 双击包内引导 EXE，全程零外网。
+Windows 离线部署分为两步：**有网准备机运行 Builder 组包；无外网目标服务器运行 Installer 安装**。Release 提供小型 `labelframe-offline-builder-<版本>.zip`，Builder 已固定对应 Release 版本，无需另填版本号。
 
-| 附件 | 用途 | 内容 |
+#### 第一步：有网准备机生成 Full / Upgrade
+
+准备机需 Windows PowerShell 5.1 或 PowerShell 7，并能访问 GitHub Releases、微软 .NET 与 WebView2 下载源。解压 Builder 后运行：
+
+```powershell
+.\build-windows-offline.ps1 -OutputDir D:\LabelFrameOffline
+# 可选：复用下载缓存
+.\build-windows-offline.ps1 -OutputDir D:\LabelFrameOffline -CacheDir D:\LabelFrameCache
+```
+
+生成两个包：
+
+| 输出 | 适用 | runtime 载荷 |
 |---|---|---|
-| `labelframe-offline-<版本>-win-x64.zip` **全量包** | 新机首装 | 全部组件 + 三个运行时安装器（.NET 10 Desktop / ASP.NET Core / WebView2）——目标机无需预装任何运行时 |
-| `labelframe-upgrade-<版本>-win-x64.zip` **升级包** | 已装机升级 | 全量减三运行时安装器（体积约一半）——升级机运行时已装、引导程序自动跳过 |
+| `labelframe-offline-<版本>-win-x64.zip` **Full** | 新服务器首装；也可作为升级缺前置时的兜底 | .NET Desktop、ASP.NET Core、WebView2 x64 **Standalone** 三类完整离线安装器 |
+| `labelframe-upgrade-<版本>-win-x64.zip` **Upgrade** | 已装服务器升级 | **零 runtime**；目标机缺基础 .NET 10 或 ASP.NET Core 10+ 时拒绝执行并提示改用 Full |
 
-- **零外网原理**：包内即离线布局目录（组件平铺 + `install-manifest.json` 原样落盘）——引导 EXE 优先消费同目录清单与组件文件（本地源优先）；运行时缺失时用包内安装器补装、已装则跳过。
-- **升级操作**：双击新版升级包内引导 EXE → 自动进入升级模式（列出「现版本 → 新版本」）→ 确认即可；用户配置与数据保留，服务端升级后自动恢复运行。
-- **兜底**：升级时若提示缺运行时（本机运行时中途被卸载 / 损坏，或新版本抬升 .NET 大版本要求）——离线环境升级包无法补装，**改用全量包重跑即可**（其余步骤相同）。
-- **完整性校验**：解压目录 `SHA256SUMS` 覆盖引导 EXE 与全部组件（PowerShell 校验命令见包内 README；组包时已逐组件按清单哈希 / 微软验签 fail-closed 校验）。
-- **PDA 离线分发**：包内 APK 拷入服务端下载中心目录 `%ProgramData%\LabelFrame\server\pda-packages`（或经管理界面上传），PDA 扫下载中心二维码即可安装。
-- Linux 归档不在包内（Windows 部署机无用；Linux 离线场景用同 Release 的 Linux 离线部署包，见 §4.3）；整包不进 install-manifest（自足分发单元，与 Linux 离线包同口径）。
-- **高级路径**：自定义组件集的布局目录用 `scripts\make-offline-layout.ps1` / 引导 EXE `--layout` 生成（语义一致）；双包组包脚本 `scripts\make-offline-bundle-win.ps1` 本地可复用。
+Builder 对 LabelFrame 原子资源与固定版 .NET runtime 做 SHA256 / 大小校验；WebView2 Full 使用 `MicrosoftEdgeWebView2RuntimeInstallerX64.exe`（x64 Standalone，不是联网 Bootstrapper），校验固定文件名、体积大于 100 MB 与 Microsoft Authenticode 发布者；任一来源、哈希或签名异常均非零退出，不留下最终命名的残包。缓存一致时复用，不一致时删除重取。每个输出包含 `offline-build-info.json` 记录实际来源、哈希、大小与生成时间。
+
+#### 第二步：离线目标服务器安装
+
+把 Full 或 Upgrade 拷到目标服务器并解压，双击：
+
+```cmd
+install-server.cmd
+```
+
+也可在管理员 PowerShell 中运行：
+
+```powershell
+.\install-server.ps1
+```
+
+Installer 只部署 **Server 与服务端分发资源**，不会自动安装打印客户端。它会：
+
+1. 校验 `SHA256SUMS`、包版本、Full / Upgrade runtime 集合与受管资源清单；
+2. Full 缺基础 .NET 10 host/runtime 时先静默补装 Desktop Runtime，再按需补装 ASP.NET Core Runtime；WebView2 作为客户端后续人工安装的离线介质保留，不自动安装；Upgrade 不安装任何 runtime，任一 Server 前置缺失时提示改用 Full；
+3. 静默安装 / 升级 Server MSI，并输出 MSI 与 Installer 日志路径；
+4. 整体替换管理界面，失败时恢复旧 Web UI；`LABELFRAME_SERVER_WEB_UI` 已明确设为空白时保持无头模式；
+5. 把 Client MSI、PDA APK、Zebra / TSPL 官方插件分发到服务端实际配置目录；
+6. 验证 Windows 服务 Running、`/healthz`、服务版本、管理界面模式及下载中心文件哈希；
+7. 全链成功后仅按受管账本清理旧官方资源；第三方插件、用户上传件和被用户改写的文件保留。
+
+同版本重跑幂等；升级保留 `%ProgramData%\LabelFrame` 下的数据与配置。Full / Upgrade 均可完成 Server 升级，差别只在是否携带 runtime。
+
+> 在线安装引导程序仍使用 WebView2 Evergreen 小型 Bootstrapper；只有离线 Full 使用 x64 Standalone。`scripts\make-offline-layout.ps1` / 引导程序 `--layout` 仍可用于在线 Burn 的自定义组件布局，不等同于这里的 Server Installer 包。
+
 
 ## 4. Docker（推荐的服务端部署方式）
 
-**快速启动（Release compose 分发）**：从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `compose.yml` 与 `.env` 放同一目录，`docker compose up -d` 即可——`.env` 已把 `LABELFRAME_VERSION` 钉定为本 Release 版本（想跟随最新版可改回 `latest`，镜像源覆盖见文件内注释）。两者与仓库 `packaging/ubuntu/docker-compose.yml` 同源（发版流水线直接复制生成）。把 LabelFrame **并入你自己管理多服务的 compose** 见「整合进已有 compose」一节；**离线 / 内网环境**改用同 Release 的离线部署包（`labelframe-offline-<版本>-linux-x64.tar.gz`，见「离线 / 内网部署（offline bundle）」一节）。
+**快速启动（Release compose 分发）**：从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `compose.yml` 与 `.env` 放同一目录，`docker compose up -d` 即可——`.env` 已把 `LABELFRAME_VERSION` 钉定为本 Release 版本（想跟随最新版可改回 `latest`，镜像源覆盖见文件内注释）。两者与仓库 `packaging/ubuntu/docker-compose.yml` 同源（发版流水线直接复制生成）。把 LabelFrame **并入你自己管理多服务的 compose** 见「整合进已有 compose」一节；**离线 / 内网环境**从同 Release 下载离线部署 Builder，按「离线 / 内网部署（两层模型）」一节生成 Docker 离线包。
 
 镜像 `ghcr.io/marci-labs/labelframe-server`（`latest` 指向最新版）：
 
@@ -166,27 +201,42 @@ docker compose -f .\packaging\e2e\compose.yaml down
 
 脚本验证 Linux 能力边界、模板 / 预览 / 包导入导出、Excel / 日志公共端点、设备注册、幂等、单张 / 多张、离线暂存、Skia 渲染、PNG 数量与条码内容、Server 终态回报、Client 重启持久化及重启后继续领取；数据保存在 Compose 命名卷。端口冲突时传 `-ServerPort <端口>`。完整测试大纲与排障方式见 [LINUX-CLIENT-E2E.md](LINUX-CLIENT-E2E.md)。
 
-### 4.3 离线 / 内网部署（offline bundle）
+### 4.3 离线 / 内网部署（两层模型：Builder / `install.sh`）
 
-从 [GitHub Releases](https://github.com/marci-labs/LabelFrame/releases) 下载 `labelframe-offline-<版本>-linux-x64.tar.gz`，拷到目标机（U 盘 / 内网共享），解压到**固定部署目录**（`--strip-components=1` 剥掉包内版本号顶层目录，命令对任意版本通用），包内自带全部所需（镜像 tar + 与在线版逐字节同源的 `compose.yml` + 版本钉定 `.env` + 管理界面预解压 + 客户端 / PDA / 插件安装包），部署全程零外网：
+Docker 离线部署同样采用**有网 Builder / 离线 Installer**。在有网且已安装 Docker 的准备机解压 `labelframe-offline-builder-<版本>.zip`，运行：
 
 ```bash
+bash build-docker-offline.sh --output-dir ./dist
+# 可选：复用下载缓存
+bash build-docker-offline.sh --output-dir ./dist --cache-dir ./cache
+```
+
+Builder 按 Release 记录的不可变 digest 拉取并复核 Server 镜像，下载 Client MSI、PDA APK、Web UI 与官方插件并按 SHA256 校验，然后生成：
+
+```text
+labelframe-offline-<版本>-linux-x64.tar.gz
+labelframe-offline-<版本>-linux-x64.tar.gz.sha256
+```
+
+目标机前置不变：Linux x64、Docker Engine（含 Compose v2）与 `sha256sum`。把归档与旁车一并拷到无外网目标机，先验证整个归档，再解压到固定部署目录并运行包内既有 `install.sh`：
+
+```bash
+sha256sum -c labelframe-offline-<版本>-linux-x64.tar.gz.sha256
 mkdir -p labelframe-offline
 tar -xzf labelframe-offline-<版本>-linux-x64.tar.gz -C labelframe-offline --strip-components=1
 cd labelframe-offline
-bash install.sh          # 或按 README 三步手动：sha256sum -c → docker load → docker compose up -d
+bash install.sh
 curl http://127.0.0.1:53961/healthz
 ```
 
-- **前置**：目标机已装 Docker Engine（含 compose v2）与 `sha256sum`——包不含 Docker 本体；
-- **完整性**：`install.sh` 强制 `SHA256SUMS` 全件校验（镜像 + 分发产物），不符即拒装（fail-closed）；
-- **离线原理**：镜像以 ghcr 全名 tag `docker load` 进本机，compose 默认 pull=missing 本地命中即不再联网拉取；
-- **管理界面开箱可用**（`plugins/web-ui/` 已预解压，即 compose 默认挂载的服务端 WebUiPath）；
-- **分发闭环**：`install.sh` 在启动服务前自动把 `packages/` 下 Client MSI / PDA APK / `.lfplugin` 拷入对应挂载目录（`./client-packages/` 等，`cp -f` 幂等、包内原件保留），下载中心开箱可用；后续增删安装包可直接向挂载目录拷入 / 删除文件或经管理界面「下载中心」上传（即时生效）——离线环境客户端 / PDA / 插件安装包不用再出网；
-- **幂等 / 升级**：`install.sh` 重跑无害；升级 = **同一部署目录**解压新版本包重跑（`mkdir -p` + `tar -xzf 新包 -C 同一目录 --strip-components=1` 覆盖解压后 `bash install.sh`——`SHA256SUMS` 按当版清单校验，旧版本残留文件不影响；勿换目录升级：compose 未钉定卷名，数据卷实际名 = `<部署目录名>_labelframe-data`（如 `labelframe-offline` → `labelframe-offline_labelframe-data`），换目录会新建**空卷**、模板 / 数据库 / 日志不跟随，且 `container_name` 固定 `labelframe-server`，新目录起服务前须先在旧目录 `docker compose down`）；
-- **可选共享网络（仅离线包 `install.sh`）**：部署者在同一目录建 `network.env`，写 `LABELFRAME_EXTERNAL_NETWORK=<现有用户自定义 bridge 网络名>`（最多一个）；或运行 `LABELFRAME_EXTERNAL_NETWORK=<网络名> bash install.sh`，进程变量优先。脚本启动前校验网络并生成 Compose 覆盖文件，Server 保留默认网络及宿主端口，同时以别名 `labelframe-server` 接入外部网络。调用方容器自行加入该网络后使用 `http://labelframe-server:53961`；宿主机进程用 `http://127.0.0.1:53961`，远端用 `http://<宿主机可达 IP>:53961`。`network.env` 不随解压覆盖，升级 / 重建重跑 `bash install.sh`；直接运行 `docker compose up -d` 不应用该选项。空值仍为独立部署，网络不存在或无效则报错。API 无鉴权，仅接入受信任网络；在线版 Compose 分发入口暂不支持该选项（参见包内 README）。
-- **存量版本号目录迁移**（曾按「解压得同名目录」旧口径部署，如 `labelframe-offline-0.30.0-linux-x64/`）：新版本包解压到**当初部署的同一目录**重跑即可（`tar --strip-components=1` 剥掉顶层版本号目录后布局一致，数据沿用该目录对应的既有卷，无需搬迁）；旧版本镜像 tar 可选清理——删除目录内 `images/` 下旧版本 `.image.tar.gz` 释放磁盘（约 150MB+/ 版本，不影响运行与数据），`docker image rm ghcr.io/marci-labs/labelframe-server:<旧版本>` 同为可选；
-- 发版流水线对该包做**真离线自验**（offline-bundle job 在无镜像的 runner 上以包内 `install.sh` 走用户全链），不可用即发版失败；组包脚本 `scripts/make-offline-bundle.sh` 可本地复用。决策记录见 [DESIGN.md](DESIGN.md)。
+生成包的结构与既有 Docker 离线包兼容；`install.sh` 的校验、`docker load`、Compose 启动、管理界面与 Client / PDA / 插件分发、健康检查、外部网络选项、固定目录升级和幂等重跑语义均不变。升级仍须把新包解压到**当初部署的同一目录**后重跑 `bash install.sh`，否则会使用新的数据卷。
+
+- 完整性：归档旁车在执行包内脚本前校验整个 tar.gz；`install.sh` 再强制校验除 `SHA256SUMS` 自身外的全部部署文件；Builder 任一哈希或镜像 digest 不符即拒绝产包；
+- 审计：包内 `offline-build-info.json` 记录镜像 RepoDigest 与实际资源哈希；
+- 分发闭环：`install.sh` 把 `packages/` 下 Client MSI、PDA APK、官方插件复制到挂载目录，管理界面已预解压；
+- 可选共享网络：继续使用部署目录的 `network.env` 或 `LABELFRAME_EXTERNAL_NETWORK=<网络名> bash install.sh`；
+- 存量目录：曾按版本号目录部署的，仍在原目录覆盖解压并运行 `install.sh`，无需迁移数据。
+
 
 ## 5. Ubuntu（systemd 裸机部署）
 
@@ -228,7 +278,8 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 | Windows（引导程序 / MSI） | 本机已装 LabelFrame 时**重跑新版安装引导程序**即进入升级模式（列出可升级组件「现版本 → 新版本」，复用同一安装链覆盖升级）；或直接运行新版 MSI 覆盖安装——客户端升级会自动安全退出正在运行的程序再安装。客户端「检查更新」发现新版本时同样指向引导程序入口 | 数据在 `%ProgramData%\LabelFrame`（模板 / 作业 / 日志），`appsettings.json` 与用户配置在覆盖安装 / 卸载时均默认保留（卸载时可选清除，默认不清除）；回滚＝运行旧版本引导程序或 MSI 覆盖安装 |
 | Linux Docker（compose 分发） | 编辑 `.env` 把 `LABELFRAME_VERSION` 改为新版本（或 `latest`）→ `docker compose pull && docker compose up -d` | 数据在数据卷（默认 `labelframe-data`），重建容器不丢失；回滚＝改回旧版本号后重建 |
 | Ubuntu（systemd） | 幂等设计：**重跑 `sudo bash install-server-linux.sh`** 即覆盖升级（也可 `--manifest` 指定版本） | `/var/lib/labelframe` 数据与 `appsettings.json` 不动；回滚＝`--manifest` 指定旧版本重跑 |
-| Linux 离线部署包 | 新版离线包解压到**当初部署的同一目录**（`--strip-components=1`）后重跑 `bash install.sh`；**勿换目录升级**——数据卷名绑定部署目录名，换目录会新建空卷（模板 / 数据库不跟随） | 卷数据保留；旧版本镜像文件可删 `images/` 下旧 `.image.tar.gz` 释放磁盘；回滚＝旧版包同目录重跑 |
+| Windows Server 离线包 | 有网准备机用 Builder 的 `build-windows-offline.ps1` 生成 Full / Upgrade；目标机解压后运行 `install-server.cmd`。Upgrade 零 runtime，缺 ASP.NET Core 10+ 时改用 Full | `%ProgramData%\LabelFrame` 数据与配置保留；官方分发资源按账本收敛，第三方与自定义文件保留；回滚＝用旧版 Builder 生成对应包后安装旧版 |
+| Docker 离线部署包 | 有网准备机用 `build-docker-offline.sh` 生成归档；新版归档解压到**当初部署的同一目录**（`--strip-components=1`）后继续运行 `bash install.sh`；**勿换目录升级** | 卷数据保留；旧版本镜像文件可删 `images/` 下旧 `.image.tar.gz` 释放磁盘；回滚＝旧版包同目录重跑 |
 | PDA（Android 宿主） | 服务端「下载中心」扫码或直接下载新版 APK 覆盖安装（GitHub Release 与下载中心分发的都是同一签名的 Release 构建） | 配置（服务器地址 / 打印机 / 设备名）保留；**换签名来源的 APK 须先卸载重装**——配置会被清空且设备号变化（Server 设备目录出现新条目），详见「自动化发布与签名」一节 |
 
 补充要点：
@@ -276,9 +327,10 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 ## 9. 自动化发布与签名
 
 - 发版两步：① 更新 `docs/ROADMAP.md` 与 `CHANGELOG.md` 提交推送；② 例如 `git tag v1.0.0 && git push origin v1.0.0`。
-- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → 官方传输插件包（Zebra / TSPL `.lfplugin`）→ Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）→ GitHub Release（正文自动取 `CHANGELOG.md` 当版小节——用户视角更新说明在前、GitHub 自动提交列表附后；小节缺失即发版失败，发版顺序保证记账 PR 先合、tag 后推）。
+- CI 自动：构建测试 → 双 MSI（可签名）→ 管理界面插件 zip → 官方传输插件包（Zebra / TSPL `.lfplugin`）→ Linux 归档 → **Android APK（PDA 宿主）** → 同一次构建的 Server / Linux Client 候选镜像通过 Compose E2E → 原镜像推 ghcr.io（版本号 + `latest`）并锚定 Server 镜像 digest → 生成 `labelframe-offline-builder-<版本>.zip` → GitHub Release（正文自动取 `CHANGELOG.md` 当版小节——用户视角更新说明在前、GitHub 自动提交列表附后；小节缺失即发版失败，发版顺序保证记账 PR 先合、tag 后推）。
 - **安装引导 EXE**：发版链含独立 `bundle` job——按当版 install manifest（分阶段生成，runtime 哈希跨 job 一致性断言 fail-closed）构建 `LabelFrame-Bootstrapper-<版本>.exe` 并随 Release 附件发布（「安装引导程序（推荐安装入口）」一节的推荐入口即此产物）；下载多源与哈希校验语义见 DESIGN.md。
 - **Linux 归档与 compose 分发**：Linux 归档默认 self-contained（`install-server-linux.sh` 一键安装免 .NET 前置，见「Ubuntu（systemd 裸机部署）」一节）；Release 附件含 `compose.yml` + `.env`（与 `packaging/ubuntu/docker-compose.yml` 同源复制、`.env` 钉定当版版本，「Docker（推荐的服务端部署方式）」一节的快速启动即此产物；两者不进 install manifest——部署描述文件而非可安装产物）。
+- **离线部署 Builder**：Release 保留全部原子资源、Server 镜像、安装清单、compose 附件与小型 Builder，不再重复上传 Windows Full、Windows Upgrade、Docker Full 三类大包。管理员按需用 Builder 生成相同命名和选择语义的离线包；来源清单钉定当版资源哈希与 Server 镜像 release-time digest。
 - MSI 签名：配置 Secret `MSI_SIGN_CERT_BASE64` / `MSI_SIGN_PASSWORD` 时自动签名，否则跳过。当前为自签证书过渡方案（公开下载仍可能 SmartScreen 提示），正式对外分发建议购买 OV 代码签名证书。本地签名：`scripts\create-signing-cert.ps1` 生成证书，`scripts\build-msi.ps1 -Version x.y.z -Sign` 使用。
 - **引导 EXE 签名**：与 MSI 复用同一对 Secrets（`MSI_SIGN_CERT_BASE64` / `MSI_SIGN_PASSWORD`，`build-bundle.ps1 -Sign`）；未配置时跳过签名，完整性由 manifest sha256 校验保障。
 - Android APK 签名：必须配置全部四个 Secrets——`ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`——用专用自签 keystore 签名；**任一缺失即构建失败（`::error::` 后 exit 1），绝不回退 debug 签名**（此前「缺失回退 debug 签名并告警」的过渡路径已移除：回退路径存在 = 两次构建可能签名不一致，用户无法覆盖升级且换签名会重置 ANDROID_ID 致设备号漂移）。日常 CI 的 Android 构建检查（ci.yml 第三必需检查）仍用 debug 签名验证可构建，不对外分发。
@@ -324,6 +376,7 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 
 ## 11. 辅助脚本
 
+- Release 的 `labelframe-offline-builder-<版本>.zip`：有网准备机按需生成 Windows / Docker 离线包；Windows 用 `build-windows-offline.ps1`，Docker 用 `build-docker-offline.sh`。
 - `scripts\install-server-linux.sh`：Linux 服务端一键安装（manifest 校验 + systemd + 管理界面落位；在线 / 离线布局目录 / 指定版本，见「Ubuntu（systemd 裸机部署）」一节）。
 - `scripts\demo-winhost.ps1`：无打印机验证打印闭环（构建 → 启动 WinHost → 提交含中文作业 → 展示 ZPL）。
 - 品牌资产（图标 / 安装位图 / Android 资源 / 社交预览）不再本地生成——v0.33.0 起由品牌 v02 母版库（`assets/brand/`）统一供给，旧生成脚本已退役。

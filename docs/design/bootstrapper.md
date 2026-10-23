@@ -15,8 +15,9 @@
 
 **不做什么**：
 
-- manifest / latest.json 的**生成**——CI 发版流水线（`scripts/generate-install-manifest.ps1`）承担，引导只读解析（DESIGN §6.2）；
+- manifest / latest.json 的**生成**——CI 发版流水线（`scripts/generate-install-manifest.ps1`）承担，引导只读解析（DESIGN §6.2）；离线组包来源清单 `offline-source-manifest.json` 及 Builder 的生成也属于 Release 侧，不进入三件；
 - Bundle 链定义与 MSI 打包——`packaging/bootstrapper/Bundle.wxs` 与 `packaging/*.wxs`（构建 = `scripts/build-bundle.ps1`，发版 = `release.yml` bundle job）；
+- 服务端离线包两层链——有网准备机的 Windows / Docker Builder 与目标机 `install-server.ps1` / 既有 Docker `install.sh`（DESIGN §6.13）；三件的 Burn 引导程序继续服务在线 PC 拓扑与通用 `--layout`，不承担服务端离线 Installer；
 - Linux 服务端安装——`scripts/install-server-linux.sh`（决策 #134）；Docker——Release `compose.yml` 指引；
 - PDA（Android）装机——服务端下载中心扫码（决策 #119），不进 PC 引导；
 - 应用内自更新 / 无人值守静默更新——明确不做（决策 #118；Velopack 记为未来立项候选）；
@@ -67,10 +68,12 @@
 - **包级兜底**（`CachePackageComplete` 非零且有未试源）：同预算判定 `Retry`——这是无退避热循环缺陷的修复位点（真机实测 5 分钟 9.3 万次重试、日志 219~240MB，决策 #156 ③）。
 - **换源播报去重**：`(包 id, 源下标)` 组合只播报一次（引擎校验重试会重复触发获取开始）。
 
-### 3.3 离线布局生成与离线首装（决策 #135）
+### 3.3 通用离线布局生成与离线首装（决策 #135）
 
+- **适用边界**：本节描述 Burn 引导程序自身的 layout 模式，服务 PC 安装拓扑（Server / Client / 单机）从同一目录离线执行；它继续有效，但不是服务端离线 Builder 的目标机安装载体。按需生成的 Windows 服务端 Full / Upgrade 包由 DESIGN §6.13 的 `install-server.cmd` / `install-server.ps1` 消费。
 - **生成**（`RunLayoutGeneration`）：`--layout <目录>`（或引擎单横线 `-layout`）优先于一切安装路径；`LayoutModeArguments` 解析失败也进本路径显式失败不落向导。后台任务：拉清单原文 → `OfflineLayoutBuilder.BuildAsync`（组件逐个获取校验落位 + manifest / latest 原样字节落盘 + 引导 EXE 自复制（`WixBundleOriginalSource`——out-of-proc BA 的 `Assembly.Location` 是引擎解压临时目录不可用））；进度经 `LayoutProgressForm` 呈现（任意线程封送 UI）；与 `scripts/make-offline-layout.ps1`（IT 脚本形态）语义一致。
 - **首装**：目标机拷目录双击 EXE → 邻接清单隐式检测 → 清单来源 = 本地文件、`LocalSourceDirectory` = 其所在目录 → 每链包有效源序 `[布局本地文件] ++ urls`，第 0 次获取解析提供本地文件（`SetLocalSource`）；引擎对本地源副本同样按包内嵌摘要强制校验——篡改即校验失败按序换源，断网则源耗尽失败（fail-closed，篡改内容绝不落装）。布局文件不在位 / URL 来源 → 退化为纯 urls（在线行为与现状一致）。
+- **WebView2 边界**：本通用布局与在线 Burn 链继续使用 `install-manifest.json` 的 Evergreen 小型 Bootstrapper（LinkId `2124703`），现有 PayloadTool Authenticode 获取链不变；服务端离线 Full 包另由 `offline-source-manifest.json` 指定 LinkId `2124701` x64 Standalone，二者不得互换或共用清单条目。
 
 ### 3.4 非交互路径与升级 / 卸载链（`RunUnattended`）
 
@@ -102,7 +105,8 @@
 | `test/LabelFrame.Bootstrapper.Tests`（xunit，`net10.0-windows`） | 24 个测试文件 + 3 份清单 fixture——覆盖全部共享库子系统（仅 `WizardSession` 层的契约测试含只读断言与反射 API 面检查） |
 | `scripts/build-bundle.ps1` / `.github/workflows/release.yml` | 构建 / 发版 Bundle（BA + PayloadTool + 共享库） |
 | `scripts/make-offline-layout.ps1` | IT 布局脚本，与 `OfflineLayoutBuilder` / `OfflineLayoutNaming` 语义一致、命名约定共用 |
-| `scripts/make-offline-bundle-win.ps1` | Windows 离线部署包（全量 / 升级）组包脚本——离线布局契约的消费侧：当版产物＋运行时缓存组装为两个 Release 附件 zip（升级包不含运行时安装器） |
+| Release 离线 Builder / Windows Installer（DESIGN §6.13） | 按需生成 Windows Full / Upgrade 与 Docker Full；消费 `install-manifest.json` 的组件哈希和独立 `offline-source-manifest.json` 的镜像 digest / WebView2 Standalone 策略。目标机入口为 `install-server.cmd` / `install-server.ps1`，不复用 BA 的问卷 / Apply 链 |
+| Windows 底层组包逻辑 | 仍保留 Full / Upgrade 双包名称与「Full 含运行时、Upgrade 零运行时」选择语义；由 Builder 调用而非 release.yml 每版直接上传大附件 |
 | `scripts/test-bundle-*.ps1`（download-matrix / offline-layout / uninstall-walkthrough / upgrade-acquire / upgrade-walkthrough / wizard-foreground）+ `test-webview2-authverify.ps1` | 真机 / 沙箱走查脚本，驱动真实 BA 与 PayloadTool（`-verify` 诊断模式） |
 
 **跨模块同源事实**（双维护，变更须两侧同步）：
@@ -137,6 +141,7 @@
 | 安装链中文单语（i18n 范围限定） | #164 |
 | 品牌 v02（BA 图标 / 向导头部 lockup 嵌入资源） | #172 |
 | 注释极简化与模块文档分工（本文档的存在依据） | #187 / #189 |
+| 离线部署 Builder 两层模型：替代 Release 预组装大包，保留 Windows 双包与 Docker `install.sh`；在线 WebView2 链不变、离线 Full 用 Standalone | #207（§6.13） |
 
 ## 6. 平台坑与不变量
 
@@ -157,3 +162,7 @@
 13. **引擎事件回调单线程**：`CacheSourceFallback` / `CacheRetryPolicy` 的无锁访问以「Burn 回调单线程」为前提；跨线程只经 `InstallState` 快照（整体替换）与 `TaskCompletionSource` 通信。
 14. **`TopologyOptions.SelectedBrands` 是 `ISet<string>`**：net48 无 `IReadOnlySet<T>`（BA 复用约束，决策 #121 形状微调）——改接口形状即断 net48 腿。
 15. **多源回退只作用远程载荷**：`PayloadContainerId` 非空的伴生内嵌载荷经容器解压获取，与下载源无关——不得纳入失败计数与换源（否则缓存命中 / 容器获取会误触发换源播报）。
+16. **两类离线入口不可混同**：BA 邻接 `install-manifest.json` / `--layout` 是 Burn PC 拓扑安装；Windows 服务端 Builder 包由 `install-server.ps1` 执行。后者不得调用 BA 问卷来替代「包内 `managed-files.json` 允许清单＋`%ProgramData%\LabelFrame\installer\managed-files.json` 上次成功状态账本」的安全清理、Web UI 目录回滚、Machine 环境变量路径解析与服务健康检查。
+17. **WebView2 双来源刻意并存**：在线 / Burn layout 使用 LinkId `2124703` 小型 Bootstrapper；服务端离线 Full 使用 LinkId `2124701` x64 Standalone。Standalone 不进 `InstallManifest`、不改 `EvergreenRuntime` 兜底 URL，也不改变已装 WebView2 时 Burn 零获取的既有语义。
+18. **Windows Full 的三 runtime 不等于三项自动安装**：离线介质携带 Desktop、ASP.NET Core、WebView2 Standalone；服务端 Installer 在缺失时依次补 Desktop（基础 `dotnet` host / `Microsoft.NETCore.App`）与 ASP.NET Core，WebView2 不自动安装。三个载荷的在包可用性与 Server 前置职责必须逐项区分。
+19. **Release 大附件移除受真机门禁**：Builder 结构断言、哈希验证或 CI 成功均不能代替断网 Windows Full / Upgrade 与无预置镜像 Docker `install.sh` 的目标机证据；证据完成前旧附件上传必须保留。

@@ -73,6 +73,8 @@ curl -X POST http://<服务器>:53961/api/jobs \
 
 安装入口与向导流程见[部署指南](docs/DEPLOY.md) 的「安装引导程序（推荐安装入口）」一节；Docker / Ubuntu 步骤、签名与配置项见 **[docs/DEPLOY.md](docs/DEPLOY.md)**。
 
+无外网部署统一采用**两层模型**：在有网准备机从 Release 下载小型 `labelframe-offline-builder-<版本>.zip`，由 Builder 生成所需离线包；再把离线包拷到目标机，由包内 Installer 完成安装。Windows 准备机运行 `build-windows-offline.ps1`，目标服务器解压后运行 `install-server.cmd`；Docker 准备机运行 `build-docker-offline.sh`，目标机解压后继续运行既有 `install.sh`。
+
 ## 升级与版本
 
 各版本的用户可感知变化与升级注意事项见 [CHANGELOG](CHANGELOG.md)（0.x 历史版本有速览表）。自 1.0.0 起版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)：模板包格式、打印 API、作业模型、插件接口等公共契约在 minor 版本内只做兼容性新增，不破坏既有集成。
@@ -81,7 +83,8 @@ curl -X POST http://<服务器>:53961/api/jobs \
 |---|---|---|
 | Windows（单机 / 服务器 / 打印客户端） | 重跑新版安装引导程序（自动进入升级模式，逐组件覆盖）或运行新版 MSI 覆盖安装；客户端运行中升级会自动安全退出 | 模板 / 作业 / 日志与配置默认保留；回滚＝安装旧版本覆盖 |
 | Linux Docker | 更新 `.env` 中的版本号（或改 `latest`）后 `docker compose up -d` | 数据卷保留；回滚＝改回旧版本号重建 |
-| Ubuntu / Linux 离线部署包 | 重跑一键安装脚本即覆盖升级；离线包在**当初部署的同一目录**解压新版后重跑 `install.sh`（勿换目录） | 数据目录与配置不动；回滚＝指定旧版本重跑 |
+| Windows Server 离线包 | 有网准备机运行 Builder 的 `build-windows-offline.ps1` 生成 Full / Upgrade；目标机解压后运行 `install-server.cmd` | Full 含三类离线运行时（WebView2 为 x64 Standalone），Installer 只按需补 Server 所需 ASP.NET Core；Upgrade 零 runtime，缺前置时改用 Full；配置与数据保留 |
+| Docker 离线部署包 | 有网准备机运行 `build-docker-offline.sh` 生成归档；在**当初部署的同一目录**解压新版后继续运行包内 `install.sh`（勿换目录） | 数据卷与配置不动；回滚＝旧版包同目录重跑 |
 | PDA（Android） | 下载中心扫码或直接下载新版 APK 覆盖安装 | 配置保留（同签名来源）；换签名来源的 APK 须先卸载重装 |
 
 升级顺序建议（先服务端后客户端）、模板兼容注意与各形态详细步骤见[部署指南](docs/DEPLOY.md) 的「升级与迁移」一节。
@@ -112,7 +115,7 @@ cd web && pnpm install && pnpm dev  # 前端开发（连本机 WinHost）
 - 无打印机验证打印闭环：`powershell -ExecutionPolicy Bypass -File .\scripts\demo-winhost.ps1`。
 - Docker 验证 Server / Linux Client 路由闭环：源码候选运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1`；正式同版本镜像运行 `powershell -ExecutionPolicy Bypass -File .\scripts\test-linux-client-e2e.ps1 -ComposeFile packaging/e2e/compose.release.yaml -SkipBuild`，详见 [docs/LINUX-CLIENT-E2E.md](docs/LINUX-CLIENT-E2E.md)。
 - 提交即跑 CI（`.github/workflows/ci.yml`：dotnet 构建 / 测试 + 前端 lint / 双模式测试 / 构建 + MSI 结构断言 + Android 构建）；`master` 受门禁保护——变更走短分支 + PR，三项必需检查全绿后 squash 合并（流程见 [docs/WORKFLOW.md](docs/WORKFLOW.md)）。
-- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（双 MSI / 官方插件包 / Linux 归档与离线包 / Windows 离线部署包（全量 / 升级） / Android APK / ghcr 镜像，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
+- 发版：更新 ROADMAP / CHANGELOG 后推送 `v*` tag，由 `release.yml` 自动构建发布（双 MSI / 官方插件包 / Linux 归档 / Android APK / ghcr 镜像 / 离线部署 Builder，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「自动化发布与签名」一节）。Release 保留原子资源、镜像、安装清单与小型 Builder；Windows Full / Upgrade 与 Docker Full 由管理员按需生成，不再随每版重复上传。Release 构建要求 Android 签名 Secrets 齐备（缺失即失败、不回退 debug 签名）；keystore 证书管理与换签名影响（卸载重装 + 设备号变化）见 [docs/DEPLOY.md](docs/DEPLOY.md) 与 [AndroidHost README](src/LabelFrame.AndroidHost/README.md)。
 
 ## 文档
 

@@ -1,64 +1,74 @@
-# LabelFrame Windows 离线部署包·全量（__LABELFRAME_VERSION__，win-x64）
+# LabelFrame Windows Server 离线部署包·Full（__LABELFRAME_VERSION__，win-x64）
 
-本包用于**离线 / 内网环境**的 Windows 新机**首次安装**：解压后双击包内引导程序，全程零外网
-（全部组件与 .NET 10 / WebView2 运行时安装器已随包携带，目标机无需预装任何运行时）。
+本包由有网准备机上的 LabelFrame Offline Builder 生成，用于无外网 Windows 服务器的首次安装，也可在升级机缺少运行时时作为兜底。目标机解压后运行 `install-server.cmd`，由离线 Installer 安装或升级 Server、更新管理界面并分发 Client / PDA / 官方插件。
 
-- 已装机的**版本升级**请改用升级包 `labelframe-upgrade-__LABELFRAME_VERSION__-win-x64.zip`（体积约为本包一半，不含运行时安装器）；
-- 在线环境不必用本包：直接下载 Release 的引导 EXE 联网安装即可（见仓库 `docs/DEPLOY.md`「安装引导程序」一节）。
+Full 携带三类完整离线 runtime：.NET Desktop Runtime、ASP.NET Core Runtime、WebView2 x64 **Standalone**。Installer 会按需依次补齐 Server 所需的 Desktop Runtime（基础 `dotnet` host / .NET Runtime）与 ASP.NET Core Runtime；WebView2 保留为后续人工安装客户端的离线介质，不会自动安装，也不会复制进服务端下载中心。
 
-## 使用（三步）
+已装服务器且运行时完整时，优先使用体积更小的 Upgrade 包 `labelframe-upgrade-__LABELFRAME_VERSION__-win-x64.zip`；Upgrade **不含任何 runtime**。
 
-1. 把本包 zip 拷到目标机（U 盘 / 内网共享），解压到任意目录；
-2. 双击解压目录中的 `LabelFrame-Bootstrapper-__LABELFRAME_VERSION__.exe`；
-3. 按安装向导选择部署形态（单机一体 / 服务端 / 打印客户端）与组件 → 安装完成。
+## 使用
 
-引导程序自动使用同目录的安装清单与组件文件，不访问网络；本机缺运行时时自动用包内安装器补装（已装则跳过）。
-双 MSI 亦可从解压目录直接单独安装（服务端 `LabelFrame-Server-*.msi` / 客户端 `LabelFrame-Client-*.msi`），
-但该路径缺运行时只提示不补装——离线机请优先走引导 EXE。
+1. 把 zip 拷到目标服务器并解压到任意本地目录；
+2. 双击 `install-server.cmd`，按 UAC 提示授权管理员权限；
+3. 等待脚本完成完整性校验、Server MSI 安装 / 升级、Web UI 原子替换、分发资源落位与健康检查。
 
-## 完整性校验（拷贝后建议）
-
-在解压目录用 PowerShell 校验载荷（引导 EXE + 全部组件）：
+也可在管理员 PowerShell 中运行：
 
 ```powershell
-Get-Content SHA256SUMS | ForEach-Object {
-  $hash, $name = $_ -split '  ', 2
-  $ok = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower() -eq $hash
-  "{0}  {1}" -f ($(if ($ok) { 'OK  ' } else { 'FAIL' }), $name)
-}
+.\install-server.ps1
 ```
+
+脚本只部署 Server 与服务端下载中心资源，**不会自动安装打印客户端**。
+
+## Installer 会做什么
+
+- 强制校验 `SHA256SUMS`、包版本、Full runtime 集合与 `managed-files.json`；
+- 缺基础 .NET 10 host/runtime 时先从包内静默补装 Desktop Runtime，再按需补装 ASP.NET Core Runtime；不自动安装 WebView2；
+- 以静默 MSI 安装 / MajorUpgrade Server，并输出 MSI 详细日志；
+- 整体替换 Web UI，替换后任一健康检查失败都会恢复旧 Web UI 并重新启动服务；
+- 把 Client MSI、PDA APK、Zebra / TSPL 官方插件分别放入服务端实际配置的分发目录；
+- 尊重 Machine 级 `LABELFRAME_SERVER_*` 路径覆盖；`LABELFRAME_SERVER_WEB_UI` 已定义为空白时保持无头模式；
+- 验证 Windows 服务 Running、`/healthz`、服务版本、`uiEnabled` 与下载中心文件哈希；
+- 全链成功后，仅按上次受管账本清理旧官方资源；第三方插件、用户上传件和内容已被用户替换的文件保留。
+
+同版本重跑幂等。模板、作业、日志与配置保留在 `%ProgramData%\LabelFrame`，正常升级不会清除。
 
 ## 安装后验证
 
-- 服务端：`http://127.0.0.1:53961/healthz` 返回 `{"service":"LabelFrame.Server","status":"ok"}`；服务名 `LabelFrameServer`（`sc query LabelFrameServer`）；
-- 客户端：本机界面 `http://127.0.0.1:53960`；设置页把服务端地址指向 `http://<服务端 IP>:53961`；
-- 防火墙：服务端机放行 53961/tcp。
+- 服务端健康检查：`http://127.0.0.1:53961/healthz`；
+- Windows 服务：`sc query LabelFrameServer`；
+- 管理界面启用时：浏览器访问 `http://<服务器 IP>:53961/`；
+- 客户端：从下载中心取得 Client MSI 后人工安装，并把服务端地址设为 `http://<服务器 IP>:53961`；
+- 防火墙：按需放行 53961/tcp。
 
-## 分发 PDA 安装包（离线环境闭环）
+成功或失败都会显示 Installer 日志与 MSI 日志路径；正式日志位于 `%ProgramData%\LabelFrame\installer\logs`。
 
-包内 `LabelFrame-AndroidHost-__LABELFRAME_VERSION__.apk` 拷入服务端下载中心目录
-`%ProgramData%\LabelFrame\server\pda-packages`（或经管理界面上传），PDA 扫下载中心二维码即可安装——无需外网。
+## Full 与 Upgrade 如何选择
 
-## 常见问题
+| 场景 | 使用 |
+|---|---|
+| 新服务器首次部署 | Full |
+| 已装服务器升级，基础 .NET 10 与 ASP.NET Core 10+ 均在场 | Upgrade |
+| Upgrade 提示缺少任一 Server 运行时前置 | 改用同版本 Full |
+| 需要给后续客户端人工安装准备 Desktop / WebView2 离线介质 | Full |
 
-- **升级**：拿新版本**升级包**，同样解压后双击引导 EXE——自动进入升级模式（列出「现版本 → 新版本」），用户配置保留；
-- **升级包提示缺运行时 / 运行时安装失败**：本机运行时中途被卸载或损坏、或新版本抬升了运行时大版本要求——改用本全量包重跑即可；
-- **安装向导失败排查**：Burn 日志在 `%TEMP%\LabelFrame*.log`（失败页可直接打开本次日志）；
-- **SmartScreen「未知发布者」**：点「更多信息 → 仍要运行」；内网可把仓库自签根证书加入受信任根消除提示（见 `docs/DEPLOY.md`）。
+在线安装引导程序使用 WebView2 Evergreen 小型 Bootstrapper；本 Full 包携带的是 `MicrosoftEdgeWebView2RuntimeInstallerX64.exe` x64 Standalone 完整安装器，可在断网环境使用。
 
 ## 包内容一览
 
 | 文件 | 说明 |
 |---|---|
-| `LabelFrame-Bootstrapper-__LABELFRAME_VERSION__.exe` | 安装引导程序（离线入口，读同目录清单与组件） |
-| `LabelFrame-Server-__LABELFRAME_VERSION__.msi` | 服务端（Windows 服务 `LabelFrameServer`） |
-| `LabelFrame-Client-__LABELFRAME_VERSION__.msi` | 打印客户端（界面壳 + 托盘） |
-| `labelframe-server-webui-__LABELFRAME_VERSION__.zip` | 服务端管理界面插件（向导「管理界面」开关组件） |
-| `labelframe-transport-zebra-__LABELFRAME_VERSION__.lfplugin` | Zebra 品牌传输官方插件 |
-| `labelframe-transport-tspl-__LABELFRAME_VERSION__.lfplugin` | TSPL 指令集传输官方插件 |
-| `LabelFrame-AndroidHost-__LABELFRAME_VERSION__.apk` | PDA 宿主安装包（经服务端下载中心分发） |
-| `windowsdesktop-runtime-*-win-x64.exe` | .NET 10 Desktop Runtime 安装器（缺失补装，已装跳过） |
-| `aspnetcore-runtime-*-win-x64.exe` | ASP.NET Core Runtime 安装器（缺失补装，已装跳过） |
-| `MicrosoftEdgeWebView2RuntimeInstallerSimpleX64.exe` | WebView2 运行时安装器（缺失补装，已装跳过） |
-| `install-manifest.json` / `latest.json` | 安装清单与版本指针（引导程序离线消费） |
-| `SHA256SUMS` / `README.md` | 载荷哈希（不含 manifest / README）与本文件 |
+| `install-server.cmd` / `install-server.ps1` | 目标服务器离线 Installer 入口 |
+| `LabelFrame-Server-__LABELFRAME_VERSION__.msi` | 服务端 Windows 服务安装包 |
+| `LabelFrame-Client-__LABELFRAME_VERSION__.msi` | 供下载中心分发、后续人工安装的打印客户端 |
+| `labelframe-server-webui-__LABELFRAME_VERSION__.zip` | 服务端管理界面，由 Installer 整体替换 |
+| `labelframe-transport-zebra-__LABELFRAME_VERSION__.lfplugin` | Zebra 官方插件，分发到插件下载目录 |
+| `labelframe-transport-tspl-__LABELFRAME_VERSION__.lfplugin` | TSPL 官方插件，分发到插件下载目录 |
+| `LabelFrame-AndroidHost-__LABELFRAME_VERSION__.apk` | PDA 宿主，分发到 PDA 下载目录 |
+| `windowsdesktop-runtime-*-win-x64.exe` | .NET Desktop Runtime，净机缺基础 host/runtime 时先自动补装 |
+| `aspnetcore-runtime-*-win-x64.exe` | ASP.NET Core Runtime，Server 缺失时自动补装 |
+| `MicrosoftEdgeWebView2RuntimeInstallerX64.exe` | WebView2 x64 Standalone 离线介质，不自动安装 |
+| `managed-files.json` | 本包允许分发的官方资源清单 |
+| `offline-build-info.json` | Builder 实际来源、哈希、大小与生成时间 |
+| `SHA256SUMS` | 包内载荷完整性账本 |
+| `install-manifest.json` / `latest.json` | 原子资源版本与来源记录；Installer 以本包账本为安装边界 |

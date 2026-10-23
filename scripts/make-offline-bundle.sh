@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# 组装 LabelFrame Linux 离线部署包（迭代 101，Issue #213；契约：docs/DESIGN.md 决策 #160——修订 #64「Release 不含 docker 离线包」）
+# 组装 LabelFrame Docker 离线部署包；契约见 docs/DESIGN.md §6.13。
 #
-# 用途：发版流水线（release.yml offline-bundle job）把已验收的 Server 镜像 tar 与当版分发产物组装成单个
-#       离线部署包附件 labelframe-offline-<版本>-linux-x64.tar.gz——解压后按 README 三步（docker load →
-#       compose up → healthz）零外网起服务；本地构建调试亦可直接调用。
+# Offline Builder 在准备机按 release-time digest 拉取并校验镜像、下载原子资源后调用本脚本，生成
+# labelframe-offline-<版本>-linux-x64.tar.gz；目标机继续运行包内既有 install.sh 完成零外网部署。
 # 包结构与口径：
 #   - images/  docker save 导出的镜像 tar.gz（ghcr 全名 tag 原样保留：load 后本地命中 tag，compose 默认
 #     pull=missing 不再联网拉取，compose.yml 因此可与在线版逐字节同源，防漂移）；
@@ -12,7 +11,7 @@
 #   - packages/  客户端 MSI / PDA APK / 官方 .lfplugin（拷入挂载目录即经下载中心分发——离线环境闭环）；
 #   - plugins/web-ui/  管理界面 zip 预解压（compose 默认挂载 ./plugins/web-ui 即服务端默认 WebUiPath，
 #     管理界面开箱可用，免用户手工解压 zip）；
-#   - SHA256SUMS  镜像 tar + packages 全件哈希（U 盘 / 内网共享拷贝场景完整性校验，install.sh 强制执行）；
+#   - SHA256SUMS  除账本自身外全部部署文件哈希；归档旁车 `.tar.gz.sha256` 供执行 install.sh 前验证整包；
 #   - README.md / install.sh 来自 packaging/offline/（README 版本占位 __LABELFRAME_VERSION__ 随组包替换）。
 #   - 整包不进 install-manifest（与 compose 分发附件同口径：自足分发单元而非可安装产物，决策 #116 / #134）。
 #
@@ -37,6 +36,8 @@ PLUGIN_PKGS=()
 WEBUI_ZIP=""
 OUTPUT_DIR=""
 COMPOSE_FILE=""
+TEMPLATE_ROOT=""
+BUILD_INFO=""
 
 die() { echo "[离线包] 错误：$*" >&2; exit 1; }
 info() { echo "[离线包] $*"; }
@@ -47,16 +48,19 @@ LabelFrame Linux 离线部署包组装脚本（docs/DEPLOY.md §4.2 / DESIGN 决
 用法：
   bash scripts/make-offline-bundle.sh -v <版本> --image-tar <镜像tar.gz> \
     --client-package <Client.msi> --pda-package <APK> \
-    --plugin-package <lfplugin> --webui-zip <webui.zip> [-o 输出目录] [--compose-file <compose.yml>]
+    --plugin-package <lfplugin> --webui-zip <webui.zip> [-o 输出目录] [--compose-file <compose.yml>] \
+    [--template-root <模板目录>] [--build-info <offline-build-info.json>]
 参数：
   -v, --version         当版版本号（包名与 .env 钉定值）
   --image-tar           docker save | gzip 导出的 server 镜像 tar.gz（已构建并验收的镜像）
   --client-package      客户端 MSI（packages/client/）
   --pda-package         PDA 宿主 APK（packages/pda/）
-  --plugin-package      官方传输插件 .lfplugin（packages/plugin/；可多次传入逐个收录——迭代 143 起双官方插件）
+  --plugin-package      官方传输插件 .lfplugin（packages/plugin/；可多次传入逐个收录）
   --webui-zip           服务端管理界面 zip（预解压到 plugins/web-ui/）
   -o, --output-dir      输出目录（默认 <仓库>/artifacts/offline-bundle）
   --compose-file        compose 源文件（默认 packaging/ubuntu/docker-compose.yml，逐字节同源复制）
+  --template-root       README.md 与 install.sh 所在目录（默认 packaging/offline）
+  --build-info          Builder 审计记录；提供时收录到包根
 USAGE
   exit 0
 }
@@ -73,6 +77,8 @@ while [ "$#" -gt 0 ]; do
     --webui-zip)         need_value "$@"; WEBUI_ZIP="$2"; shift 2 ;;
     -o|--output-dir)     need_value "$@"; OUTPUT_DIR="$2"; shift 2 ;;
     --compose-file)      need_value "$@"; COMPOSE_FILE="$2"; shift 2 ;;
+    --template-root)     need_value "$@"; TEMPLATE_ROOT="$2"; shift 2 ;;
+    --build-info)        need_value "$@"; BUILD_INFO="$2"; shift 2 ;;
     -h|--help)           usage ;;
     *) die "未知参数：$1（--help 查看用法）" ;;
   esac
@@ -100,10 +106,14 @@ grep -q 'labelframe-server' "$COMPOSE_FILE" || die "compose 源文件缺镜像�
 OUTPUT_DIR="${OUTPUT_DIR:-$REPO_ROOT/artifacts/offline-bundle}"
 BUNDLE_NAME="labelframe-offline-$VERSION-linux-x64"
 BUNDLE_DIR="$OUTPUT_DIR/$BUNDLE_NAME"
-README_TEMPLATE="$REPO_ROOT/packaging/offline/README.md"
-INSTALL_TEMPLATE="$REPO_ROOT/packaging/offline/install.sh"
-[ -s "$README_TEMPLATE" ] || die "缺 packaging/offline/README.md 模板"
-[ -s "$INSTALL_TEMPLATE" ] || die "缺 packaging/offline/install.sh"
+TEMPLATE_ROOT="${TEMPLATE_ROOT:-$REPO_ROOT/packaging/offline}"
+README_TEMPLATE="$TEMPLATE_ROOT/README.md"
+INSTALL_TEMPLATE="$TEMPLATE_ROOT/install.sh"
+[ -s "$README_TEMPLATE" ] || die "缺 README.md 模板：$README_TEMPLATE"
+[ -s "$INSTALL_TEMPLATE" ] || die "缺 install.sh 模板：$INSTALL_TEMPLATE"
+if [ -n "$BUILD_INFO" ]; then
+  [ -s "$BUILD_INFO" ] || die "offline-build-info 不存在或为空：$BUILD_INFO"
+fi
 
 info "组装离线包 $BUNDLE_NAME -> $OUTPUT_DIR"
 rm -rf "$BUNDLE_DIR"
@@ -134,6 +144,9 @@ sed "s/__LABELFRAME_VERSION__/$VERSION/g" "$README_TEMPLATE" > "$BUNDLE_DIR/READ
 if grep -q '__LABELFRAME_VERSION__' "$BUNDLE_DIR/README.md"; then die "README 版本占位替换不完全"; fi
 cp "$INSTALL_TEMPLATE" "$BUNDLE_DIR/install.sh"
 chmod +x "$BUNDLE_DIR/install.sh"
+if [ -n "$BUILD_INFO" ]; then
+  cp "$BUILD_INFO" "$BUNDLE_DIR/offline-build-info.json"
+fi
 info "[4/7] README / install.sh 就位"
 
 # 5) packages 三件（拷入挂载目录即经下载中心分发；官方插件包可多个，逐个收录）
@@ -161,8 +174,15 @@ if find "$BUNDLE_DIR/plugins/web-ui" -name '*\\*' | grep -q .; then
 fi
 info "[6/7] 管理界面预解压完成（plugins/web-ui/）"
 
-# 7) SHA256SUMS（镜像 tar + packages 全件；相对包根路径，install.sh 在包根 sha256sum -c 校验）
-(cd "$BUNDLE_DIR" && find images packages -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS)
+# 7) SHA256SUMS（除账本自身外全部部署文件；相对包根路径，install.sh 在包根强制校验）
+(
+  cd "$BUNDLE_DIR"
+  : > SHA256SUMS
+  while IFS= read -r -d '' relative; do
+    hash="$(sha256sum "$relative" | cut -d' ' -f1)"
+    printf '%s  %s\n' "$hash" "$relative" >> SHA256SUMS
+  done < <(find . -type f ! -name SHA256SUMS -printf '%P\0' | LC_ALL=C sort -z)
+)
 [ -s "$BUNDLE_DIR/SHA256SUMS" ] || die "SHA256SUMS 生成失败"
 
 # fail-closed 结构断言（AC-01）：任一关键件缺失 / 空文件即失败，不出残缺包
@@ -172,6 +192,7 @@ assert_nonempty "$BUNDLE_DIR/install.sh"
 assert_nonempty "$BUNDLE_DIR/compose.yml"
 assert_nonempty "$BUNDLE_DIR/.env"
 assert_nonempty "$BUNDLE_DIR/SHA256SUMS"
+if [ -n "$BUILD_INFO" ]; then assert_nonempty "$BUNDLE_DIR/offline-build-info.json"; fi
 assert_nonempty "$BUNDLE_DIR/images/labelframe-server-$VERSION.image.tar.gz"
 assert_nonempty "$BUNDLE_DIR/plugins/web-ui/index.html"
 ls "$BUNDLE_DIR"/packages/client/*.msi >/dev/null 2>&1    || die "结构断言失败：packages/client 缺 MSI"
@@ -180,7 +201,10 @@ ls "$BUNDLE_DIR"/packages/plugin/*.lfplugin >/dev/null 2>&1 || die "结构断言
 info "[7/7] SHA256SUMS 生成（$(wc -l < "$BUNDLE_DIR/SHA256SUMS") 条）+ 结构断言通过"
 
 # 归档（tar.gz，解压得同名目录）
-tar -C "$OUTPUT_DIR" -czf "$OUTPUT_DIR/$BUNDLE_NAME.tar.gz" "$BUNDLE_NAME"
-[ -s "$OUTPUT_DIR/$BUNDLE_NAME.tar.gz" ] || die "归档生成失败"
-info "离线包完成：$OUTPUT_DIR/$BUNDLE_NAME.tar.gz（$(du -h "$OUTPUT_DIR/$BUNDLE_NAME.tar.gz" | cut -f1)）"
+ARCHIVE_PATH="$OUTPUT_DIR/$BUNDLE_NAME.tar.gz"
+tar --force-local -C "$OUTPUT_DIR" -czf "$ARCHIVE_PATH" "$BUNDLE_NAME"
+[ -s "$ARCHIVE_PATH" ] || die "归档生成失败"
+(cd "$OUTPUT_DIR" && sha256sum "$BUNDLE_NAME.tar.gz" > "$BUNDLE_NAME.tar.gz.sha256")
+[ -s "$ARCHIVE_PATH.sha256" ] || die "归档 SHA256 旁车生成失败"
+info "离线包完成：$ARCHIVE_PATH（$(du -h "$ARCHIVE_PATH" | cut -f1)）"
 info "部署：拷到目标机解压后按 README 三步（或直接 bash install.sh）——全程零外网。"

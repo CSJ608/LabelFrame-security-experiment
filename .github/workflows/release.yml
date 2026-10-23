@@ -1,11 +1,9 @@
-# LabelFrame 自动发布流水线（迭代 21；迭代 49 增加 Android APK；迭代 58 增加安装清单；迭代 63 增加 Zebra 官方插件包 .lfplugin——随 Release 附件发布、随 Client MSI 附带并收录 install manifest，决策 #123；迭代 67 修复步骤序——插件包构建先于 Client MSI 打包并加 fail-closed 断言，#97；迭代 68 增加引导 Bundle EXE——bundle job 分阶段生成 manifest 构建、随 Release 附件发布，决策 #132；迭代 71 起 Linux 归档默认 self-contained + compose 分发附件 compose.yml / .env 随 Release 发布，决策 #134；迭代 94 修复前端产物自检特征——迭代 75 下线「PDA 日志」页致旧特征消失、反标记空转，决策 #150；迭代 101 增加 Linux 离线部署包——offline-bundle job 组包 + 真离线自验后随 Release 附件发布，修订决策 #64「Release 不含 docker 离线包」口径，决策 #160）
+# LabelFrame 自动发布流水线：构建原子产物、镜像、安装引导与离线部署 Builder 后创建 Release。
 # 触发：推送 v* tag（如 v0.17.0）；也可手动运行 workflow_dispatch 指定版本号。
-# 流程：测试（dotnet + 前端双模式）→ 打包（双 MSI / 插件 zip / Zebra 官方插件包 / Linux 归档 / Android APK）→ 双镜像候选 E2E → 推送 ghcr.io → 引导 Bundle EXE（bundle job）+ Linux 离线部署包（offline-bundle job，含真离线自验）→ 生成安装清单 → 创建 GitHub Release。
+# 流程：测试与前端双构建 → 原子产物与 Android → 镜像候选 E2E / 推送并锚定 digest → 安装引导与同源清单 → 离线部署 Builder → GitHub Release。
 # MSI 签名：仓库配置 MSI_SIGN_CERT_BASE64 / MSI_SIGN_PASSWORD Secret 时自动签名，否则跳过（自签证书过渡方案）。
 # APK 签名：四个 ANDROID_KEYSTORE_* / ANDROID_KEY_* Secret 必须齐备，缺失即构建失败——不回退 debug 签名（签名稳定化，迭代 59 决策 #119）。
-# 安装清单：install-manifest.json（+ latest.json 指针）由 release job 从当版真实产物生成并断言（schema 见 docs/DESIGN.md §6.2，迭代 58 决策 #115 / #120）；禁止人工维护。
-# 引导 Bundle（迭代 68，决策 #132）：bundle job 先于 release job 分阶段生成同一口径的 manifest（消费其 runtime 条目构建引导 EXE），
-#   release job 生成发布清单后做跨 job 一致性断言（runtime 哈希逐条比对，防厂商轮转窗口内两阶段错位）——不符即整次发版失败，重跑自愈。
+# 安装清单：bundle job 从当版真实原子产物与 runtime 实测生成唯一字节版本；Burn、Offline Builder 与最终 Release 共同消费，release job 对最终附件执行 VerifyOnly。
 name: release
 
 on:
@@ -347,6 +345,8 @@ jobs:
     name: Docker 双镜像（候选 E2E → ghcr.io）
     needs: [version, test]
     runs-on: ubuntu-latest
+    outputs:
+      serverImageDigest: ${{ steps.server-image-digest.outputs.digest }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
       LABELFRAME_SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/labelframe-server
@@ -414,38 +414,30 @@ jobs:
           docker push "$LABELFRAME_CLIENT_IMAGE:$VERSION"
           docker push "$LABELFRAME_CLIENT_IMAGE:latest"
 
-      # 离线包原料（迭代 101，#213，决策 #160）：save 已通过候选 E2E 并推送的 server 镜像——ghcr 全名 tag
-      # 原样保留（offline-bundle job 消费侧 docker load 后本地命中 tag，compose 默认 pull=missing 不再联网拉取，
-      # 离线包内 compose.yml 因此可与在线分发附件逐字节同源）。save 只取版本 tag（latest 属在线跟随语义）。
-      - name: 导出 Server 镜像 tar（离线包原料）
+      - name: 锚定 Server 镜像 release-time digest
+        id: server-image-digest
         run: |
-          mkdir -p artifacts/offline-image
-          docker save "$LABELFRAME_SERVER_IMAGE:$VERSION" | gzip > "artifacts/offline-image/labelframe-server-$VERSION.image.tar.gz"
-          test -s "artifacts/offline-image/labelframe-server-$VERSION.image.tar.gz"
-          echo "镜像 tar 就位：$(du -h "artifacts/offline-image/labelframe-server-$VERSION.image.tar.gz" | cut -f1)"
+          REF="$LABELFRAME_SERVER_IMAGE:$VERSION"
+          docker pull "$REF"
+          DIGEST=$(docker image inspect "$REF" --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+            | sed -n "s#^$LABELFRAME_SERVER_IMAGE@##p" | head -n 1)
+          if ! printf '%s' "$DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::无法取得 Server 镜像 release-time digest：$REF（实测=$DIGEST）"
+            exit 1
+          fi
+          docker image inspect "$LABELFRAME_SERVER_IMAGE@$DIGEST" >/dev/null
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "Server 镜像 digest 已锚定：$LABELFRAME_SERVER_IMAGE@$DIGEST"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: offline-image-tar
-          path: artifacts/offline-image/labelframe-server-*.image.tar.gz
-          if-no-files-found: error
 
-  # 引导 Bundle（迭代 68，#101，决策 #132）：Windows job 构建引导 EXE 并随 Release 附件发布。
-  # 步骤序（#97 教训——先声明依赖再排步骤）：bundle 构建需五类产物在场（双 MSI / webui zip / .lfplugin 来自
-  # release-assets，APK 来自 android-apk——manifest 收录 pda-apk 条目，缺产物即生成失败），故 needs [package, android]；
-  # manifest 分阶段生成——本 job 先按与 release job 完全相同的参数生成一份当版 manifest（bundle 消费用的
-  # runtime 直链 + 哈希来源于此），release job 再生成发布清单并做跨 job 一致性断言（runtime 哈希逐条比对）。
-  # runtime 下载目录共享（artifacts/runtimes）：generate 下载实测哈希落 manifest，build-bundle 缓存命中直接消费，同 job 内只下载一次。
+  # 引导 Bundle 与唯一安装清单：本 job消费双 MSI / Web UI / 官方插件 / APK，下载 runtime 一次生成清单，
+  # 随后同缓存构建 Burn；该清单原样交给 Offline Builder 与最终 Release，避免厂商直链轮转窗口内多份事实漂移。
   bundle:
     name: 构建安装引导 EXE（Burn Bundle）
     needs: [version, package, android]
     runs-on: windows-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
-    outputs:
-      runtimeDesktopSha256: ${{ steps.bundle-meta.outputs.runtimeDesktopSha256 }}
-      runtimeAspNetCoreSha256: ${{ steps.bundle-meta.outputs.runtimeAspNetCoreSha256 }}
-      runtimeWebView2Sha256: ${{ steps.bundle-meta.outputs.runtimeWebView2Sha256 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -474,9 +466,7 @@ jobs:
           name: android-apk
           path: release
 
-      # 分阶段生成（bundle 消费侧）：参数与 release job 的生成步骤完全一致（同产物、同脚本、同默认 runtime 版本），
-      # 一致性由 release job 的跨 job 断言 fail-closed 兜底。
-      - name: 生成安装清单（bundle 消费侧）
+      - name: 生成唯一安装清单
         shell: pwsh
         run: |
           ./scripts/generate-install-manifest.ps1 `
@@ -525,217 +515,89 @@ jobs:
           if (-not (Test-Path $exe)) { throw "引导 EXE 不存在：$exe" }
           Write-Host "引导 EXE 在场：$exe（$([Math]::Round((Get-Item $exe).Length / 1MB, 2)) MB）"
 
-      - name: 提取 bundle 消费侧 runtime 哈希（供 release job 一致性断言）
-        id: bundle-meta
-        shell: pwsh
-        run: |
-          $m = Get-Content release/install-manifest.json -Raw -Encoding UTF8 | ConvertFrom-Json
-          $desktop = @($m.components | Where-Object id -eq 'runtime-desktop')[0]
-          $aspnet = @($m.components | Where-Object id -eq 'runtime-aspnetcore')[0]
-          $webview2 = @($m.components | Where-Object id -eq 'runtime-webview2')[0]
-          if (-not $desktop -or -not $aspnet -or -not $webview2) { throw 'bundle 消费侧 manifest 缺 runtime 条目' }
-          "runtimeDesktopSha256=$($desktop.sha256)" >> $env:GITHUB_OUTPUT
-          "runtimeAspNetCoreSha256=$($aspnet.sha256)" >> $env:GITHUB_OUTPUT
-          "runtimeWebView2Sha256=$($webview2.sha256)" >> $env:GITHUB_OUTPUT
-
       - uses: actions/upload-artifact@v4
         with:
           name: bundle-exe
           path: artifacts/LabelFrame-Bootstrapper-*.exe
           if-no-files-found: error
 
-      # Windows 离线包消费侧原料：本 job 清单生成期下载实测的三个运行时安装器与清单 / 指针原样上传——
-      # 组包 job 直接消费不再二次下载（厂商直链轮转窗口内二次下载可能导致清单哈希与文件错位）。
+      # 唯一安装清单：Offline Builder 与最终 Release 原样消费；runtime 缓存只在本 job 内构建 Burn 使用。
       - uses: actions/upload-artifact@v4
         with:
           name: bundle-offline-inputs
           path: |
             release/install-manifest.json
             release/latest.json
-            artifacts/runtimes/
           if-no-files-found: error
 
-  # Linux 离线部署包（迭代 101，#213，决策 #160——修订 #64「Release 不含 docker 离线包」）：
-  # 消费 docker job 已验收镜像 tar + package / android job 分发产物 + 管理界面 zip，组装单附件
-  # labelframe-offline-<版本>-linux-x64.tar.gz（镜像 tar + 同源 compose.yml + 钉定 .env + README / install.sh +
-  # packages 三件 + 预解压管理界面 + SHA256SUMS；组包契约见 scripts/make-offline-bundle.sh 头注）。
-  # 真离线自验：本 job 与 docker job 不同 runner、无本地镜像——解压最终 tar.gz 后以包内 install.sh 走用户
-  # 路径（校验 → load → compose up → /healthz 就绪），离线包不可用即整次发版失败（fail-closed，#97 口径）。
-  # 整包不进 install-manifest（与 compose 分发附件同口径：自足分发单元而非可安装产物，#116 / #134）。
-  offline-bundle:
-    name: 组装 Linux 离线部署包（真离线自验）
-    needs: [version, docker, package, android]
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 下载发布产物（MSI / 插件包 / 管理界面 zip）
-        uses: actions/download-artifact@v4
-        with:
-          name: release-assets
-          path: release
-
-      - name: 下载 Android APK
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: release
-
-      - name: 下载镜像 tar
-        uses: actions/download-artifact@v4
-        with:
-          name: offline-image-tar
-          path: image
-
-      - name: 组装离线包
-        run: |
-          bash scripts/make-offline-bundle.sh \
-            -v "$VERSION" \
-            --image-tar "image/labelframe-server-$VERSION.image.tar.gz" \
-            --client-package "release/LabelFrame-Client-$VERSION.msi" \
-            --pda-package "release/LabelFrame-AndroidHost-$VERSION.apk" \
-            --plugin-package "release/labelframe-transport-zebra-$VERSION.lfplugin" \
-            --plugin-package "release/labelframe-transport-tspl-$VERSION.lfplugin" \
-            --webui-zip "release/labelframe-server-webui-$VERSION.zip" \
-            -o bundle
-
-      # fail-closed 结构断言（对最终 tar.gz 再验一次，防「组包成功但归档错位」；脚本内已有布局断言）
-      - name: 断言离线包结构（fail-closed）
-        run: |
-          TARBALL="bundle/labelframe-offline-$VERSION-linux-x64.tar.gz"
-          test -s "$TARBALL"
-          mkdir -p verify && tar -xzf "$TARBALL" -C verify
-          cd "verify/labelframe-offline-$VERSION-linux-x64"
-          test -s README.md && test -s install.sh && test -s compose.yml && test -s .env && test -s SHA256SUMS
-          test -s "images/labelframe-server-$VERSION.image.tar.gz"
-          test -s plugins/web-ui/index.html
-          ls packages/client/LabelFrame-Client-$VERSION.msi >/dev/null
-          ls packages/pda/LabelFrame-AndroidHost-$VERSION.apk >/dev/null
-          ls packages/plugin/labelframe-transport-zebra-$VERSION.lfplugin >/dev/null
-          ls packages/plugin/labelframe-transport-tspl-$VERSION.lfplugin >/dev/null
-          grep -q "^LABELFRAME_VERSION=$VERSION$" .env
-          echo "离线包结构断言通过：$TARBALL（$(du -h "../../$TARBALL" | cut -f1)）"
-
-      # 真离线自验：解压 tar.gz 后以包内 install.sh 走用户路径全链（本 runner 无该镜像，load 前本地必不存在）
-      - name: 真离线自验（包内 install.sh 全链）
-        run: |
-          docker image inspect "ghcr.io/${{ github.repository_owner }}/labelframe-server:$VERSION" >/dev/null 2>&1 \
-            && { echo '::error::本 runner 意外已有目标镜像，自验前提不成立'; exit 1; } || true
-          cd "verify/labelframe-offline-$VERSION-linux-x64"
-          bash install.sh
-
-      - name: 清理自验环境
-        if: always()
-        run: |
-          if [ -d "verify/labelframe-offline-$VERSION-linux-x64" ]; then
-            (cd "verify/labelframe-offline-$VERSION-linux-x64" && docker compose down --volumes) || true
-          fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: offline-bundle
-          path: bundle/labelframe-offline-*.tar.gz
-          if-no-files-found: error
-
-  # Windows 离线部署包（全量 / 升级）：消费当版 Release 产物 + bundle job 清单生成期的运行时缓存，组装双附件
-  # labelframe-offline-<版本>-win-x64.zip（全量，含三运行时安装器，新机首装）与
-  # labelframe-upgrade-<版本>-win-x64.zip（升级，全量减三运行时——升级机运行时已装被引导链跳过不重复携带）；
-  # 组包契约见 scripts/make-offline-bundle-win.ps1 头注。自验口径 = 结构断言 + 校验（脚本内逐组件
-  # sha256 / WebView2 微软验签 fail-closed，本 job 对最终 zip 再验布局与 SHA256SUMS），不做 runner 真机
-  # 安装自验（MSI / 服务 / 运行时安装对 runner 侵入大——安装全链走真机人工验收）。
-  # 整包不进 install-manifest（与 Linux 离线包同口径：自足分发单元而非可安装产物）。
-  windows-offline-bundle:
-    name: 组装 Windows 离线部署包（全量 / 升级，结构断言）
-    needs: [version, package, android, bundle]
+  offline-builder:
+    name: 组装离线部署 Builder
+    needs: [version, docker, bundle]
     runs-on: windows-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      SERVER_IMAGE: ghcr.io/${{ github.repository_owner }}/labelframe-server
+      SERVER_IMAGE_DIGEST: ${{ needs.docker.outputs.serverImageDigest }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: 下载发布产物（MSI / 插件包 / 管理界面 zip / Linux 归档）
-        uses: actions/download-artifact@v4
-        with:
-          name: release-assets
-          path: release
-
-      - name: 下载 Android APK
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: release
-
-      - name: 下载引导 EXE
-        uses: actions/download-artifact@v4
-        with:
-          name: bundle-exe
-          path: release
-
-      # 清单 / latest / 运行时缓存来自 bundle job 生成期（同源逐字节消费，不二次下载）
-      - name: 下载清单与运行时缓存（bundle 消费侧同源）
+      - name: 下载安装清单（与引导 Bundle 同源）
         uses: actions/download-artifact@v4
         with:
           name: bundle-offline-inputs
           path: inputs
 
-      - name: 组装双包（全量 / 升级）
+      - name: 生成来源清单
         shell: pwsh
         run: |
-          & .\scripts\make-offline-bundle-win.ps1 `
+          & .\scripts\generate-offline-source-manifest.ps1 `
             -Version $env:VERSION `
-            -AssetsDir release `
-            -ManifestPath inputs/release/install-manifest.json `
-            -LatestPath inputs/release/latest.json `
-            -RuntimesDir inputs/artifacts/runtimes `
-            -BootstrapperPath "release/LabelFrame-Bootstrapper-$env:VERSION.exe" `
-            -OutputDir bundle
-          if ($LASTEXITCODE -ne 0) { throw 'Windows 离线部署包组包失败' }
+            -InstallManifestPath inputs/release/install-manifest.json `
+            -ServerImageReference "$env:SERVER_IMAGE`:$env:VERSION" `
+            -ServerImageDigest $env:SERVER_IMAGE_DIGEST `
+            -ComposePath packaging/ubuntu/docker-compose.yml `
+            -OwnerRepo '${{ github.repository }}' `
+            -OutputPath artifacts/offline-source-manifest.json
+          if ($LASTEXITCODE -ne 0) { throw '离线 Builder 来源清单生成失败' }
 
-      # fail-closed 结构断言（对最终 zip 再验一次，防「组包成功但归档错位」；脚本内已有布局断言）：
-      # 解压双包核对关键件、SHA256SUMS 逐条重算、全量包含 3 个运行时而升级包必须一个都没有
-      - name: 断言双包结构（fail-closed）
+      - name: 组装 Builder zip
         shell: pwsh
         run: |
-          $v = $env:VERSION
-          $runtimePatterns = @('windowsdesktop-runtime-*.exe', 'aspnetcore-runtime-*.exe', 'MicrosoftEdgeWebView2RuntimeInstallerSimpleX64.exe')
-          foreach ($kind in 'offline', 'upgrade') {
-            $zip = "bundle/labelframe-$kind-$v-win-x64.zip"
-            if (-not (Test-Path $zip)) { throw "缺产物：$zip" }
-            $verify = "verify/$kind"
-            Expand-Archive -Path $zip -DestinationPath $verify
-            $dir = Join-Path $verify "labelframe-$kind-$v-win-x64"
-            foreach ($must in @("LabelFrame-Bootstrapper-$v.exe", "LabelFrame-Server-$v.msi", "LabelFrame-Client-$v.msi",
-                                "labelframe-server-webui-$v.zip", "labelframe-transport-zebra-$v.lfplugin",
-                                "labelframe-transport-tspl-$v.lfplugin", "LabelFrame-AndroidHost-$v.apk",
-                                'install-manifest.json', 'latest.json', 'README.md', 'SHA256SUMS')) {
-              if (-not (Test-Path (Join-Path $dir $must))) { throw "结构断言失败：$kind 包缺 $must" }
-            }
-            $runtimeHits = @(Get-ChildItem $dir -File | Where-Object {
-              $n = $_.Name
-              @($runtimePatterns | Where-Object { $n -like $_ }).Count -gt 0
-            })
-            if ($kind -eq 'upgrade' -and $runtimeHits.Count -gt 0) { throw "升级包含运行时文件：$(($runtimeHits | ForEach-Object Name) -join ', ')" }
-            if ($kind -eq 'offline' -and $runtimeHits.Count -ne 3) { throw "全量包应含 3 个运行时安装器，实际 $($runtimeHits.Count)" }
-            Get-Content (Join-Path $dir 'SHA256SUMS') | ForEach-Object {
-              $hash, $name = $_ -split '  ', 2
-              if (-not $name) { throw "SHA256SUMS 行格式异常：$_" }
-              $actual = (Get-FileHash (Join-Path $dir $name) -Algorithm SHA256).Hash.ToLower()
-              if ($actual -ne $hash) { throw "SHA256SUMS 校验失败：$name（$hash ≠ $actual）" }
-            }
-            Write-Host "结构断言通过：$zip（$([Math]::Round((Get-Item $zip).Length / 1MB, 1)) MB）"
+          & .\scripts\package-offline-builder.ps1 `
+            -Version $env:VERSION `
+            -SourceManifestPath artifacts/offline-source-manifest.json `
+            -OutputDir artifacts/offline-builder
+          if ($LASTEXITCODE -ne 0) { throw '离线 Builder 组装失败' }
+
+      - name: 断言 Builder 结构
+        shell: pwsh
+        run: |
+          $zip = "artifacts/offline-builder/labelframe-offline-builder-$env:VERSION.zip"
+          if (-not (Test-Path -LiteralPath $zip)) { throw "缺 Builder zip：$zip" }
+          $verify = 'artifacts/offline-builder-verify'
+          Expand-Archive -LiteralPath $zip -DestinationPath $verify
+          $root = Join-Path $verify "labelframe-offline-builder-$env:VERSION"
+          foreach ($must in @('build-windows-offline.ps1', 'build-docker-offline.sh', 'README.md', 'offline-source-manifest.json',
+              'helpers/make-offline-bundle-win.ps1', 'helpers/make-offline-bundle.sh',
+              'templates/windows/install-server.ps1', 'templates/windows/install-server.cmd',
+              'templates/docker/install.sh')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $root $must))) { throw "Builder 结构缺失：$must" }
           }
+          $source = Get-Content (Join-Path $root 'offline-source-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($source.labelframeVersion -ne $env:VERSION) { throw 'Builder 来源清单版本不一致' }
+          if ($source.serverImage.digest -ne $env:SERVER_IMAGE_DIGEST) { throw 'Builder 来源清单镜像 digest 不一致' }
+          Write-Host "Builder 结构断言通过：$zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-offline-bundle
-          path: bundle/labelframe-*.zip
+          name: offline-builder
+          path: artifacts/offline-builder/labelframe-offline-builder-*.zip
           if-no-files-found: error
+
 
   release:
     name: 创建 GitHub Release
-    needs: [version, package, docker, android, bundle, offline-bundle, windows-offline-bundle]
+    needs: [version, package, docker, android, bundle, offline-builder]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -758,32 +620,26 @@ jobs:
           name: bundle-exe
           path: release
 
-      - name: 下载 Linux 离线部署包
+      - name: 下载离线部署 Builder
         uses: actions/download-artifact@v4
         with:
-          name: offline-bundle
+          name: offline-builder
           path: release
 
-      - name: 下载 Windows 离线部署包（全量 / 升级）
+      - name: 下载安装清单（与引导 Bundle / Offline Builder 同源）
         uses: actions/download-artifact@v4
         with:
-          name: windows-offline-bundle
-          path: release
+          name: bundle-offline-inputs
+          path: manifest-inputs
 
-      # 安装清单（迭代 58，#51）：从当版全部产物生成 install-manifest.json + latest.json（决策 #115 / #120）。
-      # 生成阶段即校验产物齐备：任一组件缺产物立即失败（AC-03 场景之一），空哈希 / 空条目不可能落盘。
-      - name: 生成安装清单（install-manifest.json + latest.json）
+      - name: 复制同源安装清单到发布附件
         shell: pwsh
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
         run: |
-          ./scripts/generate-install-manifest.ps1 `
-            -Version $env:VERSION `
-            -AssetsDir release `
-            -OwnerRepo '${{ github.repository }}'
+          Copy-Item manifest-inputs/release/install-manifest.json release/install-manifest.json -Force
+          Copy-Item manifest-inputs/release/latest.json release/latest.json -Force
 
-      # 断言独立于生成重读落盘清单（AC-03）：schema 字段完整性 + 产物存在性 + 哈希抽验（逐条目重算比对）；
-      # 缺产物 / 缺哈希 / schema 不符任一命中即非零退出，本 job 失败、不创建 Release。
+      # 重读 bundle job 生成的同一份清单，对最终 Release 原子附件逐条重算哈希；
+      # 缺产物 / 缺哈希 / schema 不符任一命中即非零退出，不创建 Release。
       - name: 断言安装清单（schema 完整性 / 产物存在性 / 哈希抽验）
         shell: pwsh
         env:
@@ -794,34 +650,6 @@ jobs:
             -AssetsDir release `
             -OwnerRepo '${{ github.repository }}' `
             -VerifyOnly
-
-      # 跨 job 一致性断言（迭代 68，决策 #132）：bundle job 分阶段生成的 manifest（引导 EXE 构建消费）
-      # 与本 job 生成的发布清单必须 runtime 哈希一致——两次生成各自从厂商直链实测，若厂商在窗口内轮转文件
-      # 则两份不一致，此处 fail-closed 拦截（发布清单与引导 EXE 内嵌摘要错位 = 用户侧校验失败），重跑流水线自愈。
-      - name: 断言发布清单与引导 Bundle 消费侧一致（runtime 哈希，fail-closed）
-        shell: pwsh
-        env:
-          BUNDLE_DESKTOP_SHA256: ${{ needs.bundle.outputs.runtimeDesktopSha256 }}
-          BUNDLE_ASPNETCORE_SHA256: ${{ needs.bundle.outputs.runtimeAspNetCoreSha256 }}
-          BUNDLE_WEBVIEW2_SHA256: ${{ needs.bundle.outputs.runtimeWebView2Sha256 }}
-        run: |
-          $m = Get-Content release/install-manifest.json -Raw -Encoding UTF8 | ConvertFrom-Json
-          $pairs = @(
-            @{ id = 'runtime-desktop';     expected = $env:BUNDLE_DESKTOP_SHA256 },
-            @{ id = 'runtime-aspnetcore';  expected = $env:BUNDLE_ASPNETCORE_SHA256 },
-            @{ id = 'runtime-webview2';    expected = $env:BUNDLE_WEBVIEW2_SHA256 }
-          )
-          $fail = $false
-          foreach ($p in $pairs) {
-            $actual = @($m.components | Where-Object id -eq $p.id)[0].sha256
-            if ($actual -ne $p.expected) {
-              Write-Host "::error::runtime 哈希两阶段不一致：[$($p.id)] 发布清单=$actual bundle 消费侧=$($p.expected) —— 厂商可能在两次生成之间轮转了直链文件，请重跑本次发版"
-              $fail = $true
-            } else {
-              Write-Host "runtime 哈希两阶段一致：[$($p.id)] $actual"
-            }
-          }
-          if ($fail) { exit 1 }
 
       # compose 分发附件（迭代 71，#91，决策 #134）：compose.yml 与 packaging/ubuntu/docker-compose.yml
       # 同源复制（防漂移，含管理界面 / client-packages / pda-packages / plugin-packages 四组挂载注释）；
@@ -879,9 +707,7 @@ jobs:
             release/LabelFrame-AndroidHost-*.apk
             release/labelframe-server-webui-*.zip
             release/labelframe-server-*-linux-x64.tar.gz
-            release/labelframe-offline-*-linux-x64.tar.gz
-            release/labelframe-offline-*-win-x64.zip
-            release/labelframe-upgrade-*-win-x64.zip
+            release/labelframe-offline-builder-*.zip
             release/labelframe-transport-zebra-*.lfplugin
             release/labelframe-transport-tspl-*.lfplugin
             release/compose.yml

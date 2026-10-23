@@ -2,6 +2,16 @@
 
 本项目所有重要变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 新增
+
+- **离线部署改为按需生成，目标机一条命令安装**：Release 新增小型 `labelframe-offline-builder-<版本>.zip`。管理员先在有网准备机运行 Windows `build-windows-offline.ps1` 或 Docker `build-docker-offline.sh`，生成离线包后再拷到目标机；Windows Server 解压后运行 `install-server.cmd`，Docker 解压后继续运行既有 `install.sh`。Windows 仍提供 Full / Upgrade 双包：Full 带完整离线运行时（WebView2 改为 x64 Standalone），Installer 按需补齐 Server 所需的 Desktop 基础 host/runtime 与 ASP.NET Core；Upgrade 不含任何 runtime，缺任一前置时会明确提示改用 Full。Windows 安装脚本会更新 Server 与管理界面、分发 Client / PDA / 官方插件，健康检查通过后只清理由官方账本确认的旧资源，第三方和自定义文件保留。
+
+### 发布说明
+
+- Release 不再重复上传 Windows Full、Windows Upgrade、Docker Full 三类大包；继续保留原子安装资源、Server 镜像、安装清单、compose 附件与 Builder。需要离线介质时可按需生成，来源版本、哈希和镜像 digest 均由 Builder 固定并校验。
+
 ## [1.4.0] - 2026-10-22
 
 ### 新增

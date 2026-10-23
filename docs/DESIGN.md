@@ -286,7 +286,8 @@ flowchart LR
 | 203 | 设备来源 IP 的转发头信任——配置式受信代理白名单（迭代 157，2026-10-21，[#429](https://github.com/marci-labs/LabelFrame/issues/429)；需求来源 #428：反代部署下经代理连入的设备全部被登记为代理 IP，上游按 IP 定位设备 404 / 多设备挤占同一地址） | ① **机制＝ForwardedHeadersMiddleware 单点改写**：新环境变量 `LABELFRAME_SERVER_TRUSTED_PROXIES`（逗号分隔 IP / CIDR；`*`＝全部；未设置＝关闭、行为与现状一致）声明受信代理，启用后经 ASP.NET Core `ForwardedHeadersMiddleware` 在请求管道单点把连接对端 IP 改写为 `X-Forwarded-For` 右起首个非受信跳——设备登记全路径（注册 / 心跳 / 领取）自动生效，配置是转发头信任的唯一来源（未配置时头一律不采信）。② **运维三件套**：docker 标准配方 `172.16.0.0/12`（超网覆盖默认 docker 地址池、子网漂移免疫）；`*` 边界指引＝仅当服务端口只经代理可达（直连端口封闭、代理必经）时安全，直连端口开放时用网段白名单；不受信对端携带转发头时告警日志自诊断（疑似漏配的最直接线索）。③ **回显**：`GET /api/server/info` 兼容新增字段 `trustedProxies` 回显当前配置。 | 反代部署下 `GET /api/devices/by-ip` 与 `POST /api/jobs` 的 `targetIp` 按 IP 定位恢复可用；伪造头风险边界（决策 #79 局域网信任模型下）＝`X-Forwarded-For` 只在显式配置的受信跳内采信、不受信对端伪造无效且告警，`*` 的冒充面以「直连端口封闭」指引收敛，边际风险可控；客户端（WinHost / AndroidHost）与集成方零改动，`last_ip` 随心跳自愈、无需重连 |
 | 204 | TSPL USB 自动发现加固：忙时探测重试＋发现结果复用＋失败话术分层（迭代 158，2026-10-22，[#435](https://github.com/marci-labs/LabelFrame/issues/435)；两项待决议用户拍板——缓存无 TTL 失败失效 / 重试对齐状态查询既有常量；来源 = 当日真机批量间歇失败诊断：多张作业第 0 张成功、第 1 张「无应答」误判；打印机僵死为另一独立诱因非软件可修，断电重启后恢复） | ① **探测带重试**：自动发现逐台「打开＋`ESC ! ?` 应答探测」从单次 500ms 改为与状态查询同款节奏（3 次 × 200ms 间隔 × 500ms 读超时——「任务刚结束时可能短暂无应答」实测语义自此覆盖发送路径）；② **发现结果复用**：传输实例内缓存最近一次探测成功的设备路径，后续发送直接打开发送**不重探测**（探测只是多 usbprint 设备并存时的品牌识别手段、非发送前置条件——逐张重探测会把「正在处理上一张」误判为不可通讯）；缓存无 TTL，打开失败即失效并全量重新发现（拔插切换由失效路径覆盖）；③ **失败话术分层**：全部失败时「打不开（不在位 / 被占用，含 Win32 病因）」与「无应答」分列（CM PRESENT 枚举仍会带出幽灵接口路径——已拔出设备的注册表残影，Win32 错误 2 打不开属预期跳过项）；显式指定示例由硬编码 `VID_1203` 改为首个在位设备 VID 动态生成 | 批量作业不再逐张全量「枚举＋逐台探测」，忙窗口误判由重试吸收、设备僵死仍正确失败；`IPrintTransport` 契约零改动（插件内部行为）；单张失败挂起整作业语义（#74）与服务端 Claimed 超时回收（#98，默认 30 分钟）确认既有设计不在本轮动 |
 | 205 | 模板身份化 uid＋元素内边距显式 0 契约＋设计器就地保存与框选（迭代 159，2026-10-22，[#438](https://github.com/marci-labs/LabelFrame/issues/438)；用户测试三缺陷反馈驱动，方案与两项子决议用户拍板——框选＝相交即选中、paddingMm＝兼容写出仅 H===V 且 >0） | ① **模板 uid 身份模型**：`templates` 表新增 `name` 列并回填 `name=id`＋唯一索引——存量行 `id`（=旧名）原地转为不透明 uid，主键不动；保存带 uid＝同一模板改名更新（撞名在事务内删被撞行，沿用前端既有同名覆盖确认）、不带 uid＝生成新 uid 新建；按名查询（`GetAsync`/`DeleteAsync`/列表展示）改走 `name` 列，testData 读改写基底定位＝带 uid 按 id 取本行（改名随行携带、撞名覆盖不并入被撞行）、无 uid 按 name 取被替换行（「旧值不丢」对两路一致成立，决策 #45 语义保留）；`TemplatePackage` / `TemplatePackageDto` / `TemplateSummary` 增可选 `Uid`（JSON `uid`，semver 加法）；`.lfpkg` 导入导出不携带身份（身份是库内属性，导入维持按名覆盖现状）。② **内边距显式 0（模板包契约语义修订）**：「字段在场即显值（0 也写出），缺省才兜底」——`PaddingHMm` / `PaddingVMm` 改 `double?`（null＝未设，0＝显式零），`EffectivePadding* => ?? PaddingMm`；写侧有值即写（含 0，未设不写），兼容字段 `paddingMm` 仅双侧有效值（`EffectivePadding*`，`PaddingMm` 兜底后）相等且 >0 时写出该有效值（旧版本读新包近似不劣化、且不再把显式 0 经兜底链复活）；存量旧模板读回兜底链（`paddingH/V → paddingMm → 0`）逐字节不变。③ **设计器交互**：Ctrl+S＝就地保存不退出（dirty 判定自撤销栈计数 `>0` 收敛为 `≠最近保存点`，就地保存后离开守卫不再误报，撤销回保存点＝不 dirty 与决策 #149 语义兼容）；工具栏保存按钮词条改「保存并退出」（如实反映保存即回工作台的既有行为，零行为变更）；画布空白处拖拽框选＝相交即选中成多选（Web 端首次落地，补齐决策 #38 Studio 时代交互规格在 Web 端的缺口）。 | 版本偏差均不劣于现状：旧前端 → 新后端（无 uid 字段＝按名 upsert，副本行为同现状）；新前端 → 旧后端（uid 字段被忽略＝同现状）；负数内边距无物理意义，UI clamp ≥0 拦截不进契约；作业 / 打印链零影响（打印指令提交时持久化，决策 #195，不回头查模板身份） |
-| 206 | Windows 离线部署包双附件——全量（首装）＋升级（减运行时）（迭代 160，2026-10-22，[#439](https://github.com/marci-labs/LabelFrame/issues/439)；立项三项用户拍板：组件范围＝全量减 linux-server 归档 / 自验＝结构断言＋校验（不做 runner 真机安装）/ 形态＝双附件——新机全量首装、升级免运行时、操作最少） | ① **产物**：`labelframe-offline-<版本>-win-x64.zip`（全量＝离线布局全组件＋三运行时安装器＋引导 EXE＋manifest/latest 原样＋README＋SHA256SUMS）与 `labelframe-upgrade-<版本>-win-x64.zip`（升级＝全量减三运行时安装器）。② **升级免运行时的机制依托＝零引导链代码改动**：运行时包 `DetectCondition` 已装即 Present 零获取（§6.9 前置链）＋本地源逐组件可选（§6.10 布局文件在位才登记、缺席即纯 urls——升级机运行时包不在安装计划、文件缺席无影响）＋重跑引导 EXE 自动进升级模式（§6.11）。③ **组包链**：`scripts/make-offline-bundle-win.ps1`（离线布局契约复用：平铺命名 / sha256 逐组件 / evergreen 微软验签，fail-closed）＋ release.yml `windows-offline-bundle` job（消费 bundle job 清单生成期的运行时下载缓存，组包不二次下载——防厂商轮转窗口内清单哈希与文件错位；跨 job 一致性仍由既有 runtime 哈希断言兜底）。④ **自验口径**：脚本内结构断言＋校验 fail-closed，job 对最终 zip 再验布局 / SHA256SUMS / 升级包无运行时文件；安装全链（首装 / 升级）走真机人工验收（LF-Accept-Win10），滞后转待验收。⑤ **兜底口径**（包内 README 写明）：升级包遇运行时中途缺失 / .NET 大版本要求抬升离线失败属预期，改用全量包重跑。 | 整包不进 install-manifest（自足分发单元而非可安装产物，#116 / #134 / #160 口径维持）；linux-server 归档不进 Windows 包（部署机无用、省百 MB 级体积，Linux 场景有专属离线包）；运行时安装器只进全量包——升级拷贝体积减半 vs 每版多发一个附件的维护成本，用户拍板取前者 |
+| 206 | Windows 离线部署包双附件——全量（首装）＋升级（减运行时）（迭代 160，2026-10-22，[#439](https://github.com/marci-labs/LabelFrame/issues/439)；**经决策 #207 部分替代**） | 保留的产品语义：仍生成 `labelframe-offline-<版本>-win-x64.zip` 与 `labelframe-upgrade-<版本>-win-x64.zip`；Full 面向净机且含运行时，Upgrade 不含运行时、缺前置时明确改用 Full；整包仍是自足分发单元，不进入 `install-manifest.json`。被替代部分：Release 不再为每版预组装并长期保存这两个大附件，旧包内以 Burn 引导 EXE 为目标机入口的布局路线改为 Builder 按需组包＋`install-server.cmd` / `install-server.ps1` 一键部署；WebView2 Full 载荷改为 Standalone。 | 双包选择语义与运行时裁剪不变；组包时机、目标机安装载体、WebView2 离线载荷与发布存储模型以 #207 / §6.13 为准；#439 的旧包真机 AC 由 #445 的 Builder 真机验收替代 |
+| 207 | 离线部署 Builder 两层模型——Release 原子资源＋小型 Builder，有网组包与离线安装分层（迭代 161，2026-10-23，[#445](https://github.com/marci-labs/LabelFrame/issues/445)；用户已决议） | ① **发布模型**：Release 保留原子资源、Server 镜像、`install-manifest.json`、compose 附件与小型 `labelframe-offline-builder-<版本>.zip`；Builder 自带 `offline-source-manifest.json`，默认只构建自身 Release 版本。② **两层职责**：Builder 只在有网准备机下载、校验 / 验签、缓存并组包；Installer 只在离线目标机安装或升级 Server、原子落位 Web UI、分发资源、健康检查与账本清理。③ **Windows 双包保留**：Full / Upgrade 名称与选择语义沿 #206；Full 携带 Desktop、ASP.NET Core、WebView2 三类 runtime，目标机脚本按 Server 完整前置链补装 Desktop（提供基础 `dotnet` host / `Microsoft.NETCore.App`）与 ASP.NET Core，WebView2 不自动安装；Upgrade 零 runtime，任一 Server 前置缺失即拒绝并提示 Full。在线 Burn 的 WebView2 Bootstrapper（LinkId 2124703）不变，离线 Full 改用 LinkId 2124701 x64 Standalone。④ **安全边界**：本仓产物与固定版 .NET runtime 按 SHA256；WebView2 Standalone 按 Microsoft Authenticode＋固定文件名＋>100 MB；Docker 镜像按 release-time digest；Windows 官方资源清理由 `managed-files` 账本限定，Web UI 替换失败回滚。⑤ **兼容与迁移**：Docker Builder 复用既有底层组包逻辑，包结构与 `install.sh` 的校验 / 分发 / 健康检查 / 固定目录升级语义逐字不变；本决策替代 #160 / #206 的 Release 预组装大包与上传部分，不替代其 Docker `install.sh` 或 Windows Full / Upgrade 双包语义。三类旧大附件仅在 Windows 净机首装、Windows 升级、Docker 无预置镜像真机验收通过后移除。 | 发布存储从「每版重复大附件」转为「原子资源＋可审计组包配方」；离线包按需生成而仍可 fail-closed；WebView2 真离线缺口闭合；Release 迁移设真机门槛，避免先删旧路径再发现 Builder 不可用 |
 
 ## 5. API 概览
 
@@ -506,7 +507,7 @@ public sealed record LabelImageEncodeOptions(bool InvertBits = false)
 
 ## 6. 安装引导（Bootstrapper）
 
-> 来源：安装引导专项（迭代 57~64，Issue [#50](https://github.com/marci-labs/LabelFrame/issues/50) 起拆 8 个迭代，清单见 §6.7）；本节是专项公共契约（AGENTS 强化路径：跨迭代契约先入 DESIGN 再改代码），专项 2/8 起的实现（#51 CI 生成 manifest、#53~#57 引导程序本体）以本节为准，与实现有出入先回本节补决策。决策记账：#114（形态与选型）/ #115（manifest 格式）/ #116（拓扑预设）/ #117（信任模型与分发源）/ #118（更新策略与签名）/ #122（形态修订：WiX Burn Bundle + 托管 BA）/ #123（官方插件体系与品牌映射，§6.8）/ #124（安装执行链与失败处置，§6.9）/ #125（下载体验与多源回退，§6.10）/ #126（升级模式与版本比较，§6.11）/ #127（外置插件加载 ALC 生命周期，§6.8——迭代 63 返修）/ #128（前置链 AspNetCore 运行时补齐，§6.2 / §6.9——迭代 62 返修）/ #129（前置链 AspNetCore 补 client 链腿，§6.2 / §6.3 / §6.9——迭代 62 二次返修）/ #134（Linux 服务端一键安装 install.sh 与 compose 分发，§6.12——迭代 71）/ #135（离线布局目录与本地源首装，§6.2 / §6.10——迭代 70）/ #151（引导体验收敛：两层问卷 + 清单自动加载 + 角色三选，§6.3——迭代 95）/ #153（evergreen 载荷校验改微软 Authenticode 发布者验签 + 已装跳过 acquire，§6.2 / §6.9 / §6.10——Issue #173）/ #156（升级链获取阶段三重缺陷返修：落位 / 清理包 CacheId 版本化 + 附加容器获取本地源注入 + BA 缓存重试退避与终止，§6.9 / §6.10——Issue #171）。
+> 来源：安装引导专项（迭代 57~64，Issue [#50](https://github.com/marci-labs/LabelFrame/issues/50) 起拆 8 个迭代，清单见 §6.7）；本节是专项公共契约（AGENTS 强化路径：跨迭代契约先入 DESIGN 再改代码），专项 2/8 起的实现（#51 CI 生成 manifest、#53~#57 引导程序本体）以本节为准，与实现有出入先回本节补决策。决策记账：#114（形态与选型）/ #115（manifest 格式）/ #116（拓扑预设）/ #117（信任模型与分发源）/ #118（更新策略与签名）/ #122（形态修订：WiX Burn Bundle + 托管 BA）/ #123（官方插件体系与品牌映射，§6.8）/ #124（安装执行链与失败处置，§6.9）/ #125（下载体验与多源回退，§6.10）/ #126（升级模式与版本比较，§6.11）/ #127（外置插件加载 ALC 生命周期，§6.8——迭代 63 返修）/ #128（前置链 AspNetCore 运行时补齐，§6.2 / §6.9——迭代 62 返修）/ #129（前置链 AspNetCore 补 client 链腿，§6.2 / §6.3 / §6.9——迭代 62 二次返修）/ #134（Linux 服务端一键安装 install.sh 与 compose 分发，§6.12——迭代 71）/ #135（离线布局目录与本地源首装，§6.2 / §6.10——迭代 70）/ #151（引导体验收敛：两层问卷 + 清单自动加载 + 角色三选，§6.3——迭代 95）/ #153（evergreen 载荷校验改微软 Authenticode 发布者验签 + 已装跳过 acquire，§6.2 / §6.9 / §6.10——Issue #173）/ #156（升级链获取阶段三重缺陷返修：落位 / 清理包 CacheId 版本化 + 附加容器获取本地源注入 + BA 缓存重试退避与终止，§6.9 / §6.10——Issue #171）/ #207（离线部署 Builder 两层模型：有网组包 + 离线目标机安装，§6.13——Issue #445；替代 #160 / #206 的 Release 预组装大包部分，保留既有双包与 `install.sh` 语义）。
 
 定位：**安装引导程序（setup）**——首次接触 LabelFrame 的部署者运行一个小 EXE，回答少量问题（部署拓扑、打印机品牌、是否带管理界面），程序解析安装清单（install manifest）、按需下载组件并完成静默安装 / 落位；PDA 不进 PC 引导（经服务端下载中心扫码下载，专项 3/8 #52）。目标：把「装什么、怎么装」从「读懂 DEPLOY 文档 + 手工排组件」降为「回答三个问题」。语言边界：引导问卷与向导文案**中文单语**，i18n 不进 setup 问卷（决策 #164：多语言范围限定 Web UI / API 错误消息 / PDA 三端，安装链维持中文单语）。
 
@@ -556,13 +557,13 @@ public sealed record LabelImageEncodeOptions(bool InvertBits = false)
 
 runtime 无本仓产物，不进 Release 附件。**兼容影响与回退（决策 #153）**：旧引导器（≤ v0.28.0）内嵌构建期哈希照旧、轮换后其全新装机仍失败（无法事后修复，只能升级引导器）；新引导器对旧 manifest 兼容（urls / version 字段语义不变，sha256 降信息性为宽容方向）；回退方式 = revert 该决策对应提交（哈希钉死语义随提交回滚）；发版链两阶段 evergreen 哈希跨 job 断言在轮换窗口可能误拦（fail-closed 方向，重跑即过），出库链排查归 #169。
 
-**Docker 镜像不进首版条目**：镜像无独立可哈希文件产物（完整性由 registry digest 机制保证）；`server-docker` 预设的下载组件集合为空（§6.3），引导程序生成 compose 文件与镜像拉取指引。digest 收录按需再议（§7 开放点）。
+**Docker 镜像不进 install manifest**：镜像无独立可哈希文件产物，`server-docker` 预设的下载组件集合仍为空（§6.3）；在线部署由 registry tag / digest 机制承担。离线 Builder 所需的 Server 镜像完整引用与 release-time digest 收录于独立的 `offline-source-manifest.json`（§6.13），不扩展 `install-manifest.json`。
 
 **最新版本指针 `latest.json`**：随发版生成（内容 = 最新版本号 + 该版 manifest URL），供升级检查消费（§6.5、#57）；**已实现（迭代 58，#51 待决议 1 用户确认同步生成）**，随 Release 附件发布，稳定通道 URL = `https://github.com/marci-labs/LabelFrame/releases/latest/download/latest.json`（GitHub latest 语义）。
 
 **离线布局目录（offline layout，迭代 70 / #89，决策 #135；§6.3 `offline` 一等形态的落地形态）**：内网 / 无外网机器首装的产品化预下载路径（对标 VS 安装器 layout 模式）——IT 在有网机器把当版全部组件预下载汇集到一个目录，拷贝（U 盘 / 内网共享）分发后，目标机**用同一个引导程序**从该目录无外网完成首装。
 
-- **目录内容与命名约定**：`install-manifest.json`（官方原样字节，不重序列化）+ `latest.json`（可选）+ 引导 EXE + 按 manifest 条目的全部组件文件（Server / Client MSI、webui zip、官方插件 `.lfplugin`、runtime 安装器，含 `linux-server` / `pda-apk` 等指引条目对应的附件）。组件文件名 = **urls[0] URL 路径末段（须含扩展名）**；URL 不含可辨识文件名（查询型直链，如 WebView2 fwlink）按**固定名兜底表**（核心库 `OfflineLayoutNaming` 单点实现）：`runtime-webview2` → `MicrosoftEdgeWebView2RuntimeInstallerSimpleX64.exe`；生成（脚本与引导 `--layout`）与消费（本地源解析）共用同一约定。
+- **目录内容与命名约定**：`install-manifest.json`（官方原样字节，不重序列化）+ `latest.json`（可选）+ 引导 EXE + 按 manifest 条目的全部组件文件（Server / Client MSI、webui zip、官方插件 `.lfplugin`、runtime 安装器，含 `linux-server` / `pda-apk` 等指引条目对应的附件）。组件文件名 = **urls[0] URL 路径末段（须含扩展名）**；URL 不含可辨识文件名按**固定名兜底表**（核心库 `OfflineLayoutNaming` 单点实现）。此处是 Burn 引导程序的通用布局契约，在线安装与 `--layout` 行为继续使用 WebView2 Evergreen 小型 Bootstrapper；服务端离线 Full 包的 WebView2 x64 Standalone 文件名与来源由 `offline-source-manifest.json` 单独定义（§6.13），不复用 `runtime-webview2` 条目。
 - **生成双形态（用户 2026-09-17 拍板：两者都做）**：① `scripts/make-offline-layout.ps1`（IT 手段）——按 manifest 逐组件下载（urls 顺序回退），sha256 与 manifest 逐字节一致才落位（不符即换下一源，全源失败即退出非零，fail-closed），引导 EXE 来源 = `-BootstrapperPath` 本地产物，本地缺省时按 `-BootstrapperUrl` 从 Release 下载（引导 EXE 已随 Release 发布，决策 #132）；② 引导程序 `--layout <目录>` 参数（产品化）——同一套生成语义（核心库 `OfflineLayoutBuilder`），引导 EXE 自复制（`WixBundleOriginalSource`）；支持 `--manifest <路径|URL>` 覆写生成用清单来源（默认稳定通道；测试与指定版本场景用）。重复生成幂等：已存在且校验一致的组件文件跳过下载，校验不符（篡改 / 旧版残留）重新下载。**落位 / 复用校验按条目形态二分（决策 #151）**：常规条目 = sha256 与 manifest 逐字节一致；evergreen 条目（version = `evergreen`，如 `runtime-webview2`）= 微软 Authenticode 发布者验签（微软轮换直链文件后重新生成布局不再因哈希漂移失败）。
 - **`--layout` 用双横线，与 Burn 引擎原生开关区分**：引擎自身解析单横线 `-layout [目录]`（`CoreParseCommandLine` → `LaunchAction.Layout` + `WixBundleLayoutDirectory`，引擎级「下载全部载荷到目录」语义）；本仓产品化语义用双横线 `--layout <目录>`（引擎按未知参数透传 BA，`IBootstrapperCommand.CommandLine`）。BA 对 `LaunchAction.Layout`（单横线）同样路由进自家生成流程（`IBootstrapperCommand.LayoutDirectory` 为目标目录）——两种拼写同一语义，不落到引擎布局动作的半适配状态。
 - **源解析顺序（本地源语义，用户拍板：a) 布局目录作为隐式优先源目录，manifest schema 零修改）**：见 §6.10——清单来源为本地路径时，其所在目录即隐式优先源目录；每链包有效源序 = [布局目录本地文件（在位时）] ++ `urls`，sha256 校验本地源同样强制（#117 口径）。
@@ -1038,7 +1039,97 @@ public interface ITopologyResolver
 
 **幂等与升级语义（AC-03 口径）**：重跑 = 覆盖升级——staging 解包并校验归档（入口可执行文件在场 + 形态探测 + runtime 前置检查通过）后**整体替换** app 目录（升级删旧文件不残留），但 **`appsettings.json` 保留用户版本**（替换前暂存、替换后回写，对齐 Windows #48 NeverOverwrite 语义；首装用归档默认配置）；`/var/lib/labelframe` 数据与日志目录永不触碰；systemd 单元每次重写（`daemon-reload` + `enable` + `restart`）；webui 目录覆盖解压（空 zip / 缺 `index.html` 拒绝）。安装完成输出：服务状态、`/healthz` 与 `/api/server/info`（版本与 manifest 比对）、管理界面地址、防火墙放行与 Client 指向提示。
 
-**compose 随发版分发（范围 2）**：release job 生成并随 Release 附件发布 `compose.yml`（从 `packaging/ubuntu/docker-compose.yml` 原样复制——同源生成防漂移，含管理界面 / client-packages / pda-packages / plugin-packages 四组挂载注释）与 `.env`（`LABELFRAME_VERSION` 钉定当版 + `LABELFRAME_IMAGE` 覆盖注释模板）；使用 = 两者同目录 `docker compose up -d`。compose / `.env` **不进 install manifest**——它们是部署描述文件而非可安装产物（#116 `server-docker` 预设「无下载组件」口径维持，未来若引导程序做 Docker 拓扑 compose 生成，同以 `packaging/ubuntu/` 为源）。
+**compose 随发版分发（范围 2）**：release job 生成并随 Release 附件发布 `compose.yml`（从 `packaging/ubuntu/docker-compose.yml` 原样复制——同源生成防漂移，含管理界面 / client-packages / pda-packages / plugin-packages 四组挂载注释）与 `.env`（`LABELFRAME_VERSION` 钉定当版 + `LABELFRAME_IMAGE` 覆盖注释模板）；使用 = 两者同目录 `docker compose up -d`。compose / `.env` **不进 install manifest**——它们是部署描述文件而非可安装产物（#116 `server-docker` 预设「无下载组件」口径维持）。
+
+### 6.13 离线部署 Builder 与目标机 Installer（决策 #207，迭代 161 / #445）
+
+> 本节是 Windows / Docker 离线部署的跨端公共契约。它替代决策 #160 / #206 中「发版流水线每版预组装并上传大归档」的部分；不替代 Windows Full / Upgrade 双包选择语义，也不改变 Docker 包结构及既有 `install.sh` 行为。
+
+#### 6.13.1 两层模型与 Release 边界
+
+| 层 | 运行环境 | 职责 | 禁止越界 |
+|---|---|---|---|
+| Builder | 有网准备机；Windows Builder 用 PowerShell，Docker Builder 用 bash + Docker | 读取随 Builder 发布的来源清单，下载当版原子资源，执行哈希 / 发布者签名 / 镜像 digest 校验，复用缓存并生成离线归档与 `offline-build-info.json` | 不安装或修改目标机服务；不从目标机配置推断组包内容；不接受任意版本漂移，默认且首期只构建自身 Release 版本 |
+| Installer | 无外网目标机；Windows 为 `install-server.cmd` / `install-server.ps1`，Docker 为既有 `install.sh` | 校验包内账本，安装或升级 Server，落位 Web UI 与分发资源，恢复服务并做健康检查；Windows 在成功后按账本清理旧官方资源 | 不联网补下载；不重新解释 Release 来源；不删除账本外文件；不把 `LABELFRAME_SERVER_WEB_UI` 空值改成默认启用 |
+
+Release 保留原子资源、Server 镜像、`install-manifest.json` / `latest.json`、compose / `.env` 等既有小附件，并新增 `labelframe-offline-builder-<版本>.zip`。Builder 包至少含 `build-windows-offline.ps1`、`build-docker-offline.sh`、README 与 `offline-source-manifest.json`。Windows Builder 支持 `-OutputDir` 与可选缓存目录；Docker Builder 支持 `--output-dir` 与可选缓存目录。成功输出仍是：
+
+- `labelframe-offline-<版本>-win-x64.zip`：Full，面向净机；
+- `labelframe-upgrade-<版本>-win-x64.zip`：Upgrade，面向已装机；
+- `labelframe-offline-<版本>-linux-x64.tar.gz`：Docker Full，结构兼容既有离线包。
+
+#### 6.13.2 `offline-source-manifest.json` 与 `install-manifest.json` 边界
+
+`offline-source-manifest.json` 是**组包来源与策略清单**，只由 Release Builder 消费；它不是目标机安装清单，也不进入 Burn 拓扑解析。最低字段契约：
+
+| 字段 | 类型 | 语义 |
+|---|---|---|
+| `schemaVersion` | int | Builder 契约版本；Builder 遇高于支持上限的版本 fail-closed |
+| `labelframeVersion` | string | Builder 固定目标版本，须与包名、Release tag 去 `v` 后及 `installManifest.labelframeVersion` 一致 |
+| `installManifest` | object | 当版 `install-manifest.json` 的 URL 与可选 SHA256；Builder 先取得并校验，再由其中组件条目解析本仓原子资源与固定版 .NET runtime |
+| `serverImage` | object | Server 镜像完整引用（含 registry / repository / tag）与 release-time digest；Docker Builder 必须按 digest 拉取并断言实际 RepoDigest 一致 |
+| `artifacts` | object/array | Builder 附加原料的显式来源，例如引导脚本模板、compose / `.env` 或不属于安装组件的 Release 附件；条目须有稳定 id、文件名、URL，属于本仓固定产物时还须有 SHA256 |
+| `webView2Standalone` | object | x64 Standalone 来源；官方 URL 固定为 LinkId `2124701`，记录期望文件名、架构、发布者 `Microsoft Corporation`、最小体积 `100000000` 字节及 Authenticode 校验策略 |
+| `builder` | object | Builder 契约版本与生成器版本，供 `offline-build-info.json` 审计；不承担产品组件版本比较 |
+
+不变量：
+
+1. 清单随 Builder 一同由受控发版流水线生成，禁止人工拼接哈希或 digest；版本、来源缺失、字段非法、重复 id、非 HTTPS 外部 URL或不受支持 schema 一律拒绝。
+2. Builder 只能生成 `labelframeVersion` 指定版本；不得用 `latest` 静默漂移到另一版本。缓存键至少包含来源标识与期望 SHA256 / digest；缓存不符先删除再重取，全源失败不得留下可被误认作成功的归档。
+3. 本仓产物与版本化 .NET runtime 的权威哈希仍来自 `install-manifest.json`；`offline-source-manifest.json` 不复制组件拓扑、`dependsOn`、`topologies`、静默参数或组件哈希表，避免双事实源。
+4. WebView2 在线 Burn 链继续消费 `install-manifest.json` 中 LinkId `2124703` 的 Evergreen Bootstrapper，既有下载 / Authenticode / DetectCondition 语义不变；离线 Windows Full 独占 `webView2Standalone`（LinkId `2124701`），不得把 Standalone 回填为 `runtime-webview2` 或改变在线引导程序。
+5. Server 镜像 digest 只属于组包来源清单；`install-manifest.json` 继续描述文件型安装组件，不增加镜像条目。Docker 输出的实际镜像必须与 release-time digest 一致后才允许 `docker save`。
+6. 每次成功组包生成 `offline-build-info.json`，至少记录 Builder / LabelFrame 版本、UTC 生成时间、每项实际来源、文件名、实测 SHA256 与大小，以及 WebView2 实际哈希 / 大小 / 发布者、镜像实际 RepoDigest；该文件是审计记录，不替代包内 `SHA256SUMS`。
+
+#### 6.13.3 Windows Full / Upgrade 内容与运行时语义
+
+Windows 双包均含 Server MSI、Client MSI、PDA APK、Web UI zip、Zebra / TSPL 官方插件、`SHA256SUMS`、包内允许清单 `managed-files.json`、`offline-build-info.json` 与 `install-server.cmd` / `install-server.ps1`。目标机入口不再是 Burn 引导 EXE；安装脚本只部署服务端和下载中心资源，不安装 Client。包内允许清单只描述本次介质可写入的官方资源；目标机上次成功状态另存 `%ProgramData%\LabelFrame\installer\managed-files.json`，二者同名但位置与职责固定，不得互相替代。
+
+- **Full 三 runtime**：包内携带 .NET Desktop Runtime x64、ASP.NET Core Runtime x64、WebView2 x64 Standalone 三项，三者均列入 `SHA256SUMS`。Server 完整前置链需要基础 `dotnet` host / `Microsoft.NETCore.App` 与 `Microsoft.AspNetCore.App`：净机先静默安装 Desktop Runtime（提供基础 host/runtime），再安装 ASP.NET Core Runtime；每项已满足则跳过。WebView2 仅用于保留 Full 双包兼容及客户端后续人工安装，**不会复制到服务端下载中心目录，也不由 Server Installer 自动安装**。
+- **Upgrade 零 runtime**：三项均不得出现；Installer 分别探测基础 .NET host/runtime 与 ASP.NET Core Runtime，任一不满足 Server 最低要求时 fail-closed，提示改用 Full。两项均满足时不得重装任何 runtime。
+- **WebView2 真离线**：Standalone 必须使用 LinkId `2124701` 的 x64 完整安装器；Builder 验证 Authenticode 状态有效、签名者 CN 为 `Microsoft Corporation`、文件名与来源清单一致且大小严格大于 100 MB。其 evergreen 字节可随时间轮转，因此以实际哈希 / 大小写入 `offline-build-info.json` 与包内 `SHA256SUMS`，不要求复现 Release 时字节。
+
+#### 6.13.4 Windows Installer 路径解析、原子落位与健康检查
+
+1. **启动与完整性**：CMD 仅作为 PowerShell 入口；脚本检测管理员权限，必要时只触发一次 UAC 自提权。安装前校验 `SHA256SUMS`、包版本、关键文件名与 Full / Upgrade 运行时集合，任一异常非零退出且不改系统；MSI 使用 `/qn /norestart /l*v`，日志路径必须回显。MSI 成功返回后必须立即复核 `LabelFrameServer` 服务在位；若 MajorUpgrade 的旧包卸载时序导致服务缺失，Installer 只允许对**同一新版 MSI**执行一次 `/fa` repair，记录独立详细日志并再次复核，仍缺失则 fail-closed。
+2. **路径权威**：以 Machine 级环境变量为唯一覆盖源并在安装 / MajorUpgrade 后重新读取：`LABELFRAME_SERVER_LISTEN`、`LABELFRAME_SERVER_CLIENT_PACKAGES`、`LABELFRAME_SERVER_PDA_PACKAGES`、`LABELFRAME_SERVER_PLUGIN_PACKAGES`、`LABELFRAME_SERVER_WEB_UI`。前三个包目录变量未设置或空白时按 Server 既有默认目录；`LABELFRAME_SERVER_WEB_UI` **未定义**时按既有默认目录，**已定义但为空白**时表示无头，Installer 不解压 Web UI、不设置变量、不强行启用。Installer 不写入或改写任何 `LABELFRAME_SERVER_*` 机器变量。
+3. **Web UI 事务边界**：先在目标目录同卷 staging 解压并断言 `index.html`；停止 `LabelFrameServer` 后，以「现目录 → backup、staging → 现目录」完成目录级替换。替换或后续启动 / 健康检查失败时恢复 backup 并再次启动服务；成功后才删除 backup。覆盖升级必须整体替换，旧散列文件不得残留。
+4. **分发资源**：Client MSI、PDA APK、官方 Zebra / TSPL `.lfplugin` 分别复制到解析后的 `client-packages`、`pda-packages`、`plugin-packages`；第三方插件与自定义文件不参与覆盖或清理。
+5. **health URL 解析**：从 Machine `LABELFRAME_SERVER_LISTEN` 读取生效监听地址，未设置时用 `ServerOptions.DefaultListenUrl`；只接受绝对 `http` / `https` URL。探测主机为 `0.0.0.0`、`::`、`+` 或 `*` 时归一为回环地址（IPv4 通配符 → `127.0.0.1`，IPv6 通配符 → `[::1]`），保留 scheme、显式端口与路径前缀，分别请求 `<base>/healthz` 与 `<base>/api/server/info`。
+6. **成功判据**：Windows 服务为 Running；`/healthz` 返回 2xx；`/api/server/info.version` 与包版本一致；Web UI 启用时 `uiEnabled=true`，无头时 `uiEnabled=false`；三个下载中心目录中的当版官方资源在位。任一失败进入回滚 / 非零退出并给出阶段与日志路径；同版本重跑保持幂等。
+
+#### 6.13.5 `managed-files` 两份文件与安全清理
+
+同名文件按位置承担两种固定职责：
+
+| 位置 | 职责 | 内容 |
+|---|---|---|
+| 离线包根 `managed-files.json` | **本包允许清单**：限定这次介质可写入哪些官方分发资源 | 每项记录逻辑种类（client / pda / plugin）、官方稳定 id、单层相对文件名、版本与 SHA256 |
+| `%ProgramData%\LabelFrame\installer\managed-files.json` | **目标机状态账本**：只记录上次 Installer 全链成功后实际接管的文件 | 每项记录解析并规范化后的绝对路径、逻辑种类、官方稳定 id、版本与 SHA256；不得保存相对路径、通配符或目录级接管声明 |
+
+安全不变量：
+
+- 包内允许清单只登记本包实际携带且由官方工具分发的 Client MSI、PDA APK、Zebra / TSPL `.lfplugin`；不得登记 Web UI、runtime、第三方插件、用户上传件或通配模式。
+- 安装前校验包内条目均为安全的单层相对文件名、无路径穿越 / 重名 / 重复 id，且哈希与 `SHA256SUMS` 一致；解析目标目录后构造本次候选状态，绝对路径必须仍位于对应 `client-packages` / `pda-packages` / `plugin-packages` 根内，否则 fail-closed。
+- 清理集合只能是「ProgramData 状态账本中的上次成功绝对路径 − 本次候选状态中的当前绝对路径」。删除前再次规范化并验证路径属于其种类对应的当前或上次已记录目标根，且文件实测 SHA256 与上次状态账本一致；内容已被用户替换时保留并告警，不把它当作官方旧件强删。
+- 绝不按扩展名、文件名前缀、版本号猜测或枚举删除；状态账本不存在时视为无历史受管文件，首装不扫描目录补账。
+- 顺序固定为：复制 / 校验本次资源 → 启动服务并完成全部健康检查 → 删除上述已验证旧账本文件 → 原子写入 `%ProgramData%\LabelFrame\installer\managed-files.json`。健康检查失败不清旧件、不推进状态账本；删除或状态账本写入失败使安装非零结束并保留可诊断信息，不扩大清理范围。
+
+#### 6.13.6 Docker Builder 兼容边界
+
+Docker Builder 按 `serverImage.digest` 拉取并校验实际 RepoDigest 后 `docker save`，下载 Client MSI、PDA APK、Web UI 与全部官方插件并按 `install-manifest.json` SHA256 校验，然后调用既有 Linux 底层组包逻辑。生成归档必须保持决策 #160 已交付结构：`images/`、同源 `compose.yml`、钉版本 `.env`、`packages/`、预解压 `plugins/web-ui/`、`SHA256SUMS`、README 与既有 `install.sh`；同时输出整个 `.tar.gz` 的同名 `.sha256` 旁车。
+
+完整性分两层：目标机执行包内脚本前先用旁车验证整个归档；解压后 `install.sh` 再对除 `SHA256SUMS` 自身外的全部部署文件做包内 fail-closed 校验（含脚本、Compose、环境文件、Web UI、镜像与分发资源）。其余行为契约不变：`docker load` 后按既有 compose 启动；资源复制到挂载目录；`/healthz` 健康检查；固定部署目录承接同一数据卷的升级与幂等重跑。Builder 不增加在线回退，不改变 compose pull / 卷 / 资源分发语义。
+
+#### 6.13.7 Release 迁移门槛
+
+从 `release.yml` 移除 Windows Full、Windows Upgrade、Docker Full 三类预组装大附件，必须晚于以下同一 Builder 路线的真机证据：
+
+1. 以 v1.4.0 原子资源生成 Windows 双包，并在断网净机完成 Full 首装；
+2. 已装 v1.4.0 的机器断网运行新版 Upgrade，确认配置 / 数据保留、Web UI 无旧文件、官方资源按账本收敛且第三方资源保留；
+3. 在无预置 Server 镜像的 Docker 环境生成并运行离线包，既有 `install.sh` 全链成功。
+
+任一证据未完成时，旧预组装附件上传保持不变；不得以结构断言或 CI 组包成功替代真机门槛。
 
 ## 7. 风险与未决问题
 
