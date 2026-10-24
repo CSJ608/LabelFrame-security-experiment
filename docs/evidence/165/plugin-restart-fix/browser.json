@@ -1,0 +1,29 @@
+{
+  "mode": "真实 Edge + 隔离 API 夹具；不代替完整宿主进程",
+  "restartResults": [
+    {
+      "blocked": false,
+      "dirty": false,
+      "busy": false
+    },
+    {
+      "blocked": true,
+      "dirty": true,
+      "busy": false
+    },
+    {
+      "blocked": false,
+      "dirty": false,
+      "busy": false
+    },
+    {
+      "blocked": false,
+      "dirty": false,
+      "busy": false
+    }
+  ],
+  "saves": [
+    "http://192.0.2.12:53961"
+  ],
+  "pageErrors": []
+}

@@ -171,7 +171,7 @@ public sealed class PluginInstaller
         if (installedManifest is not null && TransportPluginIdPolicy.IsOfficial(content.Manifest.PluginId))
         {
             var comparison = PluginVersionComparer.Compare(content.Manifest.Version, installedManifest.Version);
-            if (comparison == 0)
+            if (comparison == 0 && !IsExplicitlyUninstalled(safeId))
             {
                 // 同版本幂等：不重复解压（避免无谓覆盖），返回已装视图
                 _hostLog.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 官方插件 {content.Manifest.PluginId} 已安装相同版本 {installedManifest.Version}，幂等跳过安装。");
@@ -235,6 +235,7 @@ public sealed class PluginInstaller
                 TryDeleteDirectory(tempDir);
             }
 
+            File.Delete(UninstallMarkerPath(safeId));
             _hostLog.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 已安装插件包：{content.Manifest.PluginId}（{content.Manifest.Name} {content.Manifest.Version}，重启后生效）。");
             return new InstalledPluginView(
                 content.Manifest.PluginId,
@@ -278,6 +279,11 @@ public sealed class PluginInstaller
             throw new PluginPackageException("该插件为手动放置（无安装包 manifest），不支持界面卸载，请手动删除插件目录。");
         }
 
+        using (var marker = new FileStream(UninstallMarkerPath(safeId), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
+        {
+            marker.Flush(flushToDisk: true);
+        }
+
         try
         {
             Directory.Delete(targetDir, recursive: true);
@@ -289,6 +295,23 @@ public sealed class PluginInstaller
 
         _hostLog.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 已卸载插件包：{pluginId}（重启后生效）。");
     }
+
+    /// <summary>读取用户明确卸载该插件的持久化意图。</summary>
+    public bool IsExplicitlyUninstalled(string pluginId)
+    {
+        var safeId = SafeFileName.Normalize(pluginId)
+            ?? throw new PluginPackageException($"pluginId「{pluginId}」不是合法的插件目录名。");
+        try
+        {
+            _ = File.GetAttributes(UninstallMarkerPath(safeId));
+            return true;
+        }
+        catch (FileNotFoundException) { return false; }
+        catch (DirectoryNotFoundException) { return false; }
+    }
+
+    private string UninstallMarkerPath(string safeId)
+        => Path.Combine(_pluginsPath, $".uninstalled-{safeId.ToLowerInvariant()}.state");
 
     /// <summary>取目录内首个加载失败的 DLL 错误消息（未加载时透出启动期 loadError）。</summary>
     private string? FindLoadError(string dir)

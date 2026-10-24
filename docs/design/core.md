@@ -73,6 +73,8 @@
 
 ### 3.3 插件包安装（`PluginInstaller.InstallAsync`，三层校验）
 
+插件卸载意图与包目录同作用域，保存为插件根目录的 `.uninstalled-<小写规范化 id>.state` 文件，不参与 DLL/manifest 枚举。`PluginInstaller` 提供只读判定；卸载验证目录和 manifest 后先写标记，再删除包目录。标记写入失败时保持原包，删除失败时保留标记并报告失败。主动安装成功后清除标记，校验或落位失败不清除；有标记时同版本也完整校验并重装，以恢复失败卸载留下的不完整包。自动迁移调用方必须先尊重标记；Core 不判断 Windows 连接配置或官方包分发策略，Android 的包格式与平台门不变。
+
 1. 包完整性：`PluginPackageReader.Read`——zip 魔数判别（PK 头）、根 `manifest.json` 必填字段、条目名 zip-slip 防护（拒绝绝对路径 / 盘符 / `..` 段）、至少一个 DLL；
 2. 平台门与 id 门：宿主平台不在 manifest `platforms` 集合内拒绝（**无字段的既有包按 Windows 端解释**——存量包零迁移，决策 #157）；pluginId 与宿主注册表内置插件冲突拒绝（内置保留 id：log / tcp9100 / winspool）；官方插件（`labelframe-` 前缀）覆盖安装先做版本比较——新版覆盖 / 同版幂等跳过 / 降级拒绝（决策 #123）；
 3. ALC 预检：临时目录解压 + `PluginProbe`（探针 ALC 发现插件并核对 manifest.pluginId 一致，不 Create 传输实例；DLL 非 .NET 程序集给可行动中文提示）；

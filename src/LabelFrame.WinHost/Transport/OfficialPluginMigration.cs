@@ -51,6 +51,13 @@ public static class OfficialPluginMigration
         Action<string> hostInfo,
         string appBaseDirectory)
     {
+        var installer = new Core.Transport.Plugins.PluginInstaller(options.PluginsPath, new TransportPluginRegistry(), hostLogWriter);
+        if (installer.IsExplicitlyUninstalled(pluginId))
+        {
+            hostInfo($"官方插件 {pluginId} 已由用户卸载，跳过自动安装与升级；需要时请主动重新安装。");
+            return;
+        }
+
         var safeId = SafeFileName.Normalize(pluginId);
         var installedDir = safeId is null
             ? null
@@ -77,7 +84,6 @@ public static class OfficialPluginMigration
         }
 
         // 复用 PluginInstaller 三层校验（zip + manifest / 内置 id 拒绝 / 临时 ALC 预检核对插件 id）
-        var installer = new Core.Transport.Plugins.PluginInstaller(options.PluginsPath, new TransportPluginRegistry(), hostLogWriter);
         using var stream = File.OpenRead(packagePath);
         var view = installer.InstallAsync(stream, Path.GetFileName(packagePath), CancellationToken.None).GetAwaiter().GetResult();
         hostInfo(

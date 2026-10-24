@@ -4,7 +4,7 @@
 // （含 AppContext 启动链：getHostConfig / getTransport / healthz）。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ApiError } from '../lib/api/types'
 import type { InstalledPluginInfo, PluginPackageInfo } from '../lib/api/types'
 import { AppProvider, useApp } from '../state/AppContext'
@@ -38,6 +38,12 @@ const mocks = vi.hoisted(() => ({
     setPrintSettings: vi.fn(),
   },
   probeHealthz: vi.fn(),
+}))
+
+const lifecycle = vi.hoisted(() => ({ dirty: vi.fn() }))
+vi.mock('../lib/hostLifecycle', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../lib/hostLifecycle')>(),
+  setHostDirty: lifecycle.dirty,
 }))
 
 vi.mock('../lib/api/client', () => ({
@@ -111,6 +117,51 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+})
+
+describe('插件深链与异步设置编辑基线', () => {
+  it('迟到的机器配置不覆盖实际输入，放弃后恢复已加载地址且不发送保存请求', async () => {
+    let complete!: (value: typeof HOST_CONFIG) => void
+    mocks.local.getHostConfig.mockReturnValue(new Promise(resolve => { complete = resolve }))
+    const rendered = renderSettings()
+    openSection('常规设置')
+    fireEvent.change(screen.getByPlaceholderText('http://127.0.0.1:53961'), { target: { value: 'http://192.0.2.12:53961' } })
+    await act(async () => complete({ ...HOST_CONFIG, serverUrl: 'http://192.0.2.13:53961' }))
+    expect((screen.getByPlaceholderText('http://127.0.0.1:53961') as HTMLInputElement).value).toBe('http://192.0.2.12:53961')
+    expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', true])
+    fireEvent.click(screen.getByRole('button', { name: '放弃地址更改' }))
+    expect((screen.getByPlaceholderText('http://127.0.0.1:53961') as HTMLInputElement).value).toBe('http://192.0.2.13:53961')
+    expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', false])
+    expect(mocks.local.setHostConfig).not.toHaveBeenCalled()
+    rendered.unmount()
+    expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', false])
+  })
+
+  it('机器级地址异步加载且服务端离线，未编辑的插件页不产生 dirty', async () => {
+    const machineUrl = 'http://192.0.2.10:53961'
+    mocks.local.getHostConfig.mockResolvedValue({ ...HOST_CONFIG, serverUrl: machineUrl })
+    mocks.server.healthz.mockRejectedValue(new Error('offline'))
+    render(<AppProvider><Settings helpAnchor="settings.plugins" /><StatusProbe /></AppProvider>)
+    await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain(machineUrl))
+    await waitFor(() => expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', false]))
+    openSection('常规设置')
+    expect((screen.getByPlaceholderText('http://127.0.0.1:53961') as HTMLInputElement).value).toBe(machineUrl)
+  })
+
+  it('真实地址编辑跨分节保留保护，保存规范化后解除', async () => {
+    renderSettings()
+    openSection('常规设置')
+    const address = await screen.findByPlaceholderText('http://127.0.0.1:53961')
+    fireEvent.change(address, { target: { value: ' http://192.0.2.11:53961/ ' } })
+    await waitFor(() => expect(lifecycle.dirty).toHaveBeenLastCalledWith('settings', true))
+    openSection('插件管理')
+    expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', true])
+    fireEvent.click(screen.getByRole('button', { name: '查看地址更改' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存并生效' }))
+    await waitFor(() => expect(mocks.local.setHostConfig).toHaveBeenCalled())
+    await waitFor(() => expect(lifecycle.dirty.mock.calls.filter(([source]) => source === 'settings').at(-1)).toEqual(['settings', false]))
+    expect((screen.getByPlaceholderText('http://127.0.0.1:53961') as HTMLInputElement).value).toBe('http://192.0.2.11:53961')
+  })
 })
 
 describe('设置页结构（分节左菜单）与启动', () => {

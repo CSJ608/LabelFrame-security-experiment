@@ -9,6 +9,43 @@ namespace LabelFrame.WinHost.Tests.Transport;
 
 public class PluginInstallerTests
 {
+    [Fact]
+    public async Task Uninstall_cannot_delete_package_when_intent_cannot_be_persisted()
+    {
+        var (installer, _, pluginsDir) = Create();
+        try
+        {
+            await installer.InstallAsync(new MemoryStream(BuildPackage()), "sample.lfplugin", CancellationToken.None);
+            Directory.CreateDirectory(Path.Combine(pluginsDir, ".uninstalled-sample.state"));
+            var failure = Record.Exception(() => installer.Uninstall("sample"));
+            Assert.True(failure is IOException or UnauthorizedAccessException);
+            Assert.True(File.Exists(Path.Combine(pluginsDir, "sample", "manifest.json")));
+            Assert.True(File.Exists(Path.Combine(pluginsDir, "sample", "LabelFrame.TransportPlugin.Sample.dll")));
+        }
+        finally { TryDeleteDirectory(pluginsDir); }
+    }
+
+    [Fact]
+    public async Task Failed_uninstall_keeps_intent_and_same_version_reinstall_repairs_package()
+    {
+        var (installer, _, pluginsDir) = Create();
+        const string id = "labelframe-transport-zebra";
+        var package = OfficialPackageFactory.Build("1.0.0");
+        try
+        {
+            await installer.InstallAsync(new MemoryStream(package), "official.lfplugin", CancellationToken.None);
+            var manifest = Path.Combine(pluginsDir, id, "manifest.json");
+            using (var held = new FileStream(manifest, FileMode.Open, FileAccess.Read, FileShare.None))
+                Assert.Throws<IOException>(() => installer.Uninstall(id));
+            Assert.True(installer.IsExplicitlyUninstalled(id));
+            Assert.True(new PluginInstaller(pluginsDir, new TransportPluginRegistry(), TextWriter.Null).IsExplicitlyUninstalled(id.ToUpperInvariant()));
+            await installer.InstallAsync(new MemoryStream(package), "official.lfplugin", CancellationToken.None);
+            Assert.False(installer.IsExplicitlyUninstalled(id));
+            Assert.True(File.Exists(Path.Combine(pluginsDir, id, "LabelFrame.TransportPlugin.Zebra.dll")));
+        }
+        finally { TryDeleteDirectory(pluginsDir); }
+    }
+
     private static (PluginInstaller Installer, TransportPluginRegistry Registry, string PluginsDir) Create()
     {
         var dir = Path.Combine(Path.GetTempPath(), $"lfinstall-{Guid.NewGuid():N}");

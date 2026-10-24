@@ -73,7 +73,8 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
         onClose={() => setOpenDot(null)}
       />
     )
-  const [url, setUrl] = useState(app.baseUrl)
+  const [urlDraft, setUrlDraft] = useState<string | null>(null)
+  const url = urlDraft ?? app.baseUrl
   // 分节导航：右区仅渲染选中分节（默认打印设置——最高频调整项）；帮助深链锚点映射分节，到达即自动选中
   const [section, setSection] = useState<SettingsSectionId>(() => (helpAnchor && ANCHOR_TO_SECTION[helpAnchor]) || 'printing')
   useEffect(() => {
@@ -298,6 +299,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
     setSaving(true)
     setSaveResult(null)
     const ok = await app.changeBaseUrl(url)
+    setUrlDraft(null)
     setSaveResult(ok ? { ok: true, msg: t('serverAddress.saveOk') } : { ok: false, msg: t('serverAddress.saveFallback') })
     setSaving(false)
   }
@@ -366,6 +368,10 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
           ))}
         </nav>
         <div className="settings-main">
+        {url !== app.baseUrl && section !== 'general' && <div className="notice" role="status">
+          {t('serverAddress.unsaved')} {' '}
+          <button className="btn" onClick={() => setSection('general')}>{t('serverAddress.review')}</button>
+        </div>}
         {/* 常规设置：界面语言（切换即时生效 + localStorage 持久化，首启跟随浏览器语言）＋
             服务端地址（机器级配置，保存即生效）——两子节分层呈现 */}
         {section === 'general' && (
@@ -401,7 +407,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             <div className="settings-section-body">
               <label className="field">
                 {t('serverAddress.label')}
-                <input className="input mono" value={url} onChange={(ev) => setUrl(ev.target.value)} placeholder="http://127.0.0.1:53961" spellCheck={false} />
+                <input className="input mono" value={url} onChange={(ev) => setUrlDraft(ev.target.value)} disabled={saving} placeholder="http://127.0.0.1:53961" spellCheck={false} />
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={() => void testConnection()} disabled={testing}>
@@ -412,6 +418,9 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   <Icon name="save" size={13} />
                   {saving ? t('serverAddress.saving') : t('serverAddress.save')}
                 </button>
+                {url !== app.baseUrl && <button className="btn" disabled={saving} onClick={() => { setUrlDraft(null); setSaveResult(null); setTestResult(null) }}>
+                  {t('serverAddress.discard')}
+                </button>}
                 <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span className={'status-dot' + (app.connected ? ' on' : '')} />
                   {app.connected ? t('serverAddress.connected') : t('serverAddress.disconnected')}

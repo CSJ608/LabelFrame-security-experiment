@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using LabelFrame.Core.Transport.Plugins;
 using LabelFrame.Core.Transport.Plugins.Package;
 using LabelFrame.WinHost.Transport;
 
@@ -11,6 +12,45 @@ namespace LabelFrame.WinHost.Tests.Transport;
 /// </summary>
 public class OfficialPluginMigrationTests
 {
+    [Theory]
+    [InlineData("labelframe-transport-tspl")]
+    [InlineData("labelframe-transport-zebra")]
+    public async Task Explicit_uninstall_survives_restarts_and_bundled_updates_until_reinstalled(string pluginId)
+    {
+        var connection = $$$"""{"PluginId":"{{{pluginId}}}","Params":{"kind":"Usb"}}""";
+        var (options, root, messages) = Create(connectionJson: connection);
+        byte[] Package(string version) => pluginId.EndsWith("tspl") ? BuildTsplPackage(version) : OfficialPackageFactory.Build(version);
+        try
+        {
+            var bundledDir = Path.Combine(root, OfficialPluginMigration.BundledPackagesDirName);
+            Directory.CreateDirectory(bundledDir);
+            File.WriteAllBytes(Path.Combine(bundledDir, $"{pluginId}-1.0.0.lfplugin"), Package("1.0.0"));
+            OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
+            var installedDir = Path.Combine(options.PluginsPath, pluginId);
+            Assert.True(Directory.Exists(installedDir));
+
+            var installer = new PluginInstaller(options.PluginsPath, new TransportPluginRegistry(), TextWriter.Null);
+            installer.Uninstall(pluginId);
+            OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
+            Assert.False(Directory.Exists(installedDir));
+            File.WriteAllBytes(Path.Combine(bundledDir, $"{pluginId}-2.0.0.lfplugin"), Package("2.0.0"));
+            OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
+            Assert.False(Directory.Exists(installedDir));
+            Assert.Empty(new PluginInstaller(options.PluginsPath, new TransportPluginRegistry(), TextWriter.Null).ListInstalled());
+            Assert.Equal(connection, File.ReadAllText(options.ConnectionPath));
+
+            await Assert.ThrowsAsync<PluginPackageException>(() => installer.InstallAsync(new MemoryStream([1, 2, 3]), "bad.lfplugin", CancellationToken.None));
+            OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
+            Assert.False(Directory.Exists(installedDir));
+
+            await installer.InstallAsync(new MemoryStream(Package("1.0.0")), "explicit.lfplugin", CancellationToken.None);
+            OfficialPluginMigration.Run(options, TextWriter.Null, messages.Add, root);
+            var manifest = PluginPackageManifest.Parse(File.ReadAllText(Path.Combine(installedDir, PluginPackageReader.ManifestFileName)));
+            Assert.Equal("2.0.0", manifest.Version);
+        }
+        finally { TryDeleteDirectory(root); }
+    }
+
     private static (HostOptions Options, string Root, List<string> Messages) Create(
         string? connectionJson = null,
         TransportMode transport = TransportMode.Log)

@@ -1,0 +1,57 @@
+﻿{
+    "initialMigration":  {
+                             "value":  [
+                                           {
+                                               "pluginId":  "labelframe-transport-tspl",
+                                               "name":  "TSPL 指令集传输（官方）",
+                                               "version":  "1.4.4",
+                                               "description":  "TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态、原生指令编译与图片位图编码；随 LabelFrame 主版本演进的官方插件。",
+                                               "loaded":  true,
+                                               "loadError":  null,
+                                               "packageDir":  "labelframe-transport-tspl",
+                                               "source":  "package",
+                                               "installedAt":  "2026-10-24T03:30:14.0929574+00:00"
+                                           }
+                                       ],
+                             "Count":  1
+                         },
+    "initialInstance":  "814f9b3fdbfd4729b81c44b3c762067a",
+    "afterUninstall":  {
+                           "value":  [
+
+                                     ],
+                           "Count":  0
+                       },
+    "firstRestartInstance":  "d4aed2bb369844a49230d35b297c7f06",
+    "secondRestartInstance":  "745c7fefde2b48fba9fab07b221456d7",
+    "markerPersists":  true,
+    "reinstalled":  {
+                        "value":  [
+                                      {
+                                          "pluginId":  "labelframe-transport-tspl",
+                                          "name":  "TSPL 指令集传输（官方）",
+                                          "version":  "1.4.5",
+                                          "description":  "TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态、原生指令编译与图片位图编码；随 LabelFrame 主版本演进的官方插件。",
+                                          "loaded":  true,
+                                          "loadError":  null,
+                                          "packageDir":  "labelframe-transport-tspl",
+                                          "source":  "package",
+                                          "installedAt":  "2026-10-24T03:30:25.1196028+00:00"
+                                      }
+                                  ],
+                        "Count":  1
+                    },
+    "thirdRestartInstance":  "ea1bf14d79d54792ba766b26437d1b4a",
+    "markerCleared":  true,
+    "connectionUnchanged":  true,
+    "dirtyBlocked":  true,
+    "afterDiscardInstance":  "7bd58b7032e44b7c9a4c993a9cfe04c6",
+    "processes":  [
+                      {
+                          "ProcessId":  6584,
+                          "SessionId":  2,
+                          "CommandLine":  "\"C:\\LF-Fix\\client\\LabelFrame.WinHost.exe\" --restart-plugins"
+                      }
+                  ],
+    "connectionUnchangedAfterRestart":  true
+}

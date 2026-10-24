@@ -7,7 +7,7 @@ let reporting = false
 let sessionId = ''
 let sequence = 0
 let preparationId: string | null = null
-let inFlight = false
+let inFlight: Promise<void> | null = null
 let interactionUnixMs = Date.now()
 
 function freezeUi(frozen: boolean): void {
@@ -29,8 +29,16 @@ function getSessionId(): string {
 /** 将当前界面活动同步给本机宿主。 */
 export async function reportHostActivity(closed = false): Promise<void> {
   if (isServerUi || !reporting) return
-  if (inFlight && !closed) return
-  inFlight = true
+  if (closed) { await sendHostActivity(true); return }
+  while (inFlight) await inFlight
+  if (!reporting) return
+  const report = sendHostActivity(closed)
+  inFlight = report
+  try { await report }
+  finally { if (inFlight === report) inFlight = null }
+}
+
+async function sendHostActivity(closed: boolean): Promise<void> {
   sequence = Math.max(sequence + 1, Date.now() * 1000)
   try {
     const response = await fetch('/api/host/ui-activity', {
@@ -47,7 +55,6 @@ export async function reportHostActivity(closed = false): Promise<void> {
       }
     }
   } catch { /* 失联不清除宿主已记录的未保存状态。 */ }
-  finally { inFlight = false }
 }
 
 /** 登记需要保留的界面更改。 */
