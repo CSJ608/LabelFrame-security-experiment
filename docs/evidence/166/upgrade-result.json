@@ -1,0 +1,10 @@
+﻿{
+    "initialExit":  0,
+    "upgradeExit":  0,
+    "before":  "2b9c714dcc1d42d0bb64a0e4c8f74ee1",
+    "after":  "a206a461b83a430a85e3c42263c796e0",
+    "installedVersion":  "1.4.7",
+    "serviceBefore":  9496,
+    "serviceAfter":  6928,
+    "serviceState":  "Running"
+}

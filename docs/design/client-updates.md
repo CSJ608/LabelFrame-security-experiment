@@ -43,6 +43,8 @@ Client MSI 安装 `LabelFrameClientUpdater` Windows 服务，入口只运行更�
 
 MSI 的运行中升级预检先读取 `Win32_Service` 中 `LabelFrameClientUpdater` 的进程 ID，并从候选宿主中排除，再按命令行排除 `--update-service` 与 `--restart-wait`。普通权限启动安装时可能读不到 LocalSystem 进程命令行，不能仅依赖命令行识别服务；服务由 Windows Installer 的 ServiceControl 停止。未知角色但非服务的进程不因命令行缺失被跳过，仍执行原有 API 安全退出预检。服务查询失败阻断安装，不降级到不安全的仅进程名选择。
 
+安装预检由 WiX Util 的 x64 `WixQuietExec` DLL 同步运行，命令通过前置属性动作设置，仍位于 CostFinalize 后、InstallValidate 前。QuietExec 从创建进程时隐藏控制台并将输出写入 MSI 日志，非零退出码继续阻断安装；固定使用 System64Folder 下 Windows PowerShell，避免 PATH 解析。安装向导与正常 UAC 保持可见，不能用异步启动或忽略返回码达到隐藏效果。依据：[WiX Quiet execution 官方文档](https://docs.firegiant.com/wix/tools/wixext/quietexec/)。
+
 ## 状态与契约
 
 更新状态采用独立数据面，记录客户端版本、候选版本、阶段、延期/失败原因、检查时间、安装事务 ID；服务端按设备显示最近状态及上报时间，超时状态不当作实时事实。下载中断删除临时文件，退避且带错峰；缓存只复用完整摘要匹配的包，执行前重新校验。暂停发布或设备移出范围会取消安装资格。

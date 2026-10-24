@@ -1,0 +1,19 @@
+﻿{
+    "positiveControl":  {
+                            "consoleWindow":  30474412,
+                            "exitCode":  0,
+                            "pid":  6976
+                        },
+    "quiet":  [
+                  {
+                      "consoleWindow":  0,
+                      "exitCode":  0,
+                      "actionResult":  1
+                  },
+                  {
+                      "consoleWindow":  0,
+                      "exitCode":  7,
+                      "actionResult":  3
+                  }
+              ]
+}

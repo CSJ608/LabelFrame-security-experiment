@@ -139,18 +139,19 @@ foreach ($path in $MsiPaths) {
             throw "ShutdownWinHost($shutdownSeq) 必须位于 CostFinalize 与 InstallValidate 之间"
         }
         if ($shutdownRow[0][1] -notlike '*REMOVE*ALL*') { throw 'ShutdownWinHost 必须在完整卸载时跳过' }
-        $shutdownAction = @(Invoke-MsiQuery $db "SELECT Action, Type, Target FROM CustomAction WHERE Action = 'ShutdownWinHost'")
-        if ($shutdownAction.Count -ne 1 -or [int]::Parse($shutdownAction[0][1]) -ne 34) { throw 'ShutdownWinHost 必须是同步、失败阻断的立即 EXE 自定义动作' }
+        $quietAction = @(Invoke-MsiQuery $db "SELECT Action, Type, Target, Source FROM CustomAction WHERE Action = 'ShutdownWinHost'")
+        if ($quietAction.Count -ne 1 -or $quietAction[0][1] -ne '1' -or $quietAction[0][2] -ne 'WixQuietExec' -or $quietAction[0][3] -ne 'Wix4UtilCA_X64') { throw 'ShutdownWinHost 必须是同步、失败阻断的 x64 QuietExec DLL 动作' }
+        $shutdownAction = @(Invoke-MsiQuery $db "SELECT Action, Type, Target, Source FROM CustomAction WHERE Action = 'SetShutdownWinHostCommand'")
+        if ($shutdownAction.Count -ne 1 -or $shutdownAction[0][1] -ne '51' -or $shutdownAction[0][3] -ne 'WixQuietExecCmdLine') { throw '退出预检命令必须通过专用属性传给 QuietExec' }
+        $setCommandRow = @($executeRows | Where-Object { $_[0] -eq 'SetShutdownWinHostCommand' })
+        if ($setCommandRow.Count -ne 1 -or [int]$setCommandRow[0][2] -le [int]$costRow[0][2] -or [int]$setCommandRow[0][2] -ge $shutdownSeq -or $setCommandRow[0][1] -ne $shutdownRow[0][1]) { throw '预检命令赋值必须同条件位于 CostFinalize 与退出动作之间' }
+        if (-not $shutdownAction[0][2].StartsWith('"[System64Folder]WindowsPowerShell\v1.0\powershell.exe" ')) { throw '预检必须使用固定的系统 PowerShell 路径' }
         foreach ($required in @('/api/jobs?limit=500', '/api/host/shutdown', 'Printing', '15 秒内安全退出')) {
             if ($shutdownAction[0][2] -notlike "*$required*") { throw "ShutdownWinHost MSI 命令缺少安全退出逻辑：$required" }
         }
         if ($customActions -contains 'KillWinHost') { throw 'Client MSI 不得再用 taskkill 强制结束 WinHost' }
 
-        # 迭代 106 返修（#229）：CA Target 属 MSI Formatted 语义——引擎剥除空花括号对 {}、把 [x] 序列按属性替换
-        # （无效属性名置空），非空且无 [属性] 引用的花括号原样保留。曾因空 catch {} 被剥成裸 catch，CA 实际执行的
-        # 32 位 powershell.exe（SystemFolder = SysWOW64）解析失败 exit 1 → CA 1722 → 全新安装与覆盖升级中止。
-        # 静态防复发：① 表内原文不得含空花括号；② 经真实引擎 Formatted 转换（只读会话 FormatRecord，不安装）
-        # 后的内层 PowerShell 必须仍可解析（本脚本类语法与 32 位 / 64 位解析器等价，用宿主 Parser 静态校验）。
+        # MSI 属性赋值会展开 Formatted 语法，必须验证展开后的脚本仍可解析。
         $caTarget = $shutdownAction[0][2]
         if ($caTarget -match '\{\}') { throw 'ShutdownWinHost 命令含空花括号 {}（Formatted 语义剥除花括号对，破坏 PowerShell 语法）' }
         $pkgSession = $installer.GetType().InvokeMember('OpenPackage', 'InvokeMethod', $null, $installer, @($db, 0))

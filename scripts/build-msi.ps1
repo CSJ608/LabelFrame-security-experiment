@@ -14,6 +14,9 @@ if (-not $wix) { $wix = $env:WIX_PATH }
 if (-not $wix) { $wix = 'C:\Program Files\WiX Toolset v7.0\bin\wix.exe' }
 if (-not (Test-Path $wix)) { throw "未找到 WiX（$wix），请安装 WiX Toolset v7 或通过 -WixPath 指定 wix.exe。" }
 
+& $wix extension add -g WixToolset.Util.wixext/7.0.0
+if ($LASTEXITCODE -ne 0) { throw 'WiX Util 隐藏执行扩展准备失败' }
+
 # 1) 发布 WinHost（Client，framework-dependent）+ 复制 web/dist
 $publishDir = Join-Path $root "artifacts\client\$Runtime"
 & (Join-Path $PSScriptRoot 'publish-winhost.ps1') -Runtime $Runtime -OutputDir (Join-Path $root 'artifacts\client')
@@ -48,7 +51,7 @@ foreach ($plugin in $officialPlugins) {
 $msi = Join-Path $root "artifacts\LabelFrame-Client-$Version.msi"
 $global:LASTEXITCODE = 0
 & $wix eula accept wix7 2>$null | Out-Null
-& $wix build (Join-Path $root 'packaging\main.wxs') $filesWxs -d PublishDir=$publishDir -d Version=$Version -d AssetsDir=$(Join-Path $root 'assets') -d LicenseRtf=$(Join-Path $root 'packaging\license.rtf') -d PackagingDir=$(Join-Path $root 'packaging') @pluginPackageArgs -o $msi -arch x64 -ext WixToolset.NetFx.wixext -ext WixToolset.UI.wixext -culture zh-cn 2>&1 | Write-Host
+& $wix build (Join-Path $root 'packaging\main.wxs') $filesWxs -d PublishDir=$publishDir -d Version=$Version -d AssetsDir=$(Join-Path $root 'assets') -d LicenseRtf=$(Join-Path $root 'packaging\license.rtf') -d PackagingDir=$(Join-Path $root 'packaging') @pluginPackageArgs -o $msi -arch x64 -ext WixToolset.NetFx.wixext -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext/7.0.0 -culture zh-cn 2>&1 | Write-Host
 if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }
 
 # 4b) 发布工件依赖降版回归断言（迭代 64 返修，#57 AC-01，决策 #130）：
