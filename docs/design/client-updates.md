@@ -41,7 +41,7 @@ Client MSI 安装 `LabelFrameClientUpdater` Windows 服务，入口只运行更�
 
 可信 MSI 附带的官方插件在启动扫描前比较真实版本、更新已激活/已安装官方插件；第三方目录和手动 DLL 不覆盖。单个插件失败需显示，不能清除异常冒充成功。数据、模板、配置和请求幂等键保留。
 
-MSI 的运行中升级预检按命令行角色识别打印宿主，排除同名可执行文件的 `--update-service` 更新服务与 `--restart-wait` 等待器；服务由 Windows Installer 的 ServiceControl 停止。自动升级已退出打印宿主时，不能把仍运行的更新服务当成打印客户端并要求其提供打印 API。
+MSI 的运行中升级预检先读取 `Win32_Service` 中 `LabelFrameClientUpdater` 的进程 ID，并从候选宿主中排除，再按命令行排除 `--update-service` 与 `--restart-wait`。普通权限启动安装时可能读不到 LocalSystem 进程命令行，不能仅依赖命令行识别服务；服务由 Windows Installer 的 ServiceControl 停止。未知角色但非服务的进程不因命令行缺失被跳过，仍执行原有 API 安全退出预检。服务查询失败阻断安装，不降级到不安全的仅进程名选择。
 
 ## 状态与契约
 

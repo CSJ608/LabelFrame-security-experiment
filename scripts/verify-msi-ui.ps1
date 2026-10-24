@@ -174,14 +174,28 @@ foreach ($path in $MsiPaths) {
         $serviceProcess = [pscustomobject]@{ ProcessId = 101; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --update-service' }
         $waiterProcess = [pscustomobject]@{ ProcessId = 102; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --restart-wait 100 123 event args' }
         $clientProcess = [pscustomobject]@{ ProcessId = 103; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --autostart' }
+        $hiddenService = [pscustomobject]@{ ProcessId = 101; CommandLine = $null }
+        $emptyService = [pscustomobject]@{ ProcessId = 101; CommandLine = '' }
+        $hiddenClient = [pscustomobject]@{ ProcessId = 104; CommandLine = $null }
         foreach ($case in @(
+            @{ Processes = @($hiddenService, $clientProcess); Expected = 103 },
+            @{ Processes = @($emptyService, $clientProcess); Expected = 103 },
+            @{ Processes = @($hiddenService); Expected = $null },
+            @{ Processes = @($hiddenService, $hiddenClient); Expected = 104 },
             @{ Processes = @($serviceProcess, $waiterProcess, $clientProcess); Expected = 103 },
             @{ Processes = @($serviceProcess, $waiterProcess); Expected = $null },
             @{ Processes = @($clientProcess); Expected = 103 }
         )) {
             & {
                 param($fixture, $script)
-                function Get-CimInstance { param($ClassName, $Filter, $ErrorAction) $fixture.Processes }
+                function Get-CimInstance {
+                    param($ClassName, $Filter, $ErrorAction)
+                    if ($ClassName -eq 'Win32_Service') {
+                        if ($Filter -ne "Name='LabelFrameClientUpdater'") { throw '服务查询必须限定更新服务' }
+                        return [pscustomobject]@{ ProcessId = 101 }
+                    }
+                    $fixture.Processes
+                }
                 function Get-Process { throw '进程选择必须读取命令行角色，不能只按进程名选择' }
                 . $script
                 if ($p.ProcessId -ne $fixture.Expected) { throw 'ShutdownWinHost 误选更新服务或重启等待器，或漏选打印客户端' }

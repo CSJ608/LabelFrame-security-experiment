@@ -208,7 +208,7 @@
 | 162 | 流程治理：前端开发链稳定版升级与安全基线统一（决策 #208）：Node 26.12.1 / pnpm 12.15.0 对齐开发、CI、Release 与 E2E；Vite 8.3.5、TypeScript 7.0.2、Vitest 5.0.5 等工具升级，生产运行库保持；Linux 前端镜像构建增加验证 | ✅ 实现交付（全量/生产 audit 零告警；dotnet 1226、前端双模式各 758；真实浏览器保存/选择与多选拖动回归；PR 最新提交检查与验收证据以 [#447](https://github.com/marci-labs/LabelFrame/issues/447) 为准） |
 | 163 | TemplateFrame.Excel.Simple 3.0.0 与 OpenXml 3.5.1 升级；旧版 Excel 兼容与资源边界回归（决策 #209） | ✅ 实现交付（PR 检查与逐项验收证据见 [#449](https://github.com/marci-labs/LabelFrame/issues/449)） |
 | 164 | Windows 客户端一键安全重启：插件页持续提示、设置与托盘入口；整批作业、待回报结果、未保存编辑和界面冻结确认保护 | ✅ 实现交付；用户认可其他交互，补修卸载复活、异步设置误判与最新活动报告；验收和候选复测见 [#451](https://github.com/marci-labs/LabelFrame/issues/451) |
-| 165 | 服务端受控发布与 Windows 客户端自动升级：可信 MSI 验证、分设备推广、后台下载、默认确认安装及可选维护时段静默安装，受限更新服务与恢复保护 | ✅ 实现交付，隔离 Windows 标准用户升级与恢复通过，明确卸载意图跨随包更新保留；额外物理打印及正式签名包按用户决定免验，最终验收见 [#452](https://github.com/marci-labs/LabelFrame/issues/452) |
+| 165 | 服务端受控发布与 Windows 客户端自动升级：可信 MSI 验证、分设备推广、后台下载、默认确认安装及可选维护时段静默安装，受限更新服务与恢复保护 | ✅ 实现交付，隔离 Windows 标准用户升级与恢复通过，明确卸载意图跨随包更新保留，普通权限安装按服务 PID 排除更新进程；额外物理打印及正式签名包按用户决定免验，最终验收见 [#452](https://github.com/marci-labs/LabelFrame/issues/452) |
 | 待需求 | 兼容与扩展（net48 / WMS 模板下发 / TSPL / 统计 / 契约 Pattern 校验） | 待定 |
 
 ## 待需求（有真实需求再排）
