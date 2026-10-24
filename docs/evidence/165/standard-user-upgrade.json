@@ -1,0 +1,55 @@
+﻿{
+    "capturedAt":  "2026-10-24T09:51:53.9774211+08:00",
+    "client":  {
+                   "serverUrl":  "http://127.0.0.1:53961",
+                   "deviceId":  "DESKTOP-D65DJ5S",
+                   "deviceName":  "DESKTOP-D65DJ5S",
+                   "ips":  [
+                               "172.28.193.101"
+                           ],
+                   "version":  "1.4.2"
+               },
+    "update":  {
+                   "settings":  {
+                                    "mode":  "download",
+                                    "windowStart":  "02:00",
+                                    "windowEnd":  "04:00"
+                                },
+                   "status":  {
+                                  "deviceId":  "DESKTOP-D65DJ5S",
+                                  "currentVersion":  "1.4.2",
+                                  "phase":  "completed",
+                                  "targetVersion":  "1.4.2",
+                                  "reason":  "更新及恢复检查通过。",
+                                  "checkedAt":  null,
+                                  "transactionId":  "3efd3cf47d374db09458a2ecf32a323d",
+                                  "downloadedBytes":  0,
+                                  "totalBytes":  0
+                              }
+               },
+    "processes":  [
+                      {
+                          "pid":  8984,
+                          "user":  "SYSTEM",
+                          "session":  0,
+                          "command":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" --update-service"
+                      },
+                      {
+                          "pid":  3628,
+                          "user":  "LFOperator",
+                          "session":  1,
+                          "command":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\""
+                      }
+                  ],
+    "administrators":  [
+                           "DESKTOP-D65DJ5S\\Administrator",
+                           "DESKTOP-D65DJ5S\\labelframe"
+                       ],
+    "lastBoot":  "\/Date(1792806284760)\/",
+    "service":  {
+                    "Name":  "LabelFrameClientUpdater",
+                    "State":  "Running",
+                    "StartName":  "LocalSystem",
+                    "PathName":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" --update-service"
+                }
+}

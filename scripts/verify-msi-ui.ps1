@@ -168,6 +168,26 @@ foreach ($path in $MsiPaths) {
             $firstError = $parseErrors[0]
             throw "ShutdownWinHost 命令经 Formatted 语义转换后不是可解析 PowerShell（首个错误 offset $($firstError.Extent.StartOffset)：$($firstError.Message)）——检查空花括号 / [x] 方括号序列"
         }
+        $selectionEnd = $innerScript.IndexOf('; if (!$p)')
+        if ($selectionEnd -lt 0) { throw 'ShutdownWinHost 缺少进程选择后的空进程判断' }
+        $selection = [scriptblock]::Create($innerScript.Substring(0, $selectionEnd))
+        $serviceProcess = [pscustomobject]@{ ProcessId = 101; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --update-service' }
+        $waiterProcess = [pscustomobject]@{ ProcessId = 102; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --restart-wait 100 123 event args' }
+        $clientProcess = [pscustomobject]@{ ProcessId = 103; CommandLine = '"C:\Program Files\LabelFrame\Client\LabelFrame.WinHost.exe" --autostart' }
+        foreach ($case in @(
+            @{ Processes = @($serviceProcess, $waiterProcess, $clientProcess); Expected = 103 },
+            @{ Processes = @($serviceProcess, $waiterProcess); Expected = $null },
+            @{ Processes = @($clientProcess); Expected = 103 }
+        )) {
+            & {
+                param($fixture, $script)
+                function Get-CimInstance { param($ClassName, $Filter, $ErrorAction) $fixture.Processes }
+                function Get-Process { throw '进程选择必须读取命令行角色，不能只按进程名选择' }
+                . $script
+                if ($p.ProcessId -ne $fixture.Expected) { throw 'ShutdownWinHost 误选更新服务或重启等待器，或漏选打印客户端' }
+            } $case $selection
+        }
+        Write-Host '运行中升级进程角色：真实 MSI 格式化脚本排除更新服务与等待器，保留打印客户端；无客户端时返回空。'
         Write-Host "运行中升级协调：同步动作 ShutdownWinHost($shutdownSeq) 位于 CostFinalize 后、InstallValidate 前；命令含旧版作业预检与 15 秒退出等待，卸载跳过；命令经引擎 Formatted 转换后仍可解析。"
     }
 

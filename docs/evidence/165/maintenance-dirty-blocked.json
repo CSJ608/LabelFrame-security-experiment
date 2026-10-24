@@ -1,0 +1,21 @@
+﻿{
+    "update":  {
+                   "settings":  {
+                                    "mode":  "maintenance",
+                                    "windowStart":  "00:00",
+                                    "windowEnd":  "23:59"
+                                },
+                   "status":  {
+                                  "deviceId":  "DESKTOP-D65DJ5S",
+                                  "currentVersion":  "1.4.2",
+                                  "phase":  "deferred",
+                                  "targetVersion":  "1.4.3",
+                                  "reason":  "界面有未保存的更改，请先保存或放弃更改后再重启。",
+                                  "checkedAt":  "2026-10-24T02:05:36.4317058+00:00",
+                                  "transactionId":  null,
+                                  "downloadedBytes":  0,
+                                  "totalBytes":  0
+                              }
+               },
+    "capturedAt":  "2026-10-24T10:05:38.0669075+08:00"
+}

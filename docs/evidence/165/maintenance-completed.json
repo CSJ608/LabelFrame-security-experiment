@@ -1,0 +1,97 @@
+﻿{
+    "capturedAt":  "2026-10-24T10:08:38.4524018+08:00",
+    "lastBoot":  "2026-10-24T09:44:44.7600510+08:00",
+    "client":  {
+                   "serverUrl":  "http://127.0.0.1:53961",
+                   "deviceId":  "DESKTOP-D65DJ5S",
+                   "deviceName":  "DESKTOP-D65DJ5S",
+                   "ips":  [
+                               "172.28.193.101"
+                           ],
+                   "version":  "1.4.3"
+               },
+    "update":  {
+                   "settings":  {
+                                    "mode":  "maintenance",
+                                    "windowStart":  "00:00",
+                                    "windowEnd":  "23:59"
+                                },
+                   "status":  {
+                                  "deviceId":  "DESKTOP-D65DJ5S",
+                                  "currentVersion":  "1.4.3",
+                                  "phase":  "completed",
+                                  "targetVersion":  "1.4.3",
+                                  "reason":  "更新及恢复检查通过。",
+                                  "checkedAt":  null,
+                                  "transactionId":  "b7854329a7fe4f9e8425086bbab22ff4",
+                                  "downloadedBytes":  0,
+                                  "totalBytes":  0
+                              }
+               },
+    "plugins":  {
+                    "value":  [
+                                  {
+                                      "pluginId":  "labelframe-transport-tspl",
+                                      "name":  "TSPL 指令集传输（官方）",
+                                      "version":  "0.10.0",
+                                      "description":  "TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态、原生指令编译与图片位图编码；随 LabelFrame 主版本演进的官方插件。",
+                                      "loaded":  true,
+                                      "loadError":  null,
+                                      "packageDir":  "labelframe-transport-tspl",
+                                      "source":  "package",
+                                      "installedAt":  "2026-10-24T02:06:30.3695071+00:00"
+                                  }
+                              ],
+                    "Count":  1
+                },
+    "templates":  {
+                      "value":  [
+                                    {
+                                        "name":  "VM-Upgrade-Preservation",
+                                        "group":  "默认",
+                                        "updatedAt":  "2026-10-24T01:55:26.3846678+00:00",
+                                        "uid":  "ec85210e25404ef38756fb9ad4fb6bd7"
+                                    }
+                                ],
+                      "Count":  1
+                  },
+    "serverReports":  {
+                          "value":  [
+                                        {
+                                            "status":  {
+                                                           "deviceId":  "DESKTOP-D65DJ5S",
+                                                           "currentVersion":  "1.4.3",
+                                                           "phase":  "completed",
+                                                           "targetVersion":  "1.4.3",
+                                                           "reason":  "更新及恢复检查通过。",
+                                                           "checkedAt":  null,
+                                                           "transactionId":  "b7854329a7fe4f9e8425086bbab22ff4",
+                                                           "downloadedBytes":  0,
+                                                           "totalBytes":  0
+                                                       },
+                                            "receivedAt":  "2026-10-24T02:08:32.636778+00:00"
+                                        }
+                                    ],
+                          "Count":  1
+                      },
+    "processes":  [
+                      {
+                          "pid":  1264,
+                          "user":  "SYSTEM",
+                          "session":  0,
+                          "command":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" --update-service"
+                      },
+                      {
+                          "pid":  7092,
+                          "user":  "LFOperator",
+                          "session":  1,
+                          "command":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" \"--autostart\""
+                      }
+                  ],
+    "service":  {
+                    "Name":  "LabelFrameClientUpdater",
+                    "State":  "Running",
+                    "StartName":  "LocalSystem"
+                },
+    "packageSha256":  "5D105EC20CE9A835DE5252EB0B297FD3E17E3E46B4EBCB7B3FB778547329162B"
+}

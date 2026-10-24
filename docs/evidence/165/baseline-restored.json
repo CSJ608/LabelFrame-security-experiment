@@ -1,0 +1,10 @@
+{
+  "candidateDirectoryExists": false,
+  "standardUserExists": false,
+  "updateServiceExists": false,
+  "runtimeDirectoryExists": false,
+  "vm": "LF-Accept-Win10",
+  "baseline": "baseline-clean-winrm",
+  "guestClockAtCheck": "2026-09-20T10:38:38.3005972+08:00",
+  "hostCheckedAt": "2026-10-24T10:12:05.2175426+08:00"
+}

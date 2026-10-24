@@ -1,0 +1,60 @@
+﻿{
+    "capturedAt":  "2026-10-24T09:55:26.4030668+08:00",
+    "update":  {
+                   "settings":  {
+                                    "mode":  "maintenance",
+                                    "windowStart":  "00:00",
+                                    "windowEnd":  "23:59"
+                                },
+                   "status":  {
+                                  "deviceId":  "DESKTOP-D65DJ5S",
+                                  "currentVersion":  "1.4.2",
+                                  "phase":  "deferred",
+                                  "targetVersion":  "1.4.3",
+                                  "reason":  "界面仍在使用，等待隐藏界面并空闲 10 分钟。",
+                                  "checkedAt":  "2026-10-24T01:53:49.9417894+00:00",
+                                  "transactionId":  null,
+                                  "downloadedBytes":  0,
+                                  "totalBytes":  0
+                              }
+               },
+    "templates":  {
+                      "value":  [
+                                    {
+                                        "name":  "VM-Upgrade-Preservation",
+                                        "group":  "默认",
+                                        "updatedAt":  "2026-10-24T01:55:26.3846678+00:00",
+                                        "uid":  "ec85210e25404ef38756fb9ad4fb6bd7"
+                                    }
+                                ],
+                      "Count":  1
+                  },
+    "plugins":  {
+                    "value":  [
+                                  {
+                                      "pluginId":  "labelframe-transport-tspl",
+                                      "name":  "TSPL 指令集传输（官方）",
+                                      "version":  "0.9.0",
+                                      "description":  "TSPL 指令集直连（TSC 及 TSPL 兼容品牌）：TCP 9100 / USB 免驱动直连与打印机状态、原生指令编译与图片位图编码；随 LabelFrame 主版本演进的官方插件。",
+                                      "loaded":  true,
+                                      "loadError":  null,
+                                      "packageDir":  "labelframe-transport-tspl",
+                                      "source":  "package",
+                                      "installedAt":  "2026-10-24T01:52:16.4736922+00:00"
+                                  }
+                              ],
+                    "Count":  1
+                },
+    "processes":  [
+                      {
+                          "ProcessId":  8984,
+                          "SessionId":  0,
+                          "CommandLine":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" --update-service"
+                      },
+                      {
+                          "ProcessId":  5180,
+                          "SessionId":  1,
+                          "CommandLine":  "\"C:\\Program Files\\LabelFrame\\Client\\LabelFrame.WinHost.exe\" --autostart"
+                      }
+                  ]
+}

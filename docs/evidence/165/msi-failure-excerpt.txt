@@ -1,0 +1,6 @@
+MSI (s) (50:1C) [09:38:53:997]: PROPERTY CHANGE: Adding WEBVIEW2_HKLM property. Its value is '153.0.4234.48'.
+MSI (s) (50!4C) [09:38:54:154]: PROPERTY CHANGE: Adding DOTNET10_PRESENT property. Its value is '0'.
+CustomAction ShutdownWinHost returned actual error code 1 (note this may not be 100% accurate if translation happened inside sandbox)
+操作结束 9:38:56: ShutdownWinHost。返回值 3。
+MSI (s) (50:1C) [09:38:56:732]: MainEngineThread is returning 1603
+MSI (c) (FC:84) [09:38:56:747]: MainEngineThread is returning 1603

@@ -1,0 +1,62 @@
+=== <临时验收目录>\LabelFrame-Client-1.4.3.msi ===
+-- Dialog 表（向导 + 自定义）--
+  ErrorDlg  (270x105)
+  RuntimeMissingDlg  (370x180)
+  WebView2MissingDlg  (370x200)
+  ClearDataDlg  (370x170)
+  OptionsDlg  (370x270)
+  BrowseDlg  (370x270)
+  InstallDirDlg  (370x270)
+  CancelDlg  (260x85)
+  VerifyReadyDlg  (370x270)
+  OutOfRbDiskDlg  (370x270)
+  OutOfDiskDlg  (370x270)
+  DiskCostDlg  (370x270)
+  FatalError  (370x270)
+  FilesInUse  (370x270)
+  MsiRMFilesInUse  (370x270)
+  PrepareDlg  (370x270)
+  ProgressDlg  (370x270)
+  ResumeDlg  (370x270)
+  WaitForCostingDlg  (260x85)
+  UserExit  (370x270)
+  ExitDialog  (370x270)
+  WelcomeDlg  (370x270)
+  LicenseAgreementDlg  (370x270)
+  MaintenanceTypeDlg  (370x270)
+  MaintenanceWelcomeDlg  (370x270)
+-- InstallUISequence（关键顺序）--
+  ExitDialog = -1
+  RuntimeMissingDlg = 1150
+  WebView2MissingDlg = 1160
+  ClearDataDlg = 1290
+  WelcomeDlg = 1297
+  ExecuteAction = 1300
+-- 品牌二进制（WixUI 位图 / 图标 / 许可）--
+  WixUI_Bmp_Banner
+  WixUI_Bmp_Up
+  WixUI_Bmp_New
+  WixUI_Ico_Info
+  WixUI_Bmp_Dialog
+  WixUI_Ico_Exclam
+-- ARP 属性（控制面板）--
+  ARPPRODUCTICON = LabelframeAppIco
+  ARPHELPLINK = https://github.com/marci-labs/LabelFrame
+  ARPURLINFOABOUT = https://github.com/marci-labs/LabelFrame/releases
+  ARPNOMODIFY = 1
+-- 选项页与链路（Client）--
+  选项页复选框：OK（开机自动启动 LabelFrame）
+  向导链路：目录页 Next -> 选项页 -> 确认页 OK
+  Run 键：F = a
+  AUTO_START 默认：1
+-- 中文文案抽查（WelcomeDlg）--
+  欢迎页下一步按钮：下一步(&N)
+WebView2 注册表检测：2 个 EdgeUpdate 视图 OK
+WebView2 LaunchCondition：OK
+WebView2 缺失对话框：重新检测链路 OK
+受控升级：服务身份、启动与卸载行为、兼容属性、发布者证书与组件打包 OK
+运行中升级进程角色：真实 MSI 格式化脚本排除更新服务与等待器，保留打印客户端；无客户端时返回空。
+运行中升级协调：同步动作 ShutdownWinHost(1399) 位于 CostFinalize 后、InstallValidate 前；命令含旧版作业预检与 15 秒退出等待，卸载跳过；命令经引擎 Formatted 转换后仍可解析。
+断言通过：向导齐全，运行时检查（.NET 1150 / WebView2 1160）先于欢迎页（1297）。
+
+

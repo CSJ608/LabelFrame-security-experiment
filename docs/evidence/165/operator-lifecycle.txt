@@ -1,0 +1,23 @@
+[2026-10-24 09:44:57] LabelFrame 启动：监听 http://127.0.0.1:53960，DPI 203，OpenBrowser=True，ServerUrl=http://127.0.0.1:53961
+[2026-10-24 09:50:31] ApplicationStopped
+[2026-10-24 09:50:31] 宿主已停止（ApplicationStopped）而主流程未返回，进入稳定窗观察（500 毫秒）。
+[2026-10-24 09:50:32] 退出清理完成。
+[2026-10-24 09:50:40] LabelFrame 启动：监听 http://127.0.0.1:53960，DPI 203，OpenBrowser=True，ServerUrl=http://127.0.0.1:53961
+[2026-10-24 09:52:17] 已安装插件包：labelframe-transport-tspl（TSPL 指令集传输（官方） 0.9.0，重启后生效）。
+[2026-10-24 09:52:18] ApplicationStopped
+[2026-10-24 09:52:18] 宿主已停止（ApplicationStopped）而主流程未返回，进入稳定窗观察（500 毫秒）。
+[2026-10-24 09:52:18] 退出清理完成。
+[2026-10-24 09:52:19] LabelFrame 启动：监听 http://127.0.0.1:53960，DPI 203，OpenBrowser=True，ServerUrl=http://127.0.0.1:53961
+[2026-10-24 09:52:19] 已加载外部传输插件：labelframe-transport-tspl（TSPL（TSC 及兼容），来自 C:\ProgramData\LabelFrame\Client\plugins\labelframe-transport-tspl\LabelFrame.TransportPlugin.Tspl.dll）
+[2026-10-24 09:52:43] ApplicationStopped
+[2026-10-24 09:52:43] 宿主已停止（ApplicationStopped）而主流程未返回，进入稳定窗观察（500 毫秒）。
+[2026-10-24 09:52:44] 退出清理完成。
+[2026-10-24 09:53:06] LabelFrame 启动：监听 http://127.0.0.1:53960，DPI 203，OpenBrowser=False，ServerUrl=http://127.0.0.1:53961
+[2026-10-24 09:53:06] 已加载外部传输插件：labelframe-transport-tspl（TSPL（TSC 及兼容），来自 C:\ProgramData\LabelFrame\Client\plugins\labelframe-transport-tspl\LabelFrame.TransportPlugin.Tspl.dll）
+[2026-10-24 10:06:21] ApplicationStopped
+[2026-10-24 10:06:21] 宿主已停止（ApplicationStopped）而主流程未返回，进入稳定窗观察（500 毫秒）。
+[2026-10-24 10:06:22] 退出清理完成。
+[2026-10-24 10:06:29] LabelFrame 启动：监听 http://127.0.0.1:53960，DPI 203，OpenBrowser=False，ServerUrl=http://127.0.0.1:53961
+[2026-10-24 10:06:30] 已安装插件包：labelframe-transport-tspl（TSPL 指令集传输（官方） 0.10.0，重启后生效）。
+[2026-10-24 10:06:30] 存量升级迁移：检测到已使用官方插件的打印配置，已自动安装 labelframe-transport-tspl（0.10.0，来源：随客户端附带的 labelframe-transport-tspl-0.10.0.lfplugin）。
+[2026-10-24 10:06:30] 已加载外部传输插件：labelframe-transport-tspl（TSPL（TSC 及兼容），来自 C:\ProgramData\LabelFrame\Client\plugins\labelframe-transport-tspl\LabelFrame.TransportPlugin.Tspl.dll）
