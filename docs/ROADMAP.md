@@ -210,6 +210,7 @@
 | 164 | Windows 客户端一键安全重启：插件页持续提示、设置与托盘入口；整批作业、待回报结果、未保存编辑保护 | ✅ 用户确认1.4.6最终验收通过；证据与免验边界见 [#451](https://github.com/marci-labs/LabelFrame/issues/451) |
 | 165 | 服务端受控发布与 Windows 客户端自动升级，默认确认安装及可选维护时段静默安装 | ✅ 用户确认1.4.6最终验收通过；隔离升级、安装器与插件修复及免验边界见 [#452](https://github.com/marci-labs/LabelFrame/issues/452) |
 | 166 | 客户端安装预检隐藏运行，保留同步退出码、失败阻断与日志 | ✅ 实现交付；Windows验证与用户复测见 [#458](https://github.com/marci-labs/LabelFrame/issues/458) |
+| 167 | 连接状态灯静态化：消除空闲持续重绘，保留颜色与状态更新 | ✅ 实现交付；无窗口隔离对照、回归与合并证据见 [#460](https://github.com/marci-labs/LabelFrame/issues/460) |
 | 待需求 | 兼容与扩展（net48 / WMS 模板下发 / TSPL / 统计 / 契约 Pattern 校验） | 待定 |
 
 ## 待需求（有真实需求再排）

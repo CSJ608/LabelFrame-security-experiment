@@ -48,6 +48,8 @@
 
 ### 3.1 启动与连接探测（main → AppContext）
 
+连接状态灯使用静态颜色表示在线/离线，不使用持续呼吸动画，避免健康状态不变时仍反复重绘。状态探测频率与提示文字保持原有行为；缩略图加载等有界于实际操作的动效独立保留。
+
 1. `main.tsx`：import `./i18n`（模块加载即完成 i18next 初始化 + 语言探测 + `<html lang>` 对齐）→ `installGlobalErrorLogging()`（`window.onerror` / `unhandledrejection` console 留痕）→ 挂载；
 2. `AppProvider` 挂载（client 构建）：`localApi.getHostConfig()`（机器级配置）→ 成功则 `serverUrl` 生效（`setServerBaseUrl` + 内存态），失败（旧客户端无此端点）回退 localStorage → `configReadyRef` 置位后才放行首次服务端探测（探测串行化，消除默认地址与实际地址交错的双态竞态）；并行拉 `localApi.getTransport()`；
 3. server 构建跳过本机配置（`serverApi` base 恒同源相对路径 `''`），直接探测；

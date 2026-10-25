@@ -129,7 +129,7 @@ body {
 .nav-lang:hover { background: var(--bg); color: var(--ink); }
 .nav-lang:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* 连接状态灯（签名元素：全 App 的脉搏） */
+/* 连接状态灯以静态颜色表示在线状态。 */
 .status-dot {
   width: 9px; height: 9px;
   border-radius: 50%;
@@ -138,14 +138,6 @@ body {
 }
 .status-dot.on {
   background: var(--ok);
-  animation: breathe 2.6s ease-in-out infinite;
-}
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 138, 95, 0.35); }
-  50% { box-shadow: 0 0 0 5px rgba(13, 138, 95, 0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .status-dot.on { animation: none; }
 }
 
 /* ---------- 主区域 ---------- */
