@@ -126,8 +126,10 @@ public sealed class PrintImageLifecycleTests : IDisposable
         Assert.Equal(10, new FileInfo(Path.Combine(path, "label-1.png")).Length);
     }
 
-    [Fact]
-    public async Task Active_writer_should_be_protected_from_cleanup()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(11000)]
+    public async Task Active_writer_should_be_protected_from_cleanup(int continuationDelayMs)
     {
         var cleaner = new PrintImageRetentionCleaner(_root, 1, TextWriter.Null, 0, _clock);
         var id = Guid.NewGuid().ToString("N");
@@ -137,13 +139,17 @@ public sealed class PrintImageLifecycleTests : IDisposable
         {
             yield return [1];
             entered.SetResult();
-            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException();
+            // 写入必须保持活动直到断言结束，不能因夹具计时到期提前释放保护锁。
+            release.Wait();
             yield return [2];
         }
-        var writer = Task.Run(() => cleaner.SaveImages(id, Images()));
+        var writer = Task.Factory.StartNew(() => cleaner.SaveImages(id, Images()),
+            CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         try
         {
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Task.Delay(continuationDelayMs);
+            Assert.False(writer.IsCompleted);
             _clock.Advance(TimeSpan.FromDays(2));
             cleaner.CleanupExpired();
             Assert.True(File.Exists(Path.Combine(_root, id, "label-1.png")));
@@ -151,7 +157,7 @@ public sealed class PrintImageLifecycleTests : IDisposable
         finally
         {
             release.Set();
-            await writer;
+            await writer.WaitAsync(TimeSpan.FromSeconds(10));
         }
         Assert.True(File.Exists(Path.Combine(_root, id, "label-2.png")));
         cleaner.CleanupExpired();
