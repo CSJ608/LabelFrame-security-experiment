@@ -200,7 +200,7 @@ public sealed class ServerRoutingWorker : BackgroundService
         }
         foreach (var (localJobId, serverJobId) in _localToServer.ToArray())
         {
-            var local = await _queue.GetAsync(localJobId, cancellationToken);
+            var local = await _queue.GetStateAsync(localJobId, cancellationToken);
             if (local is null)
             {
                 continue;

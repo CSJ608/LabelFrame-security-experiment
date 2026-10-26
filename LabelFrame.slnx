@@ -13,6 +13,7 @@
     <Project Path="src/LabelFrame.TransportPlugin.Tspl/LabelFrame.TransportPlugin.Tspl.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <Project Path="test/LabelFrame.JobStorageProbe/LabelFrame.JobStorageProbe.csproj" />
     <Project Path="test/LabelFrame.Core.Tests/LabelFrame.Core.Tests.csproj" />
     <Project Path="test/LabelFrame.WinHost.Tests/LabelFrame.WinHost.Tests.csproj" />
     <Project Path="test/LabelFrame.ClientHost.Tests/LabelFrame.ClientHost.Tests.csproj" />
@@ -23,6 +24,7 @@
     <Project Path="test/LabelFrame.Benchmarks/LabelFrame.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/LabelFrame.JobStorageTool/LabelFrame.JobStorageTool.csproj" />
     <Project Path="tools/LabelFrame.PrintImageVerifier/LabelFrame.PrintImageVerifier.csproj" />
   </Folder>
 </Solution>

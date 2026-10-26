@@ -70,7 +70,8 @@ public class TsplImageDispatchTests
             manager,
             registry,
             TestTransportRegistry.CreateContext(),
-            TextWriter.Null);
+            TextWriter.Null,
+            printOutputPath: Path.Combine(Path.GetTempPath(), $"lf-tspl-images-{Guid.NewGuid():N}"));
         return (service, queue);
     }
 

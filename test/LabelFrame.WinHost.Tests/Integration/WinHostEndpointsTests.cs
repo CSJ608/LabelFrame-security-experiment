@@ -27,6 +27,24 @@ namespace LabelFrame.WinHost.Integration;
 public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
 {
     [Fact]
+    public async Task Job_detail_state_projection_should_match_full_history_view()
+    {
+        var queue = Services.GetRequiredService<LabelFrame.Core.Jobs.LabelJobQueue>();
+        var store = Services.GetRequiredService<LabelFrame.Core.Jobs.ILabelJobStore>();
+        var (job, _) = await queue.SubmitAsync("state-projection", ["first", "second"]);
+        await store.SetItemStatusAsync(job.Id, job.Items[0].Id, LabelFrame.Core.Jobs.LabelJobItemStatus.Failed, "code", "错误");
+        foreach (var status in Enum.GetValues<LabelFrame.Core.Jobs.LabelJobStatus>())
+        {
+            await store.SetJobStatusAsync(job.Id, status);
+            var detail = await JsonAsync($"/api/jobs/{job.Id}");
+            var history = await JsonAsync("/api/jobs?limit=1");
+            Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(
+                System.Text.Json.Nodes.JsonNode.Parse(detail.GetRawText()),
+                System.Text.Json.Nodes.JsonNode.Parse(history[0].GetRawText())));
+        }
+    }
+
+    [Fact]
     public async Task Healthz_should_report_log_plugin()
     {
         var body = await JsonAsync("/healthz");
@@ -347,6 +365,7 @@ public abstract class WinHostIntegrationTestBase : IDisposable
             PrintSettingsPath = Path.Combine(_directory, "print-settings.json"),
             ConnectionPath = Path.Combine(_directory, "connection.json"),
             HostLogPath = Path.Combine(_directory, "host.log"),
+            PrintOutputPath = Path.Combine(_directory, "print"),
             Transport = TransportMode.Log,
             OpenBrowser = false,
             EnableTray = false,

@@ -55,6 +55,7 @@ public sealed class PrinterTestEndpointTests : IDisposable
             PrintSettingsPath = Path.Combine(_directory, "print-settings.json"),
             ConnectionPath = Path.Combine(_directory, "connection.json"),
             HostLogPath = Path.Combine(_directory, "host.log"),
+            PrintOutputPath = Path.Combine(_directory, "print"),
             Transport = TransportMode.Log,
             OpenBrowser = false,
             EnableTray = false,

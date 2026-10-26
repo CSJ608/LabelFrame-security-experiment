@@ -47,7 +47,7 @@
 | | `ServerRoutingWorker` | Routing/ServerRoutingWorker.cs | 主循环（注册心跳→长轮询 notify→领取→投入本地队列）＋独立回报循环（终态回报＋进度节流上报）（决策 #60 / #101） |
 | | `ServerJobPoller` / `IServerJobPoller` / `ProgressThrottle` | Routing/ServerJobPoller.cs、IServerJobPoller.cs、ProgressThrottle.cs | Server HTTP 客户端（注册 / pending / notify / result / progress 五端点）；单作业进度节流（计数有变化才发＋最小间隔，失败不 Mark 可重试） |
 | API 端点（Api/） | `JobsApi` / `TransportApi` / `PrinterApi` / `PluginApi` / `HostApi` / `PrintSettingsApi` / `Contracts` | Api/ 目录 | 宿主专属端点（分组实现）；`Contracts.cs` 只留宿主专属 DTO（通用契约在 LabelFrame.Api，决策 #75） |
-| 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；打印设置：批次节流（决策 #74）＋打印 DPI（203/300/600 白名单，未设置继承宿主配置，GET 回生效值、保存即生效）；出图目录保留清理（决策 #136）；本机 IPv4 枚举（决策 #61） |
+| 持久化小件 | `HostConfigStore` / `PrintSettings` / `PrintSettingsStore` / `PrintImageRetentionCleaner` / `PrintImageCleanupService` / `LocalIpAddresses` | 根目录 | 机器级 serverUrl 存取（决策 #57）；打印设置：批次节流（决策 #74）＋打印 DPI（203/300/600 白名单，未设置继承宿主配置，GET 回生效值、保存即生效）；受管模拟图片写入与周期清理（决策 #136 / #229）；本机 IPv4 枚举（决策 #61） |
 
 **多目标条件编译**（csproj）：Windows 目标＝WinExe＋`UseWindowsForms`＋WebView2 包＋内嵌托盘白色图标资源；Linux 目标＝`Compile Remove` 托盘 / 界面壳 / winspool / 官方插件迁移六文件，`Program` / `WinHostApp` 内 `#if WINDOWS` 分支裁剪（Linux 强制 `Transport=Log`、无浏览器无托盘）。源码内 `#if WINDOWS` 与 csproj Remove 两侧共同圈定 Windows 专属面。
 
@@ -71,8 +71,10 @@
    - **native**：先幂等短路（重放不重新编译）→ 无编译能力插件显式失败 `LF_ENC_003` → 逐张 `compiler.CompileAsync`（契约校验先行；任一失败整体拒绝，产物写 `LabelJobItem.Zpl`）；
    - **image**（默认 / 缺失 / 非法回退）：逐张 `LabelValidator.Validate` → `RenderLabelBitmap`（图片资源：base64 附带优先、按名回退本地模板库，与共享出图端点同源）→ 图片指令编码按连接插件分派（`GetImageEncoder` 命中→插件 `ILabelImageEncoder` 产二进制流（如 TSPL BITMAP）；未实现（Zebra / 内置通道）→ `ZplImageEncoder` `^GF` 文本，输出逐字节不变，决策 #195）；测试页端点 `POST /api/printer/test` 随同一分派；
 3. `queue.SubmitAsync(requestId, payloads)` 入队（requestId 幂等；`LabelJobPayload` 文本 / 二进制双形态）；
-4. Log 连接＝模拟打印：渲染 PNG 落盘 `print\{jobId}\label-N.png`＋`JobDataLogFormatter` 留痕作业数据＋顺带 `PrintImageRetentionCleaner.CleanupExpired()`（native 路径无位图，仅留痕）；
+4. Log 连接＝模拟打印：渲染 PNG 落盘 `print\{jobId}\label-N.png`＋`JobDataLogFormatter` 留痕作业数据＋顺带 `PrintImageRetentionCleaner.CleanupExpired()`（native 路径无位图，仅留痕）。模拟身份仅按当前 `PluginId` 与 `log` 忽略大小写比较，作业视图出图信息使用相同判定；旧 `Mode` 对 TSPL/自定义插件回退 Log 只是兼容字段，不代表启用模拟副作用（决策 #220）。不改旧配置迁移、打印载荷或 Worker 传输，历史视图仍按当前连接判断；
 5. `JobPrintWorker`（BackgroundService）：启动恢复中断作业 → 循环「EXISTS 轻量探测→`ClaimNextItemAsync`→批间计数按作业重置→`BatchPrintPolicy.ShouldPauseBeforeSend` 则 `Task.Delay(batchIntervalMs)`→`TryBeginPrintSendAsync` 领发送租约→`CurrentTransport.SendAsync`（`CommandBytes` 二进制优先，否则 `Zpl` 文本）→完成 / 失败（失败记结构化日志：作业 / 索引 / 插件 / 目标 / 错误码，决策 #102 ③）」；空转等待信号唤醒（5s 超时兜底），领取落空回退 200ms 周期。
+
+打印 Worker 成功发送后使用 Core 的内部轻量完成入口，仅等待单张状态持久化，不请求完整作业返回。`GET /api/jobs/{jobId}` 使用内部状态快照映射到原 `JobView`，字段、顺序、错误明细、404 与模拟 PNG 目录增强均不变；状态快照和完整作业的视图映射有逐字段/序列化与 HTTP 详情对照历史列表回归。历史列表 `GET /api/jobs` 在 SQLite 上使用内部状态列表，默认100、夹取1～500个作业；逐项状态、错误、排序、空作业与 Log 图片目录/计数保持，非 SQLite 分支仍调用公开完整列表。提交、状态变更端点仍沿用完整作业路径。Server 路由回报复用内部状态快照：只消费状态、计数和按项序首个错误，不读取指令；周期、节流、重试、映射移除与退出保护时点不变，缺失载荷仍拒绝回报。内部优化不改请求校验、渲染/编码、传输顺序或退出租约。
 
 ### 3.3 连接管理与传输装配（`TransportManager`）
 
@@ -102,6 +104,22 @@
 `GET /api/host/lifecycle` 暴露进程标识与插件待重启标记。仅回环同源的 `POST /api/host/ui-activity`、`POST /api/host/restart` 支持界面协作和重启。活动报告有单调序号，关闭报告保留序号墓碑，迟到请求不能复活旧 dirty 状态；失联不自动过期为安全。
 
 `RestartProcess` 先启动同用户等待器并通过命名事件确认就绪；等待旧 PID 与启动时间匹配的进程退出（最多 30 秒），再启动同一可执行文件。保持配置、环境和原参数，页面请求仅追加固定插件设置位置；托盘请求保持窗口可见性。等待器准备失败保留旧进程；启动失败写 `%LocalAppData%/LabelFrame/restart.log` 并提示手工恢复。普通客户端不提权，不重启操作系统。
+
+### 模拟 PNG 生命周期
+
+模拟出图仅对实际 `PluginId=log` 的新作业生效。`WinHost.SaveLogPrintImages` 默认 true，环境变量 `LABELFRAME_SAVE_LOG_PRINT_IMAGES` 覆盖；关闭后仍模拟执行、持久化作业与记录数据日志，不生成 PNG，不删除旧图，也不影响主动调试下载。配置均重启生效，不增加 UI 或公共打印契约。
+
+`PrintImageRetentionCleaner` 同时协调写图与清理，两端宿主共享单例。新建作业目录先写 `.labelframe-print-v1`（内容为32位作业ID），再写 `label-N.png`；旧无标记目录不自动接管。清理要求直属目录名为32位 GUID、标记匹配、内容仅标记与正整数编号 PNG，拒绝子目录、混合文件和路径链中的符号链接/重解析点；只逐文件删除后删除空目录，不递归删除。该保护针对误配置及普通混放，不构成对同权限恶意并发篡改文件系统的安全隔离；不支持多进程共享同一出图根目录。
+
+宿主后台服务启动扫描一次，之后每小时扫描，不依赖继续打印；提交后的扫描最短间隔5分钟。默认保留31天（UTC目录LastWriteTime判龄），受管目录总文件长度的容量清理目标512MiB，容量超限时最旧优先且可早于保留天数淘汰。`PrintImageRetentionDays<=0`仅禁用时间规则，`PrintImageMaxSizeMB<=0`仅禁用容量规则，两者均关闭才完全不清理。容量是周期清理目标而非硬配额：批次落盘、扫描节流、删除失败期间可超限；不计无标记目录、数据库、下载和浏览器缓存。保存开关关闭不影响已有受管图片的清理。
+
+写图与扫描使用同一进程内锁；后台扫描遇在途写入跳过本次，下一周期重试。写入异常保留已写内容及归属标记供后续清理，不回滚已入队作业；幂等重放、重试与恢复均不补图。删除失败只留痕，下次重试；若已删部分 PNG 且目录仍符合归属规则，恢复原目录时间，避免被部分删除刷新判龄后再等待整个保留周期。容量淘汰/到期后历史作业仍在，出图数量为0；PNG不是恢复依赖。旧无标记图片需要另行确认路径及清单后维护，本轮不提供自动删除路径。
+
+### 历史列表测试临时库
+
+`JobViewListTests` 使用独立 GUID 目录，所有异步存储调用结束后才清理。公开完整列表的外层 reader、逐作业 reader 与连接都在返回/异常前由 await using 释放；池连接的逻辑关闭不等于立即关闭原生文件句柄。夹具按产品相同连接串仅 ClearPool 自己的库，不调用全局清池干扰其他测试。
+
+删除仅限该夹具新建目录。Windows 共享/锁冲突（错误32/33）允许最多四次100ms重试，其余 IO 错误直接抛出；持续占用耗尽仍使测试失败。受控文件句柄分别验证短暂占用恢复和持续占用失败，另测缺载荷异常后的资源释放。不把历史 TRX 未记录的占用者身份推定为已证实的产品泄漏，也不修改产品池策略或复用已修正的模拟打印夹具。
 
 ## 4. 对外契约与依赖
 

@@ -41,7 +41,8 @@ public class ZebraNativeSubmissionTests
             manager,
             registry,
             TestTransportRegistry.CreateContext(),
-            TextWriter.Null);
+            TextWriter.Null,
+            printOutputPath: dbPath + ".print");
         return (service, store);
     }
 

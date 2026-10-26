@@ -142,8 +142,14 @@ public sealed class HostOptions
         "LabelFrame",
         "print");
 
-    /// <summary>出图目录（print\&lt;jobId&gt）按天保留上限（默认 31；0 或负值 = 不清理；LABELFRAME_PRINT_IMAGE_RETENTION_DAYS 优先）。</summary>
+    /// <summary>受管出图目录保留天数（默认31；非正数仅关闭时间清理）。</summary>
     public int PrintImageRetentionDays { get; set; } = 31;
+
+    /// <summary>是否保存 Log 模拟打印 PNG。</summary>
+    public bool SaveLogPrintImages { get; set; } = true;
+
+    /// <summary>受管模拟图片的容量清理目标（MiB；非正数禁用容量清理）。</summary>
+    public int PrintImageMaxSizeMB { get; set; } = 512;
 
     /// <summary>Log 传输 / 宿主日志文件路径（默认 %LOCALAPPDATA%\LabelFrame\host.log）。按日轮转：实际写入 host-yyyyMMdd.log。</summary>
     public string HostLogPath { get; set; } = Path.Combine(
@@ -307,6 +313,12 @@ public sealed class HostOptions
         {
             PrintImageRetentionDays = printRetentionDays;
         }
+
+        if (GetEnv("LABELFRAME_SAVE_LOG_PRINT_IMAGES") is { } saveImages && bool.TryParse(saveImages, out var save))
+            SaveLogPrintImages = save;
+
+        if (GetEnv("LABELFRAME_PRINT_IMAGE_MAX_SIZE_MB") is { } imageSize && int.TryParse(imageSize, out var maxImageSize))
+            PrintImageMaxSizeMB = maxImageSize;
 
         if (GetEnv("LABELFRAME_CONFIG") is { } configPath)
         {

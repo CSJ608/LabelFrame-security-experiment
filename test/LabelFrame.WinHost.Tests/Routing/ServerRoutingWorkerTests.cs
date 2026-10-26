@@ -389,7 +389,8 @@ public class ServerRoutingWorkerTests
             manager,
             registry,
             TestTransportRegistry.CreateContext(),
-            TextWriter.Null);
+            TextWriter.Null,
+            printOutputPath: Path.Combine(Path.GetTempPath(), $"lf-routing-images-{Guid.NewGuid():N}"));
     }
 
     /// <summary>

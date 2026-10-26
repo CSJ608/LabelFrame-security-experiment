@@ -10,12 +10,7 @@ using Xunit.Abstractions;
 
 namespace LabelFrame.Server.Tests.Perf;
 
-/// <summary>
-/// Server 路由全链路延迟（Trait=Perf，日常 CI 不跑——`dotnet test --filter Category=Perf` 显式运行）：
-/// N 个虚拟设备并发「提交 → 领取 → 回报」，输出 p50/p95/p99。
-/// 验证目标：并发修复（原子领取 / WAL / 门收窄）在负载下的端到端表现；无绝对阈值（CI 机器差异大），
-/// 以「无错误 + 相对分布合理」为准，基准数据落 docs/PERF-BASELINE.md。
-/// </summary>
+/// <summary>验证并发设备提交、领取与回报的正确性及分阶段延迟。</summary>
 [Trait("Category", "Perf")]
 public sealed class RoutingLatencyTests : IDisposable
 {
@@ -55,6 +50,8 @@ public sealed class RoutingLatencyTests : IDisposable
         // 每设备 20 个作业（提交→领取→回报），并发跑
         const int jobsPerDevice = 20;
         var latencies = new List<long>();
+        var phases = new List<(long Submit, long Claim, long Report, int Threads, long Queued)>();
+        var failures = new System.Collections.Concurrent.ConcurrentQueue<string>();
         var errors = 0;
         await Task.WhenAll(Enumerable.Range(0, deviceCount).Select(async d =>
         {
@@ -63,24 +60,33 @@ public sealed class RoutingLatencyTests : IDisposable
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    var submit = await _client.PostAsync("/api/jobs", Json($$"""
+                    using var submit = await _client.PostAsync("/api/jobs", Json($$"""
                         { "requestId": "perf-{{d}}-{{i}}", "targetDeviceId": "perf-{{d}}", "templateName": "性能模板",
                           "labels": [ { "data": { "code": "P-{{d}}-{{i}}" } }, { "data": { "code": "P-{{d}}-{{i}}-b" } } ] }
                         """));
                     submit.EnsureSuccessStatusCode();
                     var job = await submit.Content.ReadFromJsonAsync<JsonElement>();
                     var jobId = job.GetProperty("jobId").GetString();
+                    var submittedAt = stopwatch.ElapsedMilliseconds;
 
                     var claimed = await _client.GetFromJsonAsync<JsonElement>($"/api/devices/perf-{d}/jobs/pending");
-                    Assert.True(claimed.GetArrayLength() >= 0, "领取不应报错");
+                    Assert.Equal(1, claimed.GetArrayLength());
+                    Assert.Equal(jobId, claimed[0].GetProperty("jobId").GetString());
+                    var claimedAt = stopwatch.ElapsedMilliseconds;
 
-                    var report = await _client.PostAsync($"/api/devices/perf-{d}/jobs/{jobId}/result",
+                    using var report = await _client.PostAsync($"/api/devices/perf-{d}/jobs/{jobId}/result",
                         Json("""{ "status": "Completed", "completedItems": 2 }"""));
                     Assert.True(report.IsSuccessStatusCode);
+                    lock (phases)
+                    {
+                        phases.Add((submittedAt, claimedAt - submittedAt, stopwatch.ElapsedMilliseconds - claimedAt,
+                            ThreadPool.ThreadCount, ThreadPool.PendingWorkItemCount));
+                    }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Interlocked.Increment(ref errors);
+                    failures.Enqueue(ex.ToString());
                 }
                 finally
                 {
@@ -92,7 +98,21 @@ public sealed class RoutingLatencyTests : IDisposable
             }
         }));
 
+        foreach (var failure in failures.Take(3)) _output.WriteLine(failure);
+        _output.WriteLine($"错误={errors}，完成样本={phases.Count}");
+        if (phases.Count > 0)
+        {
+            WriteDistribution("提交", phases.Select(p => p.Submit));
+            WriteDistribution("领取", phases.Select(p => p.Claim));
+            WriteDistribution("回报", phases.Select(p => p.Report));
+            _output.WriteLine($"完成时线程数范围={phases.Min(p => p.Threads)}..{phases.Max(p => p.Threads)}，观测排队峰值={phases.Max(p => p.Queued)}");
+        }
         Assert.Equal(0, errors);
+        for (var d = 0; d < deviceCount; d++)
+        {
+            var remaining = await _client.GetFromJsonAsync<JsonElement>($"/api/devices/perf-{d}/jobs/pending");
+            Assert.Equal(0, remaining.GetArrayLength());
+        }
         latencies.Sort();
         var p50 = latencies[latencies.Count / 2];
         var p95 = latencies[(int)(latencies.Count * 0.95)];
@@ -116,6 +136,12 @@ public sealed class RoutingLatencyTests : IDisposable
     }
 
     private static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");
+
+    private void WriteDistribution(string stage, IEnumerable<long> samples)
+    {
+        var sorted = samples.Order().ToArray();
+        _output.WriteLine($"{stage}: p50={sorted[sorted.Length / 2]}ms p95={sorted[(int)(sorted.Length * 0.95)]}ms max={sorted[^1]}ms");
+    }
 
     private const string TemplateJson = """
         {

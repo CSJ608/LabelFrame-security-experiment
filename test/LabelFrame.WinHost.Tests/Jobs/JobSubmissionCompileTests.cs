@@ -48,7 +48,8 @@ public class JobSubmissionCompileTests
             manager,
             registry,
             TestTransportRegistry.CreateContext(),
-            hostLogWriter ?? TextWriter.Null);
+            hostLogWriter ?? TextWriter.Null,
+            printOutputPath: dbPath + ".print");
         return (service, store, plugin);
     }
 
@@ -205,10 +206,8 @@ public class JobSubmissionCompileTests
         Assert.Null(await store.GetJobByRequestIdAsync("req-native-invalid"));
     }
 
-    // ── 补充锚定：native + Log 兼容传输（fake 走 Log 发送）不产出渲染 PNG、作业数据留痕照常 ──
-
     [Fact]
-    public async Task Native_mode_with_log_compatible_transport_should_log_job_data_without_png()
+    public async Task Native_mode_with_custom_plugin_should_not_trigger_log_simulation()
     {
         var hostLog = new StringWriter();
         var (service, _, _) = CreateService(NativeConnection, hostLogWriter: hostLog);
@@ -220,10 +219,10 @@ public class JobSubmissionCompileTests
         var result = await service.SubmitAsync(request);
 
         Assert.NotNull(result.Job);
-        // 原生指令路径无渲染位图：不出现 PNG 出图留痕，但作业数据留痕（语义）照常
         var logText = hostLog.ToString();
         Assert.DoesNotContain("已保存", logText);
-        Assert.Contains("作业数据", logText);
-        Assert.Contains("模板 库位标签", logText);
+        Assert.DoesNotContain("作业数据", logText);
+        Assert.DoesNotContain("模板 库位标签", logText);
+        Assert.Equal("^XAFKE:A-01-02-03@203^FS^XZ", Assert.Single(result.Job.Items).Zpl);
     }
 }

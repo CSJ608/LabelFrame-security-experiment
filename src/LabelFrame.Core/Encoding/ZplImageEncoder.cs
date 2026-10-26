@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Text;
 using LabelFrame.Core.Documents;
 
 namespace LabelFrame.Core.Encoding;
@@ -22,14 +21,20 @@ public sealed class ZplImageEncoder
         }
 
         var totalBytes = bitmap.RowBytes * bitmap.Height;
-        var hex = Convert.ToHexString(bitmap.Pixels);
-        var sb = new StringBuilder();
-        sb.AppendLine("^XA");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"^PW{Math.Max(1, ToDots(widthMm, dpi))}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"^LL{Math.Max(1, ToDots(heightMm, dpi))}");
-        sb.Append(CultureInfo.InvariantCulture, $"^FO0,0^GFA,{totalBytes},{totalBytes},{bitmap.RowBytes},{hex}^FS").AppendLine();
-        sb.Append("^XZ");
-        return sb.ToString();
+        var newline = Environment.NewLine;
+        var header = string.Create(CultureInfo.InvariantCulture,
+            $"^XA{newline}^PW{Math.Max(1, ToDots(widthMm, dpi))}{newline}^LL{Math.Max(1, ToDots(heightMm, dpi))}{newline}^FO0,0^GFA,{totalBytes},{totalBytes},{bitmap.RowBytes},");
+        var length = checked(header.Length + bitmap.Pixels.Length * 2 + 6 + newline.Length);
+        return string.Create(length, (header, bitmap.Pixels, newline), static (destination, state) =>
+        {
+            state.header.AsSpan().CopyTo(destination);
+            var hexLength = state.Pixels.Length * 2;
+            Convert.TryToHexString(state.Pixels, destination.Slice(state.header.Length, hexLength), out _);
+            var tail = destination[(state.header.Length + hexLength)..];
+            "^FS".AsSpan().CopyTo(tail);
+            state.newline.AsSpan().CopyTo(tail[3..]);
+            "^XZ".AsSpan().CopyTo(tail[(3 + state.newline.Length)..]);
+        });
     }
 
     /// <summary>毫米 → 点，四舍五入（远离零）。</summary>

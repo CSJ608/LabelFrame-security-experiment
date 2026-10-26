@@ -23,21 +23,25 @@
 | `SkiaTextWidthMeasurer` | SkiaTextWidthMeasurer.cs | `ITextWidthMeasurer`（Core 接口）的 Skia 实现——锚定度量的默认实现（决策 #110） |
 | `LabelBitmapPng` | LabelBitmapPng.cs | `LabelBitmap`（1bpp）→ PNG 静态工具 |
 
-**表面池**（决策 #92 性能批次引入）：整版渲染中间态（`SKBitmap` 像素内存 + 托管像素暂存数组）按尺寸池化复用，避免大批量打印时每张 1~5MB 的分配与 GC 压力；输出（`LabelBitmap` / PNG 字节）始终新分配。
+**表面池**（决策 #92 引入，#223 裁剪托管暂存）：整版渲染中间态 `SKBitmap` 原生像素内存按尺寸池化复用；黑白转换直接同步读取该位图的只读像素 span，不再分配/保留整幅托管暂存；输出（`LabelBitmap` / PNG 字节）始终新分配。
 
 - 池上限 `MaxPooledSurfaces = 4`（留出并发渲染——多请求提交 + 出图 / 预览的余量），满则 Dispose；
-- 租用条件＝宽、高、暂存长度三项全匹配，任一不匹配的池内项即被弹出释放；
-- 位图路径（`RenderLabelBitmap`）成对归还（bitmap + staging）可复用；PNG 路径（`RenderLabelBitmapPng`）归还时不带暂存数组，该表面因暂存长度校验永不匹配、下次租用时即被释放——PNG 中间态实际不复用，仅延迟释放时机。
+- 租用条件＝宽、高全匹配，任一不匹配的池内项即被弹出释放；位图统一为 BGRA/Opaque，不再有可失配的托管暂存；
+- 位图与 PNG 路径均在 `finally` 归还 bitmap；两种路径交替调用时继续复用同尺寸中间态，输出保持独立。像素 span 只在本次租用期间同步读取，不逃逸、不在归还后使用；转换得到的新 1bpp 数组不借用池化像素。
 
 ## 3. 关键流程
+
+`LabelBitmapPng.ToPng` 将 1bpp 像素直接展开到新建 SKBitmap 的原生像素 span，按 SKBitmap.RowBytes 定位行，不再分配整幅托管 BGRA 暂存或执行 Marshal.Copy。span 仅在本次位图存活期间同步使用，没有共享缓冲/新增池；位图和编码对象仍逐次释放。颜色类型、透明度、黑白规则、PNG 编码参数与返回字节保持不变；这一路主要服务模拟打印和调试出图，不是实体打印的传输提速。按位模式、非字节对齐宽度、多 DPI 尺寸、并发与旧实现逐字节对照保护兼容性。
 
 ### 3.1 整版渲染主链（`RenderLabelBitmap` / `RenderLabelBitmapPng`）
 
 1. 尺寸：版式毫米 → 点（`mm / 25.4 × dpi`，四舍五入远离零，下限 0；调用侧再 `Math.Max(1, …)` 保证正尺寸）；
 2. `RentSurface` 租中间态 → `SKCanvas` 清白底 → `LabelLayoutResolver.IndexRegions` 建区域索引 → 按 `Elements` 顺序逐元素 `DrawElement` 分发；
-3. 位图路径：像素 `Marshal.Copy` 到暂存数组 → `ToLabelBitmap` 逐像素 luma 阈值二值化（加权 `R×299 + G×587 + B×114 / 1000 < 128` 置黑）→ `finally ReturnSurface`；
+3. 位图路径：`GetPixelSpan` → `ToLabelBitmap(ReadOnlySpan<byte>)` 按原生 RowBytes 逐像素 luma 阈值二值化（等价于加权 `R×299 + G×587 + B×114 / 1000 < 128` 置黑）→ `finally ReturnSurface`；
    PNG 路径：`SKImage.Encode(Png, 100)` 直接编码；
 4. 文本取值：`LabelElementContent.TryGet`（`Literal ?? data[SourceKey]`，决策 #35）。
+
+黑白转换在整数域以 `R×299 + G×587 + B×114 < 128000` 判定黑点（决策 #221）：加权和非负，因此与原先整除 1000 后 `<128` 完全等价，最大值 255000 不溢出 int；不是更改阈值或改用浮点近似。源/目标行偏移按行计算，非字节对齐尾位仍保持初始零。`DecodeMonochrome` 保留原表达式，两者阈值语义相同；16777216 种 RGB、不同 alpha、行填充与宽度边界的原算法对照保证输出不变。
 
 ### 3.2 文本渲染与适配（`DrawText`）
 
@@ -81,6 +85,8 @@
 `DecodeMonochrome`：解码 → 白底重绘（透明区按白，出纸无墨）→ luma 阈值 128 单色化（与 `ToLabelBitmap` 同阈值同读取序 BGRA）——预览 PNG 与打印 1bpp 输出一致。线性采样（`SKFilterMode.Linear`）用于大幅缩小（原图远大于元素盒）时防混叠失真、黑白硬边保边缘锐度。
 
 ### 3.5 条码与二维码（`DrawBarcode` / `DrawQrCode`）
+
+ZXing writer 的格式、编码选项与 Encode 路径不变；取得最终 BitMatrix 后直接写入新建 BGRA/Opaque SKBitmap，不再调用 PixelDataRenderer 生成整幅托管数组及 Marshal.Copy。按 RowBytes 切分行，以本机字节序写不透明黑/白，逐行逐像素读取矩阵，不假设 Code128 行重复或 QR 行结构。原生像素 span 不逃逸位图生命周期，转换异常释放位图，正常由绘制调用方释放；无新增缓存/并行或公共接口。旧 PixelDataRenderer 逐字节对照覆盖最小尺寸、编码后宽度大于请求宽度、不同静区、QR 四档纠错和中文内容；任意非重复矩阵行及并发独立性另有回归保护。此处仅服务默认黑白纯码绘制，不扩展为自定义颜色或 ZXing 内建文字渲染器。
 
 - 条码固定 **Code128**（ZXing `BarcodeWriter`，`Margin = 2` 模块静区）；`displayValue = true` 时底部数值文字带由渲染器自绘（ZXing 侧 `PureBarcode = true` 屏蔽其内建文字，字体走默认字体族）——字号取 `max(1.5mm, 内容高 × 15%)`、超宽等比缩小、基线贴内容区底（`contentY + contentH − Descent`），条码占剩余高度；
 - 二维码保持**正方形**（内容区取 `min(宽, 高)`）并居中；ECC 档 L / Q / H、默认 M，边距 `qrMargin`（默认 2，决策 #47）；

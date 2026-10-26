@@ -77,9 +77,6 @@ public static class Program
 
         HostInfo($"LabelFrame 启动：监听 {options.ListenUrl}，DPI {options.Dpi}，OpenBrowser={options.OpenBrowser}，ServerUrl={options.ServerUrl ?? "(未配置路由)"}");
 
-        // 启动时顺带执行一次出图目录保留清理（无后台任务；清理器永不抛出）
-        new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays, hostLogWriter).CleanupExpired();
-
 #if WINDOWS
         var app = await WinHostApp.BuildAsync(
             options,

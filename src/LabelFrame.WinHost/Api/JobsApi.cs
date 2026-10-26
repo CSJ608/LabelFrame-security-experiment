@@ -38,16 +38,20 @@ internal static class JobsApi
             : Results.Ok(jobView);
     });
 
-    // 作业列表（作业历史页；单机降级用，形状与 Server 兼容）
     app.MapGet("/api/jobs", async (int? limit, ILabelJobStore store, ITransportManager transportManager, HostOptions options, CancellationToken ct) =>
     {
+        if (store is SqliteLabelJobStore sqlite)
+        {
+            var states = await sqlite.ListRecentStatesAsync(Math.Clamp(limit ?? 100, 1, 500), ct);
+            return Results.Ok(states.Select(j => EnrichPrintInfo(JobViews.From(j), j.Id, transportManager, options.PrintOutputPath)));
+        }
         var jobs = await store.ListRecentAsync(Math.Clamp(limit ?? 100, 1, 500), ct);
         return Results.Ok(jobs.Select(j => EnrichPrintInfo(JobViews.From(j), j.Id, transportManager, options.PrintOutputPath)));
     });
 
     app.MapGet("/api/jobs/{jobId}", async (string jobId, LabelJobQueue queue, ITransportManager transportManager, HostOptions options, CancellationToken ct) =>
     {
-        var job = await queue.GetAsync(jobId, ct);
+        var job = await queue.GetStateAsync(jobId, ct);
         if (job is not null)
         {
             return Results.Ok(EnrichPrintInfo(JobViews.From(job), job.Id, transportManager, options.PrintOutputPath));
@@ -93,7 +97,7 @@ internal static class JobsApi
     /// <summary>Log 模拟打印：把 PNG 目录与张数附到作业视图，便于前端展示「打印图片在哪」。</summary>
     internal static JobView EnrichPrintInfo(JobView view, string jobId, ITransportManager transportManager, string printOutputPath)
     {
-        if (transportManager.CurrentConfig.Mode != TransportMode.Log)
+        if (!string.Equals(transportManager.CurrentConfig.PluginId, "log", StringComparison.OrdinalIgnoreCase))
         {
             return view;
         }

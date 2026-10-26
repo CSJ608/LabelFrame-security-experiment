@@ -31,6 +31,7 @@ public sealed class EmbeddedHttpServer : IDisposable
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _loop;
+    private readonly HashSet<Task> _requests = [];
 
     /// <summary>创建本地 HTTP 服务。</summary>
     /// <param name="port">监听端口（127.0.0.1）。</param>
@@ -65,7 +66,8 @@ public sealed class EmbeddedHttpServer : IDisposable
         _listener = new TcpListener(IPAddress.Loopback, _port);
         _listener.Start();
         _cts = new CancellationTokenSource();
-        _loop = Task.Run(() => LoopAsync(_cts.Token));
+        var token = _cts.Token;
+        _loop = Task.Run(() => LoopAsync(token));
         HostLog.Info(HostLog.Tags.Http, $"本地 HTTP 服务启动：127.0.0.1:{_port}");
     }
 
@@ -74,8 +76,28 @@ public sealed class EmbeddedHttpServer : IDisposable
     {
         _cts?.Cancel();
         try { _listener?.Stop(); } catch { }
-        _cts?.Dispose();
         HostLog.Info(HostLog.Tags.Http, "本地 HTTP 服务停止");
+    }
+
+    /// <summary>停止监听并等待在途请求释放后回收取消源。</summary>
+    public async Task StopAsync()
+    {
+        Dispose();
+        try
+        {
+            try
+            {
+                if (_loop is not null) await _loop.ConfigureAwait(false);
+            }
+            finally
+            {
+                await Task.WhenAll(_requests).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _cts?.Dispose();
+        }
     }
 
     private async Task LoopAsync(CancellationToken cancellationToken)
@@ -91,6 +113,10 @@ public sealed class EmbeddedHttpServer : IDisposable
             {
                 return;
             }
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             catch (Exception ex)
             {
                 // 接受连接失败（监听已停等罕见场景）：记录后继续
@@ -98,7 +124,9 @@ public sealed class EmbeddedHttpServer : IDisposable
                 continue;
             }
 
-            _ = Task.Run(() => HandleAsync(client, cancellationToken), cancellationToken);
+            _requests.RemoveWhere(static request => request.IsCompleted);
+            // 已接受连接即由处理器负责释放，不能因调度取消而跳过 finally。
+            _requests.Add(Task.Run(() => HandleAsync(client, cancellationToken), CancellationToken.None));
         }
     }
 

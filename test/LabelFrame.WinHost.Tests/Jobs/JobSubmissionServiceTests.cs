@@ -39,7 +39,8 @@ public class JobSubmissionServiceTests
             transportManager,
             registry,
             TestTransportRegistry.CreateContext(),
-            hostLogWriter ?? TextWriter.Null);
+            hostLogWriter ?? TextWriter.Null,
+            printOutputPath: dbPath + ".print");
         return (service, store, templates);
     }
 

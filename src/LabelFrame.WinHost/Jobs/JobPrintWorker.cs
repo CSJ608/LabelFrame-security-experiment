@@ -123,7 +123,7 @@ public sealed class JobPrintWorker : BackgroundService
                     {
                         await _transportManager.CurrentTransport.SendAsync(item.Zpl, stoppingToken);
                     }
-                    await _queue.CompleteItemAsync(jobId, item.Id, stoppingToken);
+                    await _queue.CompleteItemWithoutResultAsync(jobId, item.Id, stoppingToken);
                     Volatile.Write(ref _sendsSinceBatch, sent + 1);
                     _logger.LogInformation("作业 {JobId} 第 {Index} 张打印完成。", jobId, item.Index);
                 }

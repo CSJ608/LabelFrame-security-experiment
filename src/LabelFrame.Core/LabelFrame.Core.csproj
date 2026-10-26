@@ -9,6 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="LabelFrame.WinHost" />
+    <InternalsVisibleTo Include="LabelFrame.ClientHost" />
+    <InternalsVisibleTo Include="LabelFrame.Core.Tests" />
+    <InternalsVisibleTo Include="LabelFrame.JobStorageTool" />
+    <InternalsVisibleTo Include="LabelFrame.JobStorageProbe" />
+    <InternalsVisibleTo Include="LabelFrame.WinHost.Tests" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.4" />
     <!-- 原生库（lib.e_sqlite3）不下沉到 Core：经 RID 回退图（android-arm64 → linux-arm64）会把
          桌面 glibc so 打进 Android APK、压过 AndroidHost 的 NDK so。由各可执行项目自行引用。 -->

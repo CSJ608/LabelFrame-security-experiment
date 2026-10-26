@@ -271,6 +271,8 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 
 ## 6. 升级与迁移
 
+**下表的程序回滚说明以数据库格式兼容及安装器允许为前提，不代表本版支持客户端降级。** 本轮只支持本地作业库正向升级，不提供旧宿主降级流程；旧程序不能直接读取分表库，MSI 仍禁止降级。ServerDb、模板库和日志库不属于本次分表迁移范围。
+
 总原则：**模板、作业历史、日志与配置在各部署形态下都与程序分离存放，正常升级不清数据**；升级前建议对数据目录做一次备份（Windows：`%ProgramData%\LabelFrame`；Linux：`/var/lib/labelframe`）。各版本的变化与升级注意事项见[更新日志](../CHANGELOG.md)。
 
 | 形态 | 升级方法 | 数据与回滚 |
@@ -288,6 +290,31 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
 - **模板兼容**：新版本可继续打开既有模板；但**旧版本程序可能不认识新版本模板中的新元素**（如图片元素）——把模板回传给旧版本使用前请先确认。
 - **插件随行**：Zebra / TSPL 官方传输插件随客户端 MSI 附带并在启动时自动安装 / 升级（见「分发通道」一节），升级客户端无需单独处理插件。
 - **服务端管理界面（可选插件）**：经安装引导程序安装的随升级自动处理；手动放置 `web-ui` 插件的，升级后用新版 `labelframe-server-webui-*.zip` 覆盖目录即可（放入即生效）。
+
+### 本地作业库分表与离线降级
+
+Windows/Linux/Android 使用 Core 的本地打印作业库受影响，服务端投递数据库 `ServerDb` 不受影响；不要仅凭文件叫 jobs.db 就判断库用途，须核对宿主配置的实际路径。本轮只支持升级，不提供降级旧宿主的受支持流程、维护工具发行附件或 PDA 维护入口。
+
+升级前结束打印作业及结果回报，停止使用同一数据库的全部旧宿主，保留配置与数据并预留维护时间及磁盘空间；正常安装升级不清空数据。首次启动会先建立一致性备份再迁移，迁移成功后才启动队列服务。失败时不要反复强制重启、卸载清数据或换回旧程序；保留原库、备份及日志，排除空间不足、文件占用或未知结构后重试。共享内核的桌面回归不能替代 PDA 实际升级验证，平台证据由本轮发版 Issue 记录。
+
+空间预检针对数据库及备份实际路径，不使用系统根分区的空闲量代替；查询失败也阻断。PDA 先建立前台服务通知，再后台初始化；未就绪期间本地 HTTP 与 Worker 不开放。停止或快速重启会取消旧代并等待后台排空，不在主线程等待迁移，也不启动重叠 Worker。初始化失败记录本地日志（含已创建备份的路径与校验标志）并停止服务；APK 构建与托管测试不代表真机升级验收完成。
+
+新空库原子创建 `user_version=1`、`jobs/job_items/job_payloads`；旧版 `user_version=0` 的已知结构首次初始化时在无池独占连接中备份并迁移。未知版本/结构、缺失载荷、孤立关系或空间不足会拒绝启动，迁移异常不再吞掉。已有分表库重复初始化只做快照下结构/关系检查，不每次独占迁移。其他宿主/连接池仍占用库时可能取锁失败：停止全部宿主后重试，不杀进程、不清全局连接池。
+
+以下为**开发者离线验证参考，不是本轮产品降级操作指南**。维护工具仅保留源码，未加入 Release/MSI/Linux 归档或 Android APK；正常升级无需使用它。在有 .NET 10 SDK 的 Windows/Linux 隔离验证机，从仓库根目录构建；执行 DLL 的机器需要 .NET 10 运行时及对应原生库（保留完整输出目录）：
+
+```text
+dotnet build tools/LabelFrame.JobStorageTool -c Release
+dotnet tools/LabelFrame.JobStorageTool/bin/Release/net10.0/LabelFrame.JobStorageTool.dll to-legacy <当前本地作业库绝对路径> --hosts-stopped
+```
+
+也支持 `to-split` 显式正向维护。工具不创建缺失库；参数缺失退出码 2、转换失败 1、取消 130、成功或格式已匹配 0。`--hosts-stopped` 是操作者确认而非自动停机机制；SQLite 独占锁进一步阻止并发数据库访问，但不能替代关闭宿主（空闲宿主随后仍可能重新打开库）。
+
+反向迁移源码验证要求：停止所有使用此库的宿主并禁用自动重启 → 对**当前库**运行 `to-legacy`（工具先做当前一致性备份）→ 确认退出码 0 → 在隔离环境验证旧存储读取当前库。这不等于提供旧版安装流程。不要在反向迁移后先启动新版，它会再次正向迁移。反向迁移保留新作业、幂等键、最新状态和全部载荷，不恢复迁移前陈旧备份；失败保持原格式。
+
+同目录备份命名为 `.before-split-<唯一标识>.db` 或 `.before-legacy-<唯一标识>.db`，通过 SQLite 备份 API 包含 WAL 已提交内容，不生拷在线主文件。备份不覆盖、不自动清理；失败时输出路径及是否完成验证，**未验证文件不能当作可恢复副本**。空间预检为逻辑页大小四倍加 64MiB 余量，不是磁盘峰值硬保证；实际文件系统故障仍可能发生。大历史库应预留维护窗口与额外空间。Ctrl+C 在下一可取消边界响应，原生备份/单条 SQL 期间不承诺即时取消。
+
+Windows/Linux 可在停机后的原数据路径维护，须具备目录写权限；无需启动 UI 或打印传输。Android 应用私有库通常不能由普通桌面工具直接访问，当前没有 APK 内维护入口或受支持的通用导出/回灌流程，因此**不能承诺普通 PDA 可直接完成离线降级**。需由管理员先建立保留数据库及 WAL 一致性的、可验证的设备维护通道，或继续使用新版；不要卸载应用清数据或恢复旧备份作为绕过方案。Android 工具集成与发行包分发不在本次本地验证完成范围。
 
 ## 7. 服务端管理界面（可选插件）
 
@@ -375,11 +402,14 @@ sudo bash install-server-linux.sh --manifest <清单 URL>               # 安装
   ```
 - 日志轮转与保留（含服务端单文件大小上限）：三处文件日志统一**按日轮转、默认保留 31 个（天）**——服务端 `server-<yyyyMMdd>.log`（`LABELFRAME_SERVER_LOG_FILE_RETENTION_DAYS`）、客户端宿主 `host-<yyyyMMdd>.log`（`LABELFRAME_HOST_LOG_RETENTION_DAYS`）、客户端 Serilog `app-*.log`（`LABELFRAME_APP_LOG_RETENTION_DAYS`）；均设 0 或负值 = 不清理（不设上限）。`LABELFRAME_SERVER_LOG_FILE` / `LABELFRAME_HOST_LOG` 给的是基准路径，实际文件名带日期后缀；历史单名 `server.log` / `host.log` 不迁移不删除。**服务端单文件大小上限**：`LABELFRAME_SERVER_LOG_FILE_MAX_SIZE_MB`（默认 50，0 或负值 = 不限）——单文件超限轮转为当日序号文件 `server-<yyyyMMdd>.N.log`（跨天回新日期基名），清理按（日期, 序号）序删最旧；大小上限启用后 `LABELFRAME_SERVER_LOG_FILE_RETENTION_DAYS` 的实际语义为**文件个数上限**（按日单文件时代即保留天数，既有部署无感），总占用上界 ≈ 31 文件 × 单文件上限。
 - **logs.db 按量闸与空间回收**：`LABELFRAME_SERVER_LOGS_DB_MAX_SIZE_MB`（默认 256，0 或负值 = 不限量闸、按期时间闸仍生效）——每 24h 清理周期内，库文件（logs.db + logs.db-wal 合计）超过阈值时按大小删最旧日志直至回到阈值内，删除后执行 `VACUUM` + `wal_checkpoint(TRUNCATE)` **真实回收磁盘**（主文件显著收缩，非仅空闲页复用）。⚠️ **量闸删除不受 90 天保留期下限约束——这是有意行为，不是缺陷**（磁盘防护优先于保留期，避免被当作缺陷上报）；执行期代价：临时磁盘最多约 2× 库大小、期间日志写入短暂阻塞（低频后台窗口可接受，失败自动下个周期重试）。
-- 出图目录保留清理：Log 模拟打印出图目录（`print\<jobId>`，默认 `%LOCALAPPDATA%\LabelFrame\print`，Windows 窗口与 Linux 无头客户端同路径）**按天保留、默认 31 天**——超期作业子目录（含内部 PNG）在客户端启动与每次模拟打印落盘后自动删除；判龄 = 作业目录 LastWriteTime（与 jobs.db 作业历史无关，删除只影响 Log 模式「查看出图」）；遇占用 / 权限失败降级留痕、不影响打印与出图。`LABELFRAME_PRINT_IMAGE_RETENTION_DAYS` 可调，0 或负值 = 不清理。例：
+- 模拟 PNG 保存与清理：Windows 默认 `%LOCALAPPDATA%\LabelFrame\print`，Linux 官方容器默认 `/var/lib/labelframe/client/print`，可由 `LABELFRAME_PRINT_OUTPUT` 指定专用目录。保存默认开启，管理员可在程序配置文件 `appsettings.json` 的 `WinHost` 节设 `SaveLogPrintImages=false`，或用环境变量覆盖；重启生效，不提供 UI 开关。关闭只停止新 PNG，Log 作业、数据日志及已有受管图片清理继续；不影响正式打印、预览、主动调试下载。
+- 新出图作业目录带 `.labelframe-print-v1` 归属标记；**旧无标记目录、混合内容、子目录及链接不自动清理或接管**，需要另行确认后维护。默认31天＋512MiB容量目标，启动及每小时后台扫描，不依赖继续打印；提交后顺带扫描至少间隔5分钟。判龄为目录 UTC LastWriteTime，容量超限最旧优先，可早于31天淘汰。**容量是周期清理目标而非硬配额**，批次写入、扫描节流或删除失败期间可能超限，不包含数据库、旧无标记目录、浏览器缓存及用户下载。遇占用/权限失败留痕重试。删除不影响作业恢复和历史，只使模拟 PNG 不再可查看，历史出图数量变为0。时间与容量规则独立禁用，兼容配置中原 `RETENTION_DAYS=0` 现在只禁用时间规则；需要完全关闭清理时须同时把容量设为0。例：
   ```bash
-  LABELFRAME_PRINT_IMAGE_RETENTION_DAYS=31   # 默认：保留 31 天
-  LABELFRAME_PRINT_IMAGE_RETENTION_DAYS=0    # 关闭清理（出图目录无限累积，恢复旧现状）
+  LABELFRAME_SAVE_LOG_PRINT_IMAGES=false   # 默认true；仅关闭新模拟PNG
+  LABELFRAME_PRINT_IMAGE_RETENTION_DAYS=31 # <=0仅关闭时间清理
+  LABELFRAME_PRINT_IMAGE_MAX_SIZE_MB=512   # MiB；<=0仅关闭容量清理
   ```
+  对应配置文件示例：`{"WinHost":{"SaveLogPrintImages":false,"PrintImageRetentionDays":31,"PrintImageMaxSizeMB":512}}`。布尔环境变量接受 true/false（不区分大小写），非法值保持配置文件值；整数非法值同样保持原配置。进程内单例串行协调保存与清理，不支持多宿主共享出图目录；不要指向模板、下载或混合用途目录。失败写入的部分 PNG 后续仍可按规则清理，相同 requestId 重放不会补图。
 - 模拟打印作业数据留痕（排障说明）：Log 模拟打印提交时，客户端宿主日志（`host-<yyyyMMdd>.log`）同时记录**作业原始数据**——作业 ID / 模板名 / 标签张数 / 数据集合（字段键值紧凑形式，如 `locationCode=A-01-02-03; zone=A-01`）；多张标签按数据集合**去重**（相同记一条 + 重复张数），单条约 2KB 上限、超限截断并标注完整长度。排障时在当日 host 日志按「作业数据」检索即可对照「这个作业带了什么数据进来」（PNG 出图只含渲染结果，看不到作业输入）；真实传输（tcp9100 / winspool / zebra）不产生该记录。
 - 服务端业务事件日志（作业创建 / 设备认领 / 回报终态，作业粒度）默认 **INFO**；高流量需要降噪时按标准 Logging 配置降级，例如环境变量：
   ```bash

@@ -18,8 +18,10 @@ namespace LabelFrame.ClientHost.Tests;
 
 public sealed class LinuxClientHostTests
 {
-    [Fact]
-    public async Task Linux_target_should_be_headless_and_expose_only_log_transport()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Linux_target_should_be_headless_and_expose_only_log_transport(bool saveImages)
     {
         var root = Path.Combine(Path.GetTempPath(), $"labelframe-clienthost-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
@@ -35,6 +37,7 @@ public sealed class LinuxClientHostTests
             ConnectionPath = Path.Combine(root, "connection.json"),
             HostLogPath = Path.Combine(root, "host.log"),
             PrintOutputPath = Path.Combine(root, "print"),
+            SaveLogPrintImages = saveImages,
             PluginsPath = Path.Combine(root, "plugins"),
             WebUiPath = Path.Combine(root, "web"),
             Transport = TransportMode.Tcp,
@@ -84,7 +87,12 @@ public sealed class LinuxClientHostTests
             var jobId = submitted.RootElement.GetProperty("jobId").GetString()!;
             var expectedImage = Path.Combine(options.PrintOutputPath, jobId, "label-1.png");
             Assert.Equal(Path.GetDirectoryName(expectedImage), submitted.RootElement.GetProperty("printImageDir").GetString());
-            Assert.Equal(1, submitted.RootElement.GetProperty("printImageCount").GetInt32());
+            Assert.Equal(saveImages ? 1 : 0, submitted.RootElement.GetProperty("printImageCount").GetInt32());
+            if (!saveImages)
+            {
+                Assert.False(Directory.Exists(options.PrintOutputPath));
+                return;
+            }
             Assert.True(new FileInfo(expectedImage).Length > 0);
             using var bitmap = SKBitmap.Decode(expectedImage);
             var luminance = new RGBLuminanceSource(

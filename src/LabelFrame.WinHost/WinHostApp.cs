@@ -136,7 +136,10 @@ public static class WinHostApp
         // 渲染器单例：DI 与共享端点（预览 / 调试出图）共用同一实例——预览与打印同源
         var skiaRenderer = new SkiaLabelRenderer();
         builder.Services.AddSingleton<ILabelBitmapRenderer>(skiaRenderer);
-        var printRetentionCleaner = new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays, hostLogWriter);
+        var printRetentionCleaner = new PrintImageRetentionCleaner(options.PrintOutputPath, options.PrintImageRetentionDays,
+            hostLogWriter, options.PrintImageMaxSizeMB);
+        builder.Services.AddSingleton(printRetentionCleaner);
+        builder.Services.AddHostedService(_ => new PrintImageCleanupService(printRetentionCleaner, TimeProvider.System));
         builder.Services.AddSingleton(sp => new JobSubmissionService(
             queue,
             sp.GetRequiredService<ZplImageEncoder>(),
@@ -148,7 +151,8 @@ public static class WinHostApp
             pluginContext,
             hostLogWriter,
             options.PrintOutputPath,
-            printRetentionCleaner));
+            printRetentionCleaner,
+            options.SaveLogPrintImages));
 
         builder.Services.AddCors(corsOptions => corsOptions.AddDefaultPolicy(policy =>
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));

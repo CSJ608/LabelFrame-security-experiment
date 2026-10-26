@@ -5,6 +5,14 @@
 
 ## 1. 职责与边界
 
+整版 ZPL 图片编码使用固定小头部加一次最终字符串分配，十六进制像素直接写入最终字符串的 span；不保留与像素等长的临时十六进制字符串或 StringBuilder 缓冲。继续使用大写十六进制、InvariantCulture、平台换行与原有毫米取整规则，公开签名及线格式不变。
+
+ZPL 分配预算测试属于非并行集合，每个测量窗口建立 16MiB NoGCRegion；进入和退出均须成功，不重试取最小值。原五次暖身之后逐次验证16个样本，预算仍为输出字符数×2+4096；额外零分配对照必须为0、故意增加8192字节的对照必须超预算。GC/委托创建/输出与逐字符参考编码位于窗口外，产品编码不改。
+
+原因：本机 .NET 10.0.13 Windows x64 的独立空窗口在 BGC 下512次中6次计数虚增7984字节，而无背景 GC 的首轮50次均0；与上游 [BGC 分配上下文记账修复](https://github.com/dotnet/runtime/pull/134855) 一致。历史超额8072字节没有追踪记录，不能声称已逐对象还原；共享 ArrayPool 事件实验证明存在租借，但不证明它造成超额，因此撤回栈缓冲产品候选，只修复测量控制。NoGCRegion只用于测试，不改产品GC、编码格式、参数或文化行为。
+
+补充反证：移除共享池的栈缓冲候选在全量第二轮仍出现1686024字节（同样超过1681944预算），故“共享池即根因”被本机证据否定；独立程序仅关闭自身进程BGC后512个空窗口均0。所有原始失败保留于本轮证据目录，不用候选专项绿灯宣称修复。
+
 **做什么**：全仓共享内核——所有宿主（Server / WinHost / AndroidHost）与插件共用的领域模型、持久化与机制层，**零项目引用**（仅三个 NuGet 包，见 §4）。承载：
 
 - **契约**（Contracts）：标签场景的字段清单模型（`LabelContract` / `LabelField`），可版本化（决策 #1 契约与版式分离）；
@@ -34,7 +42,7 @@
 | Layout | `Layout/` | 六类元素（text / barcode / qrcode / image / line / region）+ `LabelLayout`；`LabelLayoutResolver`（区域锚定解析几何，决策 #33 / #110 / #146）；`LabelElementContent`（`Literal ?? data[SourceKey]`，决策 #35）；`LabelElementJsonConverter`（"type" 判别子类型）；`ITextWidthMeasurer`（度量注入接口，决策 #110） |
 | Validation | `Validation/` | `LabelValidator`（仅必填缺失校验——底线「缺数据不打半张」）；`LabelProblemCodes`（`LF_VAL_001`） |
 | Encoding | `Encoding/` | `ZplImageEncoder`（`^XA`/`^PW`/`^LL`/`^GFA` 整版位图输出；`DefaultDpi = 203`；毫米→点四舍五入远离零） |
-| Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`；双载荷重载 `SubmitAsync(requestId, IReadOnlyList<LabelJobPayload>)`——文本 / 二进制指令二选一，决策 #195）；`LabelJobPayload`（`OfText` / `OfBytes`）；`SqliteLabelJobStore`（表 `jobs` / `job_items`——含 `command_bytes BLOB` 加列迁移，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
+| Jobs | `Jobs/` | `LabelJobQueue`（进程内互斥 `_gate` + 唤醒信号 `_pendingWake`；双载荷重载 `SubmitAsync(requestId, IReadOnlyList<LabelJobPayload>)`——文本 / 二进制指令二选一，决策 #195）；`LabelJobPayload`（`OfText` / `OfBytes`）；`SqliteLabelJobStore`（表 `jobs` / 瘦状态 `job_items` / 载荷 `job_payloads`，`request_id` UNIQUE 幂等）；`LabelJobException`（问题码 + 模板参数）；`JobErrorCodes`（`LF_JOB_001~004` / `LF_IO_001` / `LF_API_001` / `LF_ENC_001~003`） |
 | Templates | `Templates/` | `TemplateStore`（SQLite 表 `templates` / `template_images`：`id`=不透明 uid、`name` 列承载模板名（唯一索引），保存带 uid＝同模板改名更新、无 uid＝新建，分组列表 + 旧库补列迁移）；`TemplatePackage`（契约 + 版式 + 图片 + testData + 可选 uid）；`TemplatePackageSerializer`（zip：`manifest.json` + `images/`，不携带身份字段） |
 | Transport | `Transport/` | `IPrintTransport`（文本 `SendAsync(string)` + 二进制 `SendAsync(byte[])` DIM 缺省抛 `NotSupportedException`，决策 #195）+ `IPrinterStatusProvider` + `ITestableTransport`；内置实现 `Tcp9100PrintTransport`（发送 + `~HS` 状态解析 `ParseHostStatus`）与 `LogPrintTransport`（模拟打印，只记摘要） |
 | Transport / Plugins | `Transport/Plugins/` | 插件 ABI：`ITransportPlugin`（含 `DisplayNameKey` / `DescriptionKey` 展示端翻译键 DIM，决策 #192）/ `ITransportPluginRegistry`（实现 `TransportPluginRegistry`，**强持有插件 ALC 根**）/ `ILabelCommandCompiler`（可选文档编译能力，决策 #137）、`ILabelImageEncoder`（可选图片编码能力＋`LabelImageEncodeOptions` 连接级选项，决策 #195 / #196）；`PluginDirectoryLoader`（两条加载路径，见 §3.2）；`PluginProbe`（安装预检探针）；`PluginInstaller`（安装 / 卸载 / 已装列表）；`BuiltinTransportPlugins`（log + tcp9100）；`TransportPluginIdPolicy`（官方前缀 / 保留 id / 旧 id 别名）；`TransportPrintMode`（image / native，决策 #137）；`TransportParameterSpec`（含 `VisibleWhen*` 条件可见性 + `LabelKey`/`HintKey` 展示端翻译键（init-only 属性、构造器签名零变化）+ 历史 7 参构造器兼容，决策 #186 / #192） |
@@ -59,6 +67,26 @@
 4. **挂起 / 恢复 / 取消 / 重打**：状态非法抛 `LF_JOB_002`；重打仅 Failed Item（`LF_JOB_004`，条目越界 `LF_JOB_003`），重打后 Failed 作业回 Pending、Suspended 保持挂起；恢复与重打同样在写入后发唤醒信号；
 5. **重启恢复**（`MarkInterruptedJobsSuspendedAsync`）：宿主启动时把 in-flight（Printing）作业置 Suspended、在途 Item 重置 Pending——恢复后续打优先保证不漏打（决策 #16）；
 6. **安全退出**（`TryPrepareForShutdownAsync` / `TryBeginPrintSendAsync`）：锁内确认无在途发送（`_activeSends` 计数）且无 Printing Item 才置 `_shutdownPrepared`，此后拒绝提交与领取；真实传输区间以 lease 登记。
+
+SQLite 领取路径在队列锁内调用存储内部专用方法：仅列出有 Pending 项的活动作业标识和创建时间，仍由 .NET 按 CreatedAt / Id 排序，再读取所选作业序号最小的一张完整指令。选择、Item Printing 与 Job Printing 更新在同一数据库事务内，提交成功才返回；异常或取消在提交前回滚，不留下半次领取。每张仍独立提交，不降低 SQLite 同步级别、不缓存或共享可变二进制载荷。`ILabelJobStore` 与队列公开签名、完整查询内容均不变；其他存储实现沿用原领取路径。
+
+内部状态读取使用独立的 `LabelJobState` / `LabelJobItemState`，类型不包含载荷字段，不把空载荷的 `LabelJob` 伪装为完整作业。SQLite 单条 LEFT JOIN 查询获取作业与逐张状态（包括空作业），不选择 zpl / command_bytes，保持同一语句快照与原排序。`GetAsync` / `GetJobAsync` 等公开入口仍完整读取。Core 仅向两种 Client Host 程序集及对应测试程序集开放内部可见性；不增加公共模型或 `ILabelJobStore` 成员。宿主路由回报也复用此快照；其他存储实现继续通过完整查询转换，不扩大公共契约。
+
+宿主历史列表使用内部 `ListRecentStatesAsync`：沿用公开列表的 `created_at DESC, id` SQL 排序和 1～500 作业数限制、连接及外层 reader 生命周期，再逐作业复用 `LoadStateAsync`。limit 作用于作业，不限制标签项；空作业保留，所选作业内缺载荷报错，范围外作业不额外扫描。不改为 .NET 日期排序，不新增缓存或写事务，不承诺新的跨作业原子快照。公开 `ListRecentAsync` 继续返回完整载荷，非 SQLite 的 HTTP 列表保留原完整查询分支；视图所有逐项字段及 Log 出图增强不变。
+
+宿主内部 `CompleteItemWithoutResultAsync` 在原队列锁内调用 SQLite 事务：更新单张为 Completed、清除该项错误、读取 Job 状态及去重后的 Item 状态、按与公开完成方法共用的状态规则决定 Job 更新，提交后返回，不回读载荷或整批状态明细。完成规则只使用 All/Any，状态重复次数和顺序不影响结果；SQL 的 DISTINCT 只去重状态，不在数据库重写状态机。LEFT JOIN 保留不存在/空作业的区分；仍解析每种 Item 状态，不因 Job 已取消/完成而跳过非法状态检查。公开状态查询仍返回完整逐张明细。不合并多张持久化，不在传输成功前预写完成；异常或提交前取消回滚两级状态。已取消/完成的 Job 保持原状态，但迟到 Item 完成仍按原语义记录；挂起、失败与剩余 Pending 的判定不变。非 SQLite 实现回退原公开完成及完整查询路径。失败回读、历史列表和其他公开查询仍带完整载荷，不属于此内部优化范围。
+
+作业分表迁移内核 `JobStorageMigration` 已接入 `SqliteLabelJobStore.InitializeAsync` 与独立离线工具 `LabelFrame.JobStorageTool`。新库同事务建分表并写版本；旧库无池识别后独占迁移；已有分表库使用读事务校验结构和关系，不申请独占维护锁，不清全局池。创建作业同事务写状态和载荷；完整查询及领取通过 LEFT JOIN 读载荷并检测缺失，轻量状态与 DISTINCT 完成只读载荷主键判断关系，不分配指令。内部转换器在不使用连接池的 SQLite 独占连接中识别 user_version 0/1、核查表结构/双向关系、预检空间、通过 BackupDatabase 保存一致性备份，再以单事务复制、EXCEPT 核对、交换表并更新版本。重建期间仅维护连接关闭外键执行，提交前显式 foreign_key_check 和完整性/双向对应检查；不影响运行时连接或 synchronous。逆向转换合成当前状态和当前载荷，不恢复旧备份。独占失败直接报错，不停止其他进程；当前测试覆盖跨进程读锁争用、正反向复制后/提交前/提交后强制结束测试进程及重开恢复；不代表真实断电。维护工具仅源码构建提供，尚未纳入发行包；Android 私有库无通用导出/回灌入口，不能承诺普通 PDA 直接降级。详细方案与容量边界见 [分表方案](job-storage-split-proposal.md)。
+
+存储兼容回归在测试工程冻结原大行实现 `LegacySqliteLabelJobStore`（来源为本地接线前 9c28886，仅改测试类型/命名空间），用于逆迁移后旧代码继续作业及性能基线，不进入产品。`LegacyClaimStagesPerfTests` 保留历史原型 SQL，使用独立旧库夹具；`ProductSplitPerfTests` 对比两种真实存储调用，`CompletionStagesPerfTests` 明确测量当前分表下明细/去重状态读取，不能把它称为旧 schema 基线。
+
+空库首次初始化先结束识别读事务，再取得非延迟写事务并重新识别版本/对象，避免并发首启相互持读锁升级失败；锁内若另一实例已完成建表，则校验分表后返回，不能按旧快照重复创建。已分表库仍只需读事务。旧格式库即使只剩空闲的运行期池连接，也可能阻止独占迁移；失败不清全局池、不启动 Worker，由调用方停止全部宿主并重试。测试仅对自身临时库定向释放连接池，不提供在线迁移保证。
+
+本轮发行优先正向升级与失败保护，不提供产品降级流程、维护工具附件或 PDA 维护入口。源码反向转换及其回归保留，仅用于开发者验证；不能以源码存在宣称终端用户具备安全降级能力。平台启动、实际数据分区空间预检与迁移失败诊断须按宿主核查，不能由共享内核的桌面回归代替。
+
+源码维护 CLI 的标准输出与错误输出统一为无 BOM UTF-8，测试子进程按 UTF-8 读取；不能依赖调用方机器的控制台代码页，否则英文 Windows 的中文诊断会不可逆地变成问号。退出码与迁移行为不变。
+
+维护锁获取的 SQLITE_BUSY 仅在关闭失败连接后有界重试（最多三次，1秒命令超时、50～150ms随机退避），取消可中断退避；取得独占锁以后不自动重试备份或转换。持续占用仍原样报错，不清池或强制在线升级，详细边界见[分表方案](job-storage-split-proposal.md#独占锁竞争与重试边界)。
 
 ### 3.2 传输插件装配（启动扫描 → 注册表 → 按需创建）
 
@@ -160,7 +188,7 @@
 7. **printMode 两个分支不可合并**：「缺省 / 非法回退 image」与「显式 native 但插件无编译能力」不同——后者保存校验拒绝 + 提交兜底 `LF_ENC_003` 显式失败，**不静默按图片打印**（决策 #137）。
 8. **错误消息模板单遍替换**：参数值内嵌 `{x}` 不级联替换；参数缺失占位符原样保留不抛——展示端按码表翻译依赖此口径（决策 #166）。
 9. **元素 JSON 写方向「非默认才写」**：省略风格与前端 `convert.ts` 一致（默认值清单见 §3.4）；`fitMode` 写出为小写 `shrink` / `overflow`（前端枚举形态，非 `ToString()`）。**例外——双边内边距「在场即显值」**：`paddingH` / `paddingV` 有值即写（含 0，`PaddingHMm` / `PaddingVMm` 为 `double?`——null＝未设、0＝显式零），缺省才走 `paddingMm → 0` 兜底；`paddingMm` 单值为兼容保留且仅双侧有效值（`EffectivePadding*`，`PaddingMm` 兜底后）相等且 >0 时写出该有效值（写 max 会把显式 0 经兜底链复活，决策 #205）。旧模板读取行为不变（决策 #47 / #205）。
-10. **`Zpl` 字段与 DB 列名不改名**：`LabelJobItem.Zpl` 与 `job_items.zpl` 沿用历史命名（文本形态指令：图片模式 = `^GF` 位图 ZPL，原生指令模式 = 品牌原生指令）；二进制指令（如 TSPL BITMAP）走 `CommandBytes` / `command_bytes BLOB`（决策 #195）——**与 `Zpl` 互斥，非空者即回放载荷**；指令一经持久化不可变，重启后可续打且不重打——存量库兼容（旧行 NULL 走文本路径）。
+10. **`Zpl` 字段与 DB 列名不改名**：`LabelJobItem.Zpl` 与 `job_payloads.zpl` 保留文本字段命名（旧格式位于 `job_items.zpl`）（文本形态指令：图片模式 = `^GF` 位图 ZPL，原生指令模式 = 品牌原生指令）；二进制指令（如 TSPL BITMAP）走 `CommandBytes` / `command_bytes BLOB`（决策 #195）——**与 `Zpl` 互斥，非空者即回放载荷**；指令一经持久化不可变，重启后可续打且不重打——存量库兼容（旧行 NULL 走文本路径）。
 11. **插件 id 兼容义务**：`log` / `tcp9100` / `winspool` 为内置保留 id（外部包禁止占用）；旧内置时代 id `zebra` 仅作**读取别名**归一到 `labelframe-transport-zebra`，不落盘迁移；Log 插件显示名用户化但 Id 保持 `log`（存量连接配置兼容）（决策 #123 / #143）。
 12. **`platforms` 缺省按 Windows 解释**：无该字段的既有包在 Windows 宿主照常安装、PDA 拒绝；显式空数组非法（决策 #157）。
 13. **WAL 不可用静默回退不阻断**：只读卷等场景 `PRAGMA journal_mode=WAL` 失败吞掉、回退默认日志模式（决策 #80）。

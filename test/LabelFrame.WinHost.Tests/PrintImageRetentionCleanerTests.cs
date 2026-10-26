@@ -32,7 +32,7 @@ public class PrintImageRetentionCleanerTests
             Assert.False(File.Exists(Path.Combine(expired, "label-1.png")));
             Assert.True(Directory.Exists(retained));
             // 清理摘要一行留痕
-            Assert.Contains("出图目录清理：删除超期作业目录 1 个", log.ToString());
+            Assert.Contains("出图目录清理：删除受管作业目录 1 个", log.ToString());
         }
         finally
         {
@@ -107,7 +107,7 @@ public class PrintImageRetentionCleanerTests
 
             // 不抛出、目录留存（下次触发再试）、失败留痕一行
             Assert.True(Directory.Exists(expired));
-            Assert.Contains("删除超期作业目录失败", log.ToString());
+            Assert.Contains("删除超期或超量作业目录失败", log.ToString());
         }
         finally
         {
@@ -165,7 +165,7 @@ public class PrintImageRetentionCleanerTests
             }
 
             // 清理失败已留痕（不抛出）
-            Assert.Contains("删除超期作业目录失败", log.ToString());
+            Assert.Contains("删除超期或超量作业目录失败", log.ToString());
         }
         finally
         {
@@ -186,8 +186,10 @@ public class PrintImageRetentionCleanerTests
     /// <summary>造一个作业子目录（含一张 PNG），LastWriteTime 回拨到指定天数前。</summary>
     private static string CreateJobDirectory(string root, string jobId, int daysOld)
     {
+        jobId = Guid.NewGuid().ToString("N");
         var dir = Path.Combine(root, jobId);
         Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, PrintImageRetentionCleaner.MarkerName), jobId);
         File.WriteAllBytes(Path.Combine(dir, "label-1.png"), [0x89, 0x50, 0x4E, 0x47]);
         if (daysOld > 0)
         {

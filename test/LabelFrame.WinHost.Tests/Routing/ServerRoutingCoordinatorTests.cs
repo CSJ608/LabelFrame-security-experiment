@@ -84,7 +84,8 @@ public class ServerRoutingCoordinatorTests
                 manager,
                 registry,
                 TestTransportRegistry.CreateContext(),
-                TextWriter.Null);
+                TextWriter.Null,
+                printOutputPath: Path.Combine(Directory, "print"));
 
             var services = new ServiceCollection();
             services.AddSingleton(submission);

@@ -114,6 +114,42 @@ public sealed class LabelJobQueue : IDisposable
     public Task<LabelJob?> GetAsync(string jobId, CancellationToken cancellationToken = default)
         => _store.GetJobAsync(jobId, cancellationToken);
 
+    /// <summary>读取不含打印载荷的内部作业状态快照。</summary>
+    internal async Task<LabelJobState?> GetStateAsync(string jobId, CancellationToken cancellationToken = default)
+    {
+        if (_store is SqliteLabelJobStore sqliteStore)
+            return await sqliteStore.GetStateAsync(jobId, cancellationToken);
+        var job = await _store.GetJobAsync(jobId, cancellationToken);
+        return job is null ? null : LabelJobState.From(job);
+    }
+
+    /// <summary>持久化单张完成结果，不回读整批打印载荷。</summary>
+    internal async Task CompleteItemWithoutResultAsync(string jobId, string itemId, CancellationToken cancellationToken = default)
+    {
+        if (_store is not SqliteLabelJobStore sqliteStore)
+        {
+            await CompleteItemAsync(jobId, itemId, cancellationToken);
+            return;
+        }
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!await sqliteStore.CompleteItemWithoutResultAsync(jobId, itemId, cancellationToken))
+                throw Templated(JobErrorCodes.JobNotFound, "作业不存在：{jobId}。", new() { ["jobId"] = jobId });
+        }
+        finally { _gate.Release(); }
+    }
+
+    /// <summary>计算单张完成后需要更新的作业状态。</summary>
+    internal static LabelJobStatus? GetCompletionStatus(LabelJobStatus status, IEnumerable<LabelJobItemStatus> items)
+    {
+        if (status is LabelJobStatus.Cancelled or LabelJobStatus.Completed) return null;
+        if (items.All(i => i == LabelJobItemStatus.Completed)) return LabelJobStatus.Completed;
+        if (!items.Any(i => i == LabelJobItemStatus.Pending) && status is LabelJobStatus.Pending or LabelJobStatus.Printing)
+            return LabelJobStatus.Failed;
+        return null;
+    }
+
     /// <summary>按幂等键查询既有作业（不存在返回 null）。</summary>
     public Task<LabelJob?> GetByRequestIdAsync(string requestId, CancellationToken cancellationToken = default)
     {
@@ -134,6 +170,11 @@ public sealed class LabelJobQueue : IDisposable
             if (_shutdownPrepared)
             {
                 return null;
+            }
+
+            if (_store is SqliteLabelJobStore sqliteStore)
+            {
+                return await sqliteStore.ClaimNextItemAsync(cancellationToken);
             }
 
             var activeJobs = new List<LabelJob>();
@@ -256,22 +297,9 @@ public sealed class LabelJobQueue : IDisposable
             var job = await _store.SetItemStatusAsync(jobId, itemId, LabelJobItemStatus.Completed, null, null, cancellationToken)
                 ?? throw Templated(JobErrorCodes.JobNotFound, "作业不存在：{jobId}。", new() { ["jobId"] = jobId });
 
-            if (job.Status is LabelJobStatus.Cancelled or LabelJobStatus.Completed)
-            {
-                return job;
-            }
-
-            if (job.Items.All(i => i.Status == LabelJobItemStatus.Completed))
-            {
-                return await _store.SetJobStatusAsync(jobId, LabelJobStatus.Completed, cancellationToken) ?? job;
-            }
-
-            if (!job.Items.Any(i => i.Status == LabelJobItemStatus.Pending) && job.Status is LabelJobStatus.Pending or LabelJobStatus.Printing)
-            {
-                return await _store.SetJobStatusAsync(jobId, LabelJobStatus.Failed, cancellationToken) ?? job;
-            }
-
-            return job;
+            var nextStatus = GetCompletionStatus(job.Status, job.Items.Select(i => i.Status));
+            return nextStatus is null ? job
+                : await _store.SetJobStatusAsync(jobId, nextStatus.Value, cancellationToken) ?? job;
         }
         finally
         {

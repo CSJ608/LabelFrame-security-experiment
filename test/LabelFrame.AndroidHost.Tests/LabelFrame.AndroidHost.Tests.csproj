@@ -22,6 +22,7 @@
          是纯托管源码（无 Android 依赖），按文件链接编译进本工程——同一份源码零漂移。 -->
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Errors\LfErrorCatalog.cs" Link="Errors\LfErrorCatalog.cs" />
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Api\ImagePayloadDecoder.cs" Link="Api\ImagePayloadDecoder.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\ServiceLifetime.cs" Link="ServiceLifetime.cs" />
   </ItemGroup>
 
 </Project>

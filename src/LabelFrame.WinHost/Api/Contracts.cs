@@ -38,6 +38,14 @@ public sealed record SubmitJobResult(LabelJob? Job, bool Created, string? ErrorC
 /// <summary>作业与视图映射。</summary>
 public static class JobViews
 {
+    internal static JobView From(LabelJobState job) => new(
+        job.Id, job.RequestId, job.Status.ToString(), job.Items.Count,
+        job.Items.Count(i => i.Status == LabelJobItemStatus.Completed),
+        job.Items.Select(i => new JobItemView(i.Index, i.Status.ToString(), i.ErrorCode, i.ErrorMessage)).ToList(),
+        CreatedAt: job.CreatedAt,
+        FailedItems: job.Items.Count(i => i.Status == LabelJobItemStatus.Failed),
+        ErrorMessage: job.Items.FirstOrDefault(i => i.Status == LabelJobItemStatus.Failed)?.ErrorMessage);
+
     /// <summary>把作业映射为视图（可附带 Log 模拟打印图片目录）。</summary>
     public static JobView From(LabelJob job, string? printImageDir = null, int? printImageCount = null) => new(
         job.Id,

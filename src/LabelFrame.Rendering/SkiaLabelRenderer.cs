@@ -25,38 +25,35 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
     private const int MaxPooledSurfaces = 4;
 
     private readonly object _surfacePoolLock = new();
-    private readonly Stack<(SKBitmap Bitmap, byte[] Pixels)> _surfacePool = new();
+    private readonly Stack<SKBitmap> _surfacePool = new();
 
     /// <summary>租用渲染中间态：尺寸全匹配的池化项复用，否则新分配；租用方须先整面 Clear 再绘制（池化复用前提）。</summary>
-    private (SKBitmap Bitmap, byte[] Pixels) RentSurface(int width, int height)
+    private SKBitmap RentSurface(int width, int height)
     {
         lock (_surfacePoolLock)
         {
             while (_surfacePool.Count > 0)
             {
                 var surface = _surfacePool.Pop();
-                if (surface.Bitmap.Width == width
-                    && surface.Bitmap.Height == height
-                    && surface.Pixels.Length == surface.Bitmap.RowBytes * height)
+                if (surface.Width == width && surface.Height == height)
                 {
                     return surface;
                 }
 
-                surface.Bitmap.Dispose();
+                surface.Dispose();
             }
         }
 
-        var bitmap = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
-        return (bitmap, new byte[bitmap.RowBytes * height]);
+        return new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
     }
 
-    private void ReturnSurface(SKBitmap bitmap, byte[] pixels)
+    private void ReturnSurface(SKBitmap bitmap)
     {
         lock (_surfacePoolLock)
         {
             if (_surfacePool.Count < MaxPooledSurfaces)
             {
-                _surfacePool.Push((bitmap, pixels));
+                _surfacePool.Push(bitmap);
                 return;
             }
         }
@@ -70,7 +67,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         ArgumentNullException.ThrowIfNull(document);
         var width = Math.Max(1, ToDots(document.Layout.WidthMm, dpi));
         var height = Math.Max(1, ToDots(document.Layout.HeightMm, dpi));
-        var (bitmap, staging) = RentSurface(width, height);
+        var bitmap = RentSurface(width, height);
         try
         {
             using var canvas = new SKCanvas(bitmap);
@@ -82,12 +79,11 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             }
 
             var rowBytes = bitmap.RowBytes;
-            Marshal.Copy(bitmap.GetPixels(), staging, 0, staging.Length);
-            return ToLabelBitmap(width, height, rowBytes, staging);
+            return ToLabelBitmap(width, height, rowBytes, bitmap.GetPixelSpan());
         }
         finally
         {
-            ReturnSurface(bitmap, staging);
+            ReturnSurface(bitmap);
         }
     }
 
@@ -97,7 +93,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         ArgumentNullException.ThrowIfNull(document);
         var width = Math.Max(1, ToDots(document.Layout.WidthMm, dpi));
         var height = Math.Max(1, ToDots(document.Layout.HeightMm, dpi));
-        var (bitmap, _) = RentSurface(width, height);
+        var bitmap = RentSurface(width, height);
         try
         {
             using var canvas = new SKCanvas(bitmap);
@@ -114,7 +110,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
         }
         finally
         {
-            ReturnSurface(bitmap, []);
+            ReturnSurface(bitmap);
         }
     }
 
@@ -421,7 +417,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             Options = new EncodingOptions { Height = barcodeHeight, Width = contentW, Margin = 2, PureBarcode = true },
             Renderer = new ZXing.Rendering.PixelDataRenderer(),
         };
-        using var barcodeBitmap = ToSkBitmap(writer.Write(value));
+        using var barcodeBitmap = ToSkBitmap(writer.Encode(value));
         canvas.DrawBitmap(barcodeBitmap, contentX, contentY);
 
         if (barcode.DisplayValue)
@@ -495,7 +491,7 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
             },
             Renderer = new ZXing.Rendering.PixelDataRenderer(),
         };
-        using var qrBitmap = ToSkBitmap(writer.Write(value));
+        using var qrBitmap = ToSkBitmap(writer.Encode(value));
         canvas.DrawBitmap(qrBitmap, contentX, contentY);
     }
 
@@ -631,11 +627,26 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
     }
 
     /// <summary>ZXing PixelData（BGRA 字节）→ SKBitmap。</summary>
-    private static SKBitmap ToSkBitmap(ZXing.Rendering.PixelData pixelData)
+    private static SKBitmap ToSkBitmap(BitMatrix matrix)
     {
-        var bitmap = new SKBitmap(new SKImageInfo(pixelData.Width, pixelData.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
-        Marshal.Copy(pixelData.Pixels, 0, bitmap.GetPixels(), pixelData.Pixels.Length);
-        return bitmap;
+        var bitmap = new SKBitmap(new SKImageInfo(matrix.Width, matrix.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+        try
+        {
+            var pixels = bitmap.GetPixelSpan();
+            var black = BitConverter.IsLittleEndian ? 0xff000000u : 0x000000ffu;
+            for (var y = 0; y < matrix.Height; y++)
+            {
+                var row = MemoryMarshal.Cast<byte, uint>(pixels.Slice(y * bitmap.RowBytes, matrix.Width * 4));
+                for (var x = 0; x < matrix.Width; x++)
+                    row[x] = matrix[x, y] ? black : uint.MaxValue;
+            }
+            return bitmap;
+        }
+        catch
+        {
+            bitmap.Dispose();
+            throw;
+        }
     }
 
     /// <summary>LabelBitmap（1bpp）→ SKBitmap（白底黑字）。</summary>
@@ -661,21 +672,23 @@ public sealed class SkiaLabelRenderer : ILabelBitmapRenderer
     }
 
     /// <summary>BGRA 像素 → 1bpp LabelBitmap（白底黑字，阈值 128）。</summary>
-    private static LabelBitmap ToLabelBitmap(int width, int height, int rowBytes, byte[] bytes)
+    private static LabelBitmap ToLabelBitmap(int width, int height, int rowBytes, ReadOnlySpan<byte> bytes)
     {
         var result = new LabelBitmap(width, height);
         for (var y = 0; y < height; y++)
         {
+            var sourceRow = y * rowBytes;
+            var targetRow = y * result.RowBytes;
             for (var x = 0; x < width; x++)
             {
-                var offset = y * rowBytes + x * 4;
+                var offset = sourceRow + x * 4;
                 var b = bytes[offset];
                 var g = bytes[offset + 1];
                 var r = bytes[offset + 2];
-                var luma = (r * 299 + g * 587 + b * 114) / 1000;
-                if (luma < 128)
+                var weightedLuma = r * 299 + g * 587 + b * 114;
+                if (weightedLuma < 128000)
                 {
-                    result.Pixels[y * result.RowBytes + (x >> 3)] |= (byte)(0x80 >> (x & 7));
+                    result.Pixels[targetRow + (x >> 3)] |= (byte)(0x80 >> (x & 7));
                 }
             }
         }

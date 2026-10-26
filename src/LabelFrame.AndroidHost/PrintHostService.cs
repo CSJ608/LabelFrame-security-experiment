@@ -23,7 +23,13 @@ public sealed class PrintHostService : Service
     private IPrintTransport? _transport;
     private EmbeddedHttpServer? _http;
     private ServerPoller? _poller;
-    private CancellationTokenSource? _cts;
+    private static readonly SemaphoreSlim Generations = new(1, 1);
+    private readonly ServiceLifetime _lifetime = new(Generations);
+    private LabelHostConfig? _config;
+    private PluginHostState? _pluginHost;
+    private SqliteLabelJobStore? _store;
+    private SubmissionService? _submission;
+    private LabelHostConfig.PrinterFacts? _printerFacts;
     private Task? _printLoop;
     private Task? _routingLoop;
     private Task? _notifyLoop;
@@ -39,37 +45,84 @@ public sealed class PrintHostService : Service
 
         StartForegroundCompat();
 
-        // SQLitePCLRaw 的 e_sqlite3 原生库需先经 System.loadLibrary 装载进 Android 链接器命名空间，
-        // 否则 raw.SetProvider 的 DllImport("e_sqlite3") 抛 DllNotFoundException（APK 内已含 libe_sqlite3.so 也不行）。
-        Java.Lang.JavaSystem.LoadLibrary("e_sqlite3");
+        // 原生库预加载须保留 Android 生命周期调用上下文，不能移入托管线程池。
+        _lifetime.Start(InitializeAsync, Activate, DrainAsync, InitializationFailed,
+            () => Java.Lang.JavaSystem.LoadLibrary("e_sqlite3"));
+    }
 
+    private async Task InitializeAsync(CancellationToken token)
+    {
         var config = LabelHostConfig.Load(this);
         var pluginHost = PluginHost.Load(this);
+        _config = config;
+        _pluginHost = pluginHost;
         _transport = AndroidTransportFactory.Create(config, pluginHost.Registry, pluginHost.PluginContext, this);
         // 打印机摘要只进快照事实（渲染端按当前语言生成）；本行日志为诊断内容维持中文，摘要主体是地址 / 端口技术值
         var printerFacts = new LabelHostConfig.PrinterFacts(config.PrinterBrand, config.ConnectionType, config.TcpHost, config.TcpPort, config.BluetoothMac);
-        HostStatus.NoteServiceStarted(config.ServerUrl, printerFacts);
+        _printerFacts = printerFacts;
         HostLog.Info(
             HostLog.Tags.Host,
-            $"打印服务启动：版本 {HostInfo.GetVersion(this)}，设备 {config.DeviceId}（{config.DeviceName}），" +
+            $"打印服务初始化：版本 {HostInfo.GetVersion(this)}，设备 {config.DeviceId}（{config.DeviceName}），" +
             $"服务器 {(config.ServerUrl.Length == 0 ? "未设置" : config.ServerUrl)}，" +
             $"打印机品牌 {config.PrinterBrand} {LabelHostConfig.PrinterDisplayText(this, printerFacts)}，" +
             $"本地 HTTP 127.0.0.1:{LabelHostConfig.LocalPort}");
         var store = new SqliteLabelJobStore(config.DatabasePath);
-        store.InitializeAsync().GetAwaiter().GetResult();
+        await store.InitializeAsync(token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        _store = store;
         _queue = new LabelJobQueue(store);
-        var submission = new SubmissionService(_queue, LabelHostConfig.Dpi);
-
-        _cts = new CancellationTokenSource();
-        _http = new EmbeddedHttpServer(LabelHostConfig.LocalPort, submission, _queue, store, _transport, this, pluginHost.Installer);
-        _http.Start();
-
-        _printLoop = Task.Run(() => PrintLoopAsync(LabelHostConfig.PrinterDisplayText(this, printerFacts), _cts.Token));
-        _notifyLoop = Task.Run(() => NotificationLoopAsync(_cts.Token));
+        _submission = new SubmissionService(_queue, LabelHostConfig.Dpi);
         if (!string.IsNullOrWhiteSpace(config.ServerUrl))
-        {
             _poller = new ServerPoller(config.ServerUrl, config.DeviceId, config.DeviceName);
-            _routingLoop = Task.Run(() => RoutingLoopAsync(_poller, submission, _queue, _cts.Token));
+    }
+
+    private void Activate(CancellationToken token)
+    {
+        var config = _config!;
+        _http = new EmbeddedHttpServer(LabelHostConfig.LocalPort, _submission!, _queue!, _store!, _transport!, this, _pluginHost!.Installer);
+        _http.Start();
+        HostStatus.NoteServiceStarted(config.ServerUrl, _printerFacts!);
+        var printerEndpoint = LabelHostConfig.PrinterDisplayText(this, _printerFacts!);
+        _printLoop = Task.Run(() => PrintLoopAsync(printerEndpoint, token), CancellationToken.None);
+        _notifyLoop = Task.Run(() => NotificationLoopAsync(token), CancellationToken.None);
+        if (_poller is not null)
+        {
+            _routingLoop = Task.Run(() => RoutingLoopAsync(_poller, _submission!, _queue!, token), CancellationToken.None);
+        }
+        HostLog.Info(HostLog.Tags.Host, "打印服务初始化完成，已开放本地 HTTP 与 Worker");
+    }
+
+    private void InitializationFailed(Exception error)
+    {
+        HostLog.Error(HostLog.Tags.Host,
+            $"打印服务初始化或退出失败，未继续启动；数据库 {_config?.DatabasePath}；" +
+            $"备份 {error.Data["JobStorageBackupPath"]}；备份已校验 {error.Data["JobStorageBackupVerified"]}", error.ToString());
+        new Handler(Looper.MainLooper!).Post(() => _lifetime.IfActive(() =>
+        {
+            HostStatus.NoteServiceStopped();
+            HostStatus.NotePrintError($"打印服务初始化失败：{error.Message}");
+            StopSelf();
+        }));
+    }
+
+    private async Task DrainAsync()
+    {
+        try
+        {
+            if (_http is not null) await _http.StopAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            try
+            {
+                await Task.WhenAll(_printLoop ?? Task.CompletedTask, _routingLoop ?? Task.CompletedTask,
+                    _notifyLoop ?? Task.CompletedTask).ConfigureAwait(false);
+            }
+            finally
+            {
+                _poller?.Dispose();
+                (_transport as IDisposable)?.Dispose();
+            }
         }
     }
 
@@ -80,10 +133,7 @@ public sealed class PrintHostService : Service
     /// <inheritdoc />
     public override void OnDestroy()
     {
-        _cts?.Cancel();
-        _http?.Dispose();
-        _poller?.Dispose();
-        _cts?.Dispose();
+        _lifetime.Dispose();
         HostStatus.NoteServiceStopped();
         HostLog.Info(HostLog.Tags.Host, "打印服务停止");
         base.OnDestroy();

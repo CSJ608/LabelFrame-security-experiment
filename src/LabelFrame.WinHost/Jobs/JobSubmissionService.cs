@@ -26,7 +26,8 @@ public sealed class JobSubmissionService
     private readonly ITransportPluginContext _pluginContext;
     private readonly TextWriter _hostLogWriter;
     private readonly string _printOutputPath;
-    private readonly PrintImageRetentionCleaner? _printRetentionCleaner;
+    private readonly PrintImageRetentionCleaner _printRetentionCleaner;
+    private readonly bool _saveLogPrintImages;
     private readonly Func<int> _dpiProvider;
 
     /// <summary>创建提交服务。</summary>
@@ -41,7 +42,8 @@ public sealed class JobSubmissionService
         ITransportPluginContext pluginContext,
         TextWriter hostLogWriter,
         string? printOutputPath = null,
-        PrintImageRetentionCleaner? printRetentionCleaner = null)
+        PrintImageRetentionCleaner? printRetentionCleaner = null,
+        bool saveLogPrintImages = true)
     {
         _queue = queue;
         _encoder = encoder;
@@ -55,7 +57,8 @@ public sealed class JobSubmissionService
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "LabelFrame",
             "print");
-        _printRetentionCleaner = printRetentionCleaner;
+        _printRetentionCleaner = printRetentionCleaner ?? new PrintImageRetentionCleaner(_printOutputPath, 31, hostLogWriter);
+        _saveLogPrintImages = saveLogPrintImages;
         _dpiProvider = dpiProvider;
     }
 
@@ -135,17 +138,17 @@ public sealed class JobSubmissionService
         var (job, created) = await _queue.SubmitAsync(request.RequestId!, payloads, cancellationToken);
 
         // Log 连接 = 模拟打印：保存渲染 PNG 到 print\{jobId}\（不发真机）；原生指令路径无渲染位图
-        if (created && _transportManager.CurrentConfig.Mode == TransportMode.Log)
+        if (created && string.Equals(_transportManager.CurrentConfig.PluginId, "log", StringComparison.OrdinalIgnoreCase))
         {
-            if (renderedItems is not null)
+            if (_saveLogPrintImages && renderedItems is not null)
             {
-                SaveLogPrintImages(job.Id, renderedItems);
+                _printRetentionCleaner.SaveImages(job.Id, renderedItems.Select(item => LabelBitmapPng.ToPng(item.Bitmap)));
             }
 
             LogJobData(job.Id, request);
 
             // 落盘后顺带执行出图目录保留清理（清理器永不抛出，不打断打印链路）
-            _printRetentionCleaner?.CleanupExpired();
+            _printRetentionCleaner.CleanupExpired(throttle: true);
         }
 
         return SubmitJobResult.Success(job, created);
@@ -287,29 +290,6 @@ public sealed class JobSubmissionService
         }
 
         return new CompileResult(commands, null, null, null);
-    }
-
-    /// <summary>Log 模拟打印：保存 PNG 并记录摘要。</summary>
-    private void SaveLogPrintImages(string jobId, IReadOnlyList<RenderItem> items)
-    {
-        try
-        {
-            var dir = Path.Combine(_printOutputPath, jobId);
-            Directory.CreateDirectory(dir);
-            for (var i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                File.WriteAllBytes(Path.Combine(dir, $"label-{item.Index + 1}.png"), LabelBitmapPng.ToPng(item.Bitmap));
-            }
-
-            _hostLogWriter.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 模拟打印（Log）：作业 {jobId} 已保存 {items.Count} 张 PNG 到 {dir}");
-            _hostLogWriter.Flush();
-        }
-        catch (Exception ex)
-        {
-            _hostLogWriter.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] 模拟打印（Log）：作业 {jobId} 保存 PNG 失败：{ex.Message}");
-            _hostLogWriter.Flush();
-        }
     }
 
     /// <summary>Log 模拟打印：留痕作业数据（格式化见 JobDataLogFormatter）；失败只记一行原因不影响打印链路。</summary>

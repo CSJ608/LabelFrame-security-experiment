@@ -37,8 +37,18 @@
 
 ### 3.1 服务启动与打印主链（`PrintHostService.OnCreate` → `PrintLoopAsync`）
 
+原生预加载是后台初始化的前置阶段：前台通知建立之后，`ServiceLifetime.Start` 在调用线程执行仅包含 `JavaSystem.LoadLibrary("e_sqlite3")` 的 prepare 回调，成功才 Task.Run。该回调必须保持短小，不放配置、插件、数据库打开、备份或迁移。prepare 异常记录原异常并走既有 StopSelf 回调，记住完成任务以拒绝重复启动；无后台资源不执行 drain。销毁仍可以阻止迟到的失败回调。
+
+依据：DT50/API30 的旧版主线程加载成功，后台候选在库字节一致时两次报找不到库，见 [真机报告](https://github.com/marci-labs/LabelFrame/issues/462#issuecomment-6414007759)。[Android JNI 文档](https://developer.android.com/ndk/guides/jni-tips)说明 Java 调用栈与附加原生线程的类加载器上下文不同；此为修复方向依据，不把 FindClass 规则直接当作本次 LoadLibrary 根因证明。固定提交 a0f6bbe 已在同台 DT50 完成 Debug 与 Release/AOT 同隔离签名覆盖升级、冷启动、旧库迁移与幂等复验；约 211 MB 历史库、受控慢初始化的前台通知/销毁快重启及未知版本失败恢复也已实测。完整证据与边界见 [验收任务](https://github.com/marci-labs/LabelFrame/issues/462)。测试签名不等同正式发行签名，Android 15/16KB 页与真实断电仍未覆盖。
+
+本地作业库在应用私有目录 `{FilesDir}/labelframe/jobs.db`，共享 Core 的分表初始化和正向迁移；本轮仅承诺升级，不新增维护或降级入口。`OnCreate` 先调用 `StartForeground`，再启动受管理后台生命周期。配置、插件和同步 SQLite 初始化均在后台；初始化完成前不开放 HTTP、打印或路由。`ServiceLifetime` 的进程级异步门覆盖初始化、运行及清理：下一实例等待上一实例完整退出，防止快速重启时重复 Worker 或旧迁移与新实例交叉。
+
+销毁只标记取消、不在主线程等待 SQLite；取消与发布入口互斥，初始化即使忽略取消而迟到成功，也不能启动入口。后台 finally 先停止并排空 HTTP，在取消后等待全部 Worker（含路由回报）退出，再释放 poller/transport/CTS 与代际门。不能以超时放行尚未结束的旧任务；卡住时新实例保持未就绪。失败捕获完整异常及备份路径/校验状态，保留库和备份，不自动重试整个迁移；主线程失败回调再次核查实例有效性后停止自身服务，避免迟到回调停掉新代。托管屏障测试覆盖这些时序，但不代替 Android 调度、前台通知或真实升级证据，见 [#462](https://github.com/marci-labs/LabelFrame/issues/462)。
+
+取消使用 CancelAsync，主线程立即标记而不执行可能阻塞的取消回调；后台等待这些回调完成后才排空和释放资源。HTTP 停止同时等待接受循环与已接受请求；已接受连接不把调度本身绑定取消令牌，以保证请求处理器 finally 总会释放连接。失败启动不进入 Sticky 自重试环，显式 StopSelf；用户排除原因后重新启动仍走完整初始化。
+
 1. `CrashGuard.Register()` 兜底注册（进程首行 `HostApplication` 已注册，幂等）→ `NotePreviousRunCrash()` 检测上次崩溃摘要；
-2. `Java.Lang.JavaSystem.LoadLibrary("e_sqlite3")`（**必须先装载**，见 §6 坑 1）→ `LabelHostConfig.Load` → `PluginHost.Load` 装配插件通道 → `AndroidTransportFactory.Create` 按品牌建传输；
+2. 前台通知 → OnCreate 调用线程执行 `Java.Lang.JavaSystem.LoadLibrary("e_sqlite3")`（**必须先装载**，见 §6 坑 1）→ 后台 `LabelHostConfig.Load` → `PluginHost.Load` 装配插件通道 → `AndroidTransportFactory.Create` 按品牌建传输；
 3. `SqliteLabelJobStore.InitializeAsync` → `LabelJobQueue` → `SubmissionService(dpi=203)` → `EmbeddedHttpServer` 启动（127.0.0.1:53970）；
 4. 起三个并行循环：`PrintLoopAsync`（打印 Worker）、`NotificationLoopAsync`（5s 一帧、文案变化才重发通知）、配置了 ServerUrl 时 `RoutingLoopAsync`（§3.2）；
 5. 打印 Worker：`MarkInterruptedJobsSuspendedAsync`（进程被杀的中断作业转 Suspended）→ 循环 `ClaimNextItemAsync` 领取 → `_transport.SendAsync(item.Zpl)` → `CompleteItemAsync` / `FailItemAsync(TransportSendFailed)`；空转 200ms，领取异常退避 1s。状态经 `HostStatus.NotePrint*` 供 UI / 通知读取。

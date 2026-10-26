@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using LabelFrame.Core.Documents;
 using SkiaSharp;
 
@@ -13,13 +12,13 @@ public static class LabelBitmapPng
         ArgumentNullException.ThrowIfNull(bitmap);
 
         using var skBitmap = new SKBitmap(new SKImageInfo(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
-        var bytes = new byte[bitmap.Width * bitmap.Height * 4];
+        var bytes = skBitmap.GetPixelSpan();
         for (var y = 0; y < bitmap.Height; y++)
         {
             for (var x = 0; x < bitmap.Width; x++)
             {
                 var bit = (bitmap.Pixels[y * bitmap.RowBytes + (x >> 3)] & (0x80 >> (x & 7))) != 0;
-                var offset = (y * bitmap.Width + x) * 4;
+                var offset = y * skBitmap.RowBytes + x * 4;
                 bytes[offset] = bit ? (byte)0 : byte.MaxValue;
                 bytes[offset + 1] = bit ? (byte)0 : byte.MaxValue;
                 bytes[offset + 2] = bit ? (byte)0 : byte.MaxValue;
@@ -27,7 +26,6 @@ public static class LabelBitmapPng
             }
         }
 
-        Marshal.Copy(bytes, 0, skBitmap.GetPixels(), bytes.Length);
         using var image = SKImage.FromBitmap(skBitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
