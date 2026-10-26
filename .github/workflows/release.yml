@@ -552,7 +552,7 @@ jobs:
         run: |
           & .\scripts\generate-offline-source-manifest.ps1 `
             -Version $env:VERSION `
-            -InstallManifestPath inputs/release/install-manifest.json `
+            -InstallManifestPath inputs/install-manifest.json `
             -ServerImageReference "$env:SERVER_IMAGE`:$env:VERSION" `
             -ServerImageDigest $env:SERVER_IMAGE_DIGEST `
             -ComposePath packaging/ubuntu/docker-compose.yml `
@@ -635,8 +635,8 @@ jobs:
       - name: 复制同源安装清单到发布附件
         shell: pwsh
         run: |
-          Copy-Item manifest-inputs/release/install-manifest.json release/install-manifest.json -Force
-          Copy-Item manifest-inputs/release/latest.json release/latest.json -Force
+          Copy-Item manifest-inputs/install-manifest.json release/install-manifest.json -Force
+          Copy-Item manifest-inputs/latest.json release/latest.json -Force
 
       # 重读 bundle job 生成的同一份清单，对最终 Release 原子附件逐条重算哈希；
       # 缺产物 / 缺哈希 / schema 不符任一命中即非零退出，不创建 Release。

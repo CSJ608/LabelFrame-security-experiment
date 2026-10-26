@@ -1,5 +1,7 @@
 # LabelFrame.Bootstrapper（三件）模块设计
 
+发布时 `bundle-offline-inputs` 制品根目录直接包含 `install-manifest.json` 与 `latest.json`，不包含上传源的 `release/` 目录。Builder 从下载目录根读取清单，最终 Release 原样复制同一文件并执行 VerifyOnly；不得重新生成清单或猜测备用路径掩盖输入缺失。路径回归检查与真实制品复放共同验证此内部跨任务约定。
+
 > 覆盖：`src/LabelFrame.Bootstrapper`（35 文件）· `src/LabelFrame.Bootstrapper.Ba`（18 文件）· `src/LabelFrame.Bootstrapper.PayloadTool`（2 文件）· `test/LabelFrame.Bootstrapper.Tests`（29 文件）——三件共约 7,100 行 · 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；安装链公共契约（manifest schema、链序表、卸载清理、多源回退口径等）见 [DESIGN.md](../DESIGN.md) §6——本文只引 §6 小节与决策号，重心放三件内部结构与运行时机制。
 
