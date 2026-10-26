@@ -213,7 +213,7 @@
 | 167 | 连接状态灯静态化：消除空闲持续重绘，保留颜色与状态更新 | ✅ 实现交付；无窗口隔离对照、回归与合并证据见 [#460](https://github.com/marci-labs/LabelFrame/issues/460) |
 | 168 | v1.5.0 性能成果集成与升级优先发布；只支持升级，暂不发行降级工具或新增 PDA 维护入口 | ✅ 实现集成：PR #464 最新门禁全绿 squash `dc3d1a0`；1476 项本地含覆盖率回归、前端双模式各771、DT50 Debug/Release AOT隔离升级与生命周期/失败恢复、Linux实际挂载空间验证通过。发布与最终正式签名/产物核验仍待执行，20设备52ms性能欠账不变，[#462](https://github.com/marci-labs/LabelFrame/issues/462) 保持待验收 |
 | 169 | 模拟打印 PNG 配置开关、归属保护、定时清理与容量治理 | ✅ 实现交付：PR #464 最新门禁全绿合入，专项与完整回归通过；无真实图片清理或部署，证据见 [#463](https://github.com/marci-labs/LabelFrame/issues/463) |
-| 发布准备 | v1.5.0：迭代161～169及修复汇总；Builder、前端/Excel依赖、安全重启与受控升级、安装预检/状态灯、性能与本地作业库升级保护、PNG治理 | 🟡 已推tag，两轮发布被测试门禁拦截、未生成Release；活动写入测试改为显式生命周期同步并增加延迟续体回归。修复合并后按用户授权移动tag重新打包，再核对正式APK证书、原子资源/Builder/镜像；发布验收见 [#462](https://github.com/marci-labs/LabelFrame/issues/462) 与 [#445](https://github.com/marci-labs/LabelFrame/issues/445) |
+| 发布准备 | v1.5.0：迭代161～169及修复汇总；Builder、前端/Excel依赖、安全重启与受控升级、安装预检/状态灯、性能与本地作业库升级保护、PNG治理 | 🟡 活动写入测试修复已合并，重新打包的完整测试/安装包/APK通过；Linux Client 镜像还原层遗漏 Updates 项目导致发布阻断，补齐输入并增加项目引用闭包检查。修复通过后按授权重新打包，再核对正式APK证书、原子资源/Builder/镜像；发布验收见 [#462](https://github.com/marci-labs/LabelFrame/issues/462) 与 [#445](https://github.com/marci-labs/LabelFrame/issues/445) |
 | 待需求 | 兼容与扩展（net48 / WMS 模板下发 / TSPL / 统计 / 契约 Pattern 校验） | 待定 |
 
 ## 待需求（有真实需求再排）

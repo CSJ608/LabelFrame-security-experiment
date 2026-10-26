@@ -4,6 +4,7 @@ COPY Directory.Build.props ./
 COPY src/LabelFrame.Core/LabelFrame.Core.csproj src/LabelFrame.Core/
 COPY src/LabelFrame.Rendering/LabelFrame.Rendering.csproj src/LabelFrame.Rendering/
 COPY src/LabelFrame.Api/LabelFrame.Api.csproj src/LabelFrame.Api/
+COPY src/LabelFrame.Updates/LabelFrame.Updates.csproj src/LabelFrame.Updates/
 COPY src/LabelFrame.WinHost/LabelFrame.WinHost.csproj src/LabelFrame.WinHost/
 RUN dotnet restore src/LabelFrame.WinHost/LabelFrame.WinHost.csproj \
     -p:TargetFramework=net10.0 \
