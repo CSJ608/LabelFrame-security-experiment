@@ -74,7 +74,7 @@ public sealed class ServerOptions
     public int LogsDbMaxSizeMB { get; set; } = 256;
 
     /// <summary>产品版本（与打包脚本 -Version 保持一致）。</summary>
-    public const string ProductVersion = "1.5.0";
+    public const string ProductVersion = "1.5.1";
 
     /// <summary>升级发布管理口令，由部署配置提供。</summary>
     public string? UpdateAdminToken { get; set; }

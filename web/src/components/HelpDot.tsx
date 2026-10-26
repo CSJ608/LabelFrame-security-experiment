@@ -118,7 +118,7 @@ export function HelpDot({ anchor, topicKey, open, onToggle, onClose, hasDemo, de
           onToggle()
         }}
       >
-        <Icon name="help" size={13} />
+        <Icon name="help" size={14} />
       </button>
       {open &&
         createPortal(

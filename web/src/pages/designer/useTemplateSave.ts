@@ -41,6 +41,8 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
   const app = useApp()
   const { t } = useTranslation('designer')
   const [nameError, setNameError] = useState(false)
+  /** 保存失败或名称校验的错误提示。 */
+  const [saveError, setSaveError] = useState<{ title?: string; message: string } | null>(null)
   // 同名覆盖确认发起时的就地 / 离开语义——确认弹窗按钮按此分派 doSave 变体
   const overwriteStayRef = useRef(false)
   // 本会话已成功保存过——新建模板二次保存不再按全新处理（否则会与自己撞名弹覆盖确认）
@@ -56,6 +58,7 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
         return
       }
       setSaving(true)
+      setSaveError(null)
       try {
         const fields = deriveFieldInfos(s.elements)
         const version = request.kind === 'new' ? '1' : contractVersionRef.current
@@ -81,7 +84,7 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
           images,
         }
         await biz.saveTemplate(pkg)
-        app.setStatus(t('status.saved', { name: finalName }))
+        app.setStatus(t('status.saved', { name: finalName }), 'ok')
         onSaved?.()
         // 认领保存后的身份：模板名更新（二次保存同名不误判改名）；新建模板取后端分配的 uid
         //（此后改名保存＝同模板更新而非另建新行）；认领失败无碍——下次保存按名字口径兜底
@@ -102,7 +105,9 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
         if (leave) leave()
         else onClose()
       } catch (err) {
-        app.setStatus(err instanceof ApiError ? err.message : t('status.saveFailed'))
+        const msg = err instanceof ApiError ? err.message : t('status.saveFailed')
+        app.setStatus(msg, 'err')
+        setSaveError({ message: msg })
         // 保存失败停留设计器、不丢编辑——挂起的离开动作就地作废
         pendingLeaveRef.current = null
       } finally {
@@ -120,7 +125,8 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
       // 就地变体不动挂起的离开动作（挂起的导航与本次保存互不干扰）
       if (!stay) pendingLeaveRef.current = null
       setNameError(true)
-      app.setStatus(t('status.nameRequired'))
+      app.setStatus(t('status.nameRequired'), 'err')
+      setSaveError({ title: t('status.cannotSave'), message: t('status.nameRequired') })
       return
     }
 
@@ -158,5 +164,5 @@ export function useTemplateSave({ request, biz, stateRef, initialNameRef, contra
   /** 名称输入变更即清除空名红错（调用方 onChange 调用）。 */
   const clearNameError = useCallback(() => setNameError(false), [])
 
-  return { doSave, save, overwriteSave, cancelOverwrite, nameError, clearNameError }
+  return { doSave, save, overwriteSave, cancelOverwrite, nameError, clearNameError, saveError, clearSaveError: () => setSaveError(null) }
 }

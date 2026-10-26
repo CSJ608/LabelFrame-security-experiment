@@ -1,7 +1,7 @@
 // 元素操作编排 hook：选择 / 增删改 / 对齐 / 图层 / 撤销重做 / 复制粘贴 / 设计 JSON 导入导出＋快捷键分发。
 // 回调体与依赖数组自 Designer.tsx 逐字搬移（纯重构零行为变化）——共享 ref 由页面壳传入。
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DesignState } from './CanvasViewport'
@@ -44,6 +44,8 @@ function elementTypeName(type: string): string {
 export function useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive, saveInPlace }: UseDesignerActionsOptions) {
   const app = useApp()
   const { t } = useTranslation('designer')
+  /** 导入设计 JSON 解析失败弹窗文案（模态提示；关闭清除）。 */
+  const [importError, setImportError] = useState<string | null>(null)
 
   // ---------- 选择 ----------
   const handleSelect = useCallback((ids: string[], toggle?: boolean) => {
@@ -245,7 +247,7 @@ export function useDesignerActions({ stateRef, historyRef, selectedRef, setState
     if (!s) return
     const text = exportDesign(s.paperW, s.paperH, s.elements)
     if (await copyText(text)) {
-      app.setStatus(t('status.exported', { count: s.elements.length }))
+      app.setStatus(t('status.exported', { count: s.elements.length }), 'ok')
       return
     }
     // 终极兜底：浏览器完全禁用剪贴板时展示代码供手动复制
@@ -270,15 +272,19 @@ export function useDesignerActions({ stateRef, historyRef, selectedRef, setState
       setSelected([])
       selectedRef.current = []
       setPendingType(null)
-      app.setStatus(t('status.imported', { count: d.elements.length }))
+      app.setStatus(t('status.imported', { count: d.elements.length }), 'ok')
     } catch (err) {
-      app.setStatus(t('status.importFailed', { reason: err instanceof Error ? err.message : i18next.t('job.unknownError') }))
+      const msg = t('status.importFailed', { reason: err instanceof Error ? err.message : i18next.t('job.unknownError') })
+      app.setStatus(msg, 'err')
+      setImportError(msg)
     }
   }, [app, commit, t])
 
   // ---------- 快捷键 ----------
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
+      // 模态提示未关闭时，不允许快捷键修改底层设计或再次保存。
+      if (document.querySelector('[role="dialog"]')) return
       const s = stateRef.current
       if (!s) return
       // 演示期间快捷键全停：撤销 / 删除 / 粘贴等都会写 stateRef，绕过锁输入
@@ -357,5 +363,7 @@ export function useDesignerActions({ stateRef, historyRef, selectedRef, setState
     pasteClipboard,
     doExportDesign,
     doImportDesign,
+    importError,
+    clearImportError: () => setImportError(null),
   }
 }

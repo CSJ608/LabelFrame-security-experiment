@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="empty-title">{i18next.t('shell:errorBoundary.title')}</div>
             <div className="hint">{i18next.t('shell:errorBoundary.hint')}</div>
             <button className="btn primary" onClick={() => window.location.reload()}>
-              <Icon name="refresh" size={13} />
+              <Icon name="refresh" size={12} />
               {i18next.t('shell:errorBoundary.reload')}
             </button>
           </div>

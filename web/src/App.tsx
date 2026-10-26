@@ -2,7 +2,7 @@
 // 双构建：server 构建菜单移除设置与打印机相关内容、新增在线设备等专属页。
 // 文案全部 key 化（本文件已圈入 oxlint 裸中文 JSX 防线——新增文案必须走 t() 词条，不能直接写中文）。
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { changeLocale, toAppLocale } from './i18n'
 import { AppProvider, useApp } from './state/AppContext'
@@ -124,10 +124,11 @@ function Shell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, designerReq, route.sub])
 
-  const tabs = (isServerUi ? SERVER_TABS : CLIENT_TABS).map(({ id, labelKey, icon }) => ({
+  const tabs = (isServerUi ? SERVER_TABS : CLIENT_TABS).map(({ id, labelKey, icon, group }) => ({
     id,
     label: t(labelKey),
     icon,
+    group,
   }))
 
   // 语言切换器状态：当前语言短名（「中」/「EN」，语言自名不随语言翻译），点击经 changeLocale 单点互切
@@ -142,16 +143,18 @@ function Shell() {
             <LabelLogo size={24} />
           </div>
           <div className="nav-tabs">
-            {tabs.map((item) => (
-              <button
-                key={item.id}
-                className={'nav-tab' + (tab === item.id ? ' active' : '')}
-                onClick={() => switchTab(item.id)}
-                title={item.label}
-              >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-              </button>
+            {tabs.map((item, i) => (
+              <Fragment key={item.id}>
+                {i > 0 && item.group !== tabs[i - 1].group && <div className="nav-group-sep" />}
+                <button
+                  className={'nav-tab' + (tab === item.id ? ' active' : '')}
+                  onClick={() => switchTab(item.id)}
+                  title={item.label}
+                >
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                </button>
+              </Fragment>
             ))}
           </div>
           {/* client 构建指向「本机打印服务」（页面来源的本机后台服务），
@@ -218,7 +221,7 @@ function Shell() {
             {app.localServiceUp ? t('statusbar.localServiceUp') : t('statusbar.localServiceDown')}
           </span>
         )}
-        <span className="msg">{app.statusMsg}</span>
+        <span className={'msg' + (app.statusLevel ? ' ' + app.statusLevel : '')}>{app.statusMsg}</span>
         <span className="meta">
           {isServerUi ? (
             // Server UI 状态栏显示服务端地址（页面 origin）与 UI 模式
@@ -250,11 +253,11 @@ function Shell() {
               aria-label={t('guide:entry.title')}
               onClick={() => setGuideOpen(true)}
             >
-              <Icon name="guide" size={13} />
+              <Icon name="guide" size={12} />
             </button>
           )}
           <button className="btn sm ghost" onClick={() => app.setDrawerOpen(!app.drawerOpen)}>
-            <Icon name="logs" size={13} />
+            <Icon name="logs" size={12} />
             {t('statusbar.logs')}
           </button>
         </span>
@@ -270,10 +273,10 @@ function Shell() {
             <span className="spacer" />
             {/* 清空 = 销毁类操作：danger 样式 + 先弹确认 */}
             <button className="btn sm danger" onClick={() => setConfirmingClearLogs(true)}>
-              <Icon name="clear" size={13} />
+              <Icon name="clear" size={12} />
               {t('logsDrawer.clear')}
             </button>
-            <button className="btn sm ghost" style={{ color: '#8b96a3' }} onClick={() => app.setDrawerOpen(false)}>
+            <button className="btn sm ghost" style={{ color: 'var(--ink-3)' }} onClick={() => app.setDrawerOpen(false)}>
               {t('logsDrawer.collapse')}
             </button>
           </div>
@@ -305,7 +308,7 @@ function Shell() {
                   setConfirmingClearLogs(false)
                 }}
               >
-                <Icon name="trash" size={13} />
+                <Icon name="trash" size={12} />
                 {t('clearLogsConfirm.confirm')}
               </button>
             </>
@@ -331,7 +334,7 @@ function DesignerEmpty({ onNew }: { onNew: () => void }) {
         <div className="hint">{t('designerEmpty.hint')}</div>
         {/* data-guide：首次引导第 2 步锚点 */}
         <button className="btn primary" data-guide="designer-empty-new" onClick={onNew}>
-          <Icon name="plus" size={13} />
+          <Icon name="plus" size={12} />
           {t('designerEmpty.newTemplate')}
         </button>
       </div>

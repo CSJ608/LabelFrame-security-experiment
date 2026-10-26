@@ -75,7 +75,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
   const sel = elementsByIds(elements, selected)
   if (sel.length > 1) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontWeight: 600 }}>{t('props.selectedCount', { count: sel.length })}</div>
         <div className="group">
           <div className="group-title">
@@ -100,7 +100,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
           </div>
         </div>
         <button className="btn danger" disabled={demoActive} onClick={() => onDelete(selected)}>
-          <Icon name="trash" size={13} />
+          <Icon name="trash" size={12} />
           {t('props.deleteSelected')}
         </button>
       </div>
@@ -112,7 +112,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ fontWeight: 600, fontSize: 13 }}>
         {typeLabel(e)}
-        {'key' in e && e.key ? <span className="mono" style={{ color: 'var(--accent)', marginLeft: 6 }}>{e.key}</span> : null}
+        {'key' in e && e.key ? <span className="mono" style={{ color: 'var(--accent)', marginLeft: 4 }}>{e.key}</span> : null}
       </div>
 
       <div className="group">
@@ -326,7 +326,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
           ) : (
             <div className="hint">{t('props.imageMissing')}</div>
           )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button className="btn sm" disabled={demoActive} onClick={() => onReplaceImage?.(e.id)}>
               <Icon name="upload" size={12} />
               {e.key ? t('props.imageReplace') : t('props.imageUpload')}
@@ -341,7 +341,7 @@ export function PropsPanel({ elements, selected, viewMode, onChange, onAlign, on
       )}
 
       <button className="btn danger" disabled={demoActive} onClick={() => onDelete([e.id])}>
-        <Icon name="trash" size={13} />
+        <Icon name="trash" size={12} />
         {t('props.deleteElement')}
       </button>
     </div>

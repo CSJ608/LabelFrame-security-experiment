@@ -42,6 +42,7 @@
     "copy": "复制",
     "copied": "已复制",
     "copyTitle": "复制当前选中地址",
+    "copyFailed": "复制失败，请手动选择地址复制",
     "candidates": "地址候选"
   },
   "windows": {

@@ -26,6 +26,7 @@ import { mergeDraftValues } from '../state/draft'
 import { isServerUi } from '../lib/uiMode'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
+import { ErrorAlert } from '../components/ErrorAlert'
 import { NativePrintModeHint } from '../components/TransportPanel'
 
 /* * 设备在线状态标签（common.device.* 词条；调用点多为拼接，读 i18next 单例当前语言）。 */
@@ -134,7 +135,7 @@ function JobPanel({
         <div className="panel-head">{t('jobPanel.title')}</div>
         <div className="panel-body">
           {debugMode ? <div className="hint">{t('jobPanel.debugDoneHint')}</div> : <div className="hint">{t('jobPanel.idleHint')}</div>}
-          {error && <div className="error-text" style={{ marginTop: 6 }}>{error}</div>}
+          {error && <div className="error-text" style={{ marginTop: 8 }}>{error}</div>}
         </div>
       </div>
     )
@@ -151,7 +152,7 @@ function JobPanel({
         <span className="spacer" style={{ flex: 1 }} />
         <span className="mono" style={{ color: 'var(--ink-3)', fontSize: 11 }}>ID {job.jobId.slice(0, 8)}</span>
       </div>
-      <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {debugMode && <div className="hint">{t('jobPanel.debugLastJobHint')}</div>}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: 'var(--ink-2)' }}>
@@ -162,7 +163,7 @@ function JobPanel({
             <div className={failed > 0 ? 'fail' : job.status === 'Completed' ? 'done' : ''} style={{ width: pct + '%' }} />
           </div>
           {failed > 0 && (
-            <div className="hint" style={{ marginTop: 6, color: 'var(--danger)' }}>
+            <div className="hint" style={{ marginTop: 8, color: 'var(--danger)' }}>
               {t('jobPanel.failedPrefix', { count: failed })}
               {job.items && canRetry ? (
                 t('jobPanel.retryBelow')
@@ -210,7 +211,7 @@ function JobPanel({
                       <button
                         className="btn sm"
                         onClick={() => {
-                          void retry(it.index).then((ok) => ok && app.setStatus(t('jobPanel.retried', { index: it.index + 1 })))
+                          void retry(it.index).then((ok) => ok && app.setStatus(t('jobPanel.retried', { index: it.index + 1 }), 'ok'))
                         }}
                       >
                         <Icon name="retry" size={12} />
@@ -241,6 +242,8 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   const [pkg, setPkg] = useState<TemplatePackage | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** 动作类（提交 / 出图 / Excel）失败：模态弹窗提示；与加载失败的页首横幅分列。 */
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Excel 导入数据与列映射：页面局部状态（切页 / 刷新即丢弃，重新上传）
   const [mappingOpen, setMappingOpen] = useState(false)
@@ -462,10 +465,11 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
 
   const submit = async (labels: { data: Record<string, string> }[]) => {
     if (isServerUi && !targetDeviceId) {
-      app.setStatus(t('errors.pickDeviceFirst'))
+      app.setStatus(t('errors.pickDeviceFirst'), 'err')
       return
     }
     setSubmitting(true)
+    setActionError(null)
     try {
       // server 构建：提交时现拉设备列表核对所选设备在线——不复用进入页面的缓存（设备中途掉线后缓存校验形同虚设）；
       // 掉线提示并禁止提交、作业不排队。client 构建允许选离线设备排队。
@@ -476,14 +480,14 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
           if (!dev || dev.status !== 'Online') {
             setDevices(fresh)
             const msg = t('errors.deviceOffline')
-            setError(msg)
-            app.setStatus(msg)
+            setActionError(msg)
+            app.setStatus(msg, 'err')
             return
           }
         } catch (err) {
           const msg = err instanceof ApiError ? err.message : t('errors.deviceCheckFailed')
-          setError(msg)
-          app.setStatus(msg)
+          setActionError(msg)
+          app.setStatus(msg, 'err')
           return
         }
       }
@@ -491,11 +495,11 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
       if (!req) return
       const j = await submitBiz.submitJob(req)
       app.setDraftJobId(j.jobId)
-      app.setStatus(t('status.submitted', { count: labels.length, id: j.jobId.slice(0, 8) }))
+      app.setStatus(t('status.submitted', { count: labels.length, id: j.jobId.slice(0, 8) }), 'ok')
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : t('errors.submitFailed')
-      setError(msg)
-      app.setStatus(msg)
+      setActionError(msg)
+      app.setStatus(msg, 'err')
     } finally {
       setSubmitting(false)
     }
@@ -505,12 +509,15 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
     const req = buildRequest(labels, 'debug')
     if (!req) return
     setSubmitting(true)
+    setActionError(null)
     try {
       const { blob, filename } = batch ? await biz.renderImages(req) : await biz.renderImage(req)
       downloadBlob(blob, filename)
-      app.setStatus(t('status.imageDownloaded', { filename }))
+      app.setStatus(t('status.imageDownloaded', { filename }), 'ok')
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('errors.renderFailed'))
+      const msg = err instanceof ApiError ? err.message : t('errors.renderFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
     } finally {
       setSubmitting(false)
     }
@@ -566,7 +573,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   const downloadImagePreview = () => {
     if (imagePreview?.status !== 'ready') return
     downloadBlob(imagePreview.blob, imagePreview.filename)
-    app.setStatus(t('status.imageDownloaded', { filename: imagePreview.filename }))
+    app.setStatus(t('status.imageDownloaded', { filename: imagePreview.filename }), 'ok')
   }
 
   const [excelTplBusy, setExcelTplBusy] = useState(false)
@@ -575,6 +582,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   const downloadExcelTemplate = async () => {
     if (!pkg) return
     setExcelTplBusy(true)
+    setActionError(null)
     try {
       const fields = pkg.contract.fields ?? []
       const columns = fields.map((f) => ({ key: f.key, displayName: f.displayName || f.key }))
@@ -585,9 +593,11 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
       }
       const { blob, filename } = await biz.excelTemplate(columns, sampleRow)
       downloadBlob(blob, filename)
-      app.setStatus(t('status.excelDownloaded', { filename }))
+      app.setStatus(t('status.excelDownloaded', { filename }), 'ok')
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('errors.excelTplFailed'))
+      const msg = err instanceof ApiError ? err.message : t('errors.excelTplFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
     } finally {
       setExcelTplBusy(false)
     }
@@ -596,17 +606,20 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
   const pickExcel = async (file: File) => {
     setImporting(true)
     setError(null)
+    setActionError(null)
     try {
       const r = await biz.importExcel(file)
       if (r.headers.length === 0) {
-        app.setStatus(t('status.excelNoHeaders'))
+        app.setStatus(t('status.excelNoHeaders'), 'err')
         return
       }
       setExcel({ headers: r.headers, rows: r.rows, file: file.name })
       setMapping(suggestMapping(r.headers, mappingFields))
       setMappingOpen(true)
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('errors.excelParseFailed'))
+      const msg = err instanceof ApiError ? err.message : t('errors.excelParseFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
     } finally {
       setImporting(false)
     }
@@ -616,7 +629,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
     if (!excel || !pkg) return
     const dup = findDuplicateKeys(mapping)
     if (dup.length > 0) {
-      app.setStatus(t('status.dupMapped', { fields: dup.join(localeSep()) }))
+      app.setStatus(t('status.dupMapped', { fields: dup.join(localeSep()) }), 'err')
       return
     }
     const labels = excel.rows.map((row) => ({ data: rowToData(excel.headers, row, mapping) }))
@@ -660,7 +673,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
             disabled={!pkg || formFields.length === 0 || excelTplBusy}
             title={!pkg || formFields.length === 0 ? t('excelTpl.noFieldsTitle') : t('excelTpl.title')}
           >
-            <Icon name="download" size={13} />
+            <Icon name="download" size={12} />
             {excelTplBusy ? t('excelTpl.generating') : t('excelTpl.download')}
           </button>
         {/* data-guide：首次引导第 4 步锚点*/}
@@ -670,7 +683,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
           onClick={() => document.getElementById('excelFile')?.click()}
           disabled={!pkg || importing || submitting}
         >
-          <Icon name="upload" size={13} />
+          <Icon name="upload" size={12} />
           {t('excelImport')}
         </button>
         <input
@@ -691,14 +704,14 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
           server 构建隐藏本机连接徽标（加入状态在目标设备行显示） */}
       {!isServerUi && (
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}
           title={t('conn.badgesTitle')}
         >
-          <span className="hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             {t('conn.local')}
             <span className="badge">{formatTransport(app.transportConfig) || app.transport || t('value.unknown')}</span>
           </span>
-          <span className="hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             {t('conn.server')}
             <span className={'conn' + (deviceMode === 'server' && hostInList ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <span className={'status-dot' + (deviceMode === 'server' && hostInList ? ' on' : '')} />
@@ -709,7 +722,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
       )}
 
       {deviceMode === 'server' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
           <span className="hint">{t('target.label')}</span>
           {isServerUi ? (
             <>
@@ -741,8 +754,8 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
           ) : (
             // 客户端构建目标设备固定本机——只显示本机标签；未注册 / 离线时降级本机直连并提示原因
             <>
-              <span className="badge ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="printer" size={12} />
+              <span className="badge ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="printer" size={14} />
                 {t('target.localBadge', { name: app.hostDeviceName || app.hostDeviceId || t('value.unknown') })}
               </span>
               {routeMode === 'server' ? (
@@ -757,12 +770,15 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
 
       {error && <div className="banner error">{error}</div>}
 
+      {/* 动作类失败（提交 / 出图 / Excel）：模态弹窗在注意力焦点处提示 */}
+      {actionError && <ErrorAlert message={actionError} onClose={() => setActionError(null)} />}
+
       <div className="grid-2" style={{ flex: 1, overflow: 'auto', padding: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="panel">
             <div className="panel-head">
               {t('testData.title')}
-              <span className="hint" style={{ marginLeft: 6 }}>
+              <span className="hint" style={{ marginLeft: 4 }}>
                 {pkg ? t('testData.fieldsFor', { name: pkg.name }) : t('testData.fieldsPlain')}
               </span>
             </div>
@@ -792,7 +808,7 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
                       )
                     })
                   )}
-                  <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
                     <input type="checkbox" checked={debugMode} onChange={(ev) => app.setDraftDebug(ev.target.checked)} />
                     {t('testData.debugToggle')}
                   </label>
@@ -813,12 +829,12 @@ export function DataPrint({ onOpenJobHistory }: { onOpenJobHistory: () => void }
                               : t('printBtn.titleStandalone')
                       }
                     >
-                      <Icon name="printer" size={13} />
+                      <Icon name="printer" size={12} />
                       {submitting ? t('printBtn.working') : debugMode ? t('printBtn.debugSingle') : t('printBtn.testSingle')}
                     </button>
                     {!debugMode && (
                       <button className="btn" onClick={previewImage} disabled={submitting || !pkg} title={t('previewBtn.title')}>
-                        <Icon name="preview" size={13} />
+                        <Icon name="preview" size={12} />
                         {t('previewBtn.label')}
                       </button>
                     )}
@@ -924,7 +940,7 @@ function MappingModal({
             {t('mapping.autoMatch')}
           </button>
           <button className="btn primary" onClick={onConfirm} disabled={!complete || dup.length > 0} title={debugMode ? t('mapping.confirmDebugTitle') : t('mapping.confirmTitle')}>
-            <Icon name={debugMode ? 'download' : 'printer'} size={13} />
+            <Icon name={debugMode ? 'download' : 'printer'} size={12} />
             {debugMode ? t('mapping.downloadImages', { count: rows.length }) : t('mapping.batchPrint', { count: rows.length })}
           </button>
         </>
@@ -1002,17 +1018,17 @@ function ImagePreviewModal({
           {t('imagePreview.title')}
           <span className="spacer" style={{ flex: 1 }} />
           <button className="preview-modal-close" onClick={onClose} title={t('imagePreview.closeTitle')} aria-label={t('imagePreview.closeAria')}>
-            <Icon name="x" size={13} />
+            <Icon name="x" size={14} />
           </button>
         </div>
         {preview.status === 'loading' ? (
           <div className="preview-modal-state">
-            <Icon name="refresh" size={13} />
+            <Icon name="refresh" size={14} />
             {t('imagePreview.generating')}
           </div>
         ) : preview.status === 'error' ? (
           <div className="preview-modal-state err">
-            <Icon name="alert" size={13} />
+            <Icon name="alert" size={14} />
             {t('imagePreview.unavailable')}
             <small>{preview.message}</small>
           </div>
@@ -1029,7 +1045,7 @@ function ImagePreviewModal({
                 <Icon name="download" size={12} />
                 {t('imagePreview.download')}
               </button>
-              <span className="hint" style={{ fontSize: 10 }}>
+              <span className="hint" style={{ fontSize: 11 }}>
                 {t('imagePreview.footHint')}
               </span>
             </div>

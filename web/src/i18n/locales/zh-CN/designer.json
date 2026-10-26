@@ -64,6 +64,7 @@
     "saved": "模板「{{name}}」已保存。",
     "saveFailed": "保存失败。",
     "nameRequired": "请先填写模板名称。",
+    "cannotSave": "无法保存",
     "imageReplaced": "已更新图片。",
     "imageCompressed": "已自动压缩 {{from}}MB → {{to}}MB。",
     "imageRejected": {
@@ -87,6 +88,7 @@
     "shortcutsTitle": "快捷键与画布操作说明",
     "exportDesign": "导出设计",
     "importDesign": "导入设计",
+    "more": "更多操作",
     "saving": "保存中…",
     "save": "保存并退出"
   },
@@ -131,6 +133,7 @@
     "fieldNameTitle": "字段名：{{key}}",
     "layersTitle": "图层",
     "layersHint": "点击选中 · Delete 删除",
+    "noElements": "暂无元素，从控件栏添加",
     "previewLockedEditable": "预览中（退出后可编辑）",
     "toTop": "置顶",
     "up": "上移",
@@ -216,7 +219,6 @@
     "imageRemove": "移除图片"
   },
   "shortcuts": {
-    "core": "Ctrl+Z 撤销 · Ctrl+C/V 复制粘贴 · Delete 删除 · 中键平移 · Ctrl+滚轮缩放",
     "groupEdit": "编辑",
     "groupClipboard": "剪贴板",
     "groupCanvas": "画布",

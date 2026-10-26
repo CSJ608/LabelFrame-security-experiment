@@ -14,6 +14,7 @@ import type { DesignerRequest } from '../state/types'
 import { formatDate, formatDateTime, toAppLocale } from '../i18n'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
+import { ErrorAlert } from '../components/ErrorAlert'
 import { MenuItem, Popover } from '../components/Popover'
 import { useTemplatePreviewCache } from './useTemplatePreview'
 import type { TemplatePreviewEntry } from './useTemplatePreview'
@@ -36,7 +37,7 @@ function PreviewThumb({
   if (entry.status === 'error') {
     return (
       <div className="preview-thumb-err card" title={t('preview.unavailable', { message: entry.message })}>
-        <Icon name="alert" size={12} />
+        <Icon name="alert" size={14} />
       </div>
     )
   }
@@ -71,6 +72,8 @@ export function Workbench({
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** 删除、导出与导入操作的失败提示。 */
+  const [actionError, setActionError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<TemplateSummary | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   /* * ：当前打开 ⋯ 溢出菜单的卡片（模板 + 触发按钮锚点）；同一时刻至多一个。 */
@@ -124,13 +127,18 @@ export function Workbench({
   const doDelete = async () => {
     if (!deleting) return
     setBusy('delete')
+    setActionError(null)
     try {
       await biz.deleteTemplate(deleting.name)
-      app.setStatus(t('status.deleted', { name: deleting.name }))
+      app.setStatus(t('status.deleted', { name: deleting.name }), 'ok')
       setDeleting(null)
       void load()
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('status.deleteFailed'))
+      const msg = err instanceof ApiError ? err.message : t('status.deleteFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
+      // 失败弹窗独占焦点：确认框先收起，避免双模态叠压
+      setDeleting(null)
     } finally {
       setBusy(null)
     }
@@ -138,6 +146,7 @@ export function Workbench({
 
   const doExport = async (tpl: TemplateSummary) => {
     setBusy(tpl.name)
+    setActionError(null)
     try {
       const { blob, filename } = await biz.exportTemplate(tpl.name)
       const url = URL.createObjectURL(blob)
@@ -148,9 +157,11 @@ export function Workbench({
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
-      app.setStatus(t('status.exported', { name: tpl.name }))
+      app.setStatus(t('status.exported', { name: tpl.name }), 'ok')
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('status.exportFailed'))
+      const msg = err instanceof ApiError ? err.message : t('status.exportFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
     } finally {
       setBusy(null)
     }
@@ -158,12 +169,15 @@ export function Workbench({
 
   const doImport = async (file: File) => {
     setBusy('import')
+    setActionError(null)
     try {
       const name = await biz.importTemplate(file)
-      app.setStatus(t('status.imported', { name }))
+      app.setStatus(t('status.imported', { name }), 'ok')
       void load()
     } catch (err) {
-      app.setStatus(err instanceof ApiError ? err.message : t('status.importFailed'))
+      const msg = err instanceof ApiError ? err.message : t('status.importFailed')
+      app.setStatus(msg, 'err')
+      setActionError(msg)
     } finally {
       setBusy(null)
     }
@@ -178,11 +192,11 @@ export function Workbench({
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => void load()} disabled={loading || serverMode === 'unknown'} title={t('reloadListTitle')}>
-          <Icon name="refresh" size={13} />
+          <Icon name="refresh" size={12} />
           {loading ? t('action.refreshing') : t('action.refresh')}
         </button>
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          <Icon name="search" size={13} style={{ position: 'absolute', left: 7, color: 'var(--ink-3)', pointerEvents: 'none' }} />
+          <Icon name="search" size={14} style={{ position: 'absolute', left: 7, color: 'var(--ink-3)', pointerEvents: 'none' }} />
           <input
             className="input"
             value={search}
@@ -190,7 +204,7 @@ export function Workbench({
             placeholder={t('searchPlaceholder')}
             title={t('searchTitle')}
             spellCheck={false}
-            style={{ width: 170, paddingLeft: 26 }}
+            style={{ width: 170, paddingLeft: 24 }}
           />
         </div>
         <select className="input" value={group} onChange={(ev) => setGroup(ev.target.value)} title={t('filterByGroupTitle')}>
@@ -202,7 +216,7 @@ export function Workbench({
           ))}
         </select>
         <button className="btn" onClick={() => document.getElementById('importFile')?.click()} disabled={busy !== null}>
-          <Icon name="upload" size={13} />
+          <Icon name="upload" size={12} />
           {t('importTemplate')}
         </button>
         <input
@@ -218,7 +232,7 @@ export function Workbench({
         />
         {/* data-guide：首次引导第 1 步锚点*/}
         <button className="btn primary" data-guide="workbench-new" onClick={() => onOpenDesigner({ kind: 'new' })}>
-          <Icon name="plus" size={13} />
+          <Icon name="plus" size={12} />
           {t('newTemplate')}
         </button>
       </div>
@@ -232,6 +246,9 @@ export function Workbench({
           </button>
         </div>
       )}
+
+      {/* 操作失败提示 */}
+      {actionError && <ErrorAlert message={actionError} onClose={() => setActionError(null)} />}
 
       <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
         {loading || serverMode === 'unknown' ? (
@@ -293,7 +310,7 @@ export function Workbench({
                       setMenu((cur) => (cur?.tpl.name === tpl.name ? null : { tpl, anchor }))
                     }}
                   >
-                    <Icon name="more" size={14} />
+                    <Icon name="more" size={12} />
                   </button>
                 </div>
               </div>
@@ -314,7 +331,7 @@ export function Workbench({
               void doExport(tpl)
             }}
           >
-            <Icon name="download" size={13} />
+            <Icon name="download" size={12} />
             {t('menu.export')}
           </MenuItem>
           <MenuItem
@@ -324,7 +341,7 @@ export function Workbench({
               setMenu(null)
             }}
           >
-            <Icon name="trash" size={13} />
+            <Icon name="trash" size={12} />
             {t('menu.delete')}
           </MenuItem>
         </Popover>
@@ -345,7 +362,7 @@ export function Workbench({
                 {t('action.cancel')}
               </button>
               <button className="btn danger" onClick={() => void doDelete()} disabled={busy === 'delete'}>
-                <Icon name="trash" size={13} />
+                <Icon name="trash" size={12} />
                 {t('deleteConfirm.confirm')}
               </button>
             </>

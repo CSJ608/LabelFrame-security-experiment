@@ -112,7 +112,10 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     // zh 态：工具栏与左栏（画布已桩掉）
     expect(await screen.findByDisplayValue('默认')).toBeTruthy() // 数据性默认值随语言
     expect(screen.getByRole('button', { name: /保存并退出/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /导出设计/ })).toBeTruthy()
+    // 导出 / 导入设计收纳于 ⋯ 菜单（menuitem 角色）
+    fireEvent.click(screen.getByRole('button', { name: '更多操作' }))
+    expect(screen.getByRole('menuitem', { name: /导出设计/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /导入设计/ })).toBeTruthy()
     expect(screen.getByText('控件栏')).toBeTruthy()
     expect(screen.getByText('打印字段')).toBeTruthy()
     expect(screen.getByText('图层')).toBeTruthy()
@@ -121,7 +124,7 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
 
     changeLocale('en')
     await waitFor(() => expect(screen.getByRole('button', { name: /Save & Exit/ })).toBeTruthy())
-    expect(screen.getByRole('button', { name: /Export Design/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /Export Design/ })).toBeTruthy()
     expect(screen.getByText('Widgets')).toBeTruthy()
     expect(screen.getByText('Print Fields')).toBeTruthy()
     expect(screen.getByText('Layers')).toBeTruthy()

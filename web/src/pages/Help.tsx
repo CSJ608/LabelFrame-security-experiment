@@ -131,7 +131,7 @@ export function Help({ onOpenInUi }: HelpProps) {
           aria-label={t('ui.tocToggle')}
           onClick={() => setTocOpen((v) => !v)}
         >
-          <Icon name="toc" size={13} />
+          <Icon name="toc" size={12} />
         </button>
         <div className="page-title">
           {article === null ? (
@@ -147,7 +147,7 @@ export function Help({ onOpenInUi }: HelpProps) {
         <span className="spacer" />
         {article !== null && (
           <button type="button" className="btn sm" onClick={() => setArticle(null)}>
-            <Icon name="back" size={13} />
+            <Icon name="back" size={12} />
             {t('ui.backToIndex')}
           </button>
         )}
@@ -176,7 +176,7 @@ export function Help({ onOpenInUi }: HelpProps) {
                   ))}
                   {topic.anchor && topic.target && (
                     <button type="button" className="btn sm" onClick={() => onOpenInUi(topic.target!, topic.anchor!)}>
-                      <Icon name="link" size={13} />
+                      <Icon name="link" size={12} />
                       {t('ui.openInUi')}
                     </button>
                   )}

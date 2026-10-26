@@ -299,7 +299,7 @@ export function TransportPluginParamsEditor({
         const value = params[spec.key]
         if (spec.type === 'Bool') {
           return (
-            <label key={spec.key} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }} title={pluginText(spec.hintKey, spec.hint)}>
+            <label key={spec.key} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 4, margin: 0 }} title={pluginText(spec.hintKey, spec.hint)}>
               <input type="checkbox" checked={value === true || value === 'true'} onChange={(ev) => setParam(spec.key, ev.target.checked)} />
               {pluginText(spec.labelKey, spec.label)}
               {spec.required && <span style={{ color: 'var(--danger)' }}>*</span>}
@@ -360,9 +360,9 @@ export function TransportPluginParamsEditor({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {rows.map((row) => (
-        <div key={row.key} data-testid="param-row" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div key={row.key} data-testid="param-row" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           {row.specs.map(renderField)}
         </div>
       ))}
@@ -388,7 +388,7 @@ export function TransportPanel() {
         app.applyTransportConfig(r.config)
         if (!testOnly) form.markSaved()
         // 异步闭包文案读 i18next 单例（111 惯例：错误构造期即当时界面语言）
-        if (!testOnly) app.setStatus(i18next.t('settings:transportForm.switched', { message: r.message }))
+        if (!testOnly) app.setStatus(i18next.t('settings:transportForm.switched', { message: r.message }), 'ok')
         setResult({ ok: true, msg: r.message })
       } else {
         // 200 + ok:false：测试失败不切换，config 仍是当前生效连接，全局状态不动
@@ -404,36 +404,36 @@ export function TransportPanel() {
   const currentPlugin = form.plugins.find((p) => p.id === form.pluginId) ?? form.plugins[0]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* 当前连接徽标由设置页打印设置「状态总览卡」统一承载（全页唯一，随本机打印服务运行状态着色） */}
 
       {form.pluginMode ? (
         <>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {form.plugins.map((p) => (
-              <label key={p.id} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }}>
+              <label key={p.id} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 4, margin: 0 }}>
                 <input type="radio" name="transport-plugin" checked={form.pluginId === p.id} onChange={() => form.switchPlugin(p)} />
                 {pluginText(p.displayNameKey, p.displayName)}
               </label>
             ))}
           </div>
           {currentPlugin?.description && <div className="hint">{pluginText(currentPlugin.descriptionKey, currentPlugin.description)}</div>}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {currentPlugin && <TransportPluginParamsEditor plugin={currentPlugin} params={form.pluginParams} setParam={form.setPluginParam} />}
           </div>
           {formNativeMode(currentPlugin, form.pluginParams) && <NativePrintModeHint />}
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {ALL_TRANSPORT_MODES.map((m) => (
-              <label key={m} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, margin: 0 }}>
+              <label key={m} className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 4, margin: 0 }}>
                 <input type="radio" name="transport-mode" checked={form.mode === m} onChange={() => form.switchMode(m)} />
                 {modeLabel(m)}
               </label>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <TransportParamsEditor mode={form.mode} params={form.params} setParam={form.setParam} />
           </div>
         </>
@@ -441,11 +441,11 @@ export function TransportPanel() {
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="btn" onClick={() => void run(true)} disabled={busy !== null}>
-          <Icon name="link" size={13} />
+          <Icon name="link" size={12} />
           {busy === 'test' ? t('transportForm.testing') : t('transportForm.test')}
         </button>
         <button className="btn primary" onClick={() => void run(false)} disabled={busy !== null}>
-          <Icon name="save" size={13} />
+          <Icon name="save" size={12} />
           {busy === 'save' ? t('transportForm.applying') : t('transportForm.save')}
         </button>
         {result && <span className={result.ok ? 'badge ok' : 'badge err'}>{result.msg}</span>}

@@ -236,6 +236,8 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     expect(await screen.findByTestId('designer-name-error')).toBeTruthy()
     expect(screen.getByTestId('designer-name-error').textContent).toContain('请先填写模板名称')
     expect(input.className).toContain('error')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '知道了' }))
+    fireEvent.click(screen.getByRole('button', { name: '知道了' }))
     expect(document.activeElement).toBe(input)
     expect(mocks.local.saveTemplate).not.toHaveBeenCalled()
 
@@ -279,7 +281,7 @@ describe('页级保存链路（迭代 92 F-03）', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
-  it('保存失败提示：呈现中文原因，停留设计器不回工作台', async () => {
+  it('保存失败弹窗阻断底层保存快捷键，关闭后保留编辑并可重试', async () => {
     mocks.local.saveTemplate.mockRejectedValueOnce(new ApiError('LF_TPL_SAVE_FAILED', '模板保存失败：名称重复。'))
     const onClose = vi.fn()
     renderDesigner(undefined, { onClose })
@@ -289,6 +291,12 @@ describe('页级保存链路（迭代 92 F-03）', () => {
 
     await waitFor(() => expect(screen.getByTestId('status-msg').textContent).toContain('模板保存失败：名称重复'), { timeout: 3000 })
     expect(onClose).not.toHaveBeenCalled()
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: '知道了' }))
+    expect((screen.getByPlaceholderText('模板名称') as HTMLInputElement).value).toBe('新模板')
+    fireEvent.keyDown(document, { key: 's', ctrlKey: true })
+    await waitFor(() => expect(mocks.local.saveTemplate).toHaveBeenCalledTimes(2))
     // 按钮复位（非「保存中…」），可重试
     expect(screen.getByRole('button', { name: '保存并退出' })).toBeTruthy()
   })

@@ -98,8 +98,12 @@ export function PluginPackages() {
           <small>{t('page.subtitle')}</small>
         </div>
         <div className="spacer" />
-        <button className="btn" onClick={() => document.getElementById('pluginPkgFile')?.click()} disabled={uploading}>
-          <Icon name="upload" size={13} />
+        <button className="btn" onClick={() => void load()} title={t('refreshTitle')}>
+          <Icon name="refresh" size={12} />
+          {t('action.refresh')}
+        </button>
+        <button className="btn primary" onClick={() => document.getElementById('pluginPkgFile')?.click()} disabled={uploading}>
+          <Icon name="upload" size={12} />
           {uploading ? t('action.uploading') : t('upload')}
         </button>
         <input
@@ -112,10 +116,6 @@ export function PluginPackages() {
             ev.target.value = ''
           }}
         />
-        <button className="btn" onClick={() => void load()} title={t('refreshTitle')}>
-          <Icon name="refresh" size={13} />
-          {t('action.refresh')}
-        </button>
       </div>
 
       {error && <div className="banner error">{error}</div>}
@@ -180,7 +180,7 @@ export function PluginPackages() {
                     )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
                       <a className="btn sm" href={pluginPackageDownloadUrl(p.fileName)} title={t('downloadTitle', { name: p.fileName })}>
                         <Icon name="download" size={12} />
                         {t('action.download')}
@@ -213,7 +213,7 @@ export function PluginPackages() {
                 {t('action.cancel')}
               </button>
               <button className="btn danger" onClick={confirmRemove} disabled={deleting !== null}>
-                <Icon name="trash" size={13} />
+                <Icon name="trash" size={12} />
                 {t('action.confirmDelete')}
               </button>
             </>

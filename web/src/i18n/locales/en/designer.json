@@ -64,6 +64,7 @@
     "saved": "Template \"{{name}}\" saved.",
     "saveFailed": "Save failed.",
     "nameRequired": "Enter a template name first.",
+    "cannotSave": "Cannot save",
     "imageReplaced": "Image updated.",
     "imageCompressed": "Automatically compressed {{from}} MB → {{to}} MB.",
     "imageRejected": {
@@ -87,6 +88,7 @@
     "shortcutsTitle": "Shortcut and canvas operation reference",
     "exportDesign": "Export Design",
     "importDesign": "Import Design",
+    "more": "More actions",
     "saving": "Saving…",
     "save": "Save & Exit"
   },
@@ -131,6 +133,7 @@
     "fieldNameTitle": "Field name: {{key}}",
     "layersTitle": "Layers",
     "layersHint": "Click to select · Delete to remove",
+    "noElements": "No elements yet — add from Widgets",
     "previewLockedEditable": "Previewing (editable after exit)",
     "toTop": "To Top",
     "up": "Up",
@@ -216,7 +219,6 @@
     "imageRemove": "Remove Image"
   },
   "shortcuts": {
-    "core": "Ctrl+Z undo · Ctrl+C/V copy & paste · Delete remove · middle-drag pan · Ctrl+wheel zoom",
     "groupEdit": "Editing",
     "groupClipboard": "Clipboard",
     "groupCanvas": "Canvas",

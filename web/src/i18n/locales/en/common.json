@@ -10,7 +10,9 @@
     "delete": "Delete",
     "deleting": "Deleting…",
     "uploading": "Uploading…",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "actionFailed": "Action failed",
+    "gotIt": "Got it"
   },
   "state": {
     "connectingServer": "Connecting to the server…",

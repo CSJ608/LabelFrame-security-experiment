@@ -409,19 +409,19 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                 {t('serverAddress.label')}
                 <input className="input mono" value={url} onChange={(ev) => setUrlDraft(ev.target.value)} disabled={saving} placeholder="http://127.0.0.1:53961" spellCheck={false} />
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={() => void testConnection()} disabled={testing}>
-                  <Icon name="link" size={13} />
+                  <Icon name="link" size={12} />
                   {testing ? t('serverAddress.testing') : t('serverAddress.test')}
                 </button>
                 <button className="btn primary" onClick={() => void saveAddress()} disabled={saving}>
-                  <Icon name="save" size={13} />
+                  <Icon name="save" size={12} />
                   {saving ? t('serverAddress.saving') : t('serverAddress.save')}
                 </button>
                 {url !== app.baseUrl && <button className="btn" disabled={saving} onClick={() => { setUrlDraft(null); setSaveResult(null); setTestResult(null) }}>
                   {t('serverAddress.discard')}
                 </button>}
-                <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <span className={'status-dot' + (app.connected ? ' on' : '')} />
                   {app.connected ? t('serverAddress.connected') : t('serverAddress.disconnected')}
                 </span>
@@ -499,11 +499,13 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             <div className="settings-section-body">
             {printSettingsOldWinHost ? (
               <div className="hint">{t('batch.oldClient')}</div>
+            ) : printSettingsError ? (
+              <div className="error-text">{printSettingsError}</div>
             ) : printSettings === null ? (
-              <div className="hint">{printSettingsError ?? t('batch.loading')}</div>
+              <div className="hint">{t('batch.loading')}</div>
             ) : (
               <>
-                <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <input
                     type="checkbox"
                     checked={printSettings.batchEnabled}
@@ -511,7 +513,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   />
                   {t('batch.enable')}
                 </label>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <label className="field" style={{ maxWidth: 150 }}>
                     {t('batch.batchSize')}
                     <input
@@ -535,7 +537,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                     />
                   </label>
                 </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <label className="field" style={{ maxWidth: 190 }}>
                     {t('batch.dpi')}
                     <select
@@ -550,9 +552,9 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   </label>
                   <div className="hint" style={{ flex: 1, minWidth: 220 }}>{t('batch.dpiHint')}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <button className="btn primary" onClick={() => void savePrintSettings()} disabled={batchSaving}>
-                    <Icon name="save" size={13} />
+                    <Icon name="save" size={12} />
                     {batchSaving ? t('batch.saving') : t('action.save')}
                   </button>
                   {batchSaveResult && (
@@ -574,7 +576,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
             <div className="settings-section-body">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button className="btn" onClick={() => void doTestPrint()} disabled={testPrinting}>
-                  <Icon name="test" size={13} />
+                  <Icon name="test" size={12} />
                   {testPrinting ? t('printer.sending') : t('printer.test')}
                 </button>
                 {printResult && <span className={printResult.ok ? 'badge ok' : 'badge err'}>{printResult.msg}</span>}
@@ -592,18 +594,18 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
               {dot('settings.updates')}
             </h2>
             <span className="spacer" style={{ flex: 1 }} />
-            <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className={'conn' + (app.connected ? ' on' : ' off')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <span className={'status-dot' + (app.connected ? ' on' : '')} />
               {app.connected ? t('serverAddress.connected') : t('updates.standalone')}
             </span>
           </div>
           <div className="settings-section-body">
-            {/* 「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；unknown 不显示（无误导） */}
+            {/* 「检查更新」结论——本机版本 × 服务端 client-packages 最高包版本；已连接但判不出版本时给灰 hint 而非整块消失 */}
             <ClientUpdates />
             {(() => {
               const update = checkForUpdate(app.hostVersion, (packages ?? []).map((p) => p.fileName))
               if (update.kind === 'unknown') {
-                return null
+                return app.connected ? <div className="hint">{t('updates.versionUnknown')}</div> : null
               }
               if (update.kind === 'update-available') {
                 return (
@@ -620,7 +622,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                     }}
                   >
                     <span style={{ fontWeight: 600 }}>
-                      <Icon name="alert" size={13} /> {t('updates.updateAvailable', { latest: update.latestVersion, local: update.localVersion })}
+                      <Icon name="alert" size={14} /> {t('updates.updateAvailable', { latest: update.latestVersion, local: update.localVersion })}
                     </span>
                     <span className="hint">{t('updates.updateHint')}</span>
                   </div>
@@ -636,10 +638,10 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
               <div className="hint">{t('updates.offlineHint')}</div>
             ) : packages === null ? (
               <div className="hint">{t('updates.loading')}</div>
+            ) : packagesError ? (
+              <div className="error-text">{t('updates.loadFailedWith', { reason: packagesError })}</div>
             ) : packages.length === 0 ? (
-              <div className="hint">
-                {packagesError ? t('updates.loadFailedWith', { reason: packagesError }) : t('updates.empty')}
-              </div>
+              <div className="hint">{t('updates.empty')}</div>
             ) : (
               <>
                 <table className="table">
@@ -711,14 +713,12 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
               <div className="hint">{t('plugins.offlineHint')}</div>
             ) : pluginPackages === null ? (
               <div className="hint">{t('plugins.loading')}</div>
+            ) : pluginPackagesOldServer ? (
+              <div className="hint">{t('plugins.oldServer')}</div>
+            ) : pluginPackagesError ? (
+              <div className="error-text">{t('plugins.loadFailedWith', { reason: pluginPackagesError })}</div>
             ) : pluginPackages.length === 0 ? (
-              <div className="hint">
-                {pluginPackagesOldServer
-                  ? t('plugins.oldServer')
-                  : pluginPackagesError
-                    ? t('plugins.loadFailedWith', { reason: pluginPackagesError })
-                    : t('plugins.empty')}
-              </div>
+              <div className="hint">{t('plugins.empty')}</div>
             ) : (
               <table className="table">
                 <thead>
@@ -781,9 +781,11 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
 
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{t('plugins.installedTitle')}</div>
             {installedPluginsError ? (
-              <div className="hint">
-                {installedOldWinHost ? t('plugins.installedOld') : t('plugins.installedLoadFailedWith', { reason: installedPluginsError })}
-              </div>
+              installedOldWinHost ? (
+                <div className="hint">{t('plugins.installedOld')}</div>
+              ) : (
+                <div className="error-text">{t('plugins.installedLoadFailedWith', { reason: installedPluginsError })}</div>
+              )
             ) : installedPlugins === null ? (
               <div className="hint">{t('plugins.installedLoading')}</div>
             ) : installedPlugins.length === 0 ? (
@@ -867,7 +869,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                     void installPlugin(p, { overwrite: true })
                   }}
                 >
-                  <Icon name="download" size={13} />
+                  <Icon name="download" size={12} />
                   {t('plugins.overwriteModal.confirm')}
                 </button>
               </>
@@ -900,7 +902,7 @@ export function Settings({ helpAnchor }: { helpAnchor?: string | null }) {
                   void uninstallPlugin(pl)
                 }}
               >
-                <Icon name="trash" size={13} />
+                <Icon name="trash" size={12} />
                 {t('plugins.uninstallModal.confirm')}
               </button>
             </>

@@ -42,6 +42,7 @@
     "copy": "Copy",
     "copied": "Copied",
     "copyTitle": "Copy the selected address",
+    "copyFailed": "Copy failed — select and copy the address manually",
     "candidates": "Address candidates"
   },
   "windows": {

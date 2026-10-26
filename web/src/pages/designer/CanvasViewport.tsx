@@ -15,7 +15,6 @@ import { commitDragPosition, contentOffset, designCanvasSize, fitScale, logicToC
 import { elementsIntersecting } from '../../lib/design/marquee'
 import { computeSnap, elementModelRect, othersModelRects, unionModelRect } from '../../lib/design/snapping'
 import type { SnapRect } from '../../lib/design/snapping'
-import { coreShortcuts } from './shortcuts'
 
 export interface DesignState {
   paperW: number
@@ -763,27 +762,6 @@ export function CanvasViewport(props: CanvasViewportProps) {
           </Layer>
         </Stage>
       </div>
-      {!preview && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(29,38,51,.78)',
-            color: '#fff',
-            fontSize: 12,
-            padding: '4px 12px',
-            borderRadius: 999,
-            pointerEvents: 'none',
-            fontFamily: 'var(--font-mono)',
-            whiteSpace: 'nowrap',
-            zIndex: 2,
-          }}
-        >
-          {coreShortcuts()}
-        </div>
-      )}
       {preview && (
         <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(29,38,51,.78)', color: '#fff', fontSize: 12, padding: '4px 12px', borderRadius: 999, pointerEvents: 'none', fontFamily: 'var(--font-mono)' }}>
           {t('canvas.previewHint', { dpi })}

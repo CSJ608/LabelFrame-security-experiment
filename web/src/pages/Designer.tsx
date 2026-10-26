@@ -19,6 +19,8 @@ import { SidePanel } from './designer/SidePanel'
 import { PropsPanel } from './designer/PropsPanel'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
+import { ErrorAlert } from '../components/ErrorAlert'
+import { MenuItem, Popover } from '../components/Popover'
 import type { DesignElement, ImageAsset } from '../lib/design/types'
 import { createHistory } from '../lib/design/history'
 import { fromBackendElements, applyContractDisplayNames } from '../lib/design/convert'
@@ -66,6 +68,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   const [group, setGroup] = useState(() => i18next.t('designer:defaultGroup'))
   const [rightTab, setRightTab] = useState<'props' | 'data'>('props')
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
@@ -147,6 +150,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     layerToBottom,
     doExportDesign,
     doImportDesign,
+    importError,
+    clearImportError,
   } = useDesignerActions({ stateRef, historyRef, selectedRef, setState, setSelected, setPendingType, commit, viewMode, pendingType, demoActive, saveInPlace })
 
   const { imageAssets, setImageAssets, imageAssetsRef, fileInputRef, replaceImage, onImageInputChange, imageToast } = useImageAssets({
@@ -281,7 +286,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
     savedMetadataRef.current = { name, group }
   }, [name, group])
 
-  const { save, overwriteSave, cancelOverwrite, nameError, clearNameError } = useTemplateSave({
+  const { save, overwriteSave, cancelOverwrite, nameError, clearNameError, saveError, clearSaveError } = useTemplateSave({
     request,
     biz,
     stateRef,
@@ -307,8 +312,8 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
   // 空名保存拦截：名称框红边 + 内联提示 + 聚焦，补名即消
   const nameInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
-    if (nameError) nameInputRef.current?.focus()
-  }, [nameError])
+    if (nameError && !saveError) nameInputRef.current?.focus()
+  }, [nameError, saveError])
 
   const { leaveGuardOpen, stayInEditor, discardAndLeave, saveAndLeave, requestClose } = useLeaveGuard({
     historyRef,
@@ -358,7 +363,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
       <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} style={{ display: 'none' }} onChange={onImageInputChange} data-testid="image-file-input" />
       <div className="designer-toolbar">
         <button className="btn ghost" onClick={requestClose} title={t('toolbar.backTitle')}>
-          <Icon name="back" size={14} />
+          <Icon name="back" size={12} />
         </button>
         <input
           ref={nameInputRef}
@@ -416,7 +421,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         </label>
         <span className="toolbar-sep" />
         <button className={'btn' + (viewMode === 'preview' ? ' active' : '')} onClick={togglePreview} title={t('toolbar.previewTitle')}>
-          <Icon name="preview" size={13} />
+          <Icon name="preview" size={12} />
           {viewMode === 'preview' ? t('toolbar.exitPreview') : t('toolbar.preview')}
         </button>
         <label className="toolbar-label" title={t('toolbar.gridTitle')}>
@@ -429,22 +434,41 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
         </span>
         <span className="spacer" style={{ flex: 1 }} />
         <button className="btn ghost" onClick={() => setShortcutsOpen(true)} title={t('toolbar.shortcutsTitle')}>
-          <Icon name="keyboard" size={13} />
+          <Icon name="keyboard" size={12} />
           {t('toolbar.shortcuts')}
         </button>
-        <button className="btn" onClick={() => void doExportDesign()} title="Ctrl+Shift+C">
-          <Icon name="clipboard" size={13} />
-          {t('toolbar.exportDesign')}
-        </button>
-        <button className="btn" onClick={() => void doImportDesign()} title="Ctrl+Shift+V">
-          <Icon name="upload" size={13} />
-          {t('toolbar.importDesign')}
+        {/* 导入导出菜单 */}
+        <button className="btn ghost" aria-label={t('toolbar.more')} title={t('toolbar.more')} onClick={(ev) => setMoreAnchor(moreAnchor ? null : ev.currentTarget)}>
+          <Icon name="more" size={12} />
         </button>
         <button className="btn primary" onClick={() => save()} disabled={saving || !state}>
-          <Icon name="save" size={13} />
+          <Icon name="save" size={12} />
           {saving ? t('toolbar.saving') : t('toolbar.save')}
         </button>
       </div>
+
+      {moreAnchor && (
+        <Popover anchor={moreAnchor} ariaLabel={t('toolbar.more')} onClose={() => setMoreAnchor(null)}>
+          <MenuItem
+            onClick={() => {
+              setMoreAnchor(null)
+              void doExportDesign()
+            }}
+          >
+            <Icon name="clipboard" size={12} />
+            {t('toolbar.exportDesign')}
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setMoreAnchor(null)
+              void doImportDesign()
+            }}
+          >
+            <Icon name="upload" size={12} />
+            {t('toolbar.importDesign')}
+          </MenuItem>
+        </Popover>
+      )}
 
       {loadError && (
         <div className="banner error">
@@ -454,6 +478,12 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
           </button>
         </div>
       )}
+
+      {/* 导入设计解析失败：模态弹窗（与保存失败同通道） */}
+      {importError && <ErrorAlert message={importError} onClose={clearImportError} />}
+
+      {/* 保存错误提示 */}
+      {saveError && <ErrorAlert title={saveError.title} message={saveError.message} onClose={clearSaveError} />}
 
       {/* 上传失败提醒：页内轻量 toast，5s 自动消失，单条最新覆盖 */}
       {imageToast && (
@@ -532,7 +562,7 @@ export function Designer({ request, onClose, registerLeaveGuard, helpAnchor }: D
                     <div className="hint">{t('dataTab.empty')}</div>
                   ) : (
                     [...previewDefaults.entries()].map(([k, v]) => (
-                      <div className="field" key={k} style={{ marginTop: 6 }}>
+                      <div className="field" key={k} style={{ marginTop: 8 }}>
                         <span className="mono" style={{ minWidth: 90 }} title={displayNameByKey.get(k) ? t('dataTab.fieldNameTitle', { key: k }) : undefined}>{displayNameByKey.get(k) || k}</span>
                         <span className="mono" style={{ color: 'var(--text-2)', wordBreak: 'break-all' }}>{v}</span>
                       </div>

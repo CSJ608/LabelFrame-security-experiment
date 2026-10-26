@@ -1,0 +1,62 @@
+[
+  {
+    "mode": "client",
+    "locale": "zh-CN",
+    "saves": 1,
+    "errors": [],
+    "checks": [
+      "navigation",
+      "more-menu",
+      "empty-name",
+      "focus",
+      "failed-save",
+      "shortcut-blocked",
+      "draft-preserved"
+    ]
+  },
+  {
+    "mode": "client",
+    "locale": "en",
+    "saves": 1,
+    "errors": [],
+    "checks": [
+      "navigation",
+      "more-menu",
+      "empty-name",
+      "focus",
+      "failed-save",
+      "shortcut-blocked",
+      "draft-preserved"
+    ]
+  },
+  {
+    "mode": "server",
+    "locale": "zh-CN",
+    "saves": 1,
+    "errors": [],
+    "checks": [
+      "navigation",
+      "more-menu",
+      "empty-name",
+      "focus",
+      "failed-save",
+      "shortcut-blocked",
+      "draft-preserved"
+    ]
+  },
+  {
+    "mode": "server",
+    "locale": "en",
+    "saves": 1,
+    "errors": [],
+    "checks": [
+      "navigation",
+      "more-menu",
+      "empty-name",
+      "focus",
+      "failed-save",
+      "shortcut-blocked",
+      "draft-preserved"
+    ]
+  }
+]

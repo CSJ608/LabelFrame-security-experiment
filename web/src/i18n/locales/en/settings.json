@@ -70,6 +70,7 @@
     "updateAvailable": "New version {{latest}} available (local {{local}})",
     "updateHint": "This is a newer manual distribution package. Automatic updates use only published releases shown above. An administrator can also install this package manually.",
     "upToDate": "Up to date (local {{version}})",
+    "versionUnknown": "Local version unknown — update status unavailable.",
     "offlineHint": "Not connected to a server (standalone mode). Packages are distributed by the server; connect to a server under General → Server Address to see available packages.",
     "loading": "Loading package list…",
     "loadFailed": "Failed to load the package list.",

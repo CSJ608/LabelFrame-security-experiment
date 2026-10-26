@@ -20,17 +20,17 @@ export function TemplatePreviewModal({ name, entry, onClose }: { name: string; e
           {name}
           <span className="spacer" style={{ flex: 1 }} />
           <button className="preview-modal-close" onClick={onClose} title={t('preview.closeTitle')}>
-            <Icon name="x" size={13} />
+            <Icon name="x" size={14} />
           </button>
         </div>
         {entry.status === 'loading' ? (
           <div className="preview-modal-state">
-            <Icon name="refresh" size={13} />
+            <Icon name="refresh" size={14} />
             {t('preview.generating')}
           </div>
         ) : entry.status === 'error' ? (
           <div className="preview-modal-state err">
-            <Icon name="alert" size={13} />
+            <Icon name="alert" size={14} />
             {t('preview.unavailableTitle')}
             <small>{entry.message}</small>
           </div>

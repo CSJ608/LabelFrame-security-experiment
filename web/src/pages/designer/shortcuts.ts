@@ -1,4 +1,4 @@
-// 设计器快捷操作清单（画布常驻提示条 + 工具栏「快捷键」弹窗）。
+// 设计器快捷操作清单（工具栏「快捷键」弹窗的唯一清单来源）。
 // 取词为函数形态（调用期取当前界面语言）——改为模块级常量则语言切换后不刷新。
 
 import i18next from '../../i18n'
@@ -43,9 +43,4 @@ export function shortcutGroups(): ShortcutGroup[] {
       ],
     },
   ]
-}
-
-/** 画布顶部常驻提示条（编辑模式，与预览模式提示同款视觉；随当前界面语言）。 */
-export function coreShortcuts(): string {
-  return i18next.t('designer:shortcuts.core')
 }

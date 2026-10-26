@@ -72,7 +72,7 @@ function QrCodeImage({ text, size = 84, alt }: { text: string; size?: number; al
       height={size}
       alt={alt}
       title={text}
-      style={{ display: 'block', background: '#fff', border: '1px solid var(--border)', borderRadius: 4, imageRendering: 'pixelated' }}
+      style={{ display: 'block', background: '#fff', border: '1px solid var(--line)', borderRadius: 4, imageRendering: 'pixelated' }}
     />
   )
 }
@@ -97,12 +97,12 @@ function SectionHead({
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px' }}>
-      <div className="page-title" style={{ fontSize: 15, margin: 0, flex: 1 }}>
+      <div className="page-title" style={{ fontSize: 16, margin: 0, flex: 1 }}>
         {title}
         <small>{hint}</small>
       </div>
       <button className="btn sm" onClick={() => document.getElementById(inputId)?.click()} disabled={uploading}>
-        <Icon name="upload" size={13} />
+        <Icon name="upload" size={12} />
         {uploading ? uploadingLabel : uploadLabel}
       </button>
       <input
@@ -161,7 +161,7 @@ function PackageTable({
               <QrCodeImage text={`${qrOrigin}${p.downloadHref}`} alt={t('qrAlt')} />
             </td>
             <td>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
                 <a className="btn sm" href={p.downloadHref} title={t('downloadTitle', { name: p.fileName })}>
                   <Icon name="download" size={12} />
                   {t('action.download')}
@@ -181,25 +181,6 @@ function PackageTable({
         ))}
       </tbody>
     </table>
-  )
-}
-
-/** 「最新上传」货架徽标（accent 浅底小标签）。 */
-function LatestBadge({ label }: { label: string }) {
-  return (
-    <span
-      style={{
-        padding: '1px 8px',
-        fontSize: 11,
-        lineHeight: '18px',
-        color: 'var(--accent)',
-        background: 'var(--accent-soft)',
-        borderRadius: 999,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </span>
   )
 }
 
@@ -225,32 +206,28 @@ function LatestCard({
   const { t } = useTranslation('downloadCenter')
   return (
     <div
+      className="panel panel-body"
       style={{
-        padding: 14,
-        background: 'var(--panel)',
-        border: '1px solid var(--line)',
-        borderRadius: 'var(--radius)',
-        boxShadow: 'var(--shadow-1)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 12,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600 }}>{platform}</span>
-        {row && <LatestBadge label={t('quick.latest')} />}
+        {row && <span className="badge info">{t('quick.latest')}</span>}
       </div>
       {loading ? (
-        <div className="hint" style={{ padding: '36px 0', textAlign: 'center' }}>
-          {t('quick.loading')}
+        <div className="empty" style={{ padding: '32px 0' }}>
+          <div className="hint">{t('quick.loading')}</div>
         </div>
       ) : !row ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '22px 0' }}>
+        <div className="empty" style={{ padding: '24px 0' }}>
           <Icon name="download" />
           <div className="empty-title">{t('quick.emptyTitle')}</div>
           <div className="hint">{t('quick.emptyHint', { tab: manageTabLabel })}</div>
           <button className="btn" onClick={onGoManage}>
-            <Icon name="upload" size={13} />
+            <Icon name="upload" size={12} />
             {t('quick.goUpload')}
           </button>
         </div>
@@ -267,7 +244,7 @@ function LatestCard({
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
             <a className="btn primary" href={row.downloadHref} title={t('downloadTitle', { name: row.fileName })}>
-              <Icon name="download" size={13} />
+              <Icon name="download" size={12} />
               {t('action.download')}
             </a>
             <button className="btn" onClick={onGoManage} title={manageTabLabel}>
@@ -311,6 +288,7 @@ function ConnectionCard() {
   const [publicBaseUrl, setPublicBaseUrl] = useState<string | null>(null)
   const [selected, setSelected] = useState<string>(pageOrigin())
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -352,20 +330,16 @@ function ConnectionCard() {
     if (await copyText(selected)) {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
+    } else {
+      // 剪贴板不可用（非安全上下文 / 权限拒绝）：按钮旁红字提示手动复制
+      setCopyFailed(true)
+      window.setTimeout(() => setCopyFailed(false), 3000)
     }
   }
 
   return (
-    <div
-      style={{
-        padding: 14,
-        background: 'var(--panel)',
-        border: '1px solid var(--line)',
-        borderRadius: 'var(--radius)',
-        boxShadow: 'var(--shadow-1)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+    <div className="panel panel-body">
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
         <QrCodeImage text={selected} size={176} alt={t('connQrAlt')} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -377,9 +351,10 @@ function ConnectionCard() {
           <Icon name={copied ? 'check' : 'copy'} size={12} />
           {copied ? t('connection.copied') : t('connection.copy')}
         </button>
+        {copyFailed && <span className="error-text">{t('connection.copyFailed')}</span>}
       </div>
       {!publicBaseUrl && candidates !== null && candidates.length > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           <span className="hint">{t('connection.candidates')}</span>
           {candidates.map((ip) => (
             <button
@@ -534,7 +509,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => void load()} title={t('refreshTitle')}>
-          <Icon name="refresh" size={13} />
+          <Icon name="refresh" size={12} />
           {t('action.refresh')}
         </button>
       </div>
@@ -544,7 +519,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
 
       <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
         {/* 页内三 tab：分段按钮（btn + active 既有样式，不新造设计语言） */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           {DC_TABS.map((id) => (
             <button key={id} className={'btn' + (tab === id ? ' active' : '')} onClick={() => switchTo(id)}>
               {t(`tabs.${id}`)}
@@ -624,19 +599,9 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
               onPick={(f) => void uploadPda(f)}
               uploadingLabel={t('action.uploading')}
             />
-            <div
-              style={{
-                padding: '8px 12px',
-                marginBottom: 8,
-                background: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                fontSize: 12,
-                lineHeight: 1.7,
-                borderRadius: 4,
-              }}
-            >
-              <Icon name="alert" size={12} style={{ marginRight: 4, verticalAlign: '-2px' }} />
-              {t('android.installHint')}
+            <div className="banner notice inline">
+              <Icon name="alert" size={14} />
+              <span style={{ lineHeight: 1.7 }}>{t('android.installHint')}</span>
             </div>
             {pdaRows === null ? (
               <div className="empty">
@@ -666,7 +631,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
                 {t('action.cancel')}
               </button>
               <button className="btn danger" onClick={confirmRemove} disabled={deleting !== null}>
-                <Icon name="trash" size={13} />
+                <Icon name="trash" size={12} />
                 {t('action.confirmDelete')}
               </button>
             </>

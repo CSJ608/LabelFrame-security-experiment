@@ -78,15 +78,15 @@ function JobDetail({ job }: { job: JobView }) {
   }
   const failedCount = job.failedItems ?? 0
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span className={statusBadgeClass(job.status)}>{jobLabel(job.status)}</span>
         <span>
           {t('detail.progress', { completed: job.completedItems, total: job.totalItems })}
           {failedCount > 0 && <span style={{ color: 'var(--danger)' }}>{t('detail.failedPart', { count: failedCount })}</span>}
         </span>
       </div>
-      <div style={{ fontSize: 12.5 }}>
+      <div style={{ fontSize: 13 }}>
         {t('detail.failedReasonLabel')}
         {job.errorMessage ? (
           <span style={{ color: 'var(--danger)' }}>{job.errorMessage}</span>
@@ -204,7 +204,7 @@ export function JobHistory() {
         </div>
         <div className="spacer" />
         <button className="btn" onClick={() => void load()} disabled={loading || serverMode === 'unknown'} title={t('reloadTitle')}>
-          <Icon name="refresh" size={13} />
+          <Icon name="refresh" size={12} />
           {loading ? t('action.refreshing') : t('action.refresh')}
         </button>
       </div>
@@ -275,7 +275,7 @@ export function JobHistory() {
                           onClick={(ev) => {
                             ev.stopPropagation() // 复制不触发行展开切换
                             void copyText(j.jobId).then((ok) =>
-                              app.setStatus(ok ? t('row.copied', { jobId: j.jobId }) : t('row.copyFailed')),
+                              ok ? app.setStatus(t('row.copied', { jobId: j.jobId }), 'ok') : app.setStatus(t('row.copyFailed'), 'err'),
                             )
                           }}
                         >
@@ -299,7 +299,7 @@ export function JobHistory() {
                     </tr>
                     {expanded && (
                       <tr>
-                        <td colSpan={7} style={{ background: '#fafbfc', padding: '10px 14px 14px 46px' }}>
+                        <td colSpan={7} style={{ background: '#fafbfc', padding: '12px 16px 16px 48px' }}>
                           <JobDetail job={j} />
                         </td>
                       </tr>

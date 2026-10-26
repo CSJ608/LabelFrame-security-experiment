@@ -28,6 +28,8 @@ export function Devices() {
   const [devices, setDevices] = useState<DeviceView[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** 点选离线设备 = 拦截警示（橙），设默认成功 = 信息确认（蓝）。 */
+  const [noticeWarn, setNoticeWarn] = useState(false)
   const [running, setRunning] = useState(true)
 
   useEffect(() => {
@@ -61,13 +63,15 @@ export function Devices() {
     if (d.status !== 'Online') {
       const msg = t('pickOffline', { name: d.name || d.deviceId })
       setNotice(msg)
+      setNoticeWarn(true)
       app.setStatus(msg)
       return
     }
     const msg = t('picked', { name: d.name || d.deviceId })
     setNotice(msg)
+    setNoticeWarn(false)
     app.setDefaultTargetDeviceId(d.deviceId)
-    app.setStatus(msg)
+    app.setStatus(msg, 'ok')
   }
 
   const isDefault = (d: DeviceView) => app.defaultTargetDeviceId === d.deviceId
@@ -85,17 +89,17 @@ export function Devices() {
           onClick={() => setRunning(!running)}
           title={running ? t('pauseAuto') : t('resumeAuto')}
         >
-          <Icon name={running ? 'preview' : 'refresh'} size={13} />
+          <Icon name={running ? 'preview' : 'refresh'} size={12} />
           {running ? t('autoRefresh') : t('paused')}
         </button>
         <button className="btn" onClick={() => void serverApi.listDevices().then(setDevices).catch((err) => setError(err instanceof ApiError ? err.message : t('loadFailed')))} title={t('refreshNowTitle')}>
-          <Icon name="refresh" size={13} />
+          <Icon name="refresh" size={12} />
           {t('action.refresh')}
         </button>
       </div>
 
       {error && <div className="banner error">{error}</div>}
-      {notice && <div className="banner notice">{notice}</div>}
+      {notice && <div className={'banner ' + (noticeWarn ? 'warn' : 'notice')}>{notice}</div>}
 
       <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
         {devices === null ? (
@@ -140,7 +144,7 @@ export function Devices() {
                   </td>
                   <td>
                     {isDefault(d) && (
-                      <span className="badge info" style={{ marginRight: 6 }}>
+                      <span className="badge info" style={{ marginRight: 4 }}>
                         {t('defaultBadge')}
                       </span>
                     )}

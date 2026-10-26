@@ -31,7 +31,7 @@ export function Modal({ title, onClose, children, footer, width = 440 }: ModalPr
         <div className="modal-head">
           <span>{title}</span>
           <button className="modal-close" onClick={onClose} aria-label={t('action.close')}>
-            <Icon name="x" size={15} />
+            <Icon name="x" size={14} />
           </button>
         </div>
         <div className="modal-body">{children}</div>

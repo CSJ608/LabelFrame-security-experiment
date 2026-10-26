@@ -46,13 +46,15 @@ interface AppContextValue {
   /** GET /api/transport 结果（mode + params，本机连接），切换成功后立即更新。 */
   transportConfig: TransportConfig | null
   statusMsg: string
+  /** 状态栏消息成败着色（null = 中性灰）；日志抽屉行不带色。 */
+  statusLevel: 'ok' | 'err' | null
   logs: LogLine[]
   drawerOpen: boolean
   /** DataPrint 会话草稿（切页 / 刷新保留，sessionStorage 持久化）。 */
   printDraft: PrintDraft
   setDrawerOpen: (open: boolean) => void
   log: (msg: string) => void
-  setStatus: (msg: string) => void
+  setStatus: (msg: string, level?: 'ok' | 'err') => void
   /** 设置数据与打印默认目标设备（localStorage 持久化；仅 server 构建使用）。 */
   setDefaultTargetDeviceId: (id: string | null) => void
   /** 探测服务端连接（healthz，5s 超时）。 */
@@ -124,6 +126,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transportConfig, setTransportConfig] = useState<TransportConfig | null>(null)
   // 状态栏初始消息读 i18next 当前语言；后续消息由各页 setStatus 写入（语言切换后旧消息不回译，属既有语义）
   const [statusMsg, setStatusMsg] = useState(() => i18next.t('shell:statusbar.ready'))
+  const [statusLevel, setStatusLevel] = useState<'ok' | 'err' | null>(null)
   const [logs, setLogs] = useState<LogLine[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [printDraft, setPrintDraft] = useState<PrintDraft>(() => loadPrintDraft(getSessionStorage()))
@@ -148,8 +151,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setStatus = useCallback(
-    (msg: string) => {
+    (msg: string, level?: 'ok' | 'err') => {
       setStatusMsg(msg)
+      setStatusLevel(level ?? null)
       log(msg)
     },
     [log],
@@ -269,7 +273,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         baseUrlRef.current = cleaned
         setBaseUrlState(cleaned)
         persistBaseUrl(cleaned)
-        setStatus(i18next.t('settings:serverAddress.statusSaved', { url: cleaned }))
+        setStatus(i18next.t('settings:serverAddress.statusSaved', { url: cleaned }), 'ok')
         // 释放旧地址在途探测的去重占用，按新地址立即发起新探测（旧结果按序号作废）
         pendingRef.current = null
         void checkConnection()
@@ -280,7 +284,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         baseUrlRef.current = cleaned
         setBaseUrlState(cleaned)
         persistBaseUrl(cleaned)
-        setStatus(i18next.t('settings:serverAddress.statusFallback'))
+        setStatus(i18next.t('settings:serverAddress.statusFallback'), 'err')
         pendingRef.current = null
         void checkConnection()
         return false
@@ -332,6 +336,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transport,
       transportConfig,
       statusMsg,
+      statusLevel,
       logs,
       drawerOpen,
       printDraft,
@@ -363,6 +368,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transport,
       transportConfig,
       statusMsg,
+      statusLevel,
       logs,
       drawerOpen,
       printDraft,

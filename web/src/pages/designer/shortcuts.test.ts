@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-// 清单改函数式（shortcutGroups / coreShortcuts，调用期取当前界面语言）——断言随接口机械调整，zh-CN 断言值不变（vitest.setup 钉住首启语言 zh-CN）。
-import { coreShortcuts, shortcutGroups } from './shortcuts'
+// 清单为函数式（shortcutGroups，调用期取当前界面语言）——zh-CN 断言值不变（vitest.setup 钉住首启语言 zh-CN）。
+import { shortcutGroups } from './shortcuts'
 
 describe('设计器快捷键清单', () => {
   it('分组建表且每项有键位与说明', () => {
@@ -27,12 +27,5 @@ describe('设计器快捷键清单', () => {
     expect(all).toContain('Ctrl+C')
     expect(all).toContain('Ctrl+S')
     expect(all).toContain('Delete')
-  })
-
-  it('常驻提示条非空且含核心键位', () => {
-    const core = coreShortcuts()
-    expect(core.length).toBeGreaterThan(20)
-    expect(core).toContain('Ctrl+Z')
-    expect(core).toContain('中键平移')
   })
 })

@@ -103,6 +103,7 @@ export function SidePanel(p: SidePanelProps) {
           <div className="side-empty">{t('side.previewLockedEditable')}</div>
         ) : (
           <ul className="layer-list">
+            {p.elements.length === 0 && <li className="layer-empty">{t('side.noElements')}</li>}
             {p.elements.map((e, i) => (
               <li
                 key={e.id}
