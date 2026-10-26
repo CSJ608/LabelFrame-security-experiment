@@ -211,8 +211,9 @@
 | 165 | 服务端受控发布与 Windows 客户端自动升级，默认确认安装及可选维护时段静默安装 | ✅ 用户确认1.4.6最终验收通过；隔离升级、安装器与插件修复及免验边界见 [#452](https://github.com/marci-labs/LabelFrame/issues/452) |
 | 166 | 客户端安装预检隐藏运行，保留同步退出码、失败阻断与日志 | ✅ 实现交付；Windows验证与用户复测见 [#458](https://github.com/marci-labs/LabelFrame/issues/458) |
 | 167 | 连接状态灯静态化：消除空闲持续重绘，保留颜色与状态更新 | ✅ 实现交付；无窗口隔离对照、回归与合并证据见 [#460](https://github.com/marci-labs/LabelFrame/issues/460) |
-| 168 | v1.5.0 性能成果集成与升级优先发布；只支持升级，暂不发行降级工具或新增 PDA 维护入口 | 🟡 发版前本地修复：空间预检、后台初始化与代际排空、ZPL 测量隔离；真机发现后台原生加载阻断，预加载恢复生命周期线程，待新固定 SHA 实机复验，远端门禁未执行，见 [#462](https://github.com/marci-labs/LabelFrame/issues/462) |
-| 169 | 模拟打印 PNG 配置开关、归属保护、定时清理与容量治理 | 🟡 本地实现及专项验证已落地；两个回归阻断已本地修复，仍待 #462 集成与发布门禁；不清理真实资源，未发布；见 [#463](https://github.com/marci-labs/LabelFrame/issues/463) |
+| 168 | v1.5.0 性能成果集成与升级优先发布；只支持升级，暂不发行降级工具或新增 PDA 维护入口 | ✅ 实现集成：PR #464 最新门禁全绿 squash `dc3d1a0`；1476 项本地含覆盖率回归、前端双模式各771、DT50 Debug/Release AOT隔离升级与生命周期/失败恢复、Linux实际挂载空间验证通过。发布与最终正式签名/产物核验仍待执行，20设备52ms性能欠账不变，[#462](https://github.com/marci-labs/LabelFrame/issues/462) 保持待验收 |
+| 169 | 模拟打印 PNG 配置开关、归属保护、定时清理与容量治理 | ✅ 实现交付：PR #464 最新门禁全绿合入，专项与完整回归通过；无真实图片清理或部署，证据见 [#463](https://github.com/marci-labs/LabelFrame/issues/463) |
+| 发布准备 | v1.5.0：迭代161～169及修复汇总；Builder、前端/Excel依赖、安全重启与受控升级、安装预检/状态灯、性能与本地作业库升级保护、PNG治理 | 🟡 版本记账，尚未打tag或发布；发布后核对正式APK证书、原子资源/Builder/镜像，并完成 [#462](https://github.com/marci-labs/LabelFrame/issues/462) 与 [#445](https://github.com/marci-labs/LabelFrame/issues/445) 的发布验收 |
 | 待需求 | 兼容与扩展（net48 / WMS 模板下发 / TSPL / 统计 / 契约 Pattern 校验） | 待定 |
 
 ## 待需求（有真实需求再排）
