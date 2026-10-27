@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="LabelFrame.WinHost.Tests" />
+    <InternalsVisibleTo Include="LabelFrame.Server.Tests" />
+    <None Update="ApkVerifierBridge.java" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <None Include="../../assets/updates/publisher.cer" Link="update-publisher.cer" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

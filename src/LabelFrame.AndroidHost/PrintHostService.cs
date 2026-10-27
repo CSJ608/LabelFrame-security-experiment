@@ -6,6 +6,7 @@ using LabelFrame.AndroidHost.Api;
 using LabelFrame.AndroidHost.Rendering;
 using LabelFrame.AndroidHost.Transport;
 using LabelFrame.AndroidHost.Transport.Plugins;
+using LabelFrame.AndroidHost.Updates;
 using LabelFrame.Core.Jobs;
 using LabelFrame.Core.Transport;
 
@@ -33,6 +34,10 @@ public sealed class PrintHostService : Service
     private Task? _printLoop;
     private Task? _routingLoop;
     private Task? _notifyLoop;
+    private Task? _updateLoop;
+    private RouteJournal? _routeJournal;
+    private AndroidUpdateInstaller? _updateInstaller;
+    private Task? _updateRecovery;
 
     /// <inheritdoc />
     public override void OnCreate()
@@ -66,12 +71,14 @@ public sealed class PrintHostService : Service
             $"服务器 {(config.ServerUrl.Length == 0 ? "未设置" : config.ServerUrl)}，" +
             $"打印机品牌 {config.PrinterBrand} {LabelHostConfig.PrinterDisplayText(this, printerFacts)}，" +
             $"本地 HTTP 127.0.0.1:{LabelHostConfig.LocalPort}");
+        var legacyRouteStateUnknown = File.Exists(config.DatabasePath) && !string.IsNullOrWhiteSpace(config.ServerUrl);
         var store = new SqliteLabelJobStore(config.DatabasePath);
         await store.InitializeAsync(token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         _store = store;
         _queue = new LabelJobQueue(store);
         _submission = new SubmissionService(_queue, LabelHostConfig.Dpi);
+        _routeJournal = new RouteJournal(System.IO.Path.Combine(FilesDir!.AbsolutePath, "route-journal.json"), config.ServerUrl, config.DeviceId, legacyRouteStateUnknown);
         if (!string.IsNullOrWhiteSpace(config.ServerUrl))
             _poller = new ServerPoller(config.ServerUrl, config.DeviceId, config.DeviceName);
     }
@@ -81,13 +88,17 @@ public sealed class PrintHostService : Service
         var config = _config!;
         _http = new EmbeddedHttpServer(LabelHostConfig.LocalPort, _submission!, _queue!, _store!, _transport!, this, _pluginHost!.Installer);
         _http.Start();
+        _updateInstaller = new AndroidUpdateInstaller(this, config, _pluginHost!, _store!, _routeJournal!, token);
+        _updateInstaller.Activate();
+        _updateRecovery = Task.Run(() => _updateInstaller.RecoverAsync(token), CancellationToken.None);
         HostStatus.NoteServiceStarted(config.ServerUrl, _printerFacts!);
         var printerEndpoint = LabelHostConfig.PrinterDisplayText(this, _printerFacts!);
         _printLoop = Task.Run(() => PrintLoopAsync(printerEndpoint, token), CancellationToken.None);
         _notifyLoop = Task.Run(() => NotificationLoopAsync(token), CancellationToken.None);
+        _updateLoop = Task.Run(() => AndroidUpdateMonitor.RunAsync(this, config, token), CancellationToken.None);
         if (_poller is not null)
         {
-            _routingLoop = Task.Run(() => RoutingLoopAsync(_poller, _submission!, _queue!, token), CancellationToken.None);
+            _routingLoop = Task.Run(() => RoutingLoopAsync(_poller, _submission!, _queue!, _routeJournal!, token), CancellationToken.None);
         }
         HostLog.Info(HostLog.Tags.Host, "打印服务初始化完成，已开放本地 HTTP 与 Worker");
     }
@@ -116,11 +127,14 @@ public sealed class PrintHostService : Service
             try
             {
                 await Task.WhenAll(_printLoop ?? Task.CompletedTask, _routingLoop ?? Task.CompletedTask,
-                    _notifyLoop ?? Task.CompletedTask).ConfigureAwait(false);
+                    _notifyLoop ?? Task.CompletedTask, _updateLoop ?? Task.CompletedTask,
+                    _updateRecovery ?? Task.CompletedTask).ConfigureAwait(false);
             }
             finally
             {
+                using var updateOperation = await UpdateOperation.Shared.EnterAsync(CancellationToken.None).ConfigureAwait(false);
                 _poller?.Dispose();
+                _updateInstaller?.Deactivate();
                 (_transport as IDisposable)?.Dispose();
             }
         }
@@ -133,6 +147,7 @@ public sealed class PrintHostService : Service
     /// <inheritdoc />
     public override void OnDestroy()
     {
+        _updateInstaller?.Deactivate();
         _lifetime.Dispose();
         HostStatus.NoteServiceStopped();
         HostLog.Info(HostLog.Tags.Host, "打印服务停止");
@@ -266,9 +281,12 @@ public sealed class PrintHostService : Service
         {
             try
             {
+                using var write = MaintenanceGate.Shared.TryEnterWrite();
+                if (write is null) { await Task.Delay(200, cancellationToken); continue; }
                 var next = await _queue!.ClaimNextItemAsync(cancellationToken);
                 if (next is null)
                 {
+                    write.Dispose();
                     await Task.Delay(200, cancellationToken);
                     continue;
                 }
@@ -320,17 +338,15 @@ public sealed class PrintHostService : Service
         ServerPoller poller,
         SubmissionService submission,
         LabelJobQueue queue,
+        RouteJournal journal,
         CancellationToken cancellationToken)
     {
-        // 与 WinHost ServerRoutingWorker 同构：主循环注册 / 长轮询 / 领取 / 投入队列，
-        // 回报循环终态立即回报、进行中按计数变化节流上报。
-        var localToServer = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
         var lastReported = new System.Collections.Concurrent.ConcurrentDictionary<string, (int Completed, int Failed)>();
         var interval = TimeSpan.FromSeconds(Math.Max(1, LabelHostConfig.PollIntervalSeconds));
         var notifyTimeout = TimeSpan.FromSeconds(20);
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var reportLoop = ReportFinishedLoopAsync(poller, localToServer, lastReported, queue, linked.Token);
+        var reportLoop = ReportFinishedLoopAsync(poller, journal, lastReported, queue, linked.Token);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -342,29 +358,42 @@ public sealed class PrintHostService : Service
                     while (!cancellationToken.IsCancellationRequested)
                     {
                         var signaled = await poller.WaitForJobAsync(notifyTimeout, cancellationToken);
-                        var jobs = await poller.FetchPendingAsync(cancellationToken);
-                        HostStatus.NoteServerContact();
-                        foreach (var job in jobs)
+                        using var write = MaintenanceGate.Shared.TryEnterWrite();
+                        if (write is null) { await Task.Delay(interval, cancellationToken); continue; }
+                        if (journal.Snapshot().Length == 0)
                         {
+                            journal.BeginClaim();
+                            try
+                            {
+                                var jobs = await poller.FetchPendingAsync(cancellationToken);
+                                journal.CompleteClaim(jobs);
+                            }
+                            catch { journal.AbandonClaim(); throw; }
+                            HostStatus.NoteServerContact();
+                        }
+                        foreach (var entry in journal.Snapshot().Where(e => e.LocalId is null && e.Failure is null))
+                        {
+                            var job = entry.Job;
                             var result = await submission.SubmitAsync(
                                 new SubmitJobRequest(job.RequestId, job.Template, job.Labels),
                                 cancellationToken);
                             if (result.Job is not null)
                             {
-                                // 幂等重放：同一 requestId 可能返回既有本地作业
-                                localToServer[result.Job.Id] = job.JobId;
+                                journal.Submitted(job.JobId, result.Job.Id, null);
                             }
                             else
                             {
                                 HostLog.Warn(
                                     HostLog.Tags.Server,
                                     $"Server 作业本地提交失败：作业 {job.JobId}（请求 {job.RequestId}）：{result.ErrorMessage}");
-                                await poller.ReportResultAsync(
-                                    job.JobId,
-                                    new JobResult("Failed", 0, job.TotalItems, result.ErrorMessage),
-                                    cancellationToken);
+                                journal.Submitted(job.JobId, null, new JobResult("Failed", 0, job.TotalItems, result.ErrorMessage));
                             }
                         }
+
+                        write.Dispose();
+                        if (journal.ClaimUncertain)
+                            HostStatus.NoteServerError("历史路由领取结果不确定，升级已阻断；请核对原服务端作业，新作业路由仍可继续。");
+                        if (journal.HasOutstanding) await Task.Delay(interval, cancellationToken);
 
                         if (!signaled)
                         {
@@ -410,7 +439,7 @@ public sealed class PrintHostService : Service
     /// <summary>回报 / 进度循环：周期检查本地作业——终态回报结果，进行中节流上报进度（计数有变化才发）。</summary>
     private static async Task ReportFinishedLoopAsync(
         ServerPoller poller,
-        System.Collections.Concurrent.ConcurrentDictionary<string, string> localToServer,
+        RouteJournal journal,
         System.Collections.Concurrent.ConcurrentDictionary<string, (int Completed, int Failed)> lastReported,
         LabelJobQueue queue,
         CancellationToken cancellationToken)
@@ -419,8 +448,17 @@ public sealed class PrintHostService : Service
         {
             try
             {
-                foreach (var (localJobId, serverJobId) in localToServer.ToList())
+                foreach (var entry in journal.Snapshot())
                 {
+                    var serverJobId = entry.Job.JobId;
+                    if (entry.Failure is not null)
+                    {
+                        await poller.ReportResultAsync(serverJobId, entry.Failure, cancellationToken);
+                        journal.Reported(serverJobId);
+                        continue;
+                    }
+                    var localJobId = entry.LocalId;
+                    if (localJobId is null) continue;
                     var local = await queue.GetAsync(localJobId, cancellationToken);
                     if (local is null)
                     {
@@ -440,7 +478,7 @@ public sealed class PrintHostService : Service
                                 failed,
                                 local.Items.FirstOrDefault(i => i.ErrorMessage is not null)?.ErrorMessage),
                             cancellationToken);
-                        localToServer.TryRemove(localJobId, out _);
+                        journal.Reported(serverJobId);
                         lastReported.TryRemove(localJobId, out _);
                         continue;
                     }

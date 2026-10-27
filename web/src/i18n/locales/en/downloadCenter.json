@@ -72,6 +72,38 @@
     "bodyWindows": "Delete package \"{{name}}\"? Clients will no longer be able to download it from the server.",
     "bodyAndroid": "Delete APK \"{{name}}\"? PDA QR-code downloads will no longer work."
   },
+  "androidPublish": {
+    "refreshRequired": "The operation failed or its outcome is unconfirmed. Load the latest releases and device status before acting again; do not immediately repeat publishing.",
+    "title": "Publish Android updates",
+    "hint": "APKs above are manual distribution drafts. Publishing verifies the actual package, version, signature and compatibility and creates an immutable snapshot. Devices download in the background; installation requires user confirmation in Android. Silent installation is not available.",
+    "scopeHint": "Required: device IDs separated by commas or newlines. Empty does not mean all devices.",
+    "allConfirm": "I confirm publishing to all eligible devices, including future registrations",
+    "pauseHint": "Pausing blocks subsequent eligibility checks and downloads, but cannot revoke installation already submitted to Android. Publish the same APK again for a new device batch; existing scopes are immutable.",
+    "published": "Published at",
+    "reportHint": "Unauthenticated device reports are not live status or trusted health evidence. Reports older than 5 minutes are marked stale. Load again to refresh.",
+    "stale": "Stale report: older than 5 minutes",
+    "reported": "Device report (unauthenticated)",
+    "phases": {
+      "idle": "No eligible update",
+      "unconfigured": "Server not configured",
+      "unsupported": "Controlled updates unsupported",
+      "checking": "Checking update",
+      "downloading": "Downloading in background",
+      "ready": "Verified, awaiting confirmation",
+      "failed": "Check or download failed",
+      "blocked": "Update blocked",
+      "preparing": "Preparing installation",
+      "submitted": "Submitted to Android",
+      "confirmation": "Awaiting system confirmation",
+      "recovering": "Checking recovery health",
+      "unknown": "Outcome unknown; printing frozen",
+      "rejected": "System rejected; checking safe cancellation",
+      "repair": "Recovery failed; repair required",
+      "succeeded": "Recovery verified (device report)",
+      "cancelled": "Cancellation verified",
+      "manually-resumed": "Manually resumed (not verified successful)"
+    }
+  },
   "publish": {
     "title": "Publish client updates",
     "hint": "Files above are manual distribution drafts. Publishing validates the real MSI, version, compatibility and pinned publisher. Published content and device scope are immutable; a release can be paused or resumed.",

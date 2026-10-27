@@ -19,6 +19,8 @@ ServerDb 实例内运行期写入口共用异步门，等待支持取消；读�
 
 ## 2. 内部结构
 
+Android 受控发布由 `AndroidUpdatesService` 与 `Api/AndroidUpdatesApi` 提供独立数据面，真实 APK 验签适配位于 `LabelFrame.Updates/AndroidPackageInspector`。草稿分发不触发更新；管理端复用 `ClientUpdatesApi.Authorized` 的独立口令、传输与 Origin 校验，打印 API 仍沿用既有局域网边界。快照、批次、状态及校验工具部署契约见 [Android 更新](android-updates.md)。当前仅系统确认安装，静默仍被安全交接阻断。
+
 | 分组 | 文件 | 角色 |
 |---|---|---|
 | 入口与装配 | Program.cs | top-level 组装：配置绑定、日志通道、DI 单例、4 个后台服务、端点映射、SPA fallback |

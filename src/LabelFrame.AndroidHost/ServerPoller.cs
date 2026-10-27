@@ -29,7 +29,8 @@ public sealed class ServerPoller : IDisposable
     public ServerPoller(string serverUrl, string deviceId, string? deviceName = null)
     {
         // 超时按请求单独控制（notify 长轮询可达 20s+，不能被全局 Timeout 掐断）
-        _http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        _http = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false })
+            { Timeout = Timeout.InfiniteTimeSpan, MaxResponseContentBufferSize = 64 * 1024 * 1024 };
         _serverUrl = serverUrl.TrimEnd('/');
         _deviceId = deviceId;
         _deviceName = string.IsNullOrWhiteSpace(deviceName) ? deviceId : deviceName;
@@ -54,7 +55,7 @@ public sealed class ServerPoller : IDisposable
     public async Task<bool> WaitForJobAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         var seconds = (int)Math.Clamp(timeout.TotalSeconds, 1, 30);
-        var response = await GetAsync($"{_serverUrl}/api/devices/{_deviceId}/jobs/notify?timeout={seconds}", timeout + TimeSpan.FromSeconds(5), cancellationToken);
+        using var response = await GetAsync($"{_serverUrl}/api/devices/{_deviceId}/jobs/notify?timeout={seconds}", timeout + TimeSpan.FromSeconds(5), cancellationToken);
         var body = await response.Content.ReadFromJsonAsync<NotifyResult>(_json, cancellationToken);
         return body?.HasPending ?? false;
     }
@@ -62,10 +63,13 @@ public sealed class ServerPoller : IDisposable
     /// <summary>领取本设备的定向作业。</summary>
     public async Task<IReadOnlyList<PendingJob>> FetchPendingAsync(CancellationToken cancellationToken = default)
     {
-        var response = await GetAsync($"{_serverUrl}/api/devices/{_deviceId}/jobs/pending", RequestTimeout, cancellationToken);
-        var jobs = await response.Content.ReadFromJsonAsync<List<ClaimedJobDto>>(_json, cancellationToken) ?? [];
+        using var response = await GetAsync($"{_serverUrl}/api/devices/{_deviceId}/jobs/pending", RequestTimeout, cancellationToken);
+        var jobs = await response.Content.ReadFromJsonAsync<List<ClaimedJobDto>>(_json, cancellationToken)
+            ?? throw new InvalidDataException("路由领取响应为空，不能确认领取结果。");
+        if (jobs.Any(j => string.IsNullOrWhiteSpace(j.JobId) || string.IsNullOrWhiteSpace(j.RequestId)
+            || j.Payload?.Template is null || j.Payload.Labels is null))
+            throw new InvalidDataException("路由领取响应不完整，不能丢弃未识别作业。");
         return jobs
-            .Where(j => j.JobId is not null && j.RequestId is not null && j.Payload?.Template is not null && j.Payload.Labels is not null)
             .Select(j => new PendingJob(j.JobId!, j.RequestId!, j.TotalItems, j.Payload!.Template!, j.Payload.Labels!))
             .ToList();
     }
@@ -101,15 +105,15 @@ public sealed class ServerPoller : IDisposable
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
         var response = await _http.GetAsync(url, cts.Token);
-        response.EnsureSuccessStatusCode();
-        return response;
+        try { response.EnsureSuccessStatusCode(); return response; }
+        catch { response.Dispose(); throw; }
     }
 
     private async Task PostAsync(string url, object payload, TimeSpan timeout, CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
-        var response = await _http.PostAsJsonAsync(url, payload, _json, cts.Token);
+        using var response = await _http.PostAsJsonAsync(url, payload, _json, cts.Token);
         response.EnsureSuccessStatusCode();
     }
 

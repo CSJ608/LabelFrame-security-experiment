@@ -211,6 +211,8 @@ public sealed partial class MainActivity
     /// <summary>从服务器下载插件包并经本地 HTTP 安装（三层校验含平台门）→ 重启打印服务生效。</summary>
     private async Task InstallPluginAsync(string serverUrl, ServerPluginPackageDto package)
     {
+        using var write = Updates.MaintenanceGate.Shared.TryEnterWrite()
+            ?? throw new InvalidOperationException("应用升级维护中，暂不能安装插件。");
         RunOnUiThread(() =>
         {
             _pluginStatusText.Text = L(Resource.String.plugins_downloading, package.Name);
@@ -281,6 +283,8 @@ public sealed partial class MainActivity
     /// <summary>卸载已装插件（本地 HTTP）→ 重启打印服务生效；卸载后如配置还指向该品牌则回退 Zebra。</summary>
     private async Task UninstallPluginAsync(string pluginId)
     {
+        using var write = Updates.MaintenanceGate.Shared.TryEnterWrite()
+            ?? throw new InvalidOperationException("应用升级维护中，暂不能卸载插件。");
         try
         {
             using var response = await Http.PostAsync(

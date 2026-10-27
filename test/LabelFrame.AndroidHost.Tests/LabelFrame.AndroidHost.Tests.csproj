@@ -23,6 +23,18 @@
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Errors\LfErrorCatalog.cs" Link="Errors\LfErrorCatalog.cs" />
     <Compile Include="..\..\src\LabelFrame.AndroidHost\Api\ImagePayloadDecoder.cs" Link="Api\ImagePayloadDecoder.cs" />
     <Compile Include="..\..\src\LabelFrame.AndroidHost\ServiceLifetime.cs" Link="ServiceLifetime.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\RouteJournal.cs" Link="Updates\RouteJournal.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\RecoveryAudit.cs" Link="Updates\RecoveryAudit.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\MaintenanceGate.cs" Link="Updates\MaintenanceGate.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\MaintenanceSafety.cs" Link="Updates\MaintenanceSafety.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\InstallTransaction.cs" Link="Updates\InstallTransaction.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\UpdateOperation.cs" Link="Updates\UpdateOperation.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\UpdateInteraction.cs" Link="Updates\UpdateInteraction.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\UpdateStatusProjection.cs" Link="Updates\UpdateStatusProjection.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Api\Dtos.cs" Link="Api\Dtos.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\ServerPoller.cs" Link="ServerPoller.cs" />
+    <Compile Include="..\..\src\LabelFrame.AndroidHost\Updates\UpdateDownloadClient.cs" Link="Updates\UpdateDownloadClient.cs" />
+    <Compile Include="..\..\src\LabelFrame.Updates\AndroidUpdateModels.cs" Link="Updates\AndroidUpdateModels.cs" />
   </ItemGroup>
 
 </Project>

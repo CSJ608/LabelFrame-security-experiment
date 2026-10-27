@@ -51,6 +51,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LabelFrame.Core\LabelFrame.Core.csproj" />
+    <Compile Include="..\LabelFrame.Updates\AndroidUpdateModels.cs" Link="Updates\AndroidUpdateModels.cs" />
+    <AndroidMavenLibrary Include="com.android.tools.build:apksig" Version="8.9.2" Repository="Google" Bind="false" />
   </ItemGroup>
 
 </Project>

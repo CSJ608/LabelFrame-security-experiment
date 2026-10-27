@@ -347,6 +347,26 @@ Windows/Linux 可在停机后的原数据路径维护，须具备目录写权限
 
 ### PDA（Android 宿主）安装包分发与扫码下载
 
+Android 受控升级采用独立的 `/api/android-updates` 发布面；草稿上传不等于发布。当前实现阶段仅系统确认安装，DT50 厂商静默安装因安全文件交接未通过而禁用，不能用共享 Download 目录或放宽权限绕过。完整客户端交付与验收状态见 [#474](https://github.com/marci-labs/LabelFrame/issues/474)。
+
+Docker 部署继续沿用原来的镜像＋资源包更新方式：新镜像内置 APK 校验所需工具和 LabelFrame 既有正式 Android 发布证书指纹，不需要现场安装 Java/Android SDK、挂载工具目录或新增容器。资源包仍将 APK 放入 `pda-packages`；管理员在下载中心选择 APK 和设备批次发布，PDA 后台下载后由用户系统确认安装。单纯替换资源包不自动向所有设备安装。发布快照使用现有数据卷，无额外挂载；已有更新管理口令与 HTTPS 反代继续复用。
+
+以下配置用于非容器部署或自定义工具/签名覆盖，普通官方 Docker 部署不必逐项设置。缺失或配置错误时拒绝受控发布，原手工分发仍可用：
+
+| 配置 / 环境变量 | 用途 |
+|---|---|
+| `Server.AndroidJavaPath` / `LABELFRAME_ANDROID_JAVA` | JDK 17+ 的 `java` / `java.exe` 绝对路径 |
+| `Server.AndroidApksignerJarPath` / `LABELFRAME_ANDROID_APKSIGNER_JAR` | 官方 Android SDK Build Tools `lib/apksigner.jar` 绝对路径 |
+| `Server.AndroidAapt2Path` / `LABELFRAME_ANDROID_AAPT2` | 同套 Build Tools `aapt2` / `aapt2.exe` 绝对路径 |
+| `Server.AndroidPublisherSha256` / `LABELFRAME_ANDROID_PUBLISHER_SHA256` | 管理员从可信发行证书预先核实的 64 位十六进制 SHA256，不从上传包自动认领 |
+| `Server.AndroidUpdatesPath` / `LABELFRAME_SERVER_ANDROID_UPDATES` | 独立快照目录，默认服务器数据目录下 `android-updates`，须持久化与备份 |
+
+管理权限复用 `LABELFRAME_SERVER_UPDATE_ADMIN_TOKEN` 和 HTTPS/回环＋Origin 校验；口令不放 URL 或浏览器持久存储。非容器 Windows/Linux 需要 JDK（仅 JRE 不满足源文件启动器）及适合本平台的工具。Docker 构建时内置 JDK17、Google Maven apksig 8.9.2 与 aapt2 8.9.2-12782657（固定 SHA256），运行时不下载工具。内置可信指纹来自已核验的 v1.5.0/v1.4.0 正式 APK，证据见 [发布核验](https://github.com/marci-labs/LabelFrame/issues/468)；自签环境可覆盖，不会自动信任上传包。程序随附 `ApkVerifierBridge.java` 检查完整签名；只接受非调试、单一签名、无轮转且具有更新元数据的宿主包。旧版无协议元数据 APK 继续手工分发，不能以修改文件名使其成为受控更新。
+
+PDA 历史路由未知或安装恢复异常可在「应用更新 → 管理员人工恢复」处理：输入原服务端更新管理口令及核对原因，阅读风险后确认。仍有整批/挂起作业、待回报或活动安装会话时不能跳过；原异常留在应用私有 `recovery-audit`，结果标记为人工恢复而不是升级成功。此入口不自动重打、不删除数据；服务端不可达时不能验证管理员口令，需恢复连接后重试。
+
+最多 100 个发布批次、每包最多 64MiB；同版同内容可分批发布，同版不同内容禁止。全量设备须明确确认；暂停影响候选和下载资格，但不能保证撤销已提交系统的安装。状态是带服务端接收时间的设备自报，不是设备身份认证或实时健康证明。暂不提供自动降级、自动信任新签名或卸载清数据换签名路径。
+
 - 目录 `pda-packages`（Windows `%ProgramData%\LabelFrame\server\pda-packages`；Linux `/var/lib/labelframe/server/pda-packages`；环境变量 `LABELFRAME_SERVER_PDA_PACKAGES` 可覆盖；Docker compose 默认挂载 `./pda-packages`）——与 `client-packages` 模式对称。
 - 目录直放 APK 或经管理界面「下载中心」页「PDA 下载」区上传（上传仅接受 `.apk`；目录直放不限制扩展名）。
 - API：`GET/POST /api/pda-packages`、`GET/DELETE /api/pda-packages/{file}`（路径穿越防护；不存在 404 + `LF_SRV_010`）。**APK 下载响应 MIME 固定 `application/vnd.android.package-archive`**——Android 浏览器据此识别为安装包直接拉起安装。

@@ -120,6 +120,7 @@ public sealed partial class MainActivity
 
     private void RefreshStatus()
     {
+        RefreshUpdateStatus();
         if (_statusSummary is null || _serverEntrySummary is null)
         {
             return;

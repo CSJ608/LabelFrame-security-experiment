@@ -18,5 +18,6 @@ public sealed class HostApplication : Application
     {
         CrashGuard.Register();
         base.OnCreate();
+        Updates.AndroidUpdateInstaller.InitializeProcess(this);
     }
 }

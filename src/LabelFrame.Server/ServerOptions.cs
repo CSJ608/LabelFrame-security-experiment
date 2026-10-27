@@ -82,6 +82,17 @@ public sealed class ServerOptions
     /// <summary>不可变客户端更新发布目录。</summary>
     public string ClientUpdatesPath { get; set; } = Path.Combine(DefaultDataDirectory, "client-updates");
 
+    /// <summary>Android 受控发布的独立快照目录。</summary>
+    public string AndroidUpdatesPath { get; set; } = Path.Combine(DefaultDataDirectory, "android-updates");
+    /// <summary>APK 校验使用的 Java 可执行文件绝对路径。</summary>
+    public string? AndroidJavaPath { get; set; }
+    /// <summary>官方 apksigner.jar 绝对路径。</summary>
+    public string? AndroidApksignerJarPath { get; set; }
+    /// <summary>官方 aapt2 可执行文件绝对路径。</summary>
+    public string? AndroidAapt2Path { get; set; }
+    /// <summary>由部署管理员预先配置的 Android 发布证书指纹。</summary>
+    public string? AndroidPublisherSha256 { get; set; }
+
     /// <summary>客户端安装包目录（服务端统一分发客户端安装包；Windows %ProgramData%\\LabelFrame\\server\\client-packages；Linux /var/lib/labelframe/server/client-packages）。</summary>
     public static string DefaultClientPackagesPath => Path.Combine(DefaultDataDirectory, "client-packages");
 
@@ -109,6 +120,11 @@ public sealed class ServerOptions
     {
         UpdateAdminToken = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_UPDATE_ADMIN_TOKEN") ?? UpdateAdminToken;
         ClientUpdatesPath = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_CLIENT_UPDATES") ?? ClientUpdatesPath;
+        AndroidUpdatesPath = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_ANDROID_UPDATES") ?? AndroidUpdatesPath;
+        AndroidJavaPath = Environment.GetEnvironmentVariable("LABELFRAME_ANDROID_JAVA") ?? AndroidJavaPath;
+        AndroidApksignerJarPath = Environment.GetEnvironmentVariable("LABELFRAME_ANDROID_APKSIGNER_JAR") ?? AndroidApksignerJarPath;
+        AndroidAapt2Path = Environment.GetEnvironmentVariable("LABELFRAME_ANDROID_AAPT2") ?? AndroidAapt2Path;
+        AndroidPublisherSha256 = Environment.GetEnvironmentVariable("LABELFRAME_ANDROID_PUBLISHER_SHA256") ?? AndroidPublisherSha256;
         if (Environment.GetEnvironmentVariable("LABELFRAME_SERVER_LISTEN") is { } listen)
         {
             ListenUrl = listen;

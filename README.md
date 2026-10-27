@@ -87,7 +87,7 @@ curl -X POST http://<服务器>:53961/api/jobs \
 | Linux Docker | 更新 `.env` 中的版本号（或改 `latest`）后 `docker compose up -d` | 数据卷保留；回滚＝改回旧版本号重建 |
 | Windows Server 离线包 | 有网准备机运行 Builder 的 `build-windows-offline.ps1` 生成 Full / Upgrade；目标机解压后运行 `install-server.cmd` | Full 含三类离线运行时（WebView2 为 x64 Standalone），Installer 只按需补 Server 所需 ASP.NET Core；Upgrade 零 runtime，缺前置时改用 Full；配置与数据保留 |
 | Docker 离线部署包 | 有网准备机运行 `build-docker-offline.sh` 生成归档；在**当初部署的同一目录**解压新版后继续运行包内 `install.sh`（勿换目录） | 数据卷与配置不动；回滚＝旧版包同目录重跑 |
-| PDA（Android） | 下载中心扫码或直接下载新版 APK 覆盖安装 | 配置保留（同签名来源）；换签名来源的 APK 须先卸载重装 |
+| PDA（Android） | 管理员受控发布后后台下载，在“本机信息”点击“更新”并按系统提示安装；也可同签名手工覆盖 | 正常升级保留配置；签名不同拒绝升级。人工卸载重装会丢失本机配置和作业记录，需重新配置，不是无损升级 |
 
 升级顺序建议（先服务端后客户端）、模板兼容注意与各形态详细步骤见[部署指南](docs/DEPLOY.md) 的「升级与迁移」一节。
 

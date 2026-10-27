@@ -21,6 +21,7 @@ import type { ClientPackageInfo, PdaPackageInfo } from '../lib/api/types'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
 import { ClientUpdatePublishing } from '../components/ClientUpdatePublishing'
+import { AndroidUpdatePublishing } from '../components/AndroidUpdatePublishing'
 import { formatSize } from '../lib/download'
 import { copyText } from '../lib/clipboard'
 import { deriveBasePath, joinAddress, pickDisplayAddress } from '../lib/connection'
@@ -617,6 +618,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
             ) : (
               <PackageTable rows={pdaRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'pda', row })} />
             )}
+            <AndroidUpdatePublishing fileNames={(pdaRows ?? []).map(row => row.fileName)} />
           </>
         )}
       </div>

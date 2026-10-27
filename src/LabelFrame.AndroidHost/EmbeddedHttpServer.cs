@@ -5,6 +5,7 @@ using LabelFrame.AndroidHost.Api;
 using LabelFrame.Core.Jobs;
 using LabelFrame.Core.Transport;
 using LabelFrame.Core.Transport.Plugins;
+using LabelFrame.AndroidHost.Updates;
 
 namespace LabelFrame.AndroidHost;
 
@@ -141,7 +142,10 @@ public sealed class EmbeddedHttpServer : IDisposable
             var (m, p, headers, bodyBytes) = await ReadRequestAsync(stream, cancellationToken);
             method = m;
             path = p;
-            var response = Route(method, path, headers, bodyBytes, cancellationToken);
+            using var write = method is not ("GET" or "OPTIONS") ? MaintenanceGate.Shared.TryEnterWrite() : null;
+            var response = method is not ("GET" or "OPTIONS") && write is null
+                ? Json(409, new ErrorView("LF_UPDATE_BUSY", "应用升级维护中，暂不接受作业、配置或插件变更。"))
+                : Route(method, path, headers, bodyBytes, cancellationToken);
             await WriteResponseAsync(stream, response, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

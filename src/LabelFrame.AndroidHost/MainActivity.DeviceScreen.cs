@@ -22,6 +22,7 @@ public sealed partial class MainActivity
     private TextView _deviceIdText = null!;
     private EditText _deviceNameInput = null!;
     private TextView _deviceSaveHint = null!;
+    private Button _deviceSaveButton = null!;
 
     // ---------- 本机信息子页 ----------
 
@@ -56,13 +57,15 @@ public sealed partial class MainActivity
 
         _deviceSaveHint = SaveHint();
         content.AddView(_deviceSaveHint);
-        content.AddView(SaveButton(() => RunAsync(SaveDeviceAsync)));
+        _deviceSaveButton = SaveButton(() => RunAsync(SaveDeviceAsync));
+        content.AddView(_deviceSaveButton);
         content.AddView(Spacing(16));
 
         content.AddView(FieldLabel(L(Resource.String.device_version_label)));
         content.AddView(TextView(HostInfo.GetVersion(this), 14, ColorText));
         content.AddView(Spacing(4));
         content.AddView(Subtle(L(Resource.String.device_version_note)));
+        AddUpdateSection(content);
 
         return WrapScroll(content);
     }
