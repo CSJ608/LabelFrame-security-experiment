@@ -15,6 +15,13 @@ using Microsoft.Extensions.Hosting;
 // 与已弃用的 HttpOverrides.IPNetwork 区分，网段统一用 net10 的 System.Net.IPNetwork
 using IPNetwork = System.Net.IPNetwork;
 
+if (args.Any(arg => arg.StartsWith(AdminPasswordCommand.Name, StringComparison.Ordinal)))
+{
+    Environment.ExitCode = AdminPasswordCommand.Run(args, Console.IsInputRedirected, Console.IsOutputRedirected,
+        () => Console.ReadKey(intercept: true), Console.Out, Console.Error);
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
