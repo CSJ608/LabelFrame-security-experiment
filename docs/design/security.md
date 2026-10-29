@@ -8,6 +8,8 @@
 
 ## 2. 内部结构
 
+当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。前端登录/退出及旧 fixture 迁移尚未交付，因此原型不可作为完整产品使用。
+
 权限分类使用 ASP.NET 路由匹配后的 RouteEndpoint 原始模板及 HTTP 方法，而不是请求字符串前缀；新端点未登记时落到 admin。方法不符、大小写、尾斜杠与编码路径不能获得不同于实际选中端点的权限。保留框架已有上传大小限制、文件名安全检查、签名校验、快照和安装保护。
 
 首增量使用 ASP.NET Core CookieAuthentication、IAntiforgery、PasswordHasher 与服务端 ITicketStore，不自创加密。Cookie HttpOnly、SameSite=Strict、无 Domain、HTTPS 时 Secure；固定 8 小时不滑动，浏览器不持久保存密码或令牌。服务端会话有容量上限与过期清理；注销删除票据，旧 Cookie 重放失效。单进程内存会话与临时 DataProtection 密钥使重启强制浏览器重新登录；这不是设备重新配对。

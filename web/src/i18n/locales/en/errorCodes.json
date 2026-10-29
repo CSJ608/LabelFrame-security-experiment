@@ -1,4 +1,5 @@
 {
+  "LF_AUTH_DENIED": "Administrator access was denied. Check your session, request verification and secure connection; wait before retrying if rate limited.",
   "LF_API_001": "Invalid request (missing required fields or invalid parameters).",
   "LF_API_BAD_BODY": "Invalid request body or parameters: not valid JSON, not UTF-8, or a parameter type mismatch. Check the request content and Content-Type (application/json; charset=utf-8), then retry.",
   "LF_JOB_001": "Job not found: {{jobId}}.",

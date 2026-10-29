@@ -1,5 +1,7 @@
 # LabelFrame.Server 模块设计
 
+> 实验覆盖：Server 已接入 [管理安全原型](security.md)，管理端点默认认证，公开 info 不再含监听/代理配置。下文“全部无鉴权”与更新专用口令属于来源历史；当前来源基线更新权限见 [update-publishing](update-publishing.md)。实验前端与完整回归仍在进行，不可部署；WinHost 共享端点行为未改。
+
 > 覆盖：`src/LabelFrame.Server/`（30 文件，约 3,550 行）＋ `test/LabelFrame.Server.Tests/`（33 文件，约 5,130 行）· 基线：`master` `7486dae`（2026-10-19）
 > 分工与模板说明见 [README.md](README.md)；决策原文见 [DESIGN.md](../DESIGN.md) 决策表。
 
