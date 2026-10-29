@@ -1,3 +1,4 @@
+# 仅保留来源追溯：安全实验禁止执行此发布流水线，不得恢复为 .yml/.yaml。
 # LabelFrame 自动发布流水线：构建原子产物、镜像、安装引导与离线部署 Builder 后创建 Release。
 # 触发：推送 v* tag（如 v0.17.0）；也可手动运行 workflow_dispatch 指定版本号。
 # 流程：测试与前端双构建 → 原子产物与 Android → 镜像候选 E2E / 推送并锚定 digest → 安装引导与同源清单 → 离线部署 Builder → GitHub Release。
