@@ -30,6 +30,7 @@ public sealed class JobStorageStartupTests
             HostLogPath = Path.Combine(directory, "host.log"),
             PrintOutputPath = Path.Combine(directory, "print"),
             AppLogDirectory = Path.Combine(directory, "logs"),
+            WebUiPath = Path.Combine(directory, "web"),
             ServerUrl = null,
             Transport = TransportMode.Log,
             OpenBrowser = false,
@@ -37,6 +38,7 @@ public sealed class JobStorageStartupTests
         };
         try
         {
+            Directory.CreateDirectory(options.WebUiPath!);
             await new SqliteLabelJobStore(options.DatabasePath).InitializeAsync();
             using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
             {

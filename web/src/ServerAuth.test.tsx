@@ -121,3 +121,23 @@ it('其他标签退出立即清理管理树，旧回调不能再发管理请求'
   await expect(serverApi.listTemplates()).rejects.toMatchObject({ name: 'AbortError' })
   expect(fetchMock.mock.calls).toHaveLength(count)
 })
+
+it('注销在途收到重复跨标签失效仍禁止登录，直到撤销结果确定', async () => {
+  render(<App />)
+  await login()
+  let finish!: (value: Response) => void
+  fetchMock.mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve }))
+  fireEvent.click(screen.getByText('退出管理'))
+  await waitFor(() => expect(finish).toBeTypeOf('function'))
+  act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'labelframe.admin.invalidated', newValue: 'duplicate' })))
+  const input = screen.getByLabelText('管理员密码') as HTMLInputElement
+  expect(input.disabled).toBe(true)
+  const count = fetchMock.mock.calls.length
+  fireEvent.change(input, { target: { value: 'synthetic-only' } })
+  fireEvent.submit(input.closest('form')!)
+  expect(fetchMock.mock.calls).toHaveLength(count)
+  await act(async () => { finish(new Response('{}', { status: 503 })) })
+  expect(screen.getByRole('alert').textContent).toContain('撤销尚未确认')
+  expect(input.disabled).toBe(false)
+  expect(screen.queryByText('management-probe')).toBeNull()
+})

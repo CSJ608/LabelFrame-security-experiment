@@ -20,6 +20,7 @@ export function ServerAuthBoundary({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [hash, setHash] = useState(window.location.hash)
   const epoch = useRef(0)
+  const revoking = useRef(false)
   const allowed = SERVER_TABS.map(tab => tab.id)
   const route = parseHash(hash, allowed)
   const publicDownload = !hash || hash === '#/' || (route.page === 'packages' && !['windows', 'android'].includes(route.sub))
@@ -32,7 +33,7 @@ export function ServerAuthBoundary({ children }: { children: ReactNode }) {
     const unsubscribe = onAdminInvalidated(() => {
       epoch.current++
       setHash(window.location.hash)
-      setAdmin(false); setPassword(''); setChecking(false); setBusy(false)
+      setAdmin(false); setPassword(''); setChecking(false); setBusy(revoking.current)
     })
     const stopTabs = watchAdminTabs()
     const hide = () => invalidateAdmin(false)
@@ -70,7 +71,7 @@ export function ServerAuthBoundary({ children }: { children: ReactNode }) {
   }, [admin])
 
   const login = async () => {
-    if (busy) return
+    if (busy || revoking.current) return
     const current = epoch.current
     const supplied = password
     setPassword(''); setBusy(true); setError('')
@@ -85,12 +86,14 @@ export function ServerAuthBoundary({ children }: { children: ReactNode }) {
     } finally { if (current === epoch.current) setBusy(false) }
   }
   const logout = async () => {
+    if (revoking.current) return
+    revoking.current = true
     let revocation!: Promise<void>
     // 必须先卸载敏感树，再等待网络撤销结果。
     flushSync(() => { revocation = logoutAdmin(); setBusy(true); setError('') })
     try { await revocation }
     catch { setError(i18next.t('shell:auth.logoutUnconfirmed')) }
-    finally { setBusy(false) }
+    finally { revoking.current = false; setBusy(false) }
   }
 
   if (admin) return <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

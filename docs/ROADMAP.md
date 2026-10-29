@@ -3,7 +3,7 @@
 ## 安全实验索引（与下方上游历史分开）
 
 - 治理与发布隔离：[实验 #1](https://github.com/CSJ608/LabelFrame-security-experiment/issues/1)，验收/PR 状态以 Issue 为准；计划与边界见 [EXPERIMENT.md](EXPERIMENT.md)。尚未交付安全认证。
-- 进行中：[实验 #3](https://github.com/CSJ608/LabelFrame-security-experiment/issues/3)，Server 管理认证与前端公开/管理树隔离、登录/退出、CSRF 与请求代数已接线；已做双模式回归及真实浏览器隔离实测，完整产品回归与机器认证仍欠，不算整体验收，证据以 Issue 为准。
+- 进行中：[实验 #3](https://github.com/CSJ608/LabelFrame-security-experiment/issues/3)，Server 管理认证与前端公开/管理树隔离、登录/退出、CSRF 与请求代数已接线；补修重复失效下的注销等待竞态，完成隔离 WinHost 内存宿主端点与跨平台宿主定向回归。已有双模式及真实浏览器证据，完整解决方案测试、产品回归与机器认证仍欠，不算整体验收，证据以 Issue 为准。
 
 > 迭代索引与状态总览。**立项 / 执行 / 验收在 GitHub Issue**（「迭代任务」模板立项，链接见下表）；流程见 [WORKFLOW.md](WORKFLOW.md)。
 > 迭代 0-41 的目标 / 范围 / 验收详情：[archive/ROADMAP-ITERATIONS.md](archive/ROADMAP-ITERATIONS.md)；迭代 42 起详情在对应 Issue。

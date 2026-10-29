@@ -36,6 +36,7 @@ public sealed class LinuxClientHostTests
             PrintSettingsPath = Path.Combine(root, "print-settings.json"),
             ConnectionPath = Path.Combine(root, "connection.json"),
             HostLogPath = Path.Combine(root, "host.log"),
+            AppLogDirectory = Path.Combine(root, "logs"),
             PrintOutputPath = Path.Combine(root, "print"),
             SaveLogPrintImages = saveImages,
             PluginsPath = Path.Combine(root, "plugins"),
@@ -48,6 +49,7 @@ public sealed class LinuxClientHostTests
         WebApplication? app = null;
         try
         {
+            Directory.CreateDirectory(options.WebUiPath!);
             app = await WinHostApp.BuildAsync(
                 options,
                 TextWriter.Null,
@@ -94,7 +96,9 @@ public sealed class LinuxClientHostTests
                 return;
             }
             Assert.True(new FileInfo(expectedImage).Length > 0);
-            using var bitmap = SKBitmap.Decode(expectedImage);
+            // Windows 长实验路径由托管文件 API 读取，避免原生解码器的路径长度限制。
+            using var bitmap = SKBitmap.Decode(await File.ReadAllBytesAsync(expectedImage));
+            Assert.NotNull(bitmap);
             var luminance = new RGBLuminanceSource(
                 bitmap.Bytes,
                 bitmap.Width,

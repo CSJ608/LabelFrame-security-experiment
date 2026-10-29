@@ -10,6 +10,8 @@ using LabelFrame.WinHost;
 using LabelFrame.WinHost.Transport;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -204,6 +206,12 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
     [Fact]
     public async Task Host_config_get_post_and_loopback_guard()
     {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, 0));
+        await using var isolatedServer = builder.Build();
+        isolatedServer.Run(context => { context.Response.StatusCode = 503; return Task.CompletedTask; });
+        await isolatedServer.StartAsync();
+        var serverUrl = isolatedServer.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
         // GET：默认 serverUrl 为空 + deviceId 透出 + 只读 version（客户端「检查更新」比较口径）
         var config = await JsonAsync("/api/host/config");
         Assert.Equal(string.Empty, config.GetProperty("serverUrl").GetString());
@@ -217,15 +225,17 @@ public sealed class WinHostEndpointsTests : WinHostIntegrationTestBase
         Client.DefaultRequestHeaders.Remove(RemoteIpHeader);
 
         // 回环来源：合法地址保存并生效（后续 GET 读回；version 持续透出且不可经 POST 改写）
-        var ok = await Client.PostAsync("/api/host/config", Json("""{ "serverUrl": "http://127.0.0.1:53961" }"""));
+        var ok = await Client.PostAsJsonAsync("/api/host/config", new { serverUrl });
         Assert.True(ok.IsSuccessStatusCode);
         var roundtrip = await JsonAsync("/api/host/config");
-        Assert.Equal("http://127.0.0.1:53961", roundtrip.GetProperty("serverUrl").GetString());
+        Assert.Equal(serverUrl, roundtrip.GetProperty("serverUrl").GetString());
         Assert.Equal(HostOptions.ProductVersion, roundtrip.GetProperty("version").GetString());
 
         // 非法地址：400
         var bad = await Client.PostAsync("/api/host/config", Json("""{ "serverUrl": "not-a-url" }"""));
         Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        await Services.GetRequiredService<LabelFrame.WinHost.Routing.ServerRoutingCoordinator>().StopAsync();
+        await isolatedServer.StopAsync();
     }
 
     [Fact]
@@ -366,11 +376,14 @@ public abstract class WinHostIntegrationTestBase : IDisposable
             ConnectionPath = Path.Combine(_directory, "connection.json"),
             HostLogPath = Path.Combine(_directory, "host.log"),
             PrintOutputPath = Path.Combine(_directory, "print"),
+            AppLogDirectory = Path.Combine(_directory, "logs"),
+            WebUiPath = Path.Combine(_directory, "web"),
             Transport = TransportMode.Log,
             OpenBrowser = false,
             EnableTray = false,
         };
 
+        Directory.CreateDirectory(options.WebUiPath!);
         _app = WinHostApp.BuildAsync(options, TextWriter.Null, _ => { }, builder =>
         {
             builder.WebHost.UseTestServer();
