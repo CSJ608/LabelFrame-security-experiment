@@ -75,21 +75,19 @@ public sealed class ClientUpdatesTests : IDisposable
     }
 
     [Theory]
-    [InlineData(false, "192.168.1.8", "", true, false)]
-    [InlineData(false, "127.0.0.1", "", true, true)]
-    [InlineData(true, "192.168.1.8", "https://server.example", true, true)]
-    [InlineData(true, "192.168.1.8", "https://evil.example", true, false)]
-    [InlineData(true, "192.168.1.8", "", false, false)]
-    public void Administration_requires_token_secure_transport_and_same_origin(bool https, string ip, string origin, bool token, bool allowed)
+    [InlineData("", "", true)]
+    [InlineData("http://server.example", "same-origin", true)]
+    [InlineData("http://evil.example", "", false)]
+    [InlineData("", "cross-site", false)]
+    [InlineData("null", "", false)]
+    public void Management_rejects_cross_origin_without_requiring_identity(string origin, string site, bool allowed)
     {
         var context = new DefaultHttpContext();
-        context.Connection.RemoteIpAddress = IPAddress.Parse(ip);
-        context.Request.Scheme = https ? "https" : "http";
+        context.Request.Scheme = "http";
         context.Request.Host = new HostString("server.example");
         context.Request.Headers.Origin = origin;
-        context.Request.Headers.Authorization = "Bearer " + (token ? new string('x', 40) : "wrong");
-        Assert.Equal(allowed, ClientUpdatesApi.Authorized(context, new ServerOptions { UpdateAdminToken = new string('x', 40) }));
-        Assert.False(ClientUpdatesApi.Authorized(context, new ServerOptions()));
+        context.Request.Headers["Sec-Fetch-Site"] = site;
+        Assert.Equal(allowed, ClientUpdatesApi.SameOrigin(context));
     }
 
     private static CancellationToken TestContextToken => CancellationToken.None;

@@ -1,12 +1,41 @@
 {
+  "simplePublish": {
+    "manualInstall": "手动下载与安装说明",
+    "windows": "Windows 客户端更新",
+    "android": "PDA 客户端更新",
+    "hint": "上传仅提供下载。点击包旁的“发布”，确认后向所有兼容设备提供客户端更新。",
+    "publish": "发布",
+    "published": "已发布",
+    "paused": "已暂停",
+    "pause": "暂停",
+    "resume": "恢复发布",
+    "confirm": "确认发布",
+    "cancel": "取消",
+    "version": "实际版本",
+    "scope": "影响范围",
+    "all": "所有兼容设备",
+    "selected": "指定设备（{{count}} 台）",
+    "state": "更新发布",
+    "refresh": "刷新发布状态",
+    "busy": "正在处理…",
+    "retryHint": "请刷新状态后再操作，避免重复发布。",
+    "publishedNotice": "更新已发布，设备将按兼容性与本地策略获取。",
+    "pausedNotice": "已暂停后续更新；已安装或已提交系统的安装不会被撤销。",
+    "pauseHint": "暂停不能撤销已安装或已提交系统的安装。",
+    "history": "发布记录与设备状态",
+    "historyHint": "多个版本可以同时发布，设备选择最高的兼容版本。删除上传包不撤销发布。",
+    "reportHint": "以下是设备自报状态，可能已过时；请结合接收时间判断。",
+    "windowsHint": "只更新 LabelFrame Windows 客户端，不更新操作系统或服务端；安装仍遵循设备本地策略和作业保护。",
+    "androidHint": "只更新 LabelFrame PDA 客户端，不更新 Android 系统或服务端；PDA 用户仍需系统确认，不打断作业。"
+  },
   "page": {
     "title": "下载中心",
     "subtitle": "LabelFrame 客户端各平台安装包"
   },
   "tabs": {
-    "quick": "快速访问",
-    "windows": "Windows 包管理",
-    "android": "Android 包管理"
+    "quick": "下载",
+    "windows": "Windows 客户端更新",
+    "android": "PDA 客户端更新"
   },
   "section": {
     "client": "客户端"

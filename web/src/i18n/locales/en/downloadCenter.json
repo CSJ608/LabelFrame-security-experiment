@@ -1,12 +1,41 @@
 {
+  "simplePublish": {
+    "manualInstall": "Manual download and installation",
+    "windows": "Windows client updates",
+    "android": "PDA client updates",
+    "hint": "Uploading only makes a package available for download. Publish from its row and confirm to offer the client update to all compatible devices.",
+    "publish": "Publish",
+    "published": "Published",
+    "paused": "Paused",
+    "pause": "Pause",
+    "resume": "Resume publication",
+    "confirm": "Confirm publication",
+    "cancel": "Cancel",
+    "version": "Verified version",
+    "scope": "Scope",
+    "all": "All compatible devices",
+    "selected": "Selected devices ({{count}})",
+    "state": "Update publication",
+    "refresh": "Refresh publication status",
+    "busy": "Working…",
+    "retryHint": "Refresh status before trying again to avoid duplicate publication.",
+    "publishedNotice": "Update published. Devices will follow compatibility checks and local policy.",
+    "pausedNotice": "Further updates paused. Installed or system-submitted installations cannot be undone.",
+    "pauseHint": "Pausing cannot undo installed or system-submitted installations.",
+    "history": "Release history and device status",
+    "historyHint": "Multiple versions may be published. Devices select the highest compatible version. Deleting an uploaded package does not revoke a release.",
+    "reportHint": "Device-reported status may be stale. Check the received time.",
+    "windowsHint": "Updates only the LabelFrame Windows client, not Windows or the server. Local installation policy and job protection still apply.",
+    "androidHint": "Updates only the LabelFrame PDA client, not Android or the server. The PDA user must confirm system installation; jobs are not interrupted."
+  },
   "page": {
     "title": "Download Center",
     "subtitle": "LabelFrame client installers for every platform"
   },
   "tabs": {
-    "quick": "Quick Access",
-    "windows": "Windows Packages",
-    "android": "Android Packages"
+    "quick": "Downloads",
+    "windows": "Windows client updates",
+    "android": "PDA client updates"
   },
   "section": {
     "client": "Client"

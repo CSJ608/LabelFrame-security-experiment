@@ -57,6 +57,7 @@ const SERVER_INFO_NO_ANNOUNCE = {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
   vi.clearAllMocks()
   window.location.hash = ''
   mocks.server.listClientPackages.mockResolvedValue(CLIENT_PKGS)
@@ -72,6 +73,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
 })
 
 /** 列表顺序断言辅助：按文本出现顺序取行号（同一文本只应出现一次）。 */
@@ -112,9 +114,9 @@ function DownloadCenterRouteHarness() {
 describe('下载中心页 · 三 tab 与路由 sub 段（迭代 118 · #272；迭代 127 · #312 迁 #/packages/<sub>）', () => {
   it('默认快速访问：三 tab 按钮在位，默认 tab 不写 sub 段（quick 为缺省值，hash 止于 #/packages）', async () => {
     render(<DownloadCenterRouteHarness />)
-    expect(screen.getByRole('button', { name: '快速访问' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Windows 包管理' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Android 包管理' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '下载' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Windows 客户端更新' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'PDA 客户端更新' })).toBeTruthy()
     expect(await screen.findByText('客户端')).toBeTruthy()
     // 默认 tab 不写 sub 段（quick 为缺省值）
     await waitFor(() => expect(window.location.hash).toBe('#/packages'))
@@ -125,13 +127,13 @@ describe('下载中心页 · 三 tab 与路由 sub 段（迭代 118 · #272；�
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
     const len0 = window.history.length
 
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
     // 管理视图：列表 + 上传按钮在位
     expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
 
-    gotoManageTab('Android 包管理')
+    gotoManageTab('PDA 客户端更新')
     await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
     expect(await screen.findByText('LabelFrame-AndroidHost-0.25.0.apk')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 APK/ })).toBeTruthy()
@@ -175,7 +177,7 @@ describe('下载中心页 · 三 tab 与路由 sub 段（迭代 118 · #272；�
     render(<DownloadCenterRouteHarness />)
     await screen.findByText('客户端')
     expect(screen.queryByText('LabelFrame.Client-linux.zip')).toBeNull()
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
 
     // 主导航切走（入栈）→ 后退回到含 sub 的历史条目
@@ -248,7 +250,7 @@ describe('下载中心页 · 快速访问首屏「最新上传」卡（AC-02 / A
     await waitFor(() => expect(window.location.hash).toBe('#/packages/windows'))
     expect(await screen.findByText('LabelFrame.Client-linux.zip')).toBeTruthy()
 
-    gotoManageTab('快速访问')
+    gotoManageTab('下载')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
     fireEvent.click(screen.getAllByRole('button', { name: '全部版本 →' })[1]) // Android 卡
     await waitFor(() => expect(window.location.hash).toBe('#/packages/android'))
@@ -401,7 +403,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
   it('Windows 管理列表：条目 / 大小 / 下载链接 / 二维码（时间倒序最新在上）', async () => {
     mocks.server.listClientPackages.mockResolvedValue([...CLIENT_PKGS].reverse())
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     expect(await screen.findByText('LabelFrame.Client-0.18.0.msi')).toBeTruthy()
     expect(screen.getByText('LabelFrame.Client-linux.zip')).toBeTruthy()
     expect(screen.getByText('42.0 MB')).toBeTruthy()
@@ -417,7 +419,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
 
   it('Android 管理：列表 + 「未知来源 / 安装未知应用」授权提示常驻', async () => {
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Android 包管理')
+    gotoManageTab('PDA 客户端更新')
     expect(await screen.findByText('LabelFrame-AndroidHost-0.26.0.apk')).toBeTruthy()
     expect(indexOfText('LabelFrame-AndroidHost-0.26.0.apk')).toBeLessThan(indexOfText('LabelFrame-AndroidHost-0.25.0.apk'))
     expect(screen.getByText(/未知来源/)).toBeTruthy()
@@ -429,11 +431,11 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
     mocks.server.listClientPackages.mockResolvedValue([])
     mocks.server.listPdaPackages.mockResolvedValue([])
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     expect(await screen.findByText('暂无 Windows 安装包')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
 
-    gotoManageTab('Android 包管理')
+    gotoManageTab('PDA 客户端更新')
     expect(await screen.findByText('暂无 Android 安装包')).toBeTruthy()
     expect(screen.getByRole('button', { name: /上传 APK/ })).toBeTruthy()
   })
@@ -446,14 +448,14 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
 
   it('上传：Windows 选 MSI → uploadClientPackage；Android 选 APK → uploadPdaPackage；均刷新列表', async () => {
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
     const msi = new File(['x'], 'LabelFrame.Client-0.19.0.msi')
     fireEvent.change(document.getElementById('clientPkgFile')!, { target: { files: [msi] } })
     await waitFor(() => expect(mocks.server.uploadClientPackage).toHaveBeenCalledWith(msi))
 
-    gotoManageTab('Android 包管理')
+    gotoManageTab('PDA 客户端更新')
     await screen.findByText('LabelFrame-AndroidHost-0.26.0.apk')
     const apk = new File(['y'], 'LabelFrame-AndroidHost-0.26.0.apk')
     fireEvent.change(document.getElementById('pdaPkgFile')!, { target: { files: [apk] } })
@@ -467,7 +469,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
 
   it('删除：Android 条目确认 Modal 后调 deletePdaPackage + 刷新；取消不调用', async () => {
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Android 包管理')
+    gotoManageTab('PDA 客户端更新')
     await screen.findByText('LabelFrame-AndroidHost-0.26.0.apk')
 
     const delButtons = screen.getAllByRole('button', { name: /删除/ })
@@ -490,7 +492,7 @@ describe('下载中心页 · 管理 tab 回归（AC-06：client-packages / pda-p
 
   it('删除：Windows 条目确认 Modal 后调 deleteClientPackage', async () => {
     render(<DownloadCenterRouteHarness />)
-    gotoManageTab('Windows 包管理')
+    gotoManageTab('Windows 客户端更新')
     await screen.findByText('LabelFrame.Client-0.18.0.msi')
 
     const delButtons = screen.getAllByRole('button', { name: /删除/ })

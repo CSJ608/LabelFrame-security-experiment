@@ -1,5 +1,7 @@
 # Windows 客户端自动升级设计
 
+> 发布管理的口令、表单与默认范围已由 [更新发布管理](update-publishing.md) 修订；下文历史权限描述不再作为现行部署要求，设备安装安全规则保持不变。
+
 任务：[#452](https://github.com/marci-labs/LabelFrame/issues/452)，承接安全重启 [#451](https://github.com/marci-labs/LabelFrame/issues/451)。基线 `7405cfb`。
 
 ## 使用策略

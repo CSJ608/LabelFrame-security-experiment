@@ -1,5 +1,7 @@
 # Android 受控 APK 升级设计
 
+> 发布管理的口令、表单与默认范围已由 [更新发布管理](update-publishing.md) 修订；下文历史权限描述不再作为现行部署要求，设备安装安全规则保持不变。
+
 任务：[#474](https://github.com/marci-labs/LabelFrame/issues/474)，预研 [#473](https://github.com/marci-labs/LabelFrame/issues/473)。本文描述当前实现与平台边界。沿用 [Windows 更新](client-updates.md) 的受控策略，不复用 MSI 执行器。逐项验收状态以 Issue 和证据为准。
 
 ## 当前交付范围（用户批准修订）

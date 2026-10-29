@@ -17,7 +17,14 @@ public sealed class AndroidUpdatesService(string directory, IAndroidUpdatePackag
             ?? throw new InvalidDataException("Android 发布记录损坏，请管理员修复。"))
         .OrderByDescending(r => r.Package.VersionCode).ThenByDescending(r => r.PublishedAt).ToArray();
 
-    public async Task<AndroidUpdateRelease> PublishAsync(string source, string[] devices, bool allDevicesConfirmed, string mode, CancellationToken ct)
+    public async Task<AndroidUpdatePackage> PreviewAsync(string source, CancellationToken ct)
+    {
+        var package = await UpdateDraftSnapshot.InspectAsync(source, ".apk", path => inspector.InspectAsync(path, ct), ct);
+        if (!CompatibleServer(package)) throw new InvalidDataException("APK 不兼容当前服务端版本。");
+        return package;
+    }
+
+    public async Task<AndroidUpdateRelease> PublishAsync(string source, string[] devices, bool allDevicesConfirmed, string mode, CancellationToken ct, string? expectedSha256 = null)
     {
         if (mode != "confirm") throw new InvalidDataException("当前仅支持系统确认安装，静默安装尚未通过安全验证。");
         if (devices.Length > 1000 || devices.Any(d => !AndroidUpdateContract.IsDevice(d)) || (devices.Length == 0 && !allDevicesConfirmed))
@@ -47,6 +54,7 @@ public sealed class AndroidUpdatesService(string directory, IAndroidUpdatePackag
                 output.Flush(flushToDisk: true);
             }
             var package = await inspector.InspectAsync(destination, ct);
+            UpdateDraftSnapshot.VerifyExpected(package.Sha256, expectedSha256);
             if (!CompatibleServer(package)) throw new InvalidDataException("APK 不兼容当前服务端版本。");
             if (releases.Any(r => r.Package.VersionCode == package.VersionCode && r.Package.Sha256 != package.Sha256))
                 throw new InvalidDataException("同一 versionCode 已发布不同内容，不能覆盖。");

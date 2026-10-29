@@ -168,7 +168,7 @@ describe('server 构建：下载中心页入口（迭代 22 §2.3；迭代 59 �
     expect(screen.getByText('服务端信息')).toBeTruthy()
 
     // Windows 管理 tab：上传 / 列表 / 下载链接 / 二维码（title = origin + 下载路径）
-    fireEvent.click(screen.getByRole('button', { name: 'Windows 包管理' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Windows 客户端更新' }))
     expect(await screen.findByRole('button', { name: /上传 Windows 安装包/ })).toBeTruthy()
     const clientLink = screen.getByTitle('下载 LabelFrame.Client-0.18.0.msi')
     expect(clientLink.tagName).toBe('A')
@@ -176,7 +176,7 @@ describe('server 构建：下载中心页入口（迭代 22 §2.3；迭代 59 �
     expect(screen.getByTitle(`${window.location.origin}/api/client-packages/LabelFrame.Client-0.18.0.msi`)).toBeTruthy()
 
     // Android 管理 tab：上传 / 下载链接 / 二维码与 Android 授权文案
-    fireEvent.click(screen.getByRole('button', { name: 'Android 包管理' }))
+    fireEvent.click(screen.getByRole('button', { name: 'PDA 客户端更新' }))
     expect(await screen.findByRole('button', { name: /上传 APK/ })).toBeTruthy()
     const pdaLink = screen.getByTitle('下载 LabelFrame-AndroidHost-0.26.0.apk')
     expect(pdaLink.tagName).toBe('A')

@@ -21,7 +21,16 @@ public sealed class ClientUpdatesService(string directory, IClientUpdatePackageI
             .OrderByDescending(r => ClientUpdateContract.ParseVersion(r.Package.Version)).ToArray();
     }
 
-    public async Task<ClientUpdateRelease> PublishAsync(string source, string fileName, string[] devices, CancellationToken ct)
+    public async Task<ClientUpdatePackage> PreviewAsync(string source, string fileName, CancellationToken ct)
+    {
+        var package = await UpdateDraftSnapshot.InspectAsync(source, ".msi", path => inspector.InspectAsync(path, fileName, ct), ct);
+        var server = ClientUpdateContract.ParseVersion(ServerOptions.ProductVersion);
+        if (server < ClientUpdateContract.ParseVersion(package.MinServerVersion) || server >= ClientUpdateContract.ParseVersion(package.MaxServerVersion))
+            throw new InvalidDataException("安装包不兼容当前服务端版本。");
+        return package;
+    }
+
+    public async Task<ClientUpdateRelease> PublishAsync(string source, string fileName, string[] devices, CancellationToken ct, string? expectedSha256 = null)
     {
         if (devices.Length > 1000 || devices.Any(d => string.IsNullOrWhiteSpace(d) || d.Length > 128))
             throw new InvalidDataException("推广设备标识无效，最多指定 1000 台设备。");
@@ -39,6 +48,7 @@ public sealed class ClientUpdatesService(string directory, IClientUpdatePackageI
                 await input.CopyToAsync(output, ct);
             }
             var package = await inspector.InspectAsync(destination, fileName, ct);
+            UpdateDraftSnapshot.VerifyExpected(package.Sha256, expectedSha256);
             var server = ClientUpdateContract.ParseVersion(ServerOptions.ProductVersion);
             if (server < ClientUpdateContract.ParseVersion(package.MinServerVersion) || server >= ClientUpdateContract.ParseVersion(package.MaxServerVersion))
                 throw new InvalidDataException("安装包不兼容当前服务端版本。");

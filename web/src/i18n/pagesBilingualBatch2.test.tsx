@@ -232,9 +232,9 @@ describe('第二批迁移页面双语渲染冒烟（迭代 112 · #246）', () =
     expect(screen.getByText('LabelFrame 客户端各平台安装包')).toBeTruthy()
     expect(screen.getAllByText('最新上传')).toHaveLength(2)
     expect(screen.getByText('服务端信息')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '快速访问' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Windows 包管理' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Android 包管理' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '下载' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Windows 客户端更新' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'PDA 客户端更新' })).toBeTruthy()
 
     changeLocale('en')
     await waitFor(() => expect(screen.getByText('Download Center')).toBeTruthy())

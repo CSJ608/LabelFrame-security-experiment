@@ -10,6 +10,7 @@
 // 客户端设置页「更新与安装包」仍走 GET /api/client-packages 下载。
 
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import qrcode from 'qrcode-generator'
 // i18n 初始化副作用导入：api client 在测试中被 mock、组件树不传递依赖 i18n/index——
@@ -20,8 +21,7 @@ import { ApiError } from '../lib/api/types'
 import type { ClientPackageInfo, PdaPackageInfo } from '../lib/api/types'
 import { Icon } from '../components/Icon'
 import { Modal } from '../components/Modal'
-import { ClientUpdatePublishing } from '../components/ClientUpdatePublishing'
-import { AndroidUpdatePublishing } from '../components/AndroidUpdatePublishing'
+import { UpdatePublishing } from '../components/UpdatePublishing'
 import { formatSize } from '../lib/download'
 import { copyText } from '../lib/clipboard'
 import { deriveBasePath, joinAddress, pickDisplayAddress } from '../lib/connection'
@@ -127,12 +127,14 @@ function PackageTable({
   qrOrigin,
   deleting,
   onRemove,
+  updateActions,
 }: {
   rows: PackageRow[]
   /** 二维码前缀（本页 origin）：二维码内容 = origin + 下载相对路径 = 局域网可访问的完整 URL。 */
   qrOrigin: string
   deleting: string | null
   onRemove: (row: PackageRow) => void
+  updateActions?: (fileName: string) => ReactNode
 }) {
   const { t } = useTranslation('downloadCenter')
   return (
@@ -143,6 +145,7 @@ function PackageTable({
           <th style={{ width: 100 }}>{t('columns.size')}</th>
           <th style={{ width: 150 }}>{t('columns.modifiedAt')}</th>
           <th style={{ width: 104 }}>{t('columns.qrCode')}</th>
+          {updateActions && <th>{t('simplePublish.state')}</th>}
           <th style={{ width: 170 }}></th>
         </tr>
       </thead>
@@ -161,6 +164,7 @@ function PackageTable({
             <td>
               <QrCodeImage text={`${qrOrigin}${p.downloadHref}`} alt={t('qrAlt')} />
             </td>
+            {updateActions && <td>{updateActions(p.fileName)}</td>}
             <td>
               <div style={{ display: 'flex', gap: 8 }}>
                 <a className="btn sm" href={p.downloadHref} title={t('downloadTitle', { name: p.fileName })}>
@@ -570,7 +574,7 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
               onPick={(f) => void uploadClient(f)}
               uploadingLabel={t('action.uploading')}
             />
-            {clientRows === null ? (
+            <UpdatePublishing platform="windows" revision={JSON.stringify(clientRows)}>{actions => clientRows === null ? (
               <div className="empty">
                 <Icon name="download" />
                 <div className="empty-title">{t('windows.loading')}</div>
@@ -582,9 +586,8 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
                 <div className="hint">{t('windows.emptyHint')}</div>
               </div>
             ) : (
-              <PackageTable rows={clientRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'client', row })} />
-            )}
-            <ClientUpdatePublishing fileNames={(clientRows ?? []).map(row => row.fileName)} />
+              <PackageTable rows={clientRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'client', row })} updateActions={actions} />
+            )}</UpdatePublishing>
           </>
         )}
 
@@ -600,11 +603,11 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
               onPick={(f) => void uploadPda(f)}
               uploadingLabel={t('action.uploading')}
             />
-            <div className="banner notice inline">
-              <Icon name="alert" size={14} />
+            <details style={{ marginBottom: 12 }}>
+              <summary>{t('simplePublish.manualInstall')}</summary>
               <span style={{ lineHeight: 1.7 }}>{t('android.installHint')}</span>
-            </div>
-            {pdaRows === null ? (
+            </details>
+            <UpdatePublishing platform="android" revision={JSON.stringify(pdaRows)}>{actions => pdaRows === null ? (
               <div className="empty">
                 <Icon name="download" />
                 <div className="empty-title">{t('android.loading')}</div>
@@ -616,9 +619,8 @@ export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubC
                 <div className="hint">{t('android.emptyHint')}</div>
               </div>
             ) : (
-              <PackageTable rows={pdaRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'pda', row })} />
-            )}
-            <AndroidUpdatePublishing fileNames={(pdaRows ?? []).map(row => row.fileName)} />
+              <PackageTable rows={pdaRows} qrOrigin={qrOrigin} deleting={deleting} onRemove={(row) => setPendingRemove({ kind: 'pda', row })} updateActions={actions} />
+            )}</UpdatePublishing>
           </>
         )}
       </div>

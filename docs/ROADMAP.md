@@ -217,6 +217,7 @@
 | 171 | 前端界面与操作反馈整合（v1.5.1） | ✅ 界面整合与隔离双模式双语交互验证完成；发布门禁与产物验收持续记录于 [#470](https://github.com/marci-labs/LabelFrame/issues/470)，不改写 v1.5.0，既有平台/性能欠账保持开放 |
 | 发布 | v1.5.0：迭代161～169及修复汇总；Builder、前端/Excel依赖、安全重启与受控升级、安装预检/状态灯、性能与本地作业库升级保护、PNG治理 | ✅ 2026-10-27 发布，tag 提交 72dda83，run 40358676727 attempt2 全成功；附件/Builder/镜像与正式 APK 签名核验通过（[#468](https://github.com/marci-labs/LabelFrame/issues/468)）。[#445](https://github.com/marci-labs/LabelFrame/issues/445) AC-09 完成并关闭；[#462](https://github.com/marci-labs/LabelFrame/issues/462) 性能及平台长测欠账继续待验收，不因发版关闭 |
 | 172 | Android 受控 APK 后台下载、本机信息单按钮系统确认升级；Docker 内置验签工具 | ✅ 实现与本地回归完成，DT50 非调试同隔离签名产品实升及健康/超时人工恢复已验证；最新 PR 门禁与剩余单按钮完整流程、英文及故障矩阵按 [#474](https://github.com/marci-labs/LabelFrame/issues/474) 追踪，不将实现完成当验收结项 |
+| 173 | 安装包列表直接发布与更新管理简化：无专用口令、一次确认、全兼容设备范围和就地暂停 | ✅ 实现与本地验证完成；PR 门禁、合并及逐项验收证据见 [#476](https://github.com/marci-labs/LabelFrame/issues/476)，不包含部署或设备实升 |
 | 待需求 | 兼容与扩展（net48 / WMS 模板下发 / TSPL / 统计 / 契约 Pattern 校验） | 待定 |
 
 ## 待需求（有真实需求再排）

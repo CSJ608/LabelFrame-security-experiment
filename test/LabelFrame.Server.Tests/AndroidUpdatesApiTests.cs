@@ -21,7 +21,7 @@ public sealed class AndroidUpdatesApiTests : IAsyncLifetime
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
-        builder.Services.AddSingleton(new ServerOptions { UpdateAdminToken = Token });
+        builder.Services.AddSingleton(new ServerOptions());
         builder.Services.AddSingleton(new PdaPackagesService(Path.Combine(_root, "drafts")));
         builder.Services.AddSingleton(new AndroidUpdatesService(Path.Combine(_root, "published"), new AndroidUpdatesTests.Inspector(AndroidUpdatesTests.Package)));
         _app = builder.Build();
@@ -44,17 +44,35 @@ public sealed class AndroidUpdatesApiTests : IAsyncLifetime
     private static string Query => "deviceId=pda-a&currentVersionCode=10500&sdk=30&abi=arm64-v8a&publisherSha256=" + new string('A', 64);
 
     [Fact]
-    public async Task Token_origin_and_transport_are_enforced_for_management()
+    public async Task Anonymous_management_allows_http_but_rejects_cross_origin_and_legacy_recovery()
     {
-        Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync("/api/android-updates")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await _client.PostAsJsonAsync("/api/android-updates/publish", Request)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("http://localhost/api/android-updates")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("http://localhost/api/android-updates/publish", Request)).StatusCode);
         Authorize();
         _client.DefaultRequestHeaders.Add("Origin", "https://untrusted.example");
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.PostAsJsonAsync("/api/android-updates/publish", Request)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync("/api/android-updates/status")).StatusCode);
         _client.DefaultRequestHeaders.Remove("Origin");
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync("http://localhost/api/android-updates")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync("/api/android-updates")).StatusCode);
+        _client.DefaultRequestHeaders.Authorization = null;
         Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/api/android-updates")).StatusCode);
+        _client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "cross-site");
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.PostAsJsonAsync("/api/android-updates/publish", Request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Preview_returns_verified_metadata_without_publication_and_binds_confirmed_digest()
+    {
+        var preview = await _client.PostAsJsonAsync("/api/android-updates/preview", Request);
+        preview.EnsureSuccessStatusCode();
+        var package = (await preview.Content.ReadFromJsonAsync<AndroidUpdatePackage>())!;
+        Assert.Equal(10502, package.VersionCode);
+        Assert.Empty((await _client.GetFromJsonAsync<AndroidUpdateRelease[]>("/api/android-updates"))!);
+        var response = await _client.PostAsJsonAsync("/api/android-updates/publish",
+            new { fileName = "candidate.apk", devices = Array.Empty<string>(), allDevicesConfirmed = true, expectedSha256 = "changed" });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty((await _client.GetFromJsonAsync<AndroidUpdateRelease[]>("/api/android-updates"))!);
     }
 
     [Fact]

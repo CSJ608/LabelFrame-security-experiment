@@ -76,9 +76,6 @@ public sealed class ServerOptions
     /// <summary>产品版本（与打包脚本 -Version 保持一致）。</summary>
     public const string ProductVersion = "1.5.1";
 
-    /// <summary>升级发布管理口令，由部署配置提供。</summary>
-    public string? UpdateAdminToken { get; set; }
-
     /// <summary>不可变客户端更新发布目录。</summary>
     public string ClientUpdatesPath { get; set; } = Path.Combine(DefaultDataDirectory, "client-updates");
 
@@ -118,7 +115,6 @@ public sealed class ServerOptions
     /// <summary>应用 LABELFRAME_SERVER_* 环境变量覆盖。</summary>
     public void ApplyEnvironmentOverrides()
     {
-        UpdateAdminToken = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_UPDATE_ADMIN_TOKEN") ?? UpdateAdminToken;
         ClientUpdatesPath = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_CLIENT_UPDATES") ?? ClientUpdatesPath;
         AndroidUpdatesPath = Environment.GetEnvironmentVariable("LABELFRAME_SERVER_ANDROID_UPDATES") ?? AndroidUpdatesPath;
         AndroidJavaPath = Environment.GetEnvironmentVariable("LABELFRAME_ANDROID_JAVA") ?? AndroidJavaPath;
