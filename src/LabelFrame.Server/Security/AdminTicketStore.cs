@@ -16,7 +16,7 @@ public sealed class AdminTicketStore(TimeProvider clock) : ITicketStore
         {
             foreach (var expiredKey in _tickets.Where(pair => Expired(pair.Value)).Select(pair => pair.Key).ToArray())
                 _tickets.Remove(expiredKey);
-            if (_tickets.Count >= 128) throw new InvalidOperationException("管理员会话数量已达上限。");
+            if (_tickets.Count >= 128) throw new AdminSessionCapacityException();
             var key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             _tickets.Add(key, ticket);
             return Task.FromResult(key);
@@ -53,3 +53,6 @@ public sealed class AdminTicketStore(TimeProvider clock) : ITicketStore
     private bool Expired(AuthenticationTicket ticket) =>
         ticket.Properties.ExpiresUtc is not { } expires || expires <= clock.GetUtcNow();
 }
+
+/// <summary>表示管理员会话存储已达到容量上限。</summary>
+public sealed class AdminSessionCapacityException() : Exception("管理员会话数量已达上限。");

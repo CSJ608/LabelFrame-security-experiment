@@ -124,7 +124,15 @@ public static class AdminSecurity
             // 同一已登录会话不重新签入，避免框架复用正在撤销的票据键。
             if (context.User.Identity?.IsAuthenticated == true) return Error(409, "请先退出当前会话。");
             var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "admin"), new Claim(ClaimTypes.Name, "admin")], Scheme);
-            await context.SignInAsync(Scheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false });
+            try
+            {
+                await context.SignInAsync(Scheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false });
+            }
+            catch (AdminSessionCapacityException)
+            {
+                context.Response.Headers.RetryAfter = "60";
+                return Error(503, "管理员会话已满，请退出其他会话或等待会话过期后重试。");
+            }
             return Results.Ok(new { authenticated = true });
         }).WithMetadata(new RequestSizeLimitAttribute(8192));
         app.MapPost("/api/auth/logout", async (HttpContext context) =>

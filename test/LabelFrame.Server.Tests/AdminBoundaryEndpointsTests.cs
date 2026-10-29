@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using LabelFrame.Server;
 using LabelFrame.Server.Security;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -97,6 +99,39 @@ public sealed class AdminBoundaryEndpointsTests : IDisposable
         session = await _client.GetFromJsonAsync<JsonElement>("/api/auth/session");
         _client.DefaultRequestHeaders.Add(AdminSecurity.CsrfHeader, session.GetProperty("csrfToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/auth/logout", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _client.GetAsync("/api/templates")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Full_session_store_rejects_login_without_cookie_and_recovers_after_removal()
+    {
+        var store = _factory.Services.GetRequiredService<AdminTicketStore>();
+        var ticket = new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity("test")),
+            new AuthenticationProperties { ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) }, AdminSecurity.Scheme);
+        var keys = new List<string>();
+        for (var i = 0; i < 128; i++) keys.Add(await store.StoreAsync(ticket));
+        var session = await _client.GetFromJsonAsync<JsonElement>("/api/auth/session");
+        _client.DefaultRequestHeaders.Add(AdminSecurity.CsrfHeader, session.GetProperty("csrfToken").GetString());
+        var denied = await _client.PostAsJsonAsync("/api/auth/login", new { password = "Synthetic-endpoint-test-password" });
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, denied.StatusCode);
+        Assert.Equal(TimeSpan.FromSeconds(60), denied.Headers.RetryAfter!.Delta);
+        Assert.False(denied.Headers.TryGetValues("Set-Cookie", out _));
+        Assert.Equal("LF_AUTH_DENIED", (await denied.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _client.GetAsync("/api/templates")).StatusCode);
+        Assert.NotNull(await store.RetrieveAsync(keys[0]));
+        await store.RemoveAsync(keys[0]);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/auth/login",
+            new { password = "Synthetic-endpoint-test-password" })).StatusCode);
+    }
+
+    [Fact]
+    public async Task Real_login_rejects_oversized_json_body()
+    {
+        var session = await _client.GetFromJsonAsync<JsonElement>("/api/auth/session");
+        _client.DefaultRequestHeaders.Add(AdminSecurity.CsrfHeader, session.GetProperty("csrfToken").GetString());
+        var response = await _client.PostAsJsonAsync("/api/auth/login",
+            new { password = "Synthetic-endpoint-test-password", padding = new string('x', 9000) });
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await _client.GetAsync("/api/templates")).StatusCode);
     }
 

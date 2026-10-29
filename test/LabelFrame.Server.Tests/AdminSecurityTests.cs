@@ -157,7 +157,7 @@ public sealed class AdminSecurityTests
         await store.RenewAsync(key, ticket);
         Assert.Null(await store.RetrieveAsync(key));
         for (var i = 0; i < 128; i++) await store.StoreAsync(ticket);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => store.StoreAsync(ticket));
+        await Assert.ThrowsAsync<AdminSessionCapacityException>(() => store.StoreAsync(ticket));
         clock.Advance(TimeSpan.FromHours(8));
         Assert.NotEmpty(await store.StoreAsync(ticket));
     }

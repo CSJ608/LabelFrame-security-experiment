@@ -8,7 +8,7 @@
 
 ## 2. 内部结构
 
-当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。前端登录/退出及旧 fixture 迁移尚未交付，因此原型不可作为完整产品使用。
+当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为旧 fixture 迁移提供全存储隔离、环境变量恢复和正式登录辅助；已迁移网卡候选、错误契约与错误参数三组，其余仍待迁移。前端登录/退出尚未交付，因此原型不可作为完整产品使用。
 
 权限分类使用 ASP.NET 路由匹配后的 RouteEndpoint 原始模板及 HTTP 方法，而不是请求字符串前缀；新端点未登记时落到 admin。方法不符、大小写、尾斜杠与编码路径不能获得不同于实际选中端点的权限。保留框架已有上传大小限制、文件名安全检查、签名校验、快照和安装保护。
 
@@ -60,6 +60,8 @@ admin 密码只通过部署侧提供框架哈希（Server:AdminPasswordHash）�
 callbackUrl 当前只限 http/https、禁重定向、10 秒超时与有限重试，信任模式仍可请求内部地址。未来按集成身份绑定允许目标，不无差别封杀内网；匿名回调风险在最小原型中保留并单列，不宣称已消除 SSRF。
 
 ## 5. 设计取舍与回退
+
+会话容量满时保留已有会话，不驱逐其他管理员；登录返回 503 与 `Retry-After: 60`，提示退出其他会话或等待过期，不返回内部异常。容量检查与存储仍在同一锁内完成，登录只捕获专用容量异常，不掩盖其他故障。登录 JSON 请求体上限 8192 字节，须以真实 Kestrel 的超限请求验证，不能只检查端点元数据。
 
 EXP-S01/02 见 [DESIGN](../DESIGN.md)。框架依据：[Cookie 与撤销](https://learn.microsoft.com/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0)、[ITicketStore](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.authentication.cookies.iticketstore?view=aspnetcore-10.0)、[防伪令牌](https://learn.microsoft.com/aspnet/core/security/anti-request-forgery?view=aspnetcore-10.0)。
 
