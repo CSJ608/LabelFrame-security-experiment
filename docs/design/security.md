@@ -24,6 +24,8 @@ Server 的 `--hash-admin-password` 为独占命令，在 WebApplication、配置
 
 输入保留原文、不 trim，长度 1–1024 个 UTF-16 单元与现有登录一致；空白-only 拒绝，建议使用密码管理器生成长且独特的密码，不引入隐蔽的登录策略变更。可变输入缓冲在 finally 清空，但框架需要托管 string，不能保证进程内秘密零残留。输出文件仍是敏感凭据材料：工具不保证 shell 创建文件的 ACL，也不自动清理；操作者负责限制访问，禁止终端录制、流水线日志、提交或 Issue 上传。错误/取消时 shell 可能留下空文件，不得将它当成功配置。
 
+错误通道自身发生 I/O 或失效/已关闭异常时，兜底提示为尽力写入，仍返回退出码 3；不让第二次写错误掩盖失败状态，不将异常细节回退到标准输出。输出文件是否可用必须同时以成功退出为准。
+
 实验使用示意（仅展示命令，不包含密码）：`dotnet <实验构建目录>/LabelFrame.Server.dll --hash-admin-password > <受限目录>/admin.hash`。不用 `dotnet run` 混入构建输出；提示保留在终端。成功后由操作者通过部署秘密配置提供 `Server:AdminPasswordHash` / `Server__AdminPasswordHash` 并安排重启，重启撤销全部浏览器会话。工具自身不配置服务、不安装、不修改正式环境；没有哈希仍锁管理。真实终端无回显交互、纯逻辑替身和拒绝路径子进程证据分开记录。
 
 1. `GET /api/auth/session` 返回 authenticated、csrfToken（框架令牌）与配置状态；匿名态也发令牌供登录防 CSRF。响应 no-store。登录前后分别获取令牌，身份改变后旧匿名令牌不复用。

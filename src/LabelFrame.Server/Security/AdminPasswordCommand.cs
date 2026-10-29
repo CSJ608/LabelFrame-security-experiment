@@ -44,7 +44,7 @@ internal static class AdminPasswordCommand
         {
             // 异常细节可能包含输出目标；错误通道只提供固定文案。
             try { error.WriteLine("控制台输入或输出失败，请检查受限输出文件；未确认生成成功。"); }
-            catch (IOException) { }
+            catch (Exception errorFailure) when (errorFailure is IOException or InvalidOperationException) { }
             return 3;
         }
     }

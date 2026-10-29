@@ -150,6 +150,27 @@ public sealed class AdminPasswordCommandTests
         public override void WriteLine(string? value) => throw new IOException("synthetic-output-detail");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Unavailable_error_channel_returns_io_failure_without_reading(bool disposed)
+    {
+        using var output = new StringWriter();
+        using var error = new UnavailableErrorWriter(disposed);
+        Assert.Equal(3, AdminPasswordCommand.Run([AdminPasswordCommand.Name], false, true,
+            () => throw new Xunit.Sdk.XunitException("不得读取"), output, error));
+        Assert.Empty(output.ToString());
+    }
+
+    private sealed class UnavailableErrorWriter(bool disposed) : StringWriter
+    {
+        public override void WriteLine(string? value)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            throw new IOException("synthetic-error-channel");
+        }
+    }
+
     private static (int Code, string Output, string Error) Run(string input)
     {
         var keys = new Queue<char>(input);
