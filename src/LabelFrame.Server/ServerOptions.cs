@@ -74,7 +74,7 @@ public sealed class ServerOptions
     public int LogsDbMaxSizeMB { get; set; } = 256;
 
     /// <summary>产品版本（与打包脚本 -Version 保持一致）。</summary>
-    public const string ProductVersion = "1.5.1";
+    public const string ProductVersion = "1.6.0";
 
     /// <summary>不可变客户端更新发布目录。</summary>
     public string ClientUpdatesPath { get; set; } = Path.Combine(DefaultDataDirectory, "client-updates");
