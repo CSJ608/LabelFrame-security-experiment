@@ -1,5 +1,7 @@
 # LabelFrame
 
+> **公开安全实验 Fork，非正式发行版。** 实验仓库：`CSJ608/LabelFrame-security-experiment`。下方安装入口、发行徽章与产品说明来自上游历史，不代表实验已发布或可部署。禁止用本 Fork 产物覆盖正式安装；工作约定与进度入口见 [实验说明](docs/EXPERIMENT.md)。
+
 <!-- 头图 = 品牌 v02 彩色 lockup 母版（assets/brand/） -->
 <p align="left"><img src="assets/brand/lockup-color.svg" width="280" alt="LabelFrame" /></p>
 

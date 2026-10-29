@@ -1,5 +1,9 @@
 # LabelFrame 路线图
 
+## 安全实验索引（与下方上游历史分开）
+
+- 治理与发布隔离：[实验 #1](https://github.com/CSJ608/LabelFrame-security-experiment/issues/1)，验收/PR 状态以 Issue 为准；计划与边界见 [EXPERIMENT.md](EXPERIMENT.md)。尚未交付安全认证。
+
 > 迭代索引与状态总览。**立项 / 执行 / 验收在 GitHub Issue**（「迭代任务」模板立项，链接见下表）；流程见 [WORKFLOW.md](WORKFLOW.md)。
 > 迭代 0-41 的目标 / 范围 / 验收详情：[archive/ROADMAP-ITERATIONS.md](archive/ROADMAP-ITERATIONS.md)；迭代 42 起详情在对应 Issue。
 > 设计细节见 [DESIGN.md](DESIGN.md)，需求见 [REQUIREMENTS.md](REQUIREMENTS.md)。

@@ -1,5 +1,13 @@
 # LabelFrame 工作流（GitHub）
 
+## 实验 Fork 覆盖（优先于下方来源历史）
+
+本 Fork 的唯一实验权威是 `CSJ608/LabelFrame-security-experiment`，origin 指向本 Fork，upstream 仅用于读取来源。下方 `marci-labs`、ruleset、三项必需检查和发布流程均为来源历史事实，不是本 Fork 的配置声明。历史 Issue 链接保留追溯，不向来源写入。
+
+任务在本 Fork Issue 立项；短主题分支、中文 Conventional Commits PR、证据复审、squash 到本 Fork master。禁止直推 master、任何 tag 和正式发布。Actions 保持关闭，暂用风险相称本地验证并如实记录未执行项；不能将来源 CI 结果当实验验收。纯治理文档检查不要求构建未改动产品；功能代码按影响执行 dotnet 与前端测试，完整产品验收仍待完整回归。关键契约先更新 DESIGN 与对应设计篇。
+
+实验范围、隔离审计、阶段计划及同步策略见 [EXPERIMENT.md](EXPERIMENT.md)。流程治理与功能迭代分别立项；阶段完成后记录 CHANGELOG/ROADMAP，不伪造发行版本。后续恢复以本 Fork Issue（含评论）为准。
+
 > 版本：2 · 落地：2026-09-09（迭代 42，决策 #97）；2026-09-10 增补 §7 多会话 worktree 并行试行（流程治理 #17）；2026-09-10 增第三必需检查「Android 构建（PDA 宿主）」（迭代 49，决策 #104）。
 > 参考外部通用「产品迭代工作流」资料 v1.1，已按本仓库事实实例化；仓库运行不依赖外部资料。
 > 修改本文件、门禁规则或流程模板属于**流程治理迭代**，普通迭代不做。
@@ -17,7 +25,7 @@
 | 门禁 | ruleset「master 门禁」：必须 PR + 三项必需检查（strict，要求目标分支新鲜度）+ 禁强推；**管理员无豁免名单** |
 | 必需检查 | 「构建与测试（dotnet + 前端）」「MSI 结构断言（安装包 UI 契约）」「Android 构建（PDA 宿主）」（均来自 [ci.yml](../.github/workflows/ci.yml)；第三项为迭代 49 引入——先合入 job 的 PR 验证全绿、合并后立即补进门禁，避免 job 未入库时必需检查自锁）。改名 / 增删必须**先改门禁再改 ci.yml**（删除方向），避免出现无保护窗口 |
 | 日常 CI | push master / 全部 PR / 手动：dotnet 构建 + 测试（排除 Perf/Soak）+ 前端 lint / 双模式测试 / 双构建 + MSI 结构断言 + Android 构建（Release APK）；Perf/Soak 由 [nightly-perf.yml](../.github/workflows/nightly-perf.yml) 周一 04:00 跑 |
-| 发布 | 记账 PR 合并后推 `v*` tag → [release.yml](../.github/workflows/release.yml) 自动构建发布（ghcr 镜像 + MSI / 插件 zip / Linux 归档 / Android APK 上传 Release）；除发版 tag 外不推其他 tag |
+| 发布（来源历史，实验禁用） | 来源记账 PR 合并后推 `v*` tag → [归档发布配置](../.github/workflows/release.yml.disabled) 自动构建发布；本 Fork 禁止所有 tag 与发布 |
 
 ## 2. 日常迭代流程
 
