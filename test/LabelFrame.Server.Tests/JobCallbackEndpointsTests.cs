@@ -31,18 +31,14 @@ public sealed class JobCallbackEndpointsTests : IDisposable
         }
         """;
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public JobCallbackEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-cb-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
@@ -51,6 +47,7 @@ public sealed class JobCallbackEndpointsTests : IDisposable
     [InlineData("example.com/hook")]
     public async Task Submit_with_non_http_callback_url_should_be_rejected_and_not_queued(string callbackUrl)
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         await PostOkAsync("/api/devices", """{ "deviceId": "pc-cb", "name": "回调机" }""");
         await PostOkAsync("/api/templates", TemplateJson);
 
@@ -74,6 +71,7 @@ public sealed class JobCallbackEndpointsTests : IDisposable
     [Fact]
     public async Task Submit_with_valid_callback_url_should_be_accepted_and_expose_delivery_state()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         await PostOkAsync("/api/devices", """{ "deviceId": "pc-cb", "name": "回调机" }""");
         await PostOkAsync("/api/templates", TemplateJson);
 
@@ -108,21 +106,10 @@ public sealed class JobCallbackEndpointsTests : IDisposable
 
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
+        _client.Dispose();
         _factory.Dispose();
-        try
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
-        catch
-        {
-            // 测试清理失败不影响结果
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-            Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-            Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        }
+        _environment.Dispose();
     }
 
     private async Task<HttpResponseMessage> PostOkAsync(string url, string json)

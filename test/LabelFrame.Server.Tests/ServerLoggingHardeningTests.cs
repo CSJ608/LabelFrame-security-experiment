@@ -31,25 +31,23 @@ public sealed class ServerLoggingHardeningTests : IDisposable
         }
         """;
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public ServerLoggingHardeningTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-logit-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOG_FILE", Path.Combine(_directory, "server.log"));
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
     [Fact]
     public async Task Full_routing_loop_should_write_business_event_lines_to_dated_log_file()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         // 1) 注册设备 → 建模板 → 提交（第一条：创建行，requestId → jobId）
         await PostOkAsync("/api/devices", """{ "deviceId": "pc-logit", "name": "日志验证机" }""");
         await PostOkAsync("/api/templates", TemplateJson);
@@ -101,6 +99,7 @@ public sealed class ServerLoggingHardeningTests : IDisposable
         try
         {
             using var factory = new WebApplicationFactory<Program>();
+            factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
             using var client = factory.CreateClient();
             var response = await client.GetAsync("/healthz");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -143,17 +142,6 @@ public sealed class ServerLoggingHardeningTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOG_FILE", null);
-        try
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
-        catch (IOException)
-        {
-            // 句柄延迟释放时忽略清理失败
-        }
+        _environment.Dispose();
     }
 }

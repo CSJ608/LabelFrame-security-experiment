@@ -154,7 +154,7 @@ public static class AdminSecurity
     }
 
     private static IResult Error(int status, string message) => Results.Json(
-        new ErrorView("LF_AUTH_DENIED", message), statusCode: status);
+        new ErrorView(ServerErrorCodes.AdminAccessDenied, message), statusCode: status);
     private static Task RejectAsync(HttpContext context, int status, string message) => Error(status, message).ExecuteAsync(context);
 
     public sealed record AdminCredential(string? PasswordHash);

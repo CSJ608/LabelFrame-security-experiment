@@ -14,18 +14,14 @@ namespace LabelFrame.Server.Tests;
 /// </summary>
 public sealed class ProgressReportEndpointsTests : IDisposable
 {
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public ProgressReportEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfprogress-it-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
@@ -135,20 +131,6 @@ public sealed class ProgressReportEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        try
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }

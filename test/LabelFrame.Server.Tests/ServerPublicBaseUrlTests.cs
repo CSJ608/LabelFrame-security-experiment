@@ -13,15 +13,10 @@ namespace LabelFrame.Server.Tests;
 /// </summary>
 public sealed class ServerPublicBaseUrlTests : IDisposable
 {
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
 
     public ServerPublicBaseUrlTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfbaseurl-it-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PUBLIC_BASE_URL", null);
     }
 
@@ -70,6 +65,7 @@ public sealed class ServerPublicBaseUrlTests : IDisposable
         try
         {
             using var factory = new WebApplicationFactory<Program>();
+            factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
             using var client = factory.CreateClient();
             var body = await client.GetFromJsonAsync<JsonElement>("/api/server/info");
             Assert.Equal("http://192.168.1.10:53961", body.GetProperty("publicBaseUrl").GetString());
@@ -84,6 +80,7 @@ public sealed class ServerPublicBaseUrlTests : IDisposable
     public async Task Info_endpoint_should_return_null_when_not_configured()
     {
         using var factory = new WebApplicationFactory<Program>();
+        factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         using var client = factory.CreateClient();
         using var response = await client.GetAsync("/api/server/info");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -93,7 +90,8 @@ public sealed class ServerPublicBaseUrlTests : IDisposable
         Assert.Equal(JsonValueKind.Null, publicBaseUrl.ValueKind);
 
         // 既有字段不回归
-        Assert.Equal(ServerOptions.DefaultListenUrl, body.GetProperty("listenUrl").GetString());
+        Assert.False(body.TryGetProperty("listenUrl", out _));
+        Assert.False(body.TryGetProperty("trustedProxies", out _));
         Assert.Equal(ServerOptions.ProductVersion, body.GetProperty("version").GetString());
         Assert.True(body.TryGetProperty("uiEnabled", out _), "响应应含 uiEnabled 字段");
     }
@@ -101,22 +99,7 @@ public sealed class ServerPublicBaseUrlTests : IDisposable
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PUBLIC_BASE_URL", null);
-        try
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 
     /// <summary>设环境变量后应用覆盖并捕获控制台告警；返回解析结果与控制台输出（用后恢复环境变量）。</summary>

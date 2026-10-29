@@ -8,7 +8,7 @@
 
 ## 2. 内部结构
 
-当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为旧 fixture 迁移提供全存储隔离、环境变量恢复和正式登录辅助；已迁移网卡候选、错误契约与错误参数三组，其余仍待迁移。前端登录/退出尚未交付，因此原型不可作为完整产品使用。
+当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为全部旧完整 Program HTTP fixture 提供全存储隔离、环境变量恢复和正式登录辅助，证据目录保留不删除。常规端点回归使用真实回环动态端口；受信代理的来源 IP 模拟仍为 TestServer，只验证设备运行来源，不作为真实 HTTPS 或管理传输验收。Perf/Soak fixture 同样迁移但不运行，切换 Kestrel 后不能直接沿用旧内存传输性能基线。前端登录/退出尚未交付，因此原型不可作为完整产品使用。
 
 权限分类使用 ASP.NET 路由匹配后的 RouteEndpoint 原始模板及 HTTP 方法，而不是请求字符串前缀；新端点未登记时落到 admin。方法不符、大小写、尾斜杠与编码路径不能获得不同于实际选中端点的权限。保留框架已有上传大小限制、文件名安全检查、签名校验、快照和安装保护。
 
@@ -29,6 +29,8 @@ admin 密码只通过部署侧提供框架哈希（Server:AdminPasswordHash）�
 默认远程 admin 需要 HTTPS；HTTP 例外仅 TCP 直连回环，不能靠 Host=localhost 或转发头构造回环身份。原型不根据 X-Forwarded-Proto 放行：现有代理配置仅恢复设备来源 IP，不等于安全传输证明。进入安全层前保存真实 TCP 对端及是否存在转发头；带转发头的 HTTP 不享受回环例外，即使代理在本机。反代 TLS 终止支持待独立受信代理配置、单跳边界和伪造负例完成后启用，不盲信 `*`。便利内网 HTTP 为可选产品方向，本增量不实现静默降级；证书部署重大选择留待用户决定。
 
 管理会话与令牌禁止跨源读取，带 Origin 时必须严格匹配当前 scheme/host/port 且为纯 origin（不接受 userinfo/path/query/fragment），Sec-Fetch-Site 的 same-site/cross-site 拒绝。无 Origin 非浏览器仍须 Cookie + 写防伪令牌，不等价免认证。Server 运行接口的跨源业务兼容不能把管理路径一并开放；WinHost CORS 不改。
+
+管理拒绝统一使用 `ServerErrorCodes.AdminAccessDenied`（`LF_AUTH_DENIED`），保持已有状态码和消息语义；错误码注册表是前端中英文覆盖断言的权威，不能只在认证实现内放字面量而遗漏注册。
 
 ## 4. 实际端点权限矩阵
 
