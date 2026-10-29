@@ -2,6 +2,7 @@
 
 ## 安全实验索引（与下方上游历史分开）
 
+- 实验 #3 接续验证：补焦点核验与断网生命周期回归、延迟注销重复失效的真实浏览器证据及 Core 动态回环传输定向检查；完整解决方案回归仍待审查和执行，逐项结果见 Issue。
 - 治理与发布隔离：[实验 #1](https://github.com/CSJ608/LabelFrame-security-experiment/issues/1)，验收/PR 状态以 Issue 为准；计划与边界见 [EXPERIMENT.md](EXPERIMENT.md)。尚未交付安全认证。
 - 进行中：[实验 #3](https://github.com/CSJ608/LabelFrame-security-experiment/issues/3)，Server 管理认证与前端公开/管理树隔离、登录/退出、CSRF 与请求代数已接线；补修重复失效下的注销等待竞态，完成隔离 WinHost 内存宿主端点与跨平台宿主定向回归。已有双模式及真实浏览器证据，完整解决方案测试、产品回归与机器认证仍欠，不算整体验收，证据以 Issue 为准。
 
