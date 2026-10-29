@@ -16,25 +16,22 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
 {
     private const string ApkContentType = "application/vnd.android.package-archive";
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public PdaPackagesEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfpdapkgs-it-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PDA_PACKAGES", Path.Combine(_directory, "pda-packages"));
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
     [Fact]
     public async Task Upload_then_download_should_return_apk_content_type()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         using (var form = new MultipartFormDataContent())
         {
             var file = new ByteArrayContent([0x50, 0x4B, 0x03, 0x04, 0x05, 0x06]);
@@ -58,6 +55,7 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
     [Fact]
     public async Task Upload_non_apk_should_be_400_with_actionable_message()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent([1, 2, 3]);
         form.Add(file, "file", "client-setup.msi");
@@ -93,6 +91,7 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
     [Fact]
     public async Task Delete_should_remove_file_and_second_delete_404()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         using (var form = new MultipartFormDataContent())
         {
             var file = new ByteArrayContent([9]);
@@ -115,21 +114,6 @@ public sealed class PdaPackagesEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PDA_PACKAGES", null);
-        try
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }

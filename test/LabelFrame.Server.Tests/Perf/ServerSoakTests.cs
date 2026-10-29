@@ -18,25 +18,23 @@ namespace LabelFrame.Server.Tests.Perf;
 public sealed class ServerSoakTests : IDisposable
 {
     private readonly ITestOutputHelper _output;
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public ServerSoakTests(ITestOutputHelper output)
     {
         _output = output;
-        _directory = Path.Combine(Path.GetTempPath(), $"lfsoak-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
     [Fact]
     public async Task Mixed_load_steady_state_should_not_drift()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         var minutes = double.TryParse(Environment.GetEnvironmentVariable("LF_SOAK_MINUTES"), out var m) ? m : 5;
         var devices = new[] { 0, 1, 2, 3 };
         foreach (var d in devices)
@@ -132,11 +130,6 @@ public sealed class ServerSoakTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try { if (Directory.Exists(_directory)) { Directory.Delete(_directory, true); } }
-        catch (IOException) { }
+        _environment.Dispose();
     }
 }

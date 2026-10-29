@@ -34,6 +34,7 @@ import { UI_MODE } from '../uiMode'
 import { resolveApiErrorMessage } from '../../i18n/errorMessages'
 import i18next from '../../i18n'
 import { beginHostOperation } from '../hostLifecycle'
+import { assertAdminRequestAllowed, beginAdminRequest } from '../adminSession'
 
 // ── base 解析 ──
 
@@ -99,16 +100,20 @@ function transportError(t: ReturnType<typeof createRequestTimeout>, timeoutMs: n
 
 function makeRequest(base: () => string, label: '服务端' | '本机客户端') {
   return async function request<T>(path: string, init?: RequestInit, timeoutMs = requestTimeouts.normal): Promise<T> {
+    assertAdminRequestAllowed(path, init?.method)
     // 默认 30s 超时（后端挂起不再无限「处理中…」）；出图 / 上传类大负载端点在调用处传 heavy 档（120s）
     const timeout = createRequestTimeout(timeoutMs)
+    const scope = beginAdminRequest({ ...init, signal: init?.signal ? AbortSignal.any([init.signal, timeout.signal]) : timeout.signal }, UI_MODE === 'server')
     const endOperation = init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) ? beginHostOperation() : undefined
     try {
       let res: Response
       try {
-        res = await fetch(base() + path, { ...init, mode: 'cors', signal: timeout.signal })
+        res = await fetch(base() + path, { ...scope.init, mode: 'cors' })
       } catch {
+        scope.assertCurrent()
         throw transportError(timeout, timeoutMs, base, label)
       }
+      scope.response(res.status)
       if (!res.ok) {
         let body: ApiErrorBody | null = null
         try {
@@ -116,6 +121,7 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
         } catch {
           body = null
         }
+        scope.assertCurrent()
         throw new ApiError(
           body?.code ?? 'HTTP_' + res.status,
           resolveApiErrorMessage(body?.code, body?.params, body?.message ?? i18next.t('api.httpError', { status: res.status })),
@@ -124,17 +130,23 @@ function makeRequest(base: () => string, label: '服务端' | '本机客户端')
       }
       if (res.status === 204) return undefined as T
       try {
-        return (await res.json()) as T
+        const result = (await res.json()) as T
+        scope.assertCurrent()
+        return result
       } catch {
+        scope.assertCurrent()
         // 部分端点返回纯文本（如模板导入返回模板名）
         try {
-          return (await res.text()) as T
+          const result = (await res.text()) as T
+          scope.assertCurrent()
+          return result
         } catch {
           // 响应体读取中断 / 超时中止：与传输层同一归一化
           throw transportError(timeout, timeoutMs, base, label)
         }
       }
     } finally {
+      scope.dispose()
       endOperation?.()
       timeout.dispose()
     }
@@ -171,15 +183,19 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
     failMessage: string,
     timeoutMs = requestTimeouts.normal,
   ): Promise<{ blob: Blob; filename: string }> {
+    assertAdminRequestAllowed(path, init.method)
     const timeout = createRequestTimeout(timeoutMs)
+    const scope = beginAdminRequest({ ...init, signal: init.signal ? AbortSignal.any([init.signal, timeout.signal]) : timeout.signal }, UI_MODE === 'server')
     const endOperation = beginHostOperation()
     try {
       let res: Response
       try {
-        res = await fetch(base() + path, { ...init, mode: 'cors', signal: timeout.signal })
+        res = await fetch(base() + path, { ...scope.init, mode: 'cors' })
       } catch {
+        scope.assertCurrent()
         throw transportError(timeout, timeoutMs, base, label)
       }
+      scope.response(res.status)
       if (!res.ok) {
         let body: ApiErrorBody | null = null
         try {
@@ -187,6 +203,7 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
         } catch {
           body = null
         }
+        scope.assertCurrent()
         throw new ApiError(
           body?.code ?? 'HTTP_' + res.status,
           resolveApiErrorMessage(body?.code, body?.params, body?.message ?? i18next.t('api.blobHttpError', { message: failMessage, status: res.status })),
@@ -196,7 +213,9 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
       let blob: Blob
       try {
         blob = await res.blob()
+        scope.assertCurrent()
       } catch {
+        scope.assertCurrent()
         // 响应体下载中断 / 超时中止：与传输层同一归一化（慢速大文件下载超时同样呈现 TIMEOUT）
         throw transportError(timeout, timeoutMs, base, label)
       }
@@ -204,6 +223,7 @@ function makeFetchBlob(base: () => string, label: '服务端' | '本机客户端
       const filename = parseDispositionFilename(disposition) ?? fallbackName
       return { blob, filename }
     } finally {
+      scope.dispose()
       timeout.dispose()
       endOperation()
     }
@@ -217,6 +237,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
   return {
     /** 健康探测（5s 超时：远程服务端不可达时快速判为离线，不挂起连接状态）。 */
     healthz: async () => {
+      if (UI_MODE === 'server') return request<Healthz>('/healthz', undefined, 5000)
       let res: Response
       try {
         res = await fetch(base() + '/healthz', { mode: 'cors', signal: AbortSignal.timeout(5000) })
@@ -330,7 +351,7 @@ function makeBusinessApi(base: () => string, label: '服务端' | '本机客户�
   }
 }
 
-const serverRequest = makeRequest(getServerBaseUrl, '服务端')
+export const serverRequest = makeRequest(getServerBaseUrl, '服务端')
 const serverFetchBlob = makeFetchBlob(getServerBaseUrl, '服务端')
 
 /* * 服务端 API（模板 / 作业 / 设备 / 日志 / Excel / 调试出图 / healthz → 服务端地址；+ 客户端 / PDA 安装包与插件包分发）。 */

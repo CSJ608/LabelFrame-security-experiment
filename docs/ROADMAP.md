@@ -2,7 +2,13 @@
 
 ## 安全实验索引（与下方上游历史分开）
 
+- 实验 #3 工具复审：修复 stderr 已关闭时二次异常，补工具/安全边界与安装元数据定向回归；失败及通过证据回写 Issue，累计审查和完整产品验收仍欠。
+
+- 实验 #3 离线引导增量：先设计并实现 `--hash-admin-password`，无回显双次输入与独占离线退出，补自动化及真实终端证据；工具不替代受限秘密配置，完整产品与机器认证仍欠。
+- 实验 #3 并发与兼容接续：新增票据最后槽位竞争、撤销不复活及固定窗口额度回归，补 Core 状态/领取/队列/分表隔离测试；完整累计审查与剩余宿主回归仍欠，证据见 Issue。
+- 实验 #3 接续验证：补焦点核验与断网生命周期回归、延迟注销重复失效的真实浏览器证据及 Core 动态回环传输定向检查；完整解决方案回归仍待审查和执行，逐项结果见 Issue。
 - 治理与发布隔离：[实验 #1](https://github.com/CSJ608/LabelFrame-security-experiment/issues/1)，验收/PR 状态以 Issue 为准；计划与边界见 [EXPERIMENT.md](EXPERIMENT.md)。尚未交付安全认证。
+- 进行中：[实验 #3](https://github.com/CSJ608/LabelFrame-security-experiment/issues/3)，Server 管理认证与前端公开/管理树隔离、登录/退出、CSRF 与请求代数已接线；补修重复失效下的注销等待竞态，完成隔离 WinHost 内存宿主端点与跨平台宿主定向回归。已有双模式及真实浏览器证据，完整解决方案测试、产品回归与机器认证仍欠，不算整体验收，证据以 Issue 为准。
 
 > 迭代索引与状态总览。**立项 / 执行 / 验收在 GitHub Issue**（「迭代任务」模板立项，链接见下表）；流程见 [WORKFLOW.md](WORKFLOW.md)。
 > 迭代 0-41 的目标 / 范围 / 验收详情：[archive/ROADMAP-ITERATIONS.md](archive/ROADMAP-ITERATIONS.md)；迭代 42 起详情在对应 Issue。

@@ -1,0 +1,101 @@
+# Server 安全边界（实验设计）
+
+## 1. 职责与边界
+
+对应实验 [#3](https://github.com/CSJ608/LabelFrame-security-experiment/issues/3)，盘点基线 e85667c。本文是先行契约，不是完成声明；实施、测试与欠账记录在 Issue。来源历史中的全匿名和专用更新口令叙述不作为实验权限依据；当前来源升级管理只有同源检查，见 [更新发布](update-publishing.md)。不新增注册、guest 或多角色。
+
+只在 Server 装配安全层，LabelFrame.Api 共享模板/日志/导入/渲染实现与 WinHost 本地接口不增加强制登录。机器与浏览器认证分离；不启动真实 WinHost/PDA，不改变打印机最后一段链路。仅实验回环运行，不能据此宣称可发行部署。
+
+## 2. 内部结构
+
+当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为全部旧完整 Program HTTP fixture 提供全存储隔离、环境变量恢复和正式登录辅助，证据目录保留不删除。常规端点回归使用真实回环动态端口；受信代理的来源 IP 模拟仍为 TestServer，只验证设备运行来源，不作为真实 HTTPS 或管理传输验收。Perf/Soak fixture 同样迁移但不运行，切换 Kestrel 后不能直接沿用旧内存传输性能基线。前端登录/退出已接线，完整产品兼容与机器认证仍待后续，原型不可作为完整产品使用。
+
+权限分类使用 ASP.NET 路由匹配后的 RouteEndpoint 原始模板及 HTTP 方法，而不是请求字符串前缀；新端点未登记时落到 admin。方法不符、大小写、尾斜杠与编码路径不能获得不同于实际选中端点的权限。保留框架已有上传大小限制、文件名安全检查、签名校验、快照和安装保护。
+
+首增量使用 ASP.NET Core CookieAuthentication、IAntiforgery、PasswordHasher 与服务端 ITicketStore，不自创加密。Cookie HttpOnly、SameSite=Strict、无 Domain、HTTPS 时 Secure；固定 8 小时不滑动，浏览器不持久保存密码或令牌。服务端会话有容量上限与过期清理；注销删除票据，旧 Cookie 重放失效。单进程内存会话与临时 DataProtection 密钥使重启强制浏览器重新登录；这不是设备重新配对。
+
+admin 密码只通过部署侧提供框架哈希（Server:AdminPasswordHash）引导，原型不提供匿名 setup/reset，也没有默认密码。未配置时仍可下载/运行但管理锁定。离线生成哈希、替换配置并重启为恢复路径，撤销所有浏览器会话。不能把哈希/密码输出到日志、Issue、提交或命令历史。后续易用的初始化界面另做有本机证明的设计，不临时开放远程首访抢注。
+
+## 3. 关键流程
+
+### 离线管理员哈希工具
+
+Server 的 `--hash-admin-password` 为独占命令，在 WebApplication、配置、日志、数据库和监听初始化前处理并退出。必须由交互终端读取两次密码（不回显，支持退格与 Esc 取消），且标准输出必须重定向到操作者事先准备的受限位置；不支持命令行、环境变量或 stdin 管道提供密码，不回显参数。成功仅向标准输出写一行与登录同框架的 PasswordHasher 哈希，提示与固定错误只写 stderr。退出码 0 成功、2 输入/参数/控制台条件错误、3 输出或控制台 I/O 失败；输入拒绝不生成哈希，I/O 失败可能留下部分输出，不得采用。
+
+输入保留原文、不 trim，长度 1–1024 个 UTF-16 单元与现有登录一致；空白-only 拒绝，建议使用密码管理器生成长且独特的密码，不引入隐蔽的登录策略变更。可变输入缓冲在 finally 清空，但框架需要托管 string，不能保证进程内秘密零残留。输出文件仍是敏感凭据材料：工具不保证 shell 创建文件的 ACL，也不自动清理；操作者负责限制访问，禁止终端录制、流水线日志、提交或 Issue 上传。错误/取消时 shell 可能留下空文件，不得将它当成功配置。
+
+错误通道自身发生 I/O 或失效/已关闭异常时，兜底提示为尽力写入，仍返回退出码 3；不让第二次写错误掩盖失败状态，不将异常细节回退到标准输出。输出文件是否可用必须同时以成功退出为准。
+
+实验使用示意（仅展示命令，不包含密码）：`dotnet <实验构建目录>/LabelFrame.Server.dll --hash-admin-password > <受限目录>/admin.hash`。不用 `dotnet run` 混入构建输出；提示保留在终端。成功后由操作者通过部署秘密配置提供 `Server:AdminPasswordHash` / `Server__AdminPasswordHash` 并安排重启，重启撤销全部浏览器会话。工具自身不配置服务、不安装、不修改正式环境；没有哈希仍锁管理。真实终端无回显交互、纯逻辑替身和拒绝路径子进程证据分开记录。
+
+1. `GET /api/auth/session` 返回 authenticated、csrfToken（框架令牌）与配置状态；匿名态也发令牌供登录防 CSRF。响应 no-store。登录前后分别获取令牌，身份改变后旧匿名令牌不复用。
+2. `POST /api/auth/login` 接受 password，限制长度；必须通过传输、同源、防伪检查。所有登录尝试有有界全局固定窗口额度（首原型 10 次/分钟），失败同一错误，成功不重置额度，避免分布式绕过；受攻击可造成临时登录拒绝，原型明确不宣称高可用。后续可加受信来源分区但不信任任意 X-Forwarded-For。
+3. 管理请求先验证传输与来源，再验证认证；写方法必须携带 `X-LabelFrame-CSRF`。不能因共享端点 DisableAntiforgery 元数据绕过 Server 的显式验证。登录和注销同样检查。错误为 JSON（401 未认证、403 来源/传输/防伪拒绝、429 频率超限），不重定向 HTML 登录页。
+4. `POST /api/auth/logout` 撤销当前票据并清 Cookie。浏览器先关闭敏感树、增加请求代数、取消请求/停止轮询并清空 Provider/草稿/日志，再发注销；失败显示未确认撤销，不可声称安全退出。并发中已经授权且已执行的写操作不能靠注销回滚。
+5. 页面公开区使用独立组件，不挂载会查询模板、设备、历史的管理 Provider。深链未登录仅显示登录入口；匿名仅下载与静态帮助。登录后挂载新的管理状态树；401/会话失效同退出本地清理，多标签页同步退出。下载中心公共列表/下载与上传删除发布状态组件拆分。
+
+### 传输与代理
+
+默认远程 admin 需要 HTTPS；HTTP 例外仅 TCP 直连回环，不能靠 Host=localhost 或转发头构造回环身份。原型不根据 X-Forwarded-Proto 放行：现有代理配置仅恢复设备来源 IP，不等于安全传输证明。进入安全层前保存真实 TCP 对端及是否存在转发头；带转发头的 HTTP 不享受回环例外，即使代理在本机。反代 TLS 终止支持待独立受信代理配置、单跳边界和伪造负例完成后启用，不盲信 `*`。便利内网 HTTP 为可选产品方向，本增量不实现静默降级；证书部署重大选择留待用户决定。
+
+管理会话与令牌禁止跨源读取，带 Origin 时必须严格匹配当前 scheme/host/port 且为纯 origin（不接受 userinfo/path/query/fragment），Sec-Fetch-Site 的 same-site/cross-site 拒绝。无 Origin 非浏览器仍须 Cookie + 写防伪令牌，不等价免认证。Server 运行接口的跨源业务兼容不能把管理路径一并开放；WinHost CORS 不改。
+
+管理拒绝统一使用 `ServerErrorCodes.AdminAccessDenied`（`LF_AUTH_DENIED`），保持已有状态码和消息语义；错误码注册表是前端中英文覆盖断言的权威，不能只在认证实现内放字面量而遗漏注册。
+
+## 4. 实际端点权限矩阵
+
+下表穷举 Program.cs、Server/Api 五个模块及共享 Endpoints 四个模块在本基线的映射；花括号使用源码参数名，更新平台 p = client-updates / android-updates。
+
+| 分类 | 方法与端点 | 说明 |
+|---|---|---|
+| 公开 | GET /healthz；GET /api/server/info | info 只公开版本、uiEnabled 与经去 userinfo/query/fragment 校验的 publicBaseUrl；删除 listenUrl/trustedProxies |
+| 公开下载 | GET /api/client-packages；GET /api/client-packages/{fileName}；GET /api/pda-packages；GET /api/pda-packages/{fileName} | 列表只文件分发元数据，不拼入发布状态/设备列表 |
+| 登录生命周期 | GET /api/auth/session；POST /api/auth/login；POST /api/auth/logout | session/login 无登录要求但有传输/来源限制；logout 需登录与防伪 |
+| 管理 | GET /api/server/ipv4-candidates；GET /api/devices；GET /api/jobs；GET /api/logs | 网卡、在线设备、历史及诊断不得公开 |
+| 管理 | GET/POST /api/templates；GET/DELETE /api/templates/{name}；GET /api/templates/{name}/export；POST /api/templates/import；POST /api/templates/{name}/preview | 模板全部受保护；匿名运行作业不能写回模板库 |
+| 管理 | POST /api/print/render-image；POST /api/print/render-images；POST /api/import/excel-template；POST /api/import/excel | 设计/调试与数据导入 |
+| 管理 | POST /api/client-packages；DELETE /api/client-packages/{fileName}；POST /api/pda-packages；DELETE /api/pda-packages/{fileName}；POST /api/plugin-packages；DELETE /api/plugin-packages/{fileName} | 所有包写入始终需 admin |
+| 管理 | GET /api/{p}；GET /api/{p}/drafts；POST /api/{p}/preview；POST /api/{p}/publish；PUT /api/{p}/{id}/pause；GET /api/{p}/status | 两平台全部发布管理；旧 PDA Bearer 人工恢复仍拒绝 |
+| 设备运行 | POST /api/devices；GET /api/devices/{deviceId}/jobs/notify；GET /api/devices/{deviceId}/jobs/pending；POST /api/devices/{deviceId}/jobs/{jobId}/result；POST /api/devices/{deviceId}/jobs/{jobId}/progress；POST /api/logs | 注册/心跳、领取和回报；GET 领取也写状态，不按“GET 安全”推断权限 |
+| 设备运行 | GET /api/{p}/candidate；GET /api/{p}/{id}/package；POST /api/{p}/status；GET /api/plugin-packages；GET /api/plugin-packages/{fileName} | 更新选择/下载/设备状态与插件安装读取；插件页面仍需 admin，不向匿名 UI 展示插件管理 |
+| 集成运行 | POST /api/jobs；GET /api/jobs/{jobId}；GET /api/devices/by-ip/{ip} | 保留信任局域网业务接入；可读作业/定位设备不是完整业务数据保护 |
+| 默认管理 | 所有新增或未分类 API | 显式登记后才能放宽 |
+
+静态 UI/帮助资源无秘密，可匿名托管；SPA fallback 不是数据授权。所有管理写入由后端保护，不能只隐藏菜单。信任模式运行接口会接受自带模板的作业并使设备出纸，但不保存模板/上传插件/发布更新；这是已授权运行能力，不是管理等价写入。
+
+### 机器凭据后续增量（本轮原型不伪造已完成）
+
+当前保留信任模式运行接口，明确允许设备冒充/作业数据暴露/伪日志与伪更新状态。启用验证后设备凭据只访问自身领取、回报、日志与更新；集成密钥访问授权设备的提交/查询，不能上传模板/包或获得 admin。每台独立随机长期凭据，服务端存哈希及撤销记录、客户端安全持久保存，正常升级/断网/重启不重配；ID/IP 均非凭据。配对码期限、六位码与批量 30 分钟尚未定值；须限制尝试、单台原子消费，批量仍逐台发凭据。
+
+开关关闭不删凭据，再启用有效；启用前以设备/集成最近活动列出影响，明确确认后生效，不伪称旧匿名设备已经配对。开关与凭据落独立持久存储，备份/恢复不能无意恢复已撤销秘密；无确认不能热切断现有打印。当前不暴露一个没有这些保障的 UI 开关。
+
+callbackUrl 当前只限 http/https、禁重定向、10 秒超时与有限重试，信任模式仍可请求内部地址。未来按集成身份绑定允许目标，不无差别封杀内网；匿名回调风险在最小原型中保留并单列，不宣称已消除 SSRF。
+
+## 5. 设计取舍与回退
+
+会话容量满时保留已有会话，不驱逐其他管理员；登录返回 503 与 `Retry-After: 60`，提示退出其他会话或等待过期，不返回内部异常。容量检查与存储仍在同一锁内完成，登录只捕获专用容量异常，不掩盖其他故障。登录 JSON 请求体上限 8192 字节，须以真实 Kestrel 的超限请求验证，不能只检查端点元数据。
+
+EXP-S01/02 见 [DESIGN](../DESIGN.md)。框架依据：[Cookie 与撤销](https://learn.microsoft.com/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0)、[ITicketStore](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.authentication.cookies.iticketstore?view=aspnetcore-10.0)、[防伪令牌](https://learn.microsoft.com/aspnet/core/security/anti-request-forgery?view=aspnetcore-10.0)。
+
+先设计与分类/会话组件测试，再装配 Program 与完整隔离 HTTP 测试，再前端路由/退出；这些是同一 Issue 的阶段，未接线的模块不算已保护。回退到来源程序会恢复匿名管理，必须同时限制网络，不能无提示作为安全回退。首原型不迁移业务库，重启撤销浏览器会话；设备持久化不是本步交付。
+
+## 6. 不变量与验证
+
+### 浏览器生命周期补充
+
+前端接线现状：ServerAuthBoundary、adminSession、PublicDownloads 已实现下述契约；管理组件单测直接测试 ManagementApp，入口安全回归单独测试真实 App 包装链。真实浏览器使用全路径隔离 Server 与合成数据，未启动正式 WinHost/PDA；已执行与未执行验收以 Issue 证据为准。
+
+- Server 入口使用独立认证边界，启动读取 session，确认认证前不挂 AppProvider/Shell。公开下载组件只读取包列表与最小 info，不枚举网卡、不读取发布状态；帮助仅静态文章，管理深链显示登录，成功后回到原深链。
+- 请求域覆盖管理 JSON、blob、multipart、发布及健康探测；令牌仅内存，写请求合并 CSRF 与既有头，不手工设置 multipart Content-Type。响应头与响应体读取后都核对代数；取消不等于服务端回滚。
+- 退出、401、多标签失效同步推进代数并取消在途，先卸载管理树再注销。Server 草稿与目标设备仅驻内存，并清理旧版持久化键；client 存储行为不变。注销失败保留“服务端撤销未确认”提示，不自动恢复管理树。
+- 跨标签只广播失效事件、不传播 Cookie/密码/CSRF；恢复焦点时重新核验已登录会话。登录成功须再次 session 获取身份绑定 CSRF；迟到的登录或 session 响应不得重新挂管理树。
+- 当前页面注销在途期间保持独立撤销锁；重复的跨标签失效只清身份，不释放撤销锁。注销请求成功或失败返回前禁止再次登录（含程序触发表单提交），避免仍有效的旧 Cookie 提前恢复管理树；失败后继续显示撤销未确认，允许用户明确重试登录，不自动恢复。
+- 焦点核验在同一管理生命周期内合并重复 focus；失效后的迟到会话不得恢复身份，核验网络失败也清理本地管理树。注销失败提示按完成时的当前语言显示；断网时本地清理不代表服务端票据已撤销，重连后必须明确完成撤销。组件与真实浏览器证据分别记录，不互相冒充。
+
+- 新 API 默认 admin；回归断言所有实际路由的分类，管理写端点匿名必须拒绝。
+- 测试仅模拟设备/造数据，不运行继承发行/E2E，不启动 WinHost/PDA。启动完整 Program 前覆盖三库、文本日志、三种包、两种更新、UI 全部路径；不得只改三库后落到 ProgramData。
+- 共享 WinHost 兼容回归仅在测试进程内装配 TestServer，禁用托盘、浏览器和后台打印；三库、配置、插件、日志、出图与 UI 路径显式隔离，更新缓存随测试数据库父目录派生。地址保存会立即启动路由协调器（移除 IHostedService 不能阻止它），因此成功保存的测试地址必须为测试自建的回环动态端口，不能使用正式默认端口。该回归不等于正式 WinHost 进程或安装验收。
+- 正负例覆盖匿名管理、公开最小信息、登录失败限流、Cookie 属性、CSRF、跨源、退出后重放、过期/重启、HTTP/TLS、Host/X-Forwarded-* 伪造与编码/尾斜杠路由。
+- 前端测试覆盖深链不挂敏感树、401 清状态、多标签页注销、停止轮询、取消及过期代数防回填；先解决隔离版本匹配工具链，不改全局环境。
+- 实际检查通过前不关闭 Issue、不冒称 AC 完成；公开证据不含密码、哈希、Cookie、生产数据或环境秘密。
+- 内存并发回归独立验证最后一个票据槽位只允许一个申请成功且不驱逐旧会话、撤销与续期竞争不复活已删除键、并发登录尝试共用固定窗口额度；不将该组件验证称为真实并发 HTTP 或性能验收。

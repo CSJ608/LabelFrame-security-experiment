@@ -1,4 +1,5 @@
 {
+  "LF_AUTH_DENIED": "管理员访问被拒绝，请检查登录状态、请求验证与安全连接；频率受限时请稍后重试。",
   "LF_API_001": "请求格式错误（缺少必填字段或参数无效）。",
   "LF_API_BAD_BODY": "请求体或参数无效：不是合法的 JSON、编码不是 UTF-8 或参数类型不匹配。请检查请求内容与 Content-Type（application/json; charset=utf-8）后重试。",
   "LF_JOB_001": "作业不存在：{{jobId}}。",

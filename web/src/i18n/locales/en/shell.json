@@ -1,5 +1,18 @@
 {
   "appTitle": "LabelFrame Label Printing",
+  "auth": {
+    "login": "Administrator sign in",
+    "logout": "Sign out of administration",
+    "password": "Administrator password",
+    "required": "This page requires an administrator session. Downloads and help are public.",
+    "transport": "Remote administration requires trusted HTTPS; HTTP is allowed only on direct loopback connections.",
+    "notConfigured": "The administrator password hash is not configured. Contact your deployment administrator.",
+    "sessionFailed": "Unable to verify the session. Check connectivity and HTTPS configuration, then retry signing in.",
+    "loginFailed": "Sign-in did not complete. Check your password, connection and HTTPS configuration; wait before retrying if rate limited.",
+    "logoutUnconfirmed": "Local administration data was cleared, but server revocation is unconfirmed. Reconnect, sign in and sign out again. Refreshing may restore a still-valid session.",
+    "wait": "Please wait…",
+    "language": "中文 / English"
+  },
   "nav": {
     "region": "Main navigation",
     "workbench": "Workbench",

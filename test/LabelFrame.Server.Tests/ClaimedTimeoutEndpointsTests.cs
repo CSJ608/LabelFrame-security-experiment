@@ -34,19 +34,16 @@ public sealed class ClaimedTimeoutEndpointsTests : IDisposable
         }
         """;
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public ClaimedTimeoutEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-claimed-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", DbPath);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", "30");
+        _environment.Set("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", "30");
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
@@ -55,6 +52,7 @@ public sealed class ClaimedTimeoutEndpointsTests : IDisposable
     [Fact]
     public async Task Host_lost_after_claim_should_end_as_failed_with_reason_and_no_redelivery()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         var jobId = await RegisterSubmitAndClaimAsync("claimed-req-1");
         await BackdateClaimedAtAsync("claimed-req-1", minutes: 31);
 
@@ -91,6 +89,7 @@ public sealed class ClaimedTimeoutEndpointsTests : IDisposable
     [Fact]
     public async Task Normal_path_claim_then_report_should_still_complete()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         // 正常路径零回归：领取 → 回报终态（不推进时间，远小于 30 分钟超时）
         var jobId = await RegisterSubmitAndClaimAsync("claimed-req-2");
 
@@ -105,6 +104,7 @@ public sealed class ClaimedTimeoutEndpointsTests : IDisposable
     [Fact]
     public async Task Late_report_after_reclaim_should_replay_failed()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         // 宿主重启后本地队列打完、迟到的真实回报：返回既有 Failed 终态（幂等重放，不覆盖）
         var jobId = await RegisterSubmitAndClaimAsync("claimed-req-3");
         await BackdateClaimedAtAsync("claimed-req-3", minutes: 31);
@@ -173,47 +173,30 @@ public sealed class ClaimedTimeoutEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", null);
-        try
-        {
-            SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }
 
 /// <summary>超时回收关闭（0）回归锚点：失联 Claimed 永不回收（行为与现状一致），迟到的回报照常进入终态。</summary>
 public sealed class ClaimedTimeoutDisabledEndpointsTests : IDisposable
 {
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public ClaimedTimeoutDisabledEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-claimed0-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", "0");
+        _environment.Set("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", "0");
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
     [Fact]
     public async Task Timeout_disabled_should_keep_claimed_forever_and_accept_late_report()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         await PostAsync("/api/devices", """{ "deviceId": "pc-old", "name": "老机器" }""");
         await PostAsync("/api/templates", """
             {
@@ -277,21 +260,6 @@ public sealed class ClaimedTimeoutDisabledEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_CLAIMED_TIMEOUT_MINUTES", null);
-        try
-        {
-            SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }

@@ -34,19 +34,16 @@ public sealed class PendingExpirationEndpointsTests : IDisposable
         }
         """;
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public PendingExpirationEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-ttl-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", DbPath);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PENDING_TTL_HOURS", "1");
+        _environment.Set("LABELFRAME_SERVER_PENDING_TTL_HOURS", "1");
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
@@ -55,6 +52,7 @@ public sealed class PendingExpirationEndpointsTests : IDisposable
     [Fact]
     public async Task Overdue_pending_should_not_be_claimed_even_before_scan()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         var jobId = await RegisterSubmitAndBackdateAsync("ttl-req-1", hours: 2);
 
         // 扫描从未运行：作业仍显示 Pending（标记是扫描的职责）
@@ -72,6 +70,7 @@ public sealed class PendingExpirationEndpointsTests : IDisposable
     [Fact]
     public async Task Replay_of_expired_job_should_return_expired_without_redelivery()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         var jobId = await RegisterSubmitAndBackdateAsync("ttl-req-2", hours: 2);
 
         // 显式触发一次过期扫描（等同后台任务的单次执行）
@@ -102,6 +101,7 @@ public sealed class PendingExpirationEndpointsTests : IDisposable
     [Fact]
     public async Task Notify_should_return_immediately_when_backlog_exists()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         await PostOkAsync("/api/devices", """{ "deviceId": "pc-ttl", "name": "积压机" }""");
         await PostOkAsync("/api/templates", TemplateJson);
         await PostOkAsync("/api/jobs", SubmitBody("ttl-req-3"));
@@ -154,47 +154,30 @@ public sealed class PendingExpirationEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PENDING_TTL_HOURS", null);
-        try
-        {
-            SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }
 
 /// <summary>TTL 关闭（0）回归锚点：行为与引入 TTL 前完全一致——超龄 Pending 照常下发领取。</summary>
 public sealed class TtlDisabledEndpointsTests : IDisposable
 {
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
+    private string _directory => _environment.DirectoryPath;
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     public TtlDisabledEndpointsTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfserver-ttl0-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PENDING_TTL_HOURS", "0");
+        _environment.Set("LABELFRAME_SERVER_PENDING_TTL_HOURS", "0");
         _factory = new WebApplicationFactory<Program>();
+        _factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         _client = _factory.CreateClient();
     }
 
     [Fact]
     public async Task Ttl_disabled_should_deliver_stale_pending_jobs_as_before()
     {
+        await IsolatedServerEnvironment.LoginAsync(_client);
         await PostAsync("/api/devices", """{ "deviceId": "pc-old", "name": "老机器" }""");
         await PostAsync("/api/templates", """
             {
@@ -248,21 +231,6 @@ public sealed class TtlDisabledEndpointsTests : IDisposable
         GC.SuppressFinalize(this);
         _client.Dispose();
         _factory.Dispose();
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_PENDING_TTL_HOURS", null);
-        try
-        {
-            SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }

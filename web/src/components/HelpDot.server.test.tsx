@@ -8,7 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, render, screen } from '@testing-library/react'
-import App from '../App'
+import { ManagementApp as App } from '../App'
 import { Settings } from '../pages/Settings'
 import { PropsPanel } from '../pages/designer/PropsPanel'
 import { defaultElement } from '../lib/design/types'

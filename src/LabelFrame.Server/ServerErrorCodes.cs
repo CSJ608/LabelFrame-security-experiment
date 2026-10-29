@@ -1,9 +1,12 @@
 namespace LabelFrame.Server;
 
-/// <summary>Server 问题码。约定：LF_SRV_xxx。</summary>
+/// <summary>定义 Server 业务与管理访问问题码。</summary>
 /// <remarks>新增码须同步 web 端码表（`web/src/i18n/locales/*/errorCodes.json`，覆盖断言测试挡漏译）。</remarks>
 public static class ServerErrorCodes
 {
+    /// <summary>管理员访问因身份、来源、传输、防伪或额度限制被拒绝。</summary>
+    public const string AdminAccessDenied = "LF_AUTH_DENIED";
+
     /// <summary>设备未注册。</summary>
     public const string DeviceNotFound = "LF_SRV_001";
 

@@ -17,22 +17,17 @@ namespace LabelFrame.Server.Tests;
 /// 受信代理转发头信任（LABELFRAME_SERVER_TRUSTED_PROXIES）解析与端到端行为：
 /// 条目解析（「*」/ IP / CIDR / 混合非法 / 全非法 / 空白关闭）、未启用不改写来源、
 /// 受信对端按 X-Forwarded-For 回溯改写注册 / 心跳 / 领取三落点 lastIp、
-/// 非受信对端忽略转发头并按对端去重告警、/api/server/info 的 trustedProxies 两态。
+/// 非受信对端忽略转发头并按对端去重告警、公开信息不泄漏代理配置。
 /// </summary>
 public sealed class TrustedProxyForwardedHeaderTests : IDisposable
 {
     private const string TrustedProxiesEnv = "LABELFRAME_SERVER_TRUSTED_PROXIES";
     private const string RemoteIpHeader = "X-Test-Remote-IP";
 
-    private readonly string _directory;
+    private readonly IsolatedServerEnvironment _environment = new();
 
     public TrustedProxyForwardedHeaderTests()
     {
-        _directory = Path.Combine(Path.GetTempPath(), $"lfproxy-it-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_directory);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", Path.Combine(_directory, "server.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", Path.Combine(_directory, "templates.db"));
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", Path.Combine(_directory, "logs.db"));
         Environment.SetEnvironmentVariable(TrustedProxiesEnv, null);
     }
 
@@ -248,18 +243,19 @@ public sealed class TrustedProxyForwardedHeaderTests : IDisposable
     // ---- /api/server/info 字段两态 ----
 
     [Fact]
-    public async Task Info_endpoint_should_echo_effective_trusted_proxies()
+    public async Task Info_endpoint_should_hide_configured_trusted_proxies()
     {
         Environment.SetEnvironmentVariable(TrustedProxiesEnv, "172.16.0.0/12");
         try
         {
             using var factory = new WebApplicationFactory<Program>();
+            factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
             using var client = factory.CreateClient();
             var body = await client.GetFromJsonAsync<JsonElement>("/api/server/info");
 
-            Assert.Equal("172.16.0.0/12", body.GetProperty("trustedProxies").GetString());
+            Assert.False(body.TryGetProperty("trustedProxies", out _));
             // 既有字段不回归
-            Assert.Equal(ServerOptions.DefaultListenUrl, body.GetProperty("listenUrl").GetString());
+            Assert.False(body.TryGetProperty("listenUrl", out _));
             Assert.True(body.TryGetProperty("publicBaseUrl", out _), "响应应含 publicBaseUrl 字段");
             Assert.True(body.TryGetProperty("uiEnabled", out _), "响应应含 uiEnabled 字段");
             Assert.Equal(ServerOptions.ProductVersion, body.GetProperty("version").GetString());
@@ -271,14 +267,14 @@ public sealed class TrustedProxyForwardedHeaderTests : IDisposable
     }
 
     [Fact]
-    public async Task Info_endpoint_should_return_null_trusted_proxies_when_disabled()
+    public async Task Info_endpoint_should_omit_trusted_proxies_when_disabled()
     {
         using var factory = new WebApplicationFactory<Program>();
+        factory.UseKestrel(options => options.Listen(IPAddress.Loopback, 0));
         using var client = factory.CreateClient();
         var body = await client.GetFromJsonAsync<JsonElement>("/api/server/info");
 
-        Assert.True(body.TryGetProperty("trustedProxies", out var trusted), "响应应含 trustedProxies 字段");
-        Assert.Equal(JsonValueKind.Null, trusted.ValueKind);
+        Assert.False(body.TryGetProperty("trustedProxies", out _));
     }
 
     private static WebApplicationFactory<Program> CreateFactory() =>
@@ -297,11 +293,9 @@ public sealed class TrustedProxyForwardedHeaderTests : IDisposable
 
     private static async Task AssertLastIpAsync(HttpClient client, string deviceId, string expectedIp)
     {
-        var devices = await client.GetFromJsonAsync<JsonElement>("/api/devices");
-        var lastIp = devices.EnumerateArray()
-            .Single(d => d.GetProperty("deviceId").GetString() == deviceId)
-            .GetProperty("lastIp").GetString();
-        Assert.Equal(expectedIp, lastIp);
+        var device = await client.GetFromJsonAsync<JsonElement>($"/api/devices/by-ip/{expectedIp}");
+        Assert.Equal(deviceId, device.GetProperty("deviceId").GetString());
+        Assert.Equal(expectedIp, device.GetProperty("lastIp").GetString());
     }
 
     private static TrustedProxySet? CaptureParse(string? raw) => CaptureParseWithConsole(raw).Set;
@@ -385,21 +379,6 @@ public sealed class TrustedProxyForwardedHeaderTests : IDisposable
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_TEMPLATES_DB", null);
-        Environment.SetEnvironmentVariable("LABELFRAME_SERVER_LOGS_DB", null);
-        Environment.SetEnvironmentVariable(TrustedProxiesEnv, null);
-        try
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            if (Directory.Exists(_directory))
-            {
-                Directory.Delete(_directory, true);
-            }
-        }
-        catch (IOException)
-        {
-            // WAL 文件句柄延迟释放时忽略临时目录清理失败
-        }
+        _environment.Dispose();
     }
 }

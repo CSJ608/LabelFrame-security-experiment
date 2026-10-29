@@ -50,6 +50,8 @@ public sealed class ServerRoutingHotSwitchTests : IDisposable
             ConnectionPath = Path.Combine(_directory, "connection.json"),
             HostLogPath = Path.Combine(_directory, "host.log"),
             PrintOutputPath = Path.Combine(_directory, "print"),
+            AppLogDirectory = Path.Combine(_directory, "logs"),
+            WebUiPath = Path.Combine(_directory, "web"),
             Transport = TransportMode.Log,
             OpenBrowser = false,
             EnableTray = false,
@@ -57,6 +59,7 @@ public sealed class ServerRoutingHotSwitchTests : IDisposable
             PollIntervalSeconds = 1,
         };
 
+        Directory.CreateDirectory(options.WebUiPath!);
         _app = WinHostApp.BuildAsync(options, TextWriter.Null, _ => { }, builder =>
         {
             builder.WebHost.UseTestServer();

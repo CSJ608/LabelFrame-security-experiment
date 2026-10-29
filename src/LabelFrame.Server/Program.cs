@@ -8,11 +8,19 @@ using LabelFrame.Core.Transport.Plugins.Package;
 using LabelFrame.Rendering;
 using LabelFrame.Server;
 using LabelFrame.Server.Api;
+using LabelFrame.Server.Security;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 // 与已弃用的 HttpOverrides.IPNetwork 区分，网段统一用 net10 的 System.Net.IPNetwork
 using IPNetwork = System.Net.IPNetwork;
+
+if (args.Any(arg => arg.StartsWith(AdminPasswordCommand.Name, StringComparison.Ordinal)))
+{
+    Environment.ExitCode = AdminPasswordCommand.Run(args, Console.IsInputRedirected, Console.IsOutputRedirected,
+        () => Console.ReadKey(intercept: true), Console.Out, Console.Error);
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -84,6 +92,7 @@ builder.Services.AddSingleton(sp => new ServerService(
 builder.Services.AddSingleton(notifier);
 builder.Services.AddSingleton(serverOptions);
 builder.Services.AddSingleton(timeProvider);
+builder.Services.AddAdminSecurity(builder.Configuration["Server:AdminPasswordHash"]);
 builder.Services.AddSingleton(templateStore);
 builder.Services.AddSingleton(logStore);
 builder.Services.AddSingleton(clientPackages);
@@ -113,6 +122,8 @@ builder.Services.AddLabelFrameExceptionHandler();
 var app = builder.Build();
 app.MapClientUpdatesApi();
 app.MapAndroidUpdatesApi();
+app.MapAdminSecurity();
+app.CaptureAdminTransport();
 
 // ---- 受信代理转发头信任（仅 XForwardedFor，不改写 scheme/host）：启用时改写 Connection.RemoteIpAddress 为转发头解析结果 ----
 // 不变量：信任来源只有本配置——框架默认的 loopback 信任必须清空后再注入；未启用时不注册任何中间件（来源保持 TCP 对端）
@@ -150,6 +161,9 @@ if (trustedProxies is not null)
 }
 
 app.UseExceptionHandler();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAdminBoundary();
 app.UseCors();
 
 // ---- 服务端管理界面插件：静态前端包目录，目录存在即托管、移除即无头（中间件常驻注册，即时生效） ----
@@ -176,9 +190,7 @@ app.MapGet("/healthz", () => Results.Ok(new { service = "LabelFrame.Server", sta
 app.MapGet("/api/server/info", (ServerOptions options) =>
     Results.Ok(new
     {
-        listenUrl = options.ListenUrl,
-        publicBaseUrl = options.PublicBaseUrl,
-        trustedProxies = trustedProxies?.Raw,
+        publicBaseUrl = ServerPublicInfo.SafeBaseUrl(options.PublicBaseUrl),
         uiEnabled = ServerPluginUi.IsEnabled(options.WebUiPath),
         version = ServerOptions.ProductVersion,
     }));
