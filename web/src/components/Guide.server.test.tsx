@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, render, screen } from '@testing-library/react'
-import App from '../App'
+import { ManagementApp as App } from '../App'
 import { GUIDE_SEEN_KEY } from '../lib/guide'
 
 configure({ asyncUtilTimeout: 8000 })

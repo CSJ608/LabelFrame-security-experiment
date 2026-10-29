@@ -13,7 +13,7 @@ import { probeHealthz } from '../lib/api/client'
 import { isServerUi } from '../lib/uiMode'
 import i18next, { currentLocale, formatLogTime } from '../i18n'
 import type { PrintDraft, StorageLike } from './draft'
-import { applyDraftValue, loadPrintDraft, savePrintDraft } from './draft'
+import { applyDraftValue, createEmptyDraft, loadPrintDraft, savePrintDraft } from './draft'
 
 export interface LogLine {
   time: string
@@ -39,7 +39,7 @@ interface AppContextValue {
   hostIps: string[]
   /** 本机客户端版本（/api/host/config.version，「检查更新」比较口径；旧客户端为 null）。 */
   hostVersion: string | null
-  /** 数据与打印「默认目标设备」（在线设备页点选，localStorage 持久化，跨页联动；client 构建不消费）。 */
+  /** 当前管理树的默认目标设备。 */
   defaultTargetDeviceId: string | null
   /** healthz 的传输模式（旧字段，兼容展示兜底）。 */
   transport: string | null
@@ -50,12 +50,12 @@ interface AppContextValue {
   statusLevel: 'ok' | 'err' | null
   logs: LogLine[]
   drawerOpen: boolean
-  /** DataPrint 会话草稿（切页 / 刷新保留，sessionStorage 持久化）。 */
+  /** DataPrint 草稿；Server 仅内存，client 保留原会话存储。 */
   printDraft: PrintDraft
   setDrawerOpen: (open: boolean) => void
   log: (msg: string) => void
   setStatus: (msg: string, level?: 'ok' | 'err') => void
-  /** 设置数据与打印默认目标设备（localStorage 持久化；仅 server 构建使用）。 */
+  /** 设置数据与打印默认目标设备。 */
   setDefaultTargetDeviceId: (id: string | null) => void
   /** 探测服务端连接（healthz，5s 超时）。 */
   checkConnection: () => Promise<boolean>
@@ -78,17 +78,8 @@ const AppContext = createContext<AppContextValue | null>(null)
 
 const MAX_LOGS = 300
 
-/** 数据与打印「默认目标设备」localStorage 键（在线设备页点选持久化，跨页联动）。 */
+/** 客户端兼容的目标设备存储键。 */
 const DEFAULT_TARGET_KEY = 'labelframe.defaultTargetDeviceId'
-
-function readDefaultTargetDevice(): string | null {
-  try {
-    const v = typeof window !== 'undefined' ? window.localStorage.getItem(DEFAULT_TARGET_KEY) : null
-    return v && v.trim() ? v.trim() : null
-  } catch {
-    return null
-  }
-}
 
 function persistDefaultTargetDevice(id: string | null): void {
   try {
@@ -121,7 +112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [hostDeviceName, setHostDeviceName] = useState<string | null>(null)
   const [hostIps, setHostIps] = useState<string[]>([])
   const [hostVersion, setHostVersion] = useState<string | null>(null)
-  const [defaultTargetDeviceId, setDefaultTargetDeviceIdState] = useState<string | null>(() => (isServerUi ? readDefaultTargetDevice() : null))
+  const [defaultTargetDeviceId, setDefaultTargetDeviceIdState] = useState<string | null>(null)
   const [transport, setTransport] = useState<string | null>(null)
   const [transportConfig, setTransportConfig] = useState<TransportConfig | null>(null)
   // 状态栏初始消息读 i18next 当前语言；后续消息由各页 setStatus 写入（语言切换后旧消息不回译，属既有语义）
@@ -129,7 +120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [statusLevel, setStatusLevel] = useState<'ok' | 'err' | null>(null)
   const [logs, setLogs] = useState<LogLine[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [printDraft, setPrintDraft] = useState<PrintDraft>(() => loadPrintDraft(getSessionStorage()))
+  const [printDraft, setPrintDraft] = useState<PrintDraft>(() => isServerUi ? createEmptyDraft() : loadPrintDraft(getSessionStorage()))
   const pendingRef = useRef<Promise<boolean> | null>(null)
   // 探测串行化与终态一致性三件套：
   // - configReadyRef：client 构建机器级配置加载完成前不探测服务端（消除初始化探测与配置加载后探测交错的竞态双态）；
@@ -139,9 +130,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const baseUrlRef = useRef(isServerUi ? '' : getBaseUrl())
   const probeSeqRef = useRef(0)
 
-  // 草稿变更即持久化（sessionStorage：刷新保留、标签页天然隔离）
+  // Server 管理草稿不得跨登录身份持久化。
   useEffect(() => {
-    savePrintDraft(getSessionStorage(), printDraft)
+    if (!isServerUi) savePrintDraft(getSessionStorage(), printDraft)
   }, [printDraft])
 
   const log = useCallback((msg: string) => {
@@ -300,9 +291,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearLogs = useCallback(() => setLogs([]), [])
 
-  /** 设置默认目标设备（localStorage 持久化；在线设备页点选，数据与打印初始化消费）。 */
+  /** 更新当前界面的默认目标设备。 */
   const setDefaultTargetDeviceId = useCallback((id: string | null) => {
-    persistDefaultTargetDevice(id)
+    if (!isServerUi) persistDefaultTargetDevice(id)
     setDefaultTargetDeviceIdState(id)
   }, [])
 

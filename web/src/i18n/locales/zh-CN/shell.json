@@ -1,5 +1,18 @@
 {
   "appTitle": "LabelFrame 标签打印",
+  "auth": {
+    "login": "管理员登录",
+    "logout": "退出管理",
+    "password": "管理员密码",
+    "required": "此页面需要管理员身份。公开下载与帮助无需登录。",
+    "transport": "远程管理需要可信 HTTPS；仅直连回环允许 HTTP。",
+    "notConfigured": "尚未配置管理员密码哈希，请联系部署管理员。",
+    "sessionFailed": "无法确认管理会话。请检查连接与 HTTPS 配置后重试登录。",
+    "loginFailed": "登录未完成，请检查密码、连接与 HTTPS 配置；请求过多时请稍后再试。",
+    "logoutUnconfirmed": "本页管理数据已清除，但服务端撤销尚未确认。请恢复连接后重新登录并退出；刷新可能恢复仍有效的会话。",
+    "wait": "请稍候…",
+    "language": "中文 / English"
+  },
   "nav": {
     "region": "主导航",
     "workbench": "工作台",

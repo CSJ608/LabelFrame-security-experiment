@@ -133,7 +133,7 @@ function PackageTable({
   /** 二维码前缀（本页 origin）：二维码内容 = origin + 下载相对路径 = 局域网可访问的完整 URL。 */
   qrOrigin: string
   deleting: string | null
-  onRemove: (row: PackageRow) => void
+  onRemove?: (row: PackageRow) => void
   updateActions?: (fileName: string) => ReactNode
 }) {
   const { t } = useTranslation('downloadCenter')
@@ -151,7 +151,7 @@ function PackageTable({
       </thead>
       <tbody>
         {rows.map((p) => (
-          <tr key={p.fileName} style={{ cursor: 'default' }}>
+          <tr key={p.downloadHref} style={{ cursor: 'default' }}>
             <td className="mono" style={{ fontSize: 12, wordBreak: 'break-all' }}>
               {p.fileName}
             </td>
@@ -171,7 +171,7 @@ function PackageTable({
                   <Icon name="download" size={12} />
                   {t('action.download')}
                 </a>
-                <button
+                {onRemove && <button
                   className="btn sm danger"
                   onClick={() => onRemove(p)}
                   disabled={deleting === p.fileName}
@@ -179,7 +179,7 @@ function PackageTable({
                 >
                   <Icon name="trash" size={12} />
                   {deleting === p.fileName ? t('action.deleting') : t('action.delete')}
-                </button>
+                </button>}
               </div>
             </td>
           </tr>
@@ -287,9 +287,9 @@ function candidateUrl(ip: string, basePath: string): string {
  * 无通告时走 GET /api/server/ipv4-candidates（私网优先）推导并携带部署子路径前缀，
  * 默认选择规则见 lib/connection.ts pickDisplayAddress / pickDefaultAddress。
  */
-function ConnectionCard() {
+function ConnectionCard({ publicOnly = false }: { publicOnly?: boolean }) {
   const { t } = useTranslation('downloadCenter')
-  const [candidates, setCandidates] = useState<string[] | null>(null)
+  const [candidates, setCandidates] = useState<string[] | null>(publicOnly ? [] : null)
   const [publicBaseUrl, setPublicBaseUrl] = useState<string | null>(null)
   const [selected, setSelected] = useState<string>(pageOrigin())
   const [copied, setCopied] = useState(false)
@@ -297,7 +297,7 @@ function ConnectionCard() {
 
   useEffect(() => {
     let cancelled = false
-    serverApi
+    if (!publicOnly) serverApi
       .listServerIpv4Candidates()
       .then((res) => {
         if (!cancelled) setCandidates(Array.isArray(res.candidates) ? res.candidates : [])
@@ -321,7 +321,7 @@ function ConnectionCard() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [publicOnly])
 
   const basePath = pageBasePath()
 
@@ -375,6 +375,37 @@ function ConnectionCard() {
       )}
     </div>
   )
+}
+
+/** 无管理状态与写操作的公开下载页。 */
+export function PublicDownloads() {
+  const { t } = useTranslation('downloadCenter')
+  const [rows, setRows] = useState<PackageRow[] | null>(null)
+  const [error, setError] = useState(false)
+  const [revision, setRevision] = useState(0)
+  useEffect(() => {
+    let active = true
+    void Promise.all([serverApi.listClientPackages(), serverApi.listPdaPackages()])
+      .then(([clients, pdas]) => {
+        if (!active) return
+        setRows([
+          ...clients.map(p => ({ ...p, downloadHref: clientPackageDownloadUrl(p.fileName) })),
+          ...pdas.map(p => ({ ...p, downloadHref: pdaPackageDownloadUrl(p.fileName) })),
+        ])
+      }).catch(() => { if (active) setError(true) })
+    return () => { active = false }
+  }, [revision])
+  return <div className="page">
+    <div className="page-head"><h1 className="page-title">{t('page.title')}</h1>
+      <button className="btn" onClick={() => { setError(false); setRevision(v => v + 1) }}>{t('action.refresh')}</button>
+    </div>
+    <div style={{ overflow: 'auto', padding: 16 }}>
+      {error && <p role="alert">{t('loadFailed')}</p>}
+      {rows === null ? <p>{t('quick.loading')}</p> : <PackageTable rows={rows} qrOrigin={pageOrigin()} deleting={null} />}
+      <h2>{t('connection.title')}</h2>
+      <ConnectionCard publicOnly />
+    </div>
+  </div>
 }
 
 export function DownloadCenter({ sub = '', onSubChange }: { sub?: string; onSubChange?: (next: string) => void }) {

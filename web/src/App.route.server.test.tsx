@@ -10,7 +10,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import App from './App'
+import { ManagementApp as App } from './App'
 
 configure({ asyncUtilTimeout: 8000 })
 

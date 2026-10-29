@@ -8,7 +8,7 @@
 
 ## 2. 内部结构
 
-当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为全部旧完整 Program HTTP fixture 提供全存储隔离、环境变量恢复和正式登录辅助，证据目录保留不删除。常规端点回归使用真实回环动态端口；受信代理的来源 IP 模拟仍为 TestServer，只验证设备运行来源，不作为真实 HTTPS 或管理传输验收。Perf/Soak fixture 同样迁移但不运行，切换 Kestrel 后不能直接沿用旧内存传输性能基线。前端登录/退出尚未交付，因此原型不可作为完整产品使用。
+当前已接线原型：`Security/ServerEndpointAccess`、`AdminSecurity`、`AdminTicketStore`、`AdminLoginLimiter`、`ServerPublicInfo` 经 Program 装配；`AdminSecurityTests` 是无存储 TestServer，`AdminBoundaryEndpointsTests` 是全部路径隔离的真实 Kestrel 回环动态端口。`IsolatedServerEnvironment` 为全部旧完整 Program HTTP fixture 提供全存储隔离、环境变量恢复和正式登录辅助，证据目录保留不删除。常规端点回归使用真实回环动态端口；受信代理的来源 IP 模拟仍为 TestServer，只验证设备运行来源，不作为真实 HTTPS 或管理传输验收。Perf/Soak fixture 同样迁移但不运行，切换 Kestrel 后不能直接沿用旧内存传输性能基线。前端登录/退出已接线，完整产品兼容与机器认证仍待后续，原型不可作为完整产品使用。
 
 权限分类使用 ASP.NET 路由匹配后的 RouteEndpoint 原始模板及 HTTP 方法，而不是请求字符串前缀；新端点未登记时落到 admin。方法不符、大小写、尾斜杠与编码路径不能获得不同于实际选中端点的权限。保留框架已有上传大小限制、文件名安全检查、签名校验、快照和安装保护。
 
@@ -70,6 +70,15 @@ EXP-S01/02 见 [DESIGN](../DESIGN.md)。框架依据：[Cookie 与撤销](https:
 先设计与分类/会话组件测试，再装配 Program 与完整隔离 HTTP 测试，再前端路由/退出；这些是同一 Issue 的阶段，未接线的模块不算已保护。回退到来源程序会恢复匿名管理，必须同时限制网络，不能无提示作为安全回退。首原型不迁移业务库，重启撤销浏览器会话；设备持久化不是本步交付。
 
 ## 6. 不变量与验证
+
+### 浏览器生命周期补充
+
+前端接线现状：ServerAuthBoundary、adminSession、PublicDownloads 已实现下述契约；管理组件单测直接测试 ManagementApp，入口安全回归单独测试真实 App 包装链。真实浏览器使用全路径隔离 Server 与合成数据，未启动正式 WinHost/PDA；已执行与未执行验收以 Issue 证据为准。
+
+- Server 入口使用独立认证边界，启动读取 session，确认认证前不挂 AppProvider/Shell。公开下载组件只读取包列表与最小 info，不枚举网卡、不读取发布状态；帮助仅静态文章，管理深链显示登录，成功后回到原深链。
+- 请求域覆盖管理 JSON、blob、multipart、发布及健康探测；令牌仅内存，写请求合并 CSRF 与既有头，不手工设置 multipart Content-Type。响应头与响应体读取后都核对代数；取消不等于服务端回滚。
+- 退出、401、多标签失效同步推进代数并取消在途，先卸载管理树再注销。Server 草稿与目标设备仅驻内存，并清理旧版持久化键；client 存储行为不变。注销失败保留“服务端撤销未确认”提示，不自动恢复管理树。
+- 跨标签只广播失效事件、不传播 Cookie/密码/CSRF；恢复焦点时重新核验已登录会话。登录成功须再次 session 获取身份绑定 CSRF；迟到的登录或 session 响应不得重新挂管理树。
 
 - 新 API 默认 admin；回归断言所有实际路由的分类，管理写端点匿名必须拒绝。
 - 测试仅模拟设备/造数据，不运行继承发行/E2E，不启动 WinHost/PDA。启动完整 Program 前覆盖三库、文本日志、三种包、两种更新、UI 全部路径；不得只改三库后落到 ProgramData。

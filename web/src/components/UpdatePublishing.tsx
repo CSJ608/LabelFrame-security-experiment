@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal } from './Modal'
 import '../i18n'
+import { requestTimeouts, serverRequest } from '../lib/api/client'
 
 interface Package {
   version?: string; versionName?: string; versionCode?: number; architecture?: string; abis?: string[]; sha256: string
@@ -34,16 +35,11 @@ export function UpdatePublishing({ platform, revision, children }: {
   const title = t(`simplePublish.${platform}`)
   const scope = (release?: Release) => release?.devices.length ? t('simplePublish.selected', { count: release.devices.length }) : t('simplePublish.all')
   const request = async (path: string, signal: AbortSignal, method = 'GET', body?: unknown) => {
-    const response = await fetch(`${base}${path}`, {
-      method, redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(120000)]),
+    return serverRequest(`${base}${path}`, {
+      method, redirect: 'error', signal,
       headers: { 'Content-Type': 'application/json' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    })
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({})) as { message?: string }
-      throw new Error(result.message ?? `HTTP ${response.status}`)
-    }
-    return response.json()
+    }, requestTimeouts.heavy)
   }
   const reload = async (signal: AbortSignal) => {
     const [nextReleases, nextDrafts, nextReports] = await Promise.all([

@@ -99,10 +99,10 @@ describe('在线设备页：列表渲染', () => {
 })
 
 describe('在线设备页：点击设为默认（Y2）', () => {
-  it('点击在线设备：写入 localStorage + 高亮「默认」徽标 + 状态提示', async () => {
+  it('点击在线设备：仅内存高亮默认目标，不持久化设备标识', async () => {
     render(<Harness />)
     fireEvent.click(await screen.findByText('仓库-1 打印电脑'))
-    expect(window.localStorage.getItem(DEFAULT_TARGET_KEY)).toBe('device-1')
+    expect(window.localStorage.getItem(DEFAULT_TARGET_KEY)).toBeNull()
     expect(await screen.findByText('默认')).toBeTruthy()
     expect(screen.getByText('已将「仓库-1 打印电脑」设为数据与打印默认目标。')).toBeTruthy()
   })
@@ -115,11 +115,11 @@ describe('在线设备页：点击设为默认（Y2）', () => {
     expect(screen.queryByText('默认')).toBeNull()
   })
 
-  it('localStorage 已有默认目标：对应设备行高亮「默认」', async () => {
+  it('忽略旧版持久化目标，不带入新的管理树', async () => {
     window.localStorage.setItem(DEFAULT_TARGET_KEY, 'device-2')
     render(<Harness />)
-    // device-2 虽离线，仍是用户上次点选记录——高亮保留（数据与打印侧对离线默认值会回退到第一台在线）
-    expect(await screen.findByText('默认')).toBeTruthy()
+    expect(await screen.findByText('device-2')).toBeTruthy()
+    expect(screen.queryByText('默认')).toBeNull()
   })
 })
 

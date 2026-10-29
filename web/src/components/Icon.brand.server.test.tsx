@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, render, screen } from '@testing-library/react'
-import App from '../App'
+import { ManagementApp as App } from '../App'
 
 // 与 App.server.test.tsx 同口径：挂载链为多段 promise + React 真实宏任务调度，统一放宽到 8000ms
 configure({ asyncUtilTimeout: 8000 })

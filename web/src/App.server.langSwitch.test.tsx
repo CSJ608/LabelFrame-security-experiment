@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import App from './App'
+import { ManagementApp as App } from './App'
 import i18n, { LOCALE_STORAGE_KEY } from './i18n'
 
 configure({ asyncUtilTimeout: 8000 })
@@ -141,7 +141,7 @@ describe('AC-02 server 构建点击切换（全程无需设置页或 F12）', ()
     await waitFor(() => expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('en'))
     cleanup()
     vi.resetModules()
-    const { default: FreshApp } = await import('./App')
+    const { ManagementApp: FreshApp } = await import('./App')
     render(<FreshApp />)
     expect(await screen.findByRole('button', { name: 'Downloads' })).toBeTruthy()
     expect((await findLangButton()).textContent).toBe('EN')

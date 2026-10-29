@@ -26,6 +26,7 @@ import { DownloadCenter } from './pages/DownloadCenter'
 import { PluginPackages } from './pages/PluginPackages'
 import { startHostActivity } from './lib/hostLifecycle'
 import { ClientUpdateNotice } from './components/ClientUpdates'
+import { ServerAuthBoundary } from './components/ServerAuthBoundary'
 
 // 路由 page 段白名单 = 本构建 tab 集（受限页集不可经 hash 越权进入）
 const ROUTE_ALLOWED: readonly TabId[] = (isServerUi ? SERVER_TABS : CLIENT_TABS).map((t) => t.id)
@@ -342,10 +343,14 @@ function DesignerEmpty({ onNew }: { onNew: () => void }) {
   )
 }
 
-export default function App() {
+export function ManagementApp() {
   return (
     <AppProvider>
       <Shell />
     </AppProvider>
   )
+}
+
+export default function App() {
+  return isServerUi ? <ServerAuthBoundary><ManagementApp /></ServerAuthBoundary> : <ManagementApp />
 }
